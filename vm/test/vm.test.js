@@ -18,7 +18,7 @@ describe('execute txs', () => {
     })
     it('can create a sword and call a method', async () => {
         const tx = new Transaction('tx1')
-        tx.add(new NewInstruction('Sword', [new LiteralArg('excalibur')]))
+        tx.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('excalibur')]))
         tx.add(new CallInstruction(0, 'sharp', []))
 
         const vm = new VM(storage)
@@ -30,7 +30,7 @@ describe('execute txs', () => {
 
     it('can persist state of the sword', async () => {
         const tx1 = new Transaction('tx1')
-        tx1.add(new NewInstruction('Sword', [new LiteralArg('excalibur')]))
+        tx1.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('excalibur')]))
         tx1.add(new CallInstruction(0, 'sharp', []))
 
         const tx2 = new Transaction('tx1')
@@ -47,7 +47,7 @@ describe('execute txs', () => {
 
     it('can create a fighter', async () => {
         const tx1 = new Transaction('tx1')
-        tx1.add(new NewInstruction('Fighter', [new LiteralArg('Eduardo')]))
+        tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Eduardo')]))
 
         const vm = new VM(storage)
         await vm.execTx(tx1)
@@ -57,7 +57,7 @@ describe('execute txs', () => {
 
     it('a frighter fresly made stores null in its sword state', async () => {
         const tx1 = new Transaction('tx1')
-        tx1.add(new NewInstruction('Fighter', [new LiteralArg('Eduardo')]))
+        tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Eduardo')]))
 
         const vm = new VM(storage)
         await vm.execTx(tx1)
@@ -67,8 +67,8 @@ describe('execute txs', () => {
 
     it('can equip a sword into a fighter', async () => {
         const tx1 = new Transaction('tx1')
-        tx1.add(new NewInstruction('Sword', [new LiteralArg('Masamune')]))
-        tx1.add(new NewInstruction('Fighter', [new LiteralArg('Goro')]))
+        tx1.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('Masamune')]))
+        tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Goro')]))
 
         const tx2 = new Transaction('tx2')
         tx2.add(new LoadInstruction('tx1_0'))
@@ -79,15 +79,14 @@ describe('execute txs', () => {
         const vm = new VM(storage)
         await vm.execTx(tx1)
         await vm.execTx(tx2)
-        const parsed = parse(storage.getJigState('tx2_0').stateBuf)
         const parsed2 = parse(storage.getJigState('tx2_1').stateBuf)
         expect(parsed2.get(2)).to.eql('tx1_0')
     })
 
     it ('can equip a sword into a fighter and then the fighter can be bring back into context with right attributes', async () => {
         const tx1 = new Transaction('tx1')
-        tx1.add(new NewInstruction('Sword', [new LiteralArg('Masamune')]))
-        tx1.add(new NewInstruction('Fighter', [new LiteralArg('Goro')]))
+        tx1.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('Masamune')]))
+        tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Goro')]))
 
         const tx2 = new Transaction('tx2')
         tx2.add(new LoadInstruction('tx1_0'))
@@ -115,8 +114,8 @@ describe('execute txs', () => {
 
     it ('a fighter can attack another fighter', async () => {
         const tx1 = new Transaction('tx1')
-        tx1.add(new NewInstruction('Sword', [new LiteralArg('Masamune')]))
-        tx1.add(new NewInstruction('Fighter', [new LiteralArg('Goro')]))
+        tx1.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('Masamune')]))
+        tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Goro')]))
 
         const tx2 = new Transaction('tx2')
         tx2.add(new LoadInstruction('tx1_0'))
@@ -130,7 +129,7 @@ describe('execute txs', () => {
 
         const tx4 = new Transaction('tx4')
         tx4.add(new LoadInstruction('tx3_0'))
-        tx4.add(new NewInstruction('Fighter', [new LiteralArg('Target')]))
+        tx4.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Target')]))
         tx4.add(new CallInstruction(0, 'attack', [new JigArg(1)]))
 
 
@@ -151,8 +150,8 @@ describe('execute txs', () => {
         let i = 10000
         while (i--) {
             const tx1 = new Transaction('tx1')
-            tx1.add(new NewInstruction('Sword', [new LiteralArg('Masamune')]))
-            tx1.add(new NewInstruction('Fighter', [new LiteralArg('Goro')]))
+            tx1.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('Masamune')]))
+            tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Goro')]))
 
             const tx2 = new Transaction('tx2')
             tx2.add(new LoadInstruction('tx1_0'))
@@ -166,7 +165,7 @@ describe('execute txs', () => {
 
             const tx4 = new Transaction('tx4')
             tx4.add(new LoadInstruction('tx3_0'))
-            tx4.add(new NewInstruction('Fighter', [new LiteralArg('Target')]))
+            tx4.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Target')]))
             tx4.add(new CallInstruction(0, 'attack', [new JigArg(1)]))
 
 

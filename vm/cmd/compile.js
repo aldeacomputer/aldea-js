@@ -5,8 +5,8 @@ import { fileURLToPath } from 'url';
 
 const __dir = fileURLToPath(import.meta.url)
 
-for (const moduleName of ['sword', 'fighter']) {
-    const { error, stdout, stderr, stats } = await asc.main([
+for (const moduleName of ['v1/sword', 'v1/fighter']) {
+    const { error, stdout, stderr } = await asc.main([
         path.join(__dir, '../../assembly/compiled', `${moduleName}.ts`),
         "--outFile", path.join(__dir, '../../build', `${moduleName}.wasm`),
         "--textFile", path.join(__dir, '../../build', `${moduleName}.wat`),

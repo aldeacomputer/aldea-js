@@ -1,5 +1,5 @@
-import {CborReader} from "./cbor_reader";
-import {CborWriter} from "./cbor-writer";
+import {CborReader} from "../cbor_reader";
+import {CborWriter} from "../cbor-writer";
 
 // @ts-ignore
 @external("$aldea", "callMethod")
@@ -70,8 +70,7 @@ class SwordProxy {
         const buff = writer.toBuffer();
         const retBuf = callMethod(buff);
         const retReader = new CborReader(retBuf);
-        const ret = retReader.decodeInt() as u32;
-        return ret;
+        return retReader.decodeInt() as u32;
     }
 }
 
@@ -98,7 +97,7 @@ class FighterProxy {
         callMethod(buff);
     }
 
-    attack (enemy: Fighter): void {}
+    attack (_enemy: Fighter): void {}
 }
 
 export function $_constructor (argBuf: Uint8Array): Uint8Array {

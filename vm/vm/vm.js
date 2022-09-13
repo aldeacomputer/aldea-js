@@ -26,27 +26,15 @@ export class VM {
         this.currentExecution = null
     }
 
-    load (moduleName) {
-        if (this.currentExecution.getWasmInstance()) { return }
-        if (moduleName === 'Sword') {
-            const modulePath = path.join(__dir, '../../build', 'sword.wasm')
-            const wasmModule = WasmModule.fromFilePath(modulePath, moduleName)
-            this.currentExecution.addWasmInstance(
-                moduleName,
-                wasmModule
-            )
-            return wasmModule
-        } else if (moduleName === 'Fighter') {
-            const modulePath = path.join(__dir, '../../build', 'fighter.wasm')
-            const wasmModule = WasmModule.fromFilePath(modulePath, moduleName)
-            this.currentExecution.addWasmInstance(
-                moduleName,
-                wasmModule
-            )
-            return wasmModule
-        } else {
-            throw new Error('unknown module')
-        }
+    load (relativePath) {
+        if (this.currentExecution.getWasmInstance(relativePath)) { return }
+        const modulePath = path.join(__dir, '../../build', relativePath)
+        const wasmModule = WasmModule.fromFilePath(modulePath, relativePath)
+        this.currentExecution.addWasmInstance(
+            relativePath,
+            wasmModule
+        )
+        return wasmModule
     }
 
     call (instanceRef, methodName, args) {
