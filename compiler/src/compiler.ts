@@ -4,6 +4,8 @@ import { Arguments, CommandModule } from 'yargs'
 import asc from 'assemblyscript/asc'
 
 const baseDir = join(dirname(fileURLToPath(import.meta.url)), '..')
+console.log(baseDir)
+console.log(baseDir)
 
 export const compileCmd: CommandModule = {
   command: ['compile <src>', 'c'],
@@ -35,8 +37,8 @@ export async function compile(args: Arguments): Promise<void> {
     //'--textFile', textFilePath
     '--runtime', 'stub',
     '--exportRuntime',
-    '--lib', relative(baseDir, 'lib'),
-    '--transform', './'+relative(baseDir, './dist/transform.js')
+    '--lib', relative(process.cwd(), join(baseDir, 'lib')),
+    '--transform', './'+relative(process.cwd(), join(baseDir, './dist/transform.js'))
   ])
 
   if (error) {
