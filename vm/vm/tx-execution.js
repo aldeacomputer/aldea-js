@@ -16,6 +16,7 @@ class TxExecution {
 
     addWasmInstance (moduleName, wasmModule) {
         wasmModule.onMethodCall(this._onMethodCall.bind(this))
+        wasmModule.onCreate(this._onCreate.bind(this))
         this.wasms.set(moduleName, wasmModule)
     }
 
@@ -31,6 +32,12 @@ class TxExecution {
         return resultBuf
     }
 
+    _onCreate (moduleName, args) {
+      this.vm.load(moduleName)
+      const jigRef = this.vm.instanciate(moduleName, args)
+      return jigRef
+    }
+
     getWasmInstance (moduleName) {
         return this.wasms.get(moduleName)
     }
@@ -38,7 +45,7 @@ class TxExecution {
     addNewJigRef (jigRef) {
         this.jigs.push(jigRef)
         this.newJigs.push(jigRef)
-        return this.jigs.length - 1
+        return jigRef
     }
 
     getJigRef (index) {

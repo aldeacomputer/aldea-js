@@ -19,7 +19,7 @@ export class VM {
         await Promise.all(this.currentExecution.jigs.map(async (jigRef, index) => {
             const location = `${tx.id}_${index}`
             const origin = jigRef.origin || location
-            const serialized = await jigRef.module.instanceCall(jigRef.ref, 'serialize')
+            const serialized = jigRef.module.instanceCall(jigRef.ref, 'serialize')
             const jig = new JigState(origin, location, serialized, jigRef.module.id)
             this.storage.addJig(jig)
         }))
@@ -44,8 +44,10 @@ export class VM {
 
     instanciate (moduleRef, args) {
         const module = this.currentExecution.getWasmInstance(moduleRef)
-        const jigRef =  module.staticCall('constructor', args)
-        return this.currentExecution.addNewJigRef(new JigRef(jigRef, module, `${this.currentExecution.tx.id}_${this.currentExecution.jigs.length}`))
+        const jigPointer =  module.staticCall('constructor', args)
+        const jigRef = new JigRef(jigPointer, module, `${this.currentExecution.tx.id}_${this.currentExecution.jigs.length}`)
+        this.currentExecution.addNewJigRef(jigRef)
+        return jigRef
     }
 
     loadJig (location) {

@@ -20,6 +20,7 @@ export class WasmModule {
         this.id = id
         this.memory = new WebAssembly.Memory({ initial: 1, maximum: 1 })
         this.methodHandler = null
+        this.createHandler = null
         this.imports = {
             env: { memory: this.memory, abort: (e) => {
                     throw new Error('abort was called')}
@@ -36,6 +37,18 @@ export class WasmModule {
                     const resBuf = this.methodHandler(origin, methodName, Array.from(argSeq.data))
                     const resPointer = this.__lowerTypedArray(Uint8Array, 3, 0, resBuf)
                     return resPointer
+                },
+                newInstance: (buffPointer) => {
+                  const argBuf = this.__liftTypedArray(Uint8Array, buffPointer >>> 0);
+                  const args = __decodeArgs(argBuf)
+                  const moduleName = args.get(0)
+                  const methodArgumentsBuff = args.get(1)
+                  const argSeq = methodArgumentsBuff.length === 0 ? {data: []} : CBOR.decode(methodArgumentsBuff.slice().buffer, null, { mode: "sequence" })
+                  const jigRef = this.createHandler(moduleName, argSeq)
+                  const originBuff = __encodeArgs([jigRef.origin])
+
+                  const originBuffPointer = this.__lowerTypedArray(Uint8Array, 3, 0, originBuff)
+                  return originBuffPointer
                 }
             }
         }
@@ -45,6 +58,10 @@ export class WasmModule {
 
     onMethodCall (fn) {
         this.methodHandler = fn
+    }
+
+    onCreate (fn) {
+      this.createHandler = fn
     }
 
     setUp () {
@@ -63,8 +80,8 @@ export class WasmModule {
         argBuf = this.__lowerTypedArray(Uint8Array, 3, 0, argBuf) || __notnull()
         // const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" })
         // console.log(parse(argBuf))
-        const coso = this.instance.exports[fnName](argBuf) >>> 0
-        let retBuf = this.__liftTypedArray(Uint8Array, coso);
+        const resultPointer = this.instance.exports[fnName](argBuf) >>> 0
+        let retBuf = this.__liftTypedArray(Uint8Array, resultPointer);
         return __decodeArgs(retBuf)
     }
 
