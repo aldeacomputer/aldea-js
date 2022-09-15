@@ -4,9 +4,9 @@ export class NewInstruction {
         this.argList = argList
     }
 
-    exec (vm, _context) {
+    exec (vm) {
         vm.load(this.className)
         const args = this.argList.map(a => a.get(vm))
-        vm.instanciate(this.className, args)
+        vm.instanciate(this.className, args, null)
     }
 }

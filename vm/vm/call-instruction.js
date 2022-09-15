@@ -7,7 +7,7 @@ export class CallInstruction {
 
     exec (vm) {
         const args = this.args.map(a => a.get(vm))
-        vm.call(this.instanceRef, this.methodName, args)
+        vm.call(this.instanceRef, this.methodName, args, null)
     }
 }
 

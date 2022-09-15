@@ -21,6 +21,7 @@ export class WasmModule {
         this.memory = new WebAssembly.Memory({ initial: 1, maximum: 1 })
         this.methodHandler = null
         this.createHandler = null
+        this.adoptHandler = null
         this.imports = {
             env: { memory: this.memory, abort: (e) => {
                     throw new Error('abort was called')}
@@ -44,11 +45,16 @@ export class WasmModule {
                   const moduleName = args.get(0)
                   const methodArgumentsBuff = args.get(1)
                   const argSeq = methodArgumentsBuff.length === 0 ? {data: []} : CBOR.decode(methodArgumentsBuff.slice().buffer, null, { mode: "sequence" })
-                  const jigRef = this.createHandler(moduleName, argSeq)
+                  const jigRef = this.createHandler(moduleName, argSeq.data)
                   const originBuff = __encodeArgs([jigRef.origin])
 
                   const originBuffPointer = this.__lowerTypedArray(Uint8Array, 3, 0, originBuff)
                   return originBuffPointer
+                },
+                adoptJig: (buffPointer) => {
+                  const argBuf = this.__liftTypedArray(Uint8Array, buffPointer >>> 0)
+                  const childOrigin = __decodeArgs(argBuf)
+                  this.adoptHandler(childOrigin)
                 }
             }
         }
@@ -62,6 +68,10 @@ export class WasmModule {
 
     onCreate (fn) {
       this.createHandler = fn
+    }
+
+    onAdopt (fn) {
+      this.adoptHandler = fn
     }
 
     setUp () {
@@ -89,8 +99,6 @@ export class WasmModule {
         const fnName = '$_parse'
 
         let argBuf = frozenState
-        const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" })
-        // console.log(parse(argBuf))
         argBuf = this.__lowerTypedArray(Uint8Array, 3, 0, argBuf) || __notnull()
         let retBuf = this.__liftTypedArray(Uint8Array, this.instance.exports[fnName](argBuf) >>> 0);
         return __decodeArgs(retBuf)

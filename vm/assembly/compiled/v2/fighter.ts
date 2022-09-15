@@ -3,9 +3,27 @@ import {CborWriter} from "../cbor-writer";
 
 // @ts-ignore
 @external("$aldea", "newInstance")
-declare function newInstance(args: Uint8Array): Uint8Array;
+declare function aldeaCreate(args: Uint8Array): Uint8Array;
 
-class Weapon {
+function createInstance (moduleName:string, argBuf: Uint8Array): string {
+  const writer = new CborWriter();
+  writer.encodeStr(moduleName);
+  writer.encodeBuf(argBuf);
+  const responseBuf = aldeaCreate(writer.toBuffer());
+  return new CborReader(responseBuf).decodeStr();
+}
+
+// @ts-ignore
+@external("$aldea", "adoptJig")
+declare function adoptJig(buffPointer: Uint8Array): Uint8Array;
+
+function adopt(childOrigin: string): void {
+  const cbor = new CborWriter();
+  cbor.encodeStr(childOrigin);
+  adoptJig(cbor.toBuffer());
+}
+
+class WeaponProxy {
   origin: string;
 
   constructor(origin: string) {
@@ -13,19 +31,13 @@ class Weapon {
   }
 }
 
-class HandProxy extends Weapon{
+class HandProxy extends WeaponProxy{
   constructor(origin: string) {
     super(origin);
   }
 
-  static $$create (): HandProxy {
-    const writer = new CborWriter();
-    writer.encodeStr('v2/hand.wasm');
-    writer.encodeBuf(
-      new Uint8Array(0)
-    );
-    const responseBuf = newInstance(writer.toBuffer());
-    const origin = new CborReader(responseBuf).decodeStr();
+  static $$create(): HandProxy {
+    const origin = createInstance('v2/hand.wasm', new Uint8Array(0));
     return new HandProxy(origin);
   }
 }
@@ -33,19 +45,25 @@ class HandProxy extends Weapon{
 
 class Fighter {
   health: u8;
-  leftArm: Weapon;
+  leftArm: WeaponProxy;
+  stash: Array<WeaponProxy>;
 
   constructor() {
     this.health = 100;
     this.leftArm = HandProxy.$$create();
+    this.stash = [];
+    adopt(this.leftArm.origin);
   }
 
-  equipLeftHand (gear: Weapon): void {
+  equipLeftHand (gear: WeaponProxy): void {
+    adopt(gear.origin);
+    this.stash.push(this.leftArm);
     this.leftArm = gear;
   }
 }
 
-export function $_constructor (_argBuf: Uint8Array): Uint8Array {
+export function $_constructor (argBuf: Uint8Array): Uint8Array {
+  const args = new CborReader(argBuf);
   const instance = new Fighter();
 
   const ret = new CborWriter();
@@ -55,6 +73,7 @@ export function $_constructor (_argBuf: Uint8Array): Uint8Array {
 
 export function $_parse(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
+  const origin = args.decodeStr();
   const health = args.decodeInt() as u32;
   const leftArmOrigin = args.decodeStr();
 
@@ -76,5 +95,17 @@ export function $$serialize(argBuf: Uint8Array): Uint8Array {
   const ret = new CborWriter();
   ret.encodeInt(instance.health);
   ret.encodeStr(instance.leftArm.origin);
+  ret.encodeArray(instance.stash.map((s: WeaponProxy) => s.origin));
   return ret.toBuffer();
+}
+
+export function $$equipLeftHand(argBuf: Uint8Array): Uint8Array {
+  const args = new CborReader(argBuf);
+  const ref = args.decodeRef<Fighter>();
+  const leftHandOrigin = args.decodeStr();
+
+  const weapon = new WeaponProxy(leftHandOrigin);
+  ref.equipLeftHand(weapon);
+
+  return new Uint8Array(0);
 }

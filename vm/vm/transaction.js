@@ -8,9 +8,9 @@ class Transaction {
         this.instructions.push(instruction)
     }
 
-    async exec (vm) {
+    exec (vm) {
         for(const instruction of this.instructions) {
-            await instruction.exec(vm)
+            instruction.exec(vm)
         }
     }
 }

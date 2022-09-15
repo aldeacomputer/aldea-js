@@ -25,12 +25,8 @@ for (const moduleName of ['v1/sword', 'v1/fighter', 'v2/fighter', 'v2/sword', 'v
     if (error) {
         console.log("Compilation failed: " + error.message);
         console.log(stderr.toString());
-    } else {
-        console.log(stdout.toString());
+        process.exit(1)
     }
 }
 
-
-const modulePath = path.join(__dir, '../../build', 'sword.debug.wasm')
-
-console.log(modulePath)
+console.log('ok')

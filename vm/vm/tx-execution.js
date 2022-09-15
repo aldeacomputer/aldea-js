@@ -1,61 +1,78 @@
 class TxExecution {
-    constructor (tx, vm) {
-        this.tx = tx
-        this.vm = vm
-        this.jigs = []
-        this.newJigs = []
-        this.inputJigs = []
-        this.wasms = new Map()
-    }
+  constructor (tx, vm) {
+    this.tx = tx
+    this.vm = vm
+    this.jigs = []
+    this.newJigs = []
+    this.inputJigs = []
+    this.wasms = new Map()
+    this.keys = []
+    this.stack = []
+  }
 
-    async exec (vm) {
-        for(const instruction of this.instructions) {
-            await instruction.exec(vm)
-        }
+  async exec (vm) {
+    for (const instruction of this.instructions) {
+      await instruction.exec(vm)
     }
+  }
 
-    addWasmInstance (moduleName, wasmModule) {
-        wasmModule.onMethodCall(this._onMethodCall.bind(this))
-        wasmModule.onCreate(this._onCreate.bind(this))
-        this.wasms.set(moduleName, wasmModule)
-    }
+  addWasmInstance (moduleName, wasmModule) {
+    wasmModule.onMethodCall(this._onMethodCall.bind(this))
+    wasmModule.onCreate(this._onCreate.bind(this))
+    wasmModule.onAdopt(this._onAdopt.bind(this))
+    this.wasms.set(moduleName, wasmModule)
+  }
 
-    _onMethodCall (origin, methodName, args) {
-        let jig = this.jigs.find(j => j.origin === origin)
-        if (!jig) {
-            this.vm.loadJig(origin)
-            jig = this.jigs.find(j => j.origin === origin)
-        }
-        const resultBuf = jig.module.rawInstanceCall(jig.ref, methodName, args)
-        // const resultPointer = jig.module.__lowerTypedArray(Uint8Array, 3, 0, resultBuf)
-        // return resultPointer
-        return resultBuf
+  _onMethodCall (origin, methodName, args) {
+    let jig = this.jigs.find(j => j.origin === origin)
+    if (!jig) {
+      this.vm.loadJig(origin)
+      jig = this.jigs.find(j => j.origin === origin)
     }
+    const resultBuf = jig.module.rawInstanceCall(jig.ref, methodName, args)
+    // const resultPointer = jig.module.__lowerTypedArray(Uint8Array, 3, 0, resultBuf)
+    // return resultPointer
+    return resultBuf
+  }
 
-    _onCreate (moduleName, args) {
-      this.vm.load(moduleName)
-      const jigRef = this.vm.instanciate(moduleName, args)
-      return jigRef
-    }
+  _onCreate (moduleName, args) {
+    this.vm.load(moduleName)
+    const jigRef = this.vm.instanciate(moduleName, args, null)
+    return jigRef
+  }
 
-    getWasmInstance (moduleName) {
-        return this.wasms.get(moduleName)
-    }
+  _onAdopt(childOrigin) {
+    const childJigRef = this.getJigRefByOrigin(childOrigin)
+    const parentJigOrigin = this.stack[this.stack.length - 1]
+    childJigRef.setOwner(parentJigOrigin)
+  }
 
-    addNewJigRef (jigRef) {
-        this.jigs.push(jigRef)
-        this.newJigs.push(jigRef)
-        return jigRef
-    }
+  getWasmInstance (moduleName) {
+    return this.wasms.get(moduleName)
+  }
 
-    getJigRef (index) {
-        return this.jigs[index]
-    }
+  addNewJigRef (jigRef) {
+    this.jigs.push(jigRef)
+    this.newJigs.push(jigRef)
+    return jigRef
+  }
 
-    addInputJig (jigRef) {
-        this.inputJigs.push(jigRef)
-        this.jigs.push(jigRef)
-    }
+  getJigRef (index) {
+    return this.jigs[index]
+  }
+
+  getJigRefByOrigin (origin) {
+    return this.jigs.find(jr => jr.origin === origin)
+  }
+
+  addInputJig (jigRef) {
+    this.inputJigs.push(jigRef)
+    this.jigs.push(jigRef)
+  }
+
+  addKey (key) {
+    this.keys = key
+  }
 }
 
 export { TxExecution }
