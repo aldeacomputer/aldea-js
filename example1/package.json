@@ -1,0 +1,11 @@
+{
+  "name": "playground",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "aldea-zero-compiler": "../compiler",
+    "cbor-redux": "^1.0.0-3"
+  }
+}

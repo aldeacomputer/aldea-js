@@ -1,4 +1,19 @@
 {
-  "name": "compiler",
-  "packageManager": "yarn@3.2.3"
+  "name": "aldea-zero-compiler",
+  "version": "0.0.1",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "aldea": "bin/aldea.js"
+  },
+  "packageManager": "yarn@3.2.3",
+  "dependencies": {
+    "assemblyscript": "^0.21.3",
+    "yargs": "^17.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.7.17",
+    "@types/yargs": "^17.0.12",
+    "typescript": "^4.8.3"
+  }
 }
