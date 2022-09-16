@@ -184,6 +184,7 @@ __metadata:
     assemblyscript: ^0.21.3
     cbor-redux: 1.0.0-3
     chai: ^4.3.6
+    chokidar: ^3.5.3
     mocha: ^10.0.0
     nodemon: ^2.0.19
     typescript: ^4.8.3
@@ -323,7 +324,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chokidar@npm:3.5.3, chokidar@npm:^3.5.2":
+"chokidar@npm:3.5.3, chokidar@npm:^3.5.2, chokidar@npm:^3.5.3":
   version: 3.5.3
   resolution: "chokidar@npm:3.5.3"
   dependencies:

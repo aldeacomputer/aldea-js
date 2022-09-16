@@ -1,3 +1,5 @@
+import { JigLock } from "./locks/jig-lock.js"
+
 class TxExecution {
   constructor (tx, vm) {
     this.tx = tx
@@ -29,22 +31,19 @@ class TxExecution {
       this.vm.loadJig(origin)
       jig = this.jigs.find(j => j.origin === origin)
     }
-    const resultBuf = jig.module.rawInstanceCall(jig.ref, methodName, args)
-    // const resultPointer = jig.module.__lowerTypedArray(Uint8Array, 3, 0, resultBuf)
-    // return resultPointer
-    return resultBuf
+
+    return jig.module.rawInstanceCall(jig.ref, methodName, args)
   }
 
   _onCreate (moduleName, args) {
     this.vm.load(moduleName)
-    const jigRef = this.vm.instanciate(moduleName, args, null)
-    return jigRef
+    return this.vm.instanciate(moduleName, args, null)
   }
 
   _onAdopt(childOrigin) {
     const childJigRef = this.getJigRefByOrigin(childOrigin)
     const parentJigOrigin = this.stack[this.stack.length - 1]
-    childJigRef.setOwner(parentJigOrigin)
+    childJigRef.setOwner(new JigLock(parentJigOrigin))
   }
 
   getWasmInstance (moduleName) {

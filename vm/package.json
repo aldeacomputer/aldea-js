@@ -6,7 +6,7 @@
   "scripts": {
     "test": "mocha",
     "build": "node cmd/compile.js",
-    "dev": "nodemon"
+    "dev": "nodemon --config nodemon.json -L"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +14,7 @@
   "devDependencies": {
     "assemblyscript": "^0.21.3",
     "chai": "^4.3.6",
+    "chokidar": "^3.5.3",
     "mocha": "^10.0.0",
     "nodemon": "^2.0.19",
     "typescript": "^4.8.3"

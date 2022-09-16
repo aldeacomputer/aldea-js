@@ -2,21 +2,21 @@ import { Transaction } from '../vm/transaction.js'
 import { NewInstruction } from '../vm/new-instruction.js'
 import { CallInstruction } from '../vm/call-instruction.js'
 import { VM } from '../vm/vm.js'
-import { CBOR, Sequence } from 'cbor-redux'
+import { CBOR } from 'cbor-redux'
 import { expect } from 'chai'
 import { Storage } from '../vm/storage.js'
 import { LoadInstruction } from '../vm/load-instruction.js'
-import { LiteralArg } from '../vm/literal-arg.js'
 import { JigArg } from '../vm/jig-arg.js'
 import { UnlockInstruction } from "../vm/unlock-instruction.js"
 import { PermissionError } from "../vm/permission-error.js"
 import { LockInstruction } from "../vm/lock-instruction.js"
+import { UserLock } from "../vm/locks/user-lock.js"
 
 const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" })
 
 describe('execute txs', () => {
   let storage
-  const userLock = 'userKey';
+  const userLock = new UserLock('userKey');
   beforeEach(() => {
     storage = new Storage()
   })
@@ -96,10 +96,7 @@ describe('execute txs', () => {
   })
 
   it('once the sword was owned by the fighter it cannot be used outside', () => {
-    // const userLock = 'user1Lock'
-    const userKey = 'user1Key'
     const tx1 = new Transaction('tx1')
-    tx1.add(new UnlockInstruction(userKey))
     tx1.add(new NewInstruction('v2/fighter.wasm', []))
     tx1.add(new NewInstruction('v2/sword.wasm',[]))
     tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
@@ -115,6 +112,24 @@ describe('execute txs', () => {
 
     expect(() => vm.execTx(tx2)).to.throw(PermissionError)
   })
+
+  it('once the sword was owned is stored with a proper jig lock', () => {
+    const userKey = 'user1Key'
+    const tx1 = new Transaction('tx1')
+    tx1.add(new UnlockInstruction(userKey))
+    tx1.add(new NewInstruction('v2/fighter.wasm', []))
+    tx1.add(new NewInstruction('v2/sword.wasm',[]))
+    tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
+    tx1.add(new LockInstruction(0, userLock))
+    tx1.add(new LockInstruction(2, userLock))
+
+    const vm = new VM(storage)
+    vm.execTx(tx1)
+
+    const state = storage.getJigState('tx1_0')
+    expect(state.lock).to.eql(userLock)
+  })
+
 
 
   // it('cbors stuff', () => {

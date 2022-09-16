@@ -18,7 +18,7 @@ export class VM {
     this.currentExecution = new TxExecution(tx, this)
     tx.exec(this)
     this.currentExecution.jigs.forEach(jigRef => {
-      if (jigRef.owner === null) {
+      if (jigRef.lock === null) {
         throw new PermissionError(`unlocked jig: ${jigRef.origin}`)
       }
     })
@@ -26,7 +26,7 @@ export class VM {
       const location = `${tx.id}_${index}`
       const origin = jigRef.origin || location
       const serialized = jigRef.module.instanceCall(jigRef.ref, 'serialize')
-      const jig = new JigState(origin, location, serialized, jigRef.module.id)
+      const jig = new JigState(origin, location, serialized, jigRef.module.id, jigRef.lock)
       this.storage.addJig(jig)
     })
 
@@ -57,8 +57,7 @@ export class VM {
     const jigRef = new JigRef(null, module, origin, initialOwner)
     this.currentExecution.addNewJigRef(jigRef)
     this.currentExecution.stack.push(origin)
-    const jigPointer = module.staticCall('constructor', ...args)
-    jigRef.ref = jigPointer
+    jigRef.ref = module.staticCall('constructor', ...args)
     this.currentExecution.stack.pop()
     return jigRef
   }

@@ -3,8 +3,5 @@
   "watch": [
     "assembly/compiled/**/*"
   ],
-  "execMap": {
-    "ts": "yarn compile"
-  },
-  "exec": "yarn build"
+  "exec": "echo holu"
 }

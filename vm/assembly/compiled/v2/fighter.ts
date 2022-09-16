@@ -4,7 +4,6 @@ import {CborWriter} from "../cbor-writer";
 // @ts-ignore
 @external("$aldea", "newInstance")
 declare function aldeaCreate(args: Uint8Array): Uint8Array;
-
 function createInstance (moduleName:string, argBuf: Uint8Array): string {
   const writer = new CborWriter();
   writer.encodeStr(moduleName);
@@ -62,8 +61,7 @@ class Fighter {
   }
 }
 
-export function $_constructor (argBuf: Uint8Array): Uint8Array {
-  const args = new CborReader(argBuf);
+export function $_constructor (_argBuf: Uint8Array): Uint8Array {
   const instance = new Fighter();
 
   const ret = new CborWriter();
@@ -73,7 +71,6 @@ export function $_constructor (argBuf: Uint8Array): Uint8Array {
 
 export function $_parse(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
-  const origin = args.decodeStr();
   const health = args.decodeInt() as u32;
   const leftArmOrigin = args.decodeStr();
 
