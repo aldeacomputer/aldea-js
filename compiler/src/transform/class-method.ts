@@ -1,29 +1,33 @@
 import { CommonFlags, MethodDeclaration, NamedTypeNode } from 'assemblyscript'
-import { JigField } from './jig-field.js'
+import { ClassField } from './class-field.js'
 
 /**
  * Jig method.
  */
-export class JigMethod {
+export class ClassMethod {
   name: string;
-  args: JigField[];
+  args: ClassField[];
   returnType: string;
   flags: number;
 
-  constructor(name: string, args: JigField[], returnType: string, flags: number) {
+  constructor(name: string, args: ClassField[], returnType: string, flags: number) {
     this.name = name
     this.args = args
     this.returnType = returnType
     this.flags = flags
   }
 
-  static fromNode(method: MethodDeclaration): JigMethod {
+  static fromNode(method: MethodDeclaration): ClassMethod {
     return new this(
       method.name.text,
-      method.signature.parameters.map(p => JigField.fromNode(p)),
+      method.signature.parameters.map(p => ClassField.fromNode(p)),
       (method.signature.returnType as NamedTypeNode).name.identifier.text,
       method.flags
     )
+  }
+
+  get isAmbiant(): boolean {
+    return (this.flags & CommonFlags.AMBIENT) === CommonFlags.AMBIENT
   }
 
   get isConstructor(): boolean {

@@ -1,6 +1,6 @@
-import { JigClass } from "./jig-class.js"
-import { JigMethod } from "./jig-method.js"
-import { JigField } from "./jig-field.js"
+import { ClassNode } from "./class-node.js"
+import { ClassMethod } from "./class-method.js"
+import { ClassField } from "./class-field.js"
 
 const AS_INT_TYPES = [
   'i8',
@@ -17,28 +17,77 @@ const AS_INT_TYPES = [
 
 
 /**
- * Writes an exported module function for the given JigMethod. Returns an
+ * Writes a class wrapper for the specific Class, around the given member
+ * strings. Returns an AssemblyScript string.
+ */
+export function writeClassWrapper(obj: ClassNode, members: string[]): string {
+  return `
+  class ${obj.name} {
+    ${members.join('\n')}
+  }
+  `.trim()
+}
+
+
+/**
+ * Writes a deserialize static method for the given Class. Returns an
+ * AssemblyScript string.
+ * 
+ * - Decodes the given serialized props
+ * - Writes the props into memory
+ * - Returns the pointer as a instance
+ */
+export function writeDeserializeStaticMethod(obj: ClassNode): string {
+  return `
+  static deserialize(argBuf: Uint8Array): ${obj.name} {
+    ${ writeArgReader(obj.fields, obj) }
+    ${ writePtrWriter(obj.fields, obj) }
+    return changetype<${obj.name}>(ptr)
+  }
+  `.trim()
+}
+
+
+/**
+ * Writes a serialize instance method for the given Class. Returns an
+ * AssemblyScript string.
+ * 
+ * - Encodes all props in sequence
+ * - Returns the CBOR-encoded sequence
+ */
+export function writeSerializeInstanceMethod(obj: ClassNode): string {
+  obj.fields.forEach(f => f.name = `this.${f.name}`)
+  return `
+  serialize(): Uint8Array {
+    ${ writeReturnWriter(obj.fields, obj) }
+  }
+  `.trim()
+}
+
+
+/**
+ * Writes an exported module function for the given ClassMethod. Returns an
  * AssemblyScript string.
  * 
  * - Decodes the given arguments
  * - Calls the native function
  * - Encodes the return value
  */
-export function writeJigMethod(method: JigMethod, jig: JigClass): string {
-  const prefix = method.isConstructor || method.isStatic ? '$_' : '$$'
+export function writeExportMethod(method: ClassMethod, obj: ClassNode): string {
+  const separator = method.isConstructor || method.isStatic ? '_' : '$'
 
   const argReaderChunks = ['const args = new CborReader(argBuf)']
   if (!method.isConstructor && !method.isStatic) {
-    argReaderChunks.push(`const ${ jig.iName } = args.${ decodeMethod(new JigField(jig.iName, jig.name), true) }`)
+    argReaderChunks.push(`const ${ obj.iName } = args.${ decodeMethod(new ClassField(obj.iName, obj.name), true) }`)
   }
 
-  const returnType = method.isConstructor ? jig.name : method.returnType
+  const returnType = method.isConstructor ? obj.name : method.returnType
 
   return `
-  export function ${ prefix }${ method.name } (argBuf: Uint8Array): Uint8Array {
-    ${ writeArgReader(method.args, jig, argReaderChunks) }
-    ${ writeMethodCall(method, jig) }
-    ${ writeReturnWriter(new JigField('retVal', returnType), jig) }
+  export function ${ obj.name }${ separator }${ method.name } (argBuf: Uint8Array): Uint8Array {
+    ${ writeArgReader(method.args, obj, argReaderChunks) }
+    ${ writeMethodCall(method, obj) }
+    ${ writeReturnWriter(new ClassField('ctx', returnType), obj) }
   }
   `.trim()
 }
@@ -48,16 +97,14 @@ export function writeJigMethod(method: JigMethod, jig: JigClass): string {
  * Writes an exported module function to parse the given class. Returns an
  * AssemblyScript string.
  * 
- * - Decodes the given serialized props
- * - Writes the props into memory
- * - Encodes the return value (ptr)
+ * - Calls deserialize on the the class
+ * - Encodes and returns the instance as a Ptr
  */
-export function writeParseMethod(jig: JigClass): string {
+export function writeExportDeserializeMethod(obj: ClassNode): string {
   return `
-  export function $_parse(argBuf: Uint8Array): Uint8Array {
-    ${ writeArgReader(jig.fields, jig) }
-    ${ writePtrWriter(jig.fields, jig) }
-    ${ writeReturnWriter(new JigField('ptr', 'u32'), jig) }
+  export function ${ obj.name }_deserialize(argBuf: Uint8Array): Uint8Array {
+    const ${obj.iName} = ${ obj.name }.deserialize(argBuf)
+    ${ writeReturnWriter(new ClassField(obj.iName, obj.name), obj) }
   }
   `.trim()
 }
@@ -70,12 +117,13 @@ export function writeParseMethod(jig: JigClass): string {
  * - Decodes the given arguments
  * - Encodes the return value (all instance props)
  */
-export function writeSerializeMethod(jig: JigClass): string {
-  jig.fields.forEach(f => f.name = `${jig.iName}.${f.name}`)
+export function writeExportSerializeMethod(obj: ClassNode): string {
+  obj.fields.forEach(f => f.name = `${obj.iName}.${f.name}`)
   return `
-  export function $$serialize(argBuf: Uint8Array): Uint8Array {
-    ${ writeArgReader(new JigField(jig.iName, jig.name), jig) }
-    ${ writeReturnWriter(jig.fields, jig) }
+  export function ${ obj.name }$serialize(argBuf: Uint8Array): Uint8Array {
+    const args = new CborReader(argBuf)
+    const ${ obj.iName } = args.decodeRef<${ obj.name }>()
+    return ${ obj.iName }.serialize()
   }
   `.trim()
 }
@@ -86,8 +134,8 @@ export function writeSerializeMethod(jig: JigClass): string {
  * Returns an AssemblyScript string.
  */
 export function writeArgReader(
-  fields: JigField[] | JigField,
-  jig: JigClass,
+  fields: ClassField[] | ClassField,
+  obj: ClassNode,
   chunks: string[] = ['const args = new CborReader(argBuf)']
 ): string {
   if (!Array.isArray(fields)) { fields = [fields]}
@@ -95,13 +143,12 @@ export function writeArgReader(
     return ''
   }
 
-  return fields.reduce((chunks: string[], field: JigField): string[] => {
-    const isRef = field.type === jig.name
-    chunks.push(`const ${ field.name } = args.${ decodeMethod(field, isRef) }`)
+  return fields.reduce((chunks: string[], field: ClassField, i: number): string[] => {
+    const isRef = field.type === obj.name
+    chunks.push(`const a${ i } = args.${ decodeMethod(field, isRef) }`)
     return chunks
   }, chunks).join('\n')
 }
-
 
 
 /**
@@ -109,15 +156,15 @@ export function writeArgReader(
  * of fields to the pointer's memory. Returns an AssemblyScript string.
  */
 export function writePtrWriter(
-  fields: JigField[],
-  jig: JigClass,
-  chunks: string[] = [`const ptr = __new(offsetof<${ jig.name }>(), idof<${ jig.name }>())`]
+  fields: ClassField[],
+  obj: ClassNode,
+  chunks: string[] = [`const ptr = __new(offsetof<${ obj.name }>(), idof<${ obj.name }>())`]
 ): string {
-  return fields.reduce((chunks: string[], field: JigField): string[] => {
+  return fields.reduce((chunks: string[], field: ClassField, i: number): string[] => {
     const type = AS_INT_TYPES.includes(field.type) ? field.type : 'usize'
-    const val = AS_INT_TYPES.includes(field.type) ? field.name : `changetype<usize>(${ field.name })`
+    const val = AS_INT_TYPES.includes(field.type) ? `a${ i }` : `changetype<usize>(a${ i })`
 
-    chunks.push(`store<${ type }>(ptr + offsetof<${ jig.name }>('${ field.name }'), ${ val })`)
+    chunks.push(`store<${ type }>(ptr + offsetof<${ obj.name }>('${ field.name }'), ${ val })`)
     return chunks
   }, chunks).join('\n')
 }
@@ -127,14 +174,14 @@ export function writePtrWriter(
  * Writes statements to encode the given field or array of fields in a Cbor buffer.
  * Returns an AssemblyScript string.
  */
-export function writeReturnWriter(fields: JigField[] | JigField, jig: JigClass): string {
+export function writeReturnWriter(fields: ClassField[] | ClassField, obj: ClassNode): string {
   if (!Array.isArray(fields)) { fields = [fields] }
   if (!fields.length || fields.length == 1 && fields[0].type === 'void') {
     return 'return new Uint8Array(0)'
   }
 
-  const chunks = fields.reduce((chunks: string[], field: JigField): string[] => {
-    const isRef = field.type === jig.name
+  const chunks = fields.reduce((chunks: string[], field: ClassField): string[] => {
+    const isRef = field.type === obj.name
     chunks.push(`retBuf.${ encodeMethod(field, isRef) }`)
     return chunks
   }, ['const retBuf = new CborWriter()'])
@@ -148,15 +195,15 @@ export function writeReturnWriter(fields: JigField[] | JigField, jig: JigClass):
  * Writes a statement to call a method on the given class. Can be a constructor,
  * static or instance method. Returns an AssemblyScript string.
  */
-export function writeMethodCall(method: JigMethod, jig: JigClass): string {
-  const prefix = method.returnType === 'void' ? '' : 'const retVal = '
-  const args = method.args.map(a => a.name).join(', ')
+export function writeMethodCall(method: ClassMethod, obj: ClassNode): string {
+  const prefix = method.returnType === 'void' ? '' : 'const ctx = '
+  const args = method.args.map((_a, i: number) => `a${ i }`).join(', ')
   if (method.isConstructor) {
-    return `${ prefix }new ${ jig.name }(${ args })`
+    return `${ prefix }new ${ obj.name }(${ args })`
   } else if (method.isStatic) {
-    return `${ prefix }${ jig.name }.${ method.name }(${ args })`
+    return `${ prefix }${ obj.name }.${ method.name }(${ args })`
   } else {
-    return `${ prefix }${ jig.iName }.${ method.name }(${ args })`
+    return `${ prefix }${ obj.iName }.${ method.name }(${ args })`
   }
 }
 
@@ -165,7 +212,7 @@ export function writeMethodCall(method: JigMethod, jig: JigClass): string {
  * Writes the appropriate Cbor decode function statement for the given field.
  * Returns an AssemblyScript string.
  */
-function decodeMethod(field: JigField, isRef: boolean = false): string {
+function decodeMethod(field: ClassField, isRef: boolean = false): string {
   switch (field.type) {
     case 'i8':
     case 'i16':
@@ -199,7 +246,7 @@ function decodeMethod(field: JigField, isRef: boolean = false): string {
  * Writes the appropriate Cbor encode function statement for the given field.
  * Returns an AssemblyScript string.
  */
-function encodeMethod(field: JigField, isRef: boolean = false): string {
+function encodeMethod(field: ClassField, isRef: boolean = false): string {
   switch(field.type) {
     case 'i8':
     case 'i16':

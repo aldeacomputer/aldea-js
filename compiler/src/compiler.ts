@@ -4,8 +4,6 @@ import { Arguments, CommandModule } from 'yargs'
 import asc from 'assemblyscript/asc'
 
 const baseDir = join(dirname(fileURLToPath(import.meta.url)), '..')
-console.log(baseDir)
-console.log(baseDir)
 
 export const compileCmd: CommandModule = {
   command: ['compile <src>', 'c'],
