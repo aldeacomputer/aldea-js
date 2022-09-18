@@ -1,10 +1,10 @@
 import path from 'path'
-import { WasmModule } from './wasm-module.js'
+import { WasmInstance } from './wasm-instance.js'
 import { fileURLToPath } from 'url'
 import { TxExecution } from './tx-execution.js'
 import { JigState } from './jig-state.js'
-import { JigRef } from './jig-ref.js'
 import { PermissionError } from "./permission-error.js"
+import fs from "fs"
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -12,6 +12,7 @@ export class VM {
   constructor (storage) {
     this.storage = storage
     this.currentExecution = null
+    this.modules = new Map()
   }
 
   execTx (tx) {
@@ -33,25 +34,16 @@ export class VM {
   }
 
   createWasmInstance (relativePath) {
+    const existingModule = this.modules.get(relativePath)
+    if (existingModule) { return new WasmInstance(existingModule, relativePath) }
+
     const modulePath = path.join(__dir, '../../build', relativePath)
-    return WasmModule.fromFilePath(modulePath, relativePath)
+    const wasmBuffer = fs.readFileSync(modulePath)
+    const module = new WebAssembly.Module(wasmBuffer)
+    this.modules.set(relativePath, module)
+    return new WasmInstance(module, relativePath)
   }
 
-  call (instanceRef, methodName, args, caller) {
-    const jigRef = this.currentExecution.getJigRef(instanceRef)
-    return jigRef.sendMessage(methodName, args, caller)
-  }
-
-  instanciate (moduleRef, args, initialOwner) {
-    const module = this.currentExecution.getWasmInstance(moduleRef)
-    const origin = `${this.currentExecution.tx.id}_${this.currentExecution.jigs.length}`
-    const jigRef = new JigRef(null, module, origin, initialOwner)
-    this.currentExecution.addNewJigRef(jigRef)
-    this.currentExecution.stack.push(origin)
-    jigRef.ref = module.staticCall('constructor', ...args)
-    this.currentExecution.stack.pop()
-    return jigRef
-  }
 
   findJigState (location) {
     return this.storage.getJigState(location)

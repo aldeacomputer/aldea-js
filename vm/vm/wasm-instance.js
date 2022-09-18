@@ -1,4 +1,3 @@
-import fs from 'fs'
 import { CBOR, Sequence } from 'cbor-redux'
 
 function __encodeArgs (args) {
@@ -17,8 +16,8 @@ function __decodeArgs (data) {
   return seq
 }
 
-export class WasmModule {
-  constructor (buffer, id) {
+export class WasmInstance {
+  constructor (module, id) {
     this.id = id
     this.memory = new WebAssembly.Memory({ initial: 1, maximum: 1 })
     this.methodHandler = null
@@ -60,8 +59,8 @@ export class WasmModule {
         }
       }
     }
-    this.buffer = buffer
-    //
+    this.module = module
+    this.instance = new WebAssembly.Instance(this.module, this.imports)
   }
 
   onMethodCall (fn) {
@@ -76,10 +75,7 @@ export class WasmModule {
     this.adoptHandler = fn
   }
 
-  setUp () {
-    const module = new WebAssembly.Module(this.buffer)
-    this.instance = new WebAssembly.Instance(module, this.imports)
-  }
+  setUp () {}
 
   staticCall (fnName, args = []) {
     fnName = '$_' + fnName
@@ -128,13 +124,6 @@ export class WasmModule {
     let argBuf = __encodeArgs(args)
     argBuf = this.__lowerTypedArray(Uint8Array, 3, 0, argBuf) || this.__notnull()
     return this.__liftTypedArray(Uint8Array, this.instance.exports[methodName](argBuf) >>> 0)
-  }
-
-  static fromFilePath (path, id) {
-    const wasmBuffer = fs.readFileSync(path)
-    const instance = new this(wasmBuffer, id)
-    instance.setUp()
-    return instance
   }
 
   __lowerTypedArray (constructor, id, align, values) {
