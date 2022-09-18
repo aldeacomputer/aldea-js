@@ -15,35 +15,26 @@ export class VM {
   }
 
   execTx (tx) {
-    this.currentExecution = new TxExecution(tx, this)
-    tx.exec(this)
-    this.currentExecution.jigs.forEach(jigRef => {
+    const currentExecution = new TxExecution(tx, this)
+    currentExecution.run()
+    currentExecution.jigs.forEach(jigRef => {
       if (jigRef.lock === null) {
         throw new PermissionError(`unlocked jig: ${jigRef.origin}`)
       }
     })
-    this.currentExecution.jigs.forEach((jigRef, index) => {
+    currentExecution.jigs.forEach((jigRef, index) => {
       const location = `${tx.id}_${index}`
       const origin = jigRef.origin || location
       const serialized = jigRef.module.instanceCall(jigRef.ref, 'serialize')
       const jig = new JigState(origin, location, serialized, jigRef.module.id, jigRef.lock)
       this.storage.addJig(jig)
     })
-
-    this.currentExecution = null
+    return currentExecution
   }
 
-  load (relativePath) {
-    if (this.currentExecution.getWasmInstance(relativePath)) {
-      return
-    }
+  createWasmInstance (relativePath) {
     const modulePath = path.join(__dir, '../../build', relativePath)
-    const wasmModule = WasmModule.fromFilePath(modulePath, relativePath)
-    this.currentExecution.addWasmInstance(
-      relativePath,
-      wasmModule
-    )
-    return wasmModule
+    return WasmModule.fromFilePath(modulePath, relativePath)
   }
 
   call (instanceRef, methodName, args, caller) {
@@ -62,20 +53,11 @@ export class VM {
     return jigRef
   }
 
-  loadJig (location) {
-    const frozenJig = this.storage.getJigState(location)
-    this.load(frozenJig.moduleId)
-    const module = this.currentExecution.getWasmInstance(frozenJig.moduleId)
-    const ref = module.hidrate(frozenJig.stateBuf)
-    this.currentExecution.addInputJig(new JigRef(ref, module, frozenJig.origin))
+  findJigState (location) {
+    return this.storage.getJigState(location)
   }
 
   addKey (key) {
     this.currentExecution.addKey(key)
-  }
-
-  lockJig (jigIndex, lock) {
-    const jigRef = this.currentExecution.getJigRef(jigIndex)
-    jigRef.close(lock)
   }
 }

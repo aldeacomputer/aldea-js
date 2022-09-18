@@ -8,9 +8,9 @@ class Transaction {
         this.instructions.push(instruction)
     }
 
-    exec (vm) {
+    exec (context) {
         for(const instruction of this.instructions) {
-            instruction.exec(vm)
+            instruction.exec(context)
         }
     }
 }

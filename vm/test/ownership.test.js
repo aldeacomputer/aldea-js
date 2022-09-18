@@ -1,15 +1,15 @@
 import { Transaction } from '../vm/transaction.js'
-import { NewInstruction } from '../vm/new-instruction.js'
-import { CallInstruction } from '../vm/call-instruction.js'
+import { NewInstruction } from '../vm/instructions/new-instruction.js'
+import { CallInstruction } from '../vm/instructions/call-instruction.js'
 import { VM } from '../vm/vm.js'
 import { CBOR } from 'cbor-redux'
 import { expect } from 'chai'
 import { Storage } from '../vm/storage.js'
-import { LoadInstruction } from '../vm/load-instruction.js'
+import { LoadInstruction } from '../vm/instructions/load-instruction.js'
 import { JigArg } from '../vm/jig-arg.js'
-import { UnlockInstruction } from "../vm/unlock-instruction.js"
+import { UnlockInstruction } from "../vm/instructions/unlock-instruction.js"
 import { PermissionError } from "../vm/permission-error.js"
-import { LockInstruction } from "../vm/lock-instruction.js"
+import { LockInstruction } from "../vm/instructions/lock-instruction.js"
 import { UserLock } from "../vm/locks/user-lock.js"
 
 const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" })

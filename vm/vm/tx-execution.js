@@ -1,28 +1,25 @@
 import { JigLock } from "./locks/jig-lock.js"
+import { JigRef } from "./jig-ref.js"
 
 class TxExecution {
   constructor (tx, vm) {
     this.tx = tx
     this.vm = vm
     this.jigs = []
-    this.newJigs = []
-    this.inputJigs = []
     this.wasms = new Map()
     this.keys = []
     this.stack = []
   }
 
-  async exec (vm) {
-    for (const instruction of this.instructions) {
-      await instruction.exec(vm)
-    }
-  }
-
-  addWasmInstance (moduleName, wasmModule) {
+  loadModule (moduleId) {
+    const existing = this.getWasmInstance(moduleId)
+    if (existing) { return existing }
+    const wasmModule = this.vm.createWasmInstance(moduleId)
     wasmModule.onMethodCall(this._onMethodCall.bind(this))
     wasmModule.onCreate(this._onCreate.bind(this))
     wasmModule.onAdopt(this._onAdopt.bind(this))
-    this.wasms.set(moduleName, wasmModule)
+    this.wasms.set(moduleId, wasmModule)
+    return wasmModule
   }
 
   _onMethodCall (origin, methodName, args) {
@@ -35,9 +32,9 @@ class TxExecution {
     return jig.module.rawInstanceCall(jig.ref, methodName, args)
   }
 
-  _onCreate (moduleName, args) {
-    this.vm.load(moduleName)
-    return this.vm.instanciate(moduleName, args, null)
+  _onCreate (moduleId, args) {
+    this.loadModule(moduleId)
+    return this.instanciate(moduleId, args, null)
   }
 
   _onAdopt(childOrigin) {
@@ -50,12 +47,6 @@ class TxExecution {
     return this.wasms.get(moduleName)
   }
 
-  addNewJigRef (jigRef) {
-    this.jigs.push(jigRef)
-    this.newJigs.push(jigRef)
-    return jigRef
-  }
-
   getJigRef (index) {
     return this.jigs[index]
   }
@@ -65,12 +56,52 @@ class TxExecution {
   }
 
   addInputJig (jigRef) {
-    this.inputJigs.push(jigRef)
+    return this.addNewJigRef(jigRef)
+  }
+
+  addNewJigRef (jigRef) {
     this.jigs.push(jigRef)
+    return jigRef
   }
 
   addKey (key) {
     this.keys = key
+  }
+
+  run () {
+    this.tx.exec(this)
+  }
+
+  loadJig (location) {
+    const jigState = this.vm.findJigState(location)
+    const module = this.loadModule(jigState.moduleId)
+    const ref = module.hidrate(jigState.stateBuf)
+    this.addNewJigRef(new JigRef(ref, module, jigState.origin, jigState.lock))
+  }
+
+  lockJig (jigIndex, lock) {
+    const jigRef = this.getJigRef(jigIndex)
+    jigRef.close(lock)
+  }
+
+  instanciate (moduleId, args, initialLock) {
+    const module = this.loadModule(moduleId)
+    const newOrigin = this.newOrigin()
+    const jigRef = new JigRef(null, module, newOrigin, initialLock)
+    this.addNewJigRef(jigRef)
+    this.stack.push(newOrigin)
+    jigRef.ref = module.staticCall('constructor', args)
+    this.stack.pop()
+    return jigRef
+  }
+
+  call (masterListIndex, methodName, args, caller) {
+    const jigRef = this.getJigRef(masterListIndex)
+    return jigRef.sendMessage(methodName, args, caller)
+  }
+
+  newOrigin () {
+    return `${this.tx.id}_${this.jigs.length}`
   }
 }
 
