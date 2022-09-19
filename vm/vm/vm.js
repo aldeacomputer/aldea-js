@@ -19,7 +19,7 @@ export class VM {
     const currentExecution = new TxExecution(tx, this)
     currentExecution.run()
     currentExecution.jigs.forEach(jigRef => {
-      if (jigRef.lock === null) {
+      if (jigRef.lock.isOpen) {
         throw new PermissionError(`unlocked jig: ${jigRef.origin}`)
       }
     })

@@ -25,7 +25,11 @@ class TxExecution {
   _onMethodCall (origin, methodName, args) {
     let jig = this.jigs.find(j => j.origin === origin)
     if (!jig) {
-      this.vm.loadJig(origin)
+      const jigState = this.vm.findJigState(origin)
+      const module = this.loadModule(jigState.moduleId)
+      const ref = module.hidrate(jigState.stateBuf)
+      const jigRef = new JigRef(ref, module, jigState.origin, jigState.lock)
+      this.addNewJigRef(jigRef)
       jig = this.jigs.find(j => j.origin === origin)
     }
 

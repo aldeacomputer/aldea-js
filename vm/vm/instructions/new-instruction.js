@@ -1,3 +1,5 @@
+import { OpenLock } from "../locks/open-lock.js"
+
 export class NewInstruction {
     constructor (className, argList) {
         this.className = className
@@ -6,6 +8,6 @@ export class NewInstruction {
 
     exec (environment) {
         const args = this.argList.map(a => a.get(environment))
-        environment.instanciate(this.className, args, null)
+        environment.instanciate(this.className, args, new OpenLock())
     }
 }

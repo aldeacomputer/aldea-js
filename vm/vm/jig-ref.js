@@ -9,11 +9,8 @@ export class JigRef {
   }
 
   sendMessage (methodName, args, caller) {
-    if (this.lock !== null) {
-      throw new PermissionError('jig is closed')
-    }
-    if (caller !== this.lock) {
-      throw new PermissionError('bad permissions')
+    if (!this.lock.checkCaller(caller)) {
+      throw new PermissionError(`jig ${this.origin} does not accept messages from ${caller}`)
     }
     this.module.instanceCall(this.ref, methodName, args)
   }
@@ -23,9 +20,6 @@ export class JigRef {
   }
 
   open (key) {
-    if (this.lock === null) {
-      return
-    }
     this.owner = this.lock.open(key)
   }
 

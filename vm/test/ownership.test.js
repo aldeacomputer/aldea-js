@@ -7,7 +7,6 @@ import { expect } from 'chai'
 import { Storage } from '../vm/storage.js'
 import { LoadInstruction } from '../vm/instructions/load-instruction.js'
 import { JigArg } from '../vm/jig-arg.js'
-import { UnlockInstruction } from "../vm/instructions/unlock-instruction.js"
 import { PermissionError } from "../vm/permission-error.js"
 import { LockInstruction } from "../vm/instructions/lock-instruction.js"
 import { UserLock } from "../vm/locks/user-lock.js"
@@ -114,9 +113,7 @@ describe('execute txs', () => {
   })
 
   it('once the sword was owned is stored with a proper jig lock', () => {
-    const userKey = 'user1Key'
     const tx1 = new Transaction('tx1')
-    tx1.add(new UnlockInstruction(userKey))
     tx1.add(new NewInstruction('v2/fighter.wasm', []))
     tx1.add(new NewInstruction('v2/sword.wasm',[]))
     tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
