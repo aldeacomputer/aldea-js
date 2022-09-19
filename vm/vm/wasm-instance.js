@@ -23,6 +23,7 @@ export class WasmInstance {
     this.methodHandler = null
     this.createHandler = null
     this.adoptHandler = null
+    this.releaseHandler = null
     this.imports = {
       env: {
         memory: this.memory, abort: (e) => {
@@ -56,6 +57,11 @@ export class WasmInstance {
           const argBuf = this.__liftTypedArray(Uint8Array, buffPointer >>> 0)
           const childOrigin = __decodeArgs(argBuf)
           this.adoptHandler(childOrigin)
+        },
+        releaseJig: (buffPointer) => {
+          const argBuf = this.__liftTypedArray(Uint8Array, buffPointer >>> 0)
+          const [childOrigin, parentRef] = __decodeArgs(argBuf).data
+          this.releaseHandler(childOrigin, parentRef)
         }
       }
     }
@@ -73,6 +79,10 @@ export class WasmInstance {
 
   onAdopt (fn) {
     this.adoptHandler = fn
+  }
+
+  onRelease (fn) {
+    this.releaseHandler = fn
   }
 
   setUp () {}

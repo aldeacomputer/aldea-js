@@ -27,9 +27,9 @@ export async function compile (aPath) {
   if (error) {
     console.log("Compilation failed: " + error.message);
     console.log(stderr.toString());
-    process.exit(1)
+  } else {
+    console.log('ok')
   }
-  console.log('ok')
 }
 
 

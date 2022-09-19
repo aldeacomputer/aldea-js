@@ -16,8 +16,8 @@ const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" })
 
 describe('execute txs', () => {
   let storage
-  const userLock = () => new UserLock('somePubKey');
-  const userkey = 'somePubKey'
+  const userKey = 'somePubKey'
+  const userLock = () => new UserLock(userKey);
   beforeEach(() => {
     storage = new Storage()
   })
@@ -115,8 +115,8 @@ describe('execute txs', () => {
     tx1.add(new NewInstruction('v2/fighter.wasm', []))
     tx1.add(new NewInstruction('v2/sword.wasm',[]))
     tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
-    tx1.add(new LockInstruction(0, userkey))
-    tx1.add(new LockInstruction(2, userkey)) // the sword is controlled by the fighter
+    tx1.add(new LockInstruction(0, userKey))
+    tx1.add(new LockInstruction(2, userKey)) // the sword is controlled by the fighter
 
     const vm = new VM(storage)
     expect(() => vm.execTx(tx1)).to.throw(ExecutionError, `no permission to remove lock from jig tx1_2`)
@@ -137,6 +137,39 @@ describe('execute txs', () => {
       type: 'JigLock',
       data: {
         origin: 'tx1_0'
+      }
+    })
+  })
+
+  it('when a jig releases a child jig there is an error if the jig is not locked', () => {
+    const tx1 = new Transaction('tx1')
+    tx1.add(new NewInstruction('v2/fighter.wasm', []))
+    tx1.add(new NewInstruction('v2/sword.wasm',[]))
+    tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
+    tx1.add(new CallInstruction(0, 'releaseSomething', [new JigArg(2)]))
+    tx1.add(new LockInstruction(0, userLock()))
+
+    const vm = new VM(storage)
+    expect(() => vm.execTx(tx1)).to.throw(PermissionError, 'unlocked jig: tx1_1') // origin for the hand jig
+  })
+
+  it('when a jig releases a child it can be locked later', () => {
+    const tx1 = new Transaction('tx1')
+    tx1.add(new NewInstruction('v2/fighter.wasm', []))
+    tx1.add(new NewInstruction('v2/sword.wasm',[]))
+    tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
+    tx1.add(new CallInstruction(0, 'releaseSomething', [new JigArg(2)]))
+    tx1.add(new LockInstruction(0, userLock()))
+    tx1.add(new LockInstruction(1, userLock()))
+
+    const vm = new VM(storage)
+    vm.execTx(tx1)
+
+    const state = storage.getJigState('tx1_1')
+    expect(state.lock).to.eql({
+      type: 'UserLock',
+      data: {
+        pubkey: userKey
       }
     })
   })

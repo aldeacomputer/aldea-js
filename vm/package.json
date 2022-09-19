@@ -6,7 +6,7 @@
   "scripts": {
     "test": "mocha",
     "build": "node cmd/compile.js",
-    "dev": "nodemon --config nodemon.json -L"
+    "dev": "node cmd/watch.js"
   },
   "keywords": [],
   "author": "",

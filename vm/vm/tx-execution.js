@@ -1,7 +1,8 @@
 import { JigLock } from "./locks/jig-lock.js"
 import { JigRef } from "./jig-ref.js"
-import { ExecutionError } from "./errors.js"
+import { ExecutionError, PermissionError } from "./errors.js"
 import { UserLock } from "./locks/user-lock.js"
+import { NoLock } from "./locks/no-lock.js"
 
 class TxExecution {
   constructor (tx, vm) {
@@ -20,6 +21,7 @@ class TxExecution {
     wasmModule.onMethodCall(this._onMethodCall.bind(this))
     wasmModule.onCreate(this._onCreate.bind(this))
     wasmModule.onAdopt(this._onAdopt.bind(this))
+    wasmModule.onRelease(this._onRelease.bind(this))
     this.wasms.set(moduleId, wasmModule)
     return wasmModule
   }
@@ -43,6 +45,16 @@ class TxExecution {
     const childJigRef = this.getJigRefByOrigin(childOrigin)
     const parentJigOrigin = this.stack[this.stack.length - 1]
     childJigRef.setOwner(new JigLock(parentJigOrigin))
+  }
+
+  _onRelease(childOrigin, parentPointer) {
+    const childJigRef = this.getJigRefByOrigin(childOrigin)
+    const parentJigRef = this.jigs.find(jigR => jigR.ref.value === parentPointer.value)
+    if (childJigRef.lock.checkCaller(parentJigRef.origin)) {
+      childJigRef.setOwner(new NoLock())
+    } else {
+      throw new PermissionError(`${parentJigRef.origin} does not have permission to release ${childJigRef.origin}`)
+    }
   }
 
   getWasmInstance (moduleName) {

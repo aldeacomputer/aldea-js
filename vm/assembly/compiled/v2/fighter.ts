@@ -22,6 +22,17 @@ function adopt(childOrigin: string): void {
   adoptJig(cbor.toBuffer());
 }
 
+// @ts-ignore
+@external("$aldea", "releaseJig")
+declare function releaseJig(buffPointer: Uint8Array): Uint8Array;
+
+function release<T>(childOrigin: string, parent: T): void {
+  const cbor = new CborWriter();
+  cbor.encodeStr(childOrigin);
+  cbor.encodeRef<T>(parent);
+  releaseJig(cbor.toBuffer());
+}
+
 class WeaponProxy {
   origin: string;
 
@@ -58,6 +69,11 @@ class Fighter {
     adopt(gear.origin);
     this.stash.push(this.leftArm);
     this.leftArm = gear;
+  }
+
+  releaseSomething (): void {
+    const item = this.stash.pop();
+    release<Fighter>(item.origin, this);
   }
 }
 
@@ -103,6 +119,15 @@ export function $$equipLeftHand(argBuf: Uint8Array): Uint8Array {
 
   const weapon = new WeaponProxy(leftHandOrigin);
   ref.equipLeftHand(weapon);
+
+  return new Uint8Array(0);
+}
+
+export function $$releaseSomething(argBuf: Uint8Array): Uint8Array {
+  const args = new CborReader(argBuf);
+  const ref = args.decodeRef<Fighter>();
+
+  ref.releaseSomething();
 
   return new Uint8Array(0);
 }
