@@ -7,15 +7,17 @@ import { expect } from 'chai'
 import { Storage } from '../vm/storage.js'
 import { LoadInstruction } from '../vm/instructions/load-instruction.js'
 import { JigArg } from '../vm/jig-arg.js'
-import { PermissionError } from "../vm/permission-error.js"
+import { ExecutionError, PermissionError } from "../vm/errors.js"
 import { LockInstruction } from "../vm/instructions/lock-instruction.js"
 import { UserLock } from "../vm/locks/user-lock.js"
+import { UnlockInstruction } from "../vm/instructions/unlock-instruction.js"
 
 const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" })
 
 describe('execute txs', () => {
   let storage
-  const userLock = new UserLock('userKey');
+  const userLock = () => new UserLock('somePubKey');
+  const userkey = 'somePubKey'
   beforeEach(() => {
     storage = new Storage()
   })
@@ -31,7 +33,7 @@ describe('execute txs', () => {
   it('can create a fighter', async () => {
     const tx = new Transaction('tx1')
     tx.add(new NewInstruction('v2/fighter.wasm', []))
-    tx.add(new LockInstruction(0, userLock))
+    tx.add(new LockInstruction(0, userLock()))
 
     const vm = new VM(storage)
     await vm.execTx(tx)
@@ -43,7 +45,7 @@ describe('execute txs', () => {
   it('can create a sword', async () => {
     const tx = new Transaction('tx1')
     tx.add(new NewInstruction('v2/sword.wasm', []))
-    tx.add(new LockInstruction(0, userLock))
+    tx.add(new LockInstruction(0, userLock()))
 
     const vm = new VM(storage)
     await vm.execTx(tx)
@@ -56,8 +58,7 @@ describe('execute txs', () => {
     tx.add(new NewInstruction('v2/fighter.wasm', []))
     tx.add(new NewInstruction('v2/sword.wasm', []))
     tx.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
-    tx.add(new LockInstruction(0, userLock))
-    tx.add(new LockInstruction(2, userLock))
+    tx.add(new LockInstruction(0, userLock()))
 
     const vm = new VM(storage)
     await vm.execTx(tx)
@@ -69,7 +70,7 @@ describe('execute txs', () => {
   it('a new fighter has an empty stash', async () => {
     const tx = new Transaction('tx1')
     tx.add(new NewInstruction('v2/fighter.wasm', []))
-    tx.add(new LockInstruction(0, userLock))
+    tx.add(new LockInstruction(0, userLock()))
 
     const vm = new VM(storage)
     await vm.execTx(tx)
@@ -83,9 +84,7 @@ describe('execute txs', () => {
     tx.add(new NewInstruction('v2/fighter.wasm', []))
     tx.add(new NewInstruction('v2/sword.wasm', []))
     tx.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
-    tx.add(new LockInstruction(0, userLock))
-    tx.add(new LockInstruction(2, userLock))
-
+    tx.add(new LockInstruction(0, userLock()))
 
     const vm = new VM(storage)
     await vm.execTx(tx)
@@ -99,17 +98,28 @@ describe('execute txs', () => {
     tx1.add(new NewInstruction('v2/fighter.wasm', []))
     tx1.add(new NewInstruction('v2/sword.wasm',[]))
     tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
-    tx1.add(new LockInstruction(0, userLock))
-    tx1.add(new LockInstruction(2, userLock))
+    tx1.add(new LockInstruction(0, userLock()))
 
     const tx2 = new Transaction('tx2')
     tx2.add(new LoadInstruction('tx1_2'))
+    tx2.add(new UnlockInstruction(0, userLock()))
     tx2.add(new CallInstruction(0, 'use', []))
 
     const vm = new VM(storage)
     vm.execTx(tx1)
+    expect(() => vm.execTx(tx2)).to.throw(PermissionError, 'jig locks can only by used by the owner jig')
+  })
 
-    expect(() => vm.execTx(tx2)).to.throw(PermissionError)
+  it('locking a locked jig fails', () => {
+    const tx1 = new Transaction('tx1')
+    tx1.add(new NewInstruction('v2/fighter.wasm', []))
+    tx1.add(new NewInstruction('v2/sword.wasm',[]))
+    tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
+    tx1.add(new LockInstruction(0, userkey))
+    tx1.add(new LockInstruction(2, userkey)) // the sword is controlled by the fighter
+
+    const vm = new VM(storage)
+    expect(() => vm.execTx(tx1)).to.throw(ExecutionError, `no permission to remove lock from jig tx1_2`)
   })
 
   it('once the sword was owned is stored with a proper jig lock', () => {
@@ -117,21 +127,17 @@ describe('execute txs', () => {
     tx1.add(new NewInstruction('v2/fighter.wasm', []))
     tx1.add(new NewInstruction('v2/sword.wasm',[]))
     tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
-    tx1.add(new LockInstruction(0, userLock))
-    tx1.add(new LockInstruction(2, userLock))
+    tx1.add(new LockInstruction(0, userLock()))
 
     const vm = new VM(storage)
     vm.execTx(tx1)
 
-    const state = storage.getJigState('tx1_0')
-    expect(state.lock).to.eql(userLock)
+    const state = storage.getJigState('tx1_2')
+    expect(state.lock).to.eql({
+      type: 'JigLock',
+      data: {
+        origin: 'tx1_0'
+      }
+    })
   })
-
-
-
-  // it('cbors stuff', () => {
-  //   const seq = Sequence.from([[]])
-  //   const buf = CBOR.encode(seq)
-  //   expect(buf.byteLength).to.eql(1)
-  // })
 })

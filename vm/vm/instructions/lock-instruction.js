@@ -4,7 +4,7 @@ export class LockInstruction {
     this.lock = lock
   }
 
-  exec (vm) {
-    vm.lockJig(this.jigIndex, this.lock)
+  exec (context) {
+    context.lockJig(this.jigIndex, this.lock)
   }
 }

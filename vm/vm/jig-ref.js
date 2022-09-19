@@ -1,4 +1,4 @@
-import { PermissionError } from "./permission-error.js"
+import { PermissionError } from "./errors.js"
 
 export class JigRef {
   constructor (ref, module, origin, lock) {

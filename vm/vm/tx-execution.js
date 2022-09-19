@@ -1,5 +1,7 @@
 import { JigLock } from "./locks/jig-lock.js"
 import { JigRef } from "./jig-ref.js"
+import { ExecutionError } from "./errors.js"
+import { UserLock } from "./locks/user-lock.js"
 
 class TxExecution {
   constructor (tx, vm) {
@@ -25,11 +27,7 @@ class TxExecution {
   _onMethodCall (origin, methodName, args) {
     let jig = this.jigs.find(j => j.origin === origin)
     if (!jig) {
-      const jigState = this.vm.findJigState(origin)
-      const module = this.loadModule(jigState.moduleId)
-      const ref = module.hidrate(jigState.stateBuf)
-      const jigRef = new JigRef(ref, module, jigState.origin, jigState.lock)
-      this.addNewJigRef(jigRef)
+      this.loadJig(origin)
       jig = this.jigs.find(j => j.origin === origin)
     }
 
@@ -80,11 +78,25 @@ class TxExecution {
     const jigState = this.vm.findJigState(location)
     const module = this.loadModule(jigState.moduleId)
     const ref = module.hidrate(jigState.stateBuf)
-    this.addNewJigRef(new JigRef(ref, module, jigState.origin, jigState.lock))
+    const lock = this._hidrateLock(jigState.lock)
+    const jigRef = new JigRef(ref, module, jigState.origin, lock)
+    this.addNewJigRef(jigRef)
+    return jigRef
+  }
+
+  _hidrateLock (frozenLock) {
+    if (frozenLock.type === 'UserJig') {
+      return new UserLock(frozenLock.data.pubkey)
+    } else if (frozenLock.type === 'JigLock') {
+      return new JigLock(frozenLock.data.origin)
+    }
   }
 
   lockJig (jigIndex, lock) {
     const jigRef = this.getJigRef(jigIndex)
+    if (!jigRef.lock.checkCaller()) {
+      throw new ExecutionError(`no permission to remove lock from jig ${jigRef.origin}`)
+    }
     jigRef.close(lock)
   }
 
@@ -101,7 +113,9 @@ class TxExecution {
 
   call (masterListIndex, methodName, args, caller) {
     const jigRef = this.getJigRef(masterListIndex)
-    return jigRef.sendMessage(methodName, args, caller)
+    this.stack.push(jigRef.origin)
+    jigRef.sendMessage(methodName, args, caller)
+    this.stack.pop()
   }
 
   newOrigin () {

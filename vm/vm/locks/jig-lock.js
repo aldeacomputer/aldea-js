@@ -1,18 +1,26 @@
+import { PermissionError } from "../errors.js"
+
 export class JigLock {
   constructor (ownerOrigin) {
     this.origin = ownerOrigin
-    this.isOpen = false
   }
 
-  open (key) {
-    if (key !== this.origin) {
-      throw new Error()
+  open (_key) {
+    throw new PermissionError('jig locks can only by used by the owner jig.')
+  }
+
+  serialize () {
+    return {
+      type: 'JigLock',
+      data: { origin: this.origin }
     }
-    this.isOpen = true
-    return this.origin
+  }
+
+  isOpen () {
+    return false
   }
 
   checkCaller (caller) {
-    return caller.origin === this.origin
+    return caller === this.origin
   }
 }
