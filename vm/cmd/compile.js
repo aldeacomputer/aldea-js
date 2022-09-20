@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 const __dir = fileURLToPath(import.meta.url)
 
-async function compile (aPath) {
+export async function compile (aPath) {
   const [_, filePath] = aPath.split('/compiled/')
   const { error, stderr } = await asc.main([
     path.join(__dir, '../../assembly/compiled', filePath),
@@ -32,4 +32,6 @@ async function compile (aPath) {
   }
 }
 
-compile(process.argv[2])
+if (process.argv[2]) {
+  compile(process.argv[2])
+}
