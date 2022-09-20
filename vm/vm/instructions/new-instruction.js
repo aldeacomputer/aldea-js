@@ -8,6 +8,6 @@ export class NewInstruction {
 
     exec (environment) {
         const args = this.argList.map(a => a.get(environment))
-        environment.instanciate(this.className, args, new NoLock())
+        environment.instantiate(this.className, args, new NoLock())
     }
 }

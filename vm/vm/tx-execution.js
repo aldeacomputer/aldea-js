@@ -38,7 +38,7 @@ class TxExecution {
 
   _onCreate (moduleId, args) {
     this.loadModule(moduleId)
-    return this.instanciate(moduleId, args, null)
+    return this.instantiate(moduleId, args, null)
   }
 
   _onAdopt(childOrigin) {
@@ -114,7 +114,7 @@ class TxExecution {
     jigRef.close(lock)
   }
 
-  instanciate (moduleId, args, initialLock) {
+  instantiate (moduleId, args, initialLock) {
     const module = this.loadModule(moduleId)
     const newOrigin = this.newOrigin()
     const jigRef = new JigRef(null, module, newOrigin, initialLock)
