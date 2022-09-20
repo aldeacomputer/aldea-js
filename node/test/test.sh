@@ -26,8 +26,8 @@ curl -X POST localhost:$PORT/tx \
 echo
 echo
 
-echo "Posting transaction"
-curl -X POST localhost:$PORT/tx \
+echo "Posting transaction 1"
+TXID1=$(curl -s -X POST localhost:$PORT/tx \
    -H 'Content-Type: application/json' \
    -d '{
          "instructions": [
@@ -48,18 +48,18 @@ curl -X POST localhost:$PORT/tx \
                  "lock": "02e87f8ac25172cbc2f6e3fc858c970e0668a9c359452a4ef80e552db9cd9d987a"
              }
          ]
-    }'
-echo
+    }')
+echo $TXID1
 echo
 
 echo "Posting transaction 2"
-curl -X POST localhost:$PORT/tx \
+TXID2=$(curl -s -X POST localhost:$PORT/tx \
    -H 'Content-Type: application/json' \
    -d '{
          "instructions": [
              {
                  "name": "load",
-                 "location": "tx1_0"
+                 "location": "'"$TXID1"'_0"
              },
              {
                  "name": "unlock",
@@ -78,17 +78,32 @@ curl -X POST localhost:$PORT/tx \
                  "lock": "02e87f8ac25172cbc2f6e3fc858c970e0668a9c359452a4ef80e552db9cd9d987a"
              }
          ]
-    }'
+    }')
+echo $TXID2
+echo
+
+echo "Reading state 1"
+curl "localhost:$PORT/state/${TXID1}_0"
 echo
 echo
 
-echo "Reading state"
-curl "localhost:$PORT/state/tx1_0"
+echo "Reading state 2"
+curl "localhost:$PORT/state/${TXID2}_0"
 echo
 echo
 
 echo "Reading missing state"
-curl "localhost:$PORT/state/tx1_1"
+curl "localhost:$PORT/state/${TXID1}_1"
+echo
+echo
+
+echo "Reading transaction 1"
+curl "localhost:$PORT/tx/$TXID1"
+echo
+echo
+
+echo "Reading transaction 2"
+curl "localhost:$PORT/tx/$TXID2"
 echo
 echo
 
