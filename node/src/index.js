@@ -17,8 +17,12 @@ app.get('/status', (req, res) => {
 })
 
 app.get('/tx/:txid', (req, res) => {
-  // TODO
-  res.send('OK')
+  const tx = storage.getTransaction(req.params.txid)
+  if (tx) {
+    res.send(tx)
+  } else {
+    res.status(404).send("Sorry can't find that!")
+  }
 })
 
 app.get('/state/:location', (req, res) => {

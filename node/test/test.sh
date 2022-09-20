@@ -90,5 +90,11 @@ echo
 echo "Reading missing state"
 curl "localhost:$PORT/state/tx1_1"
 echo
+echo
+
+echo "Reading missing transaction"
+curl "localhost:$PORT/tx/abc"
+echo
+echo
 
 kill $SERVER_PID

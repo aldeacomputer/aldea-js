@@ -3,6 +3,7 @@ export class Storage {
         this.statesPerLocation = new Map()
         this.tips = new Map()
         this.origins = new Map()
+        this.transactions = new Map()
     }
 
     addJig (jigRef) {
@@ -19,5 +20,13 @@ export class Storage {
 
     tipFor (origin) {
         return this.tips.get(origin)
+    }
+
+    addTransaction(tx) {
+        this.transactions.set(tx.id, tx)
+    }
+
+    getTransaction(txid) {
+        this.transactions.get(txid)
     }
 }
