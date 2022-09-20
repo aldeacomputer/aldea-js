@@ -13,6 +13,10 @@ function createInstance (moduleName:string, argBuf: Uint8Array): string {
 }
 
 // @ts-ignore
+@external("$aldea", "callMethod")
+declare function callMethod(args: Uint8Array): Uint8Array;
+
+// @ts-ignore
 @external("$aldea", "adoptJig")
 declare function adoptJig(buffPointer: Uint8Array): Uint8Array;
 
@@ -36,8 +40,19 @@ function release<T>(childOrigin: string, parent: T): void {
 class WeaponProxy {
   origin: string;
 
-  constructor(origin: string) {
+  constructor (origin: string) {
     this.origin = origin
+  }
+
+  getPower (): u8 {
+    const writer = new CborWriter()
+    writer.encodeStr(this.origin);
+    writer.encodeStr('getPower');
+    writer.encodeBuf(new Uint8Array(0));
+    const buff = writer.toBuffer();
+    const retBuf = callMethod(buff);
+    const retReader = new CborReader(retBuf);
+    return retReader.decodeInt() as u8;
   }
 }
 
@@ -71,9 +86,17 @@ class Fighter {
     this.leftArm = gear;
   }
 
+  getAttackPower (): u8 {
+    return 1 + this.leftArm.getPower()
+  }
+
   releaseSomething (): void {
     const item = this.stash.pop();
     release<Fighter>(item.origin, this);
+  }
+
+  takeDamage (damage: u8): void {
+    this.health -= damage;
   }
 }
 
@@ -130,4 +153,15 @@ export function $$releaseSomething(argBuf: Uint8Array): Uint8Array {
   ref.releaseSomething();
 
   return new Uint8Array(0);
+}
+
+export function $$getAttackPower (argBuf: Uint8Array): Uint8Array {
+  const args = new CborReader(argBuf);
+  const ref = args.decodeRef<Fighter>();
+
+  const res = ref.getAttackPower();
+
+  const ret = new CborWriter();
+  ret.encodeInt(res);
+  return ret.toBuffer();
 }

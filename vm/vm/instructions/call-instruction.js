@@ -1,6 +1,6 @@
 export class CallInstruction {
-    constructor (instanceRef, methodName, args) {
-        this.instanceRef = instanceRef
+    constructor (masterListIndex, methodName, args) {
+        this.instanceRef = masterListIndex
         this.methodName = methodName
         this.args = args
     }

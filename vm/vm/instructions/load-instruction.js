@@ -3,7 +3,7 @@ export class LoadInstruction {
         this.location = location
     }
 
-    exec (vm) {
-        vm.loadJig(this.location)
+    exec (context) {
+        context.loadJig(this.location)
     }
 }

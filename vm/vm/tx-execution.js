@@ -97,10 +97,12 @@ class TxExecution {
   }
 
   _hidrateLock (frozenLock) {
-    if (frozenLock.type === 'UserJig') {
+    if (frozenLock.type === 'UserLock') {
       return new UserLock(frozenLock.data.pubkey)
     } else if (frozenLock.type === 'JigLock') {
       return new JigLock(frozenLock.data.origin)
+    } else {
+      throw new Error('unknown lock type')
     }
   }
 
