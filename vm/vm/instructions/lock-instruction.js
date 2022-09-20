@@ -1,10 +1,10 @@
 export class LockInstruction {
-  constructor (jigIndex, lock) {
-    this.jigIndex = jigIndex
+  constructor (masterListIndex, lock) {
+    this.masterListIndex = masterListIndex
     this.lock = lock
   }
 
   exec (context) {
-    context.lockJig(this.jigIndex, this.lock)
+    context.lockJig(this.masterListIndex, this.lock)
   }
 }

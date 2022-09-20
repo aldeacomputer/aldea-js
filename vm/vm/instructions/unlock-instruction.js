@@ -1,11 +1,11 @@
 export class UnlockInstruction {
-  constructor (jigIndex, key) {
-    this.jigIndex = jigIndex
+  constructor (masterListIndex, key) {
+    this.masterListIndex = masterListIndex
     this.key = key
   }
 
   exec (context) {
-    const jigRef = context.getJigRef(this.jigIndex)
+    const jigRef = context.getJigRef(this.masterListIndex)
     jigRef.open(this.key)
     context.addKey(this.key)
   }

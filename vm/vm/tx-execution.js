@@ -106,8 +106,8 @@ class TxExecution {
     }
   }
 
-  lockJig (jigIndex, lock) {
-    const jigRef = this.getJigRef(jigIndex)
+  lockJig (masterListIndex, lock) {
+    const jigRef = this.getJigRef(masterListIndex)
     if (!jigRef.lock.checkCaller()) {
       throw new ExecutionError(`no permission to remove lock from jig ${jigRef.origin}`)
     }

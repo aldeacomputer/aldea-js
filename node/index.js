@@ -56,9 +56,9 @@ function parseTransactionJson (json) {
       } break
 
       case 'lock': {
-        const jigIndex = jsonInstruction.jigIndex
+        const masterListIndex = jsonInstruction.masterListIndex
         const lock = new UserLock(jsonInstruction.lock)
-        const instruction = new LockInstruction(jigIndex, lock)
+        const instruction = new LockInstruction(masterListIndex, lock)
         tx.add(instruction)
       } break
 
