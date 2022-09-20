@@ -45,18 +45,21 @@ app.get('/state/:location', (req, res) => {
 function parseTransactionJson (json) {
   const tx = new Transaction('tx2')
 
-  json.instructions.forEach(instruction => {
-    switch (instruction.name) {
+  json.instructions.forEach(jsonInstruction => {
+    switch (jsonInstruction.name) {
       case 'new': {
-        console.log('new')
+        const className = jsonInstruction.className
+        const argList = jsonInstruction.argList.map(arg => new LiteralArg(arg))
+        const instruction = new NewInstruction(className, argList)
+        tx.add(instruction)
       } break
 
       case 'lock': {
-        console.log('new')
+        // TODO
       } break
 
       default:
-        throw new Error(`Unknown instruction: ${instruction.name}`)
+        throw new Error(`Unknown instruction: ${jsonInstruction.name}`)
     }
   })
 
