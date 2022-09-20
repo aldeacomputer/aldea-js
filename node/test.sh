@@ -2,7 +2,7 @@
 
 PORT=4000
 node . &
-serverPID=$!
+SERVER_PID=$!
 sleep 1
 echo
 
@@ -91,4 +91,4 @@ echo "Reading missing state"
 curl "localhost:$PORT/state/tx1_1"
 echo
 
-kill $!
+kill $SERVER_PID
