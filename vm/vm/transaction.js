@@ -1,18 +1,19 @@
 class Transaction {
-    constructor (txid) {
-        this.id = txid
-        this.instructions = []
-    }
+  constructor (txid) {
+    this.id = txid
+    this.instructions = []
+  }
 
-    add(instruction) {
-        this.instructions.push(instruction)
-    }
+  add (instruction) {
+    this.instructions.push(instruction)
+    return this
+  }
 
-    async exec (vm) {
-        for(const instruction of this.instructions) {
-            await instruction.exec(vm)
-        }
+  exec (context) {
+    for (const instruction of this.instructions) {
+      instruction.exec(context)
     }
+  }
 }
 
 export { Transaction }

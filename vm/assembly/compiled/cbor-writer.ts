@@ -25,6 +25,16 @@ export class CborWriter extends BufferWriter {
         return this.writeHead(6, 42).encodeInt(ref)
     }
 
+    encodeArray(array: Array<string>): CborWriter {
+      const type: u8 = 4 << 5;
+      const length = array.length as u8;
+      this.writeU8(type | length);
+      for(let i = 0; i < array.length ; i++) {
+        this.encodeStr(array[i]);
+      }
+      return this;
+    }
+
     encodeNull(): CborWriter {
         this.writeU8((7 << 5) | 24)
         this.writeU8(22)

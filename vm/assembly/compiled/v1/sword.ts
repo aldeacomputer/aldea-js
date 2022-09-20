@@ -1,5 +1,5 @@
-import {CborReader} from "./cbor_reader";
-import {CborWriter} from "./cbor-writer";
+import {CborReader} from "../cbor_reader";
+import {CborWriter} from "../cbor-writer";
 
 class Sword {
     name: string;
