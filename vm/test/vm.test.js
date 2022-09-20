@@ -174,7 +174,7 @@ describe('execute txs', () => {
     expect(parsedFighter.get(2)).to.eql(null)
   })
 
-  it('40000 txs', async () => {
+  it.skip('40000 txs', async () => {
     let i = 10000
     while (i--) {
       const tx1 = new Transaction('tx1')
