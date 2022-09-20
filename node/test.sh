@@ -11,7 +11,22 @@ curl "localhost:$PORT/status"
 echo
 echo
 
-echo "Posting tx"
+echo "Posting bad transactions"
+curl -X POST localhost:$PORT/tx \
+   -H 'Content-Type: application/json' \
+   -d '{}'
+echo
+curl -X POST localhost:$PORT/tx \
+   -H 'Content-Type: application/json' \
+   -d '{ "instructions": [ { } ] }'
+echo
+curl -X POST localhost:$PORT/tx \
+   -H 'Content-Type: application/json' \
+   -d '{ "instructions": [ { "name": "nop" } ] }'
+echo
+echo
+
+echo "Posting transaction"
 curl -X POST localhost:$PORT/tx \
    -H 'Content-Type: application/json' \
    -d '{

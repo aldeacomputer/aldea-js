@@ -42,11 +42,35 @@ app.get('/state/:location', (req, res) => {
   }
 })
 
-app.post('/tx', (req, res) => {
-  console.log(req.body)
+function parseTransactionJson (json) {
+  const tx = new Transaction('tx2')
 
-  // TODO
-  res.send('OK')
+  json.instructions.forEach(instruction => {
+    switch (instruction.name) {
+      case 'new': {
+        console.log('new')
+      } break
+
+      case 'lock': {
+        console.log('new')
+      } break
+
+      default:
+        throw new Error(`Unknown instruction: ${instruction.name}`)
+    }
+  })
+
+  return tx
+}
+
+app.post('/tx', (req, res) => {
+  try {
+    const tx = parseTransactionJson(req.body)
+    vm.execTx(tx)
+    res.send('OK')
+  } catch (e) {
+    res.status(400).send(e.message)
+  }
 })
 
 app.listen(port, () => {
