@@ -9,20 +9,13 @@ import { LockInstruction } from '../vm/vm/instructions/lock-instruction.js'
 import { LiteralArg } from '../vm/vm/literal-arg.js'
 import { UserLock } from '../vm/vm/locks/user-lock.js'
 
+const storage = new Storage()
+const vm = new VM(storage)
+
 const app = express()
 const port = 4000
 
 app.use(express.json())
-
-// TEST SETUP
-const storage = new Storage()
-const tx = new Transaction('tx1')
-const lock = new UserLock('02e87f8ac25172cbc2f6e3fc858c970e0668a9c359452a4ef80e552db9cd9d987a')
-tx.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('excalibur')]))
-tx.add(new CallInstruction(0, 'sharp', []))
-tx.add(new LockInstruction(0, lock))
-const vm = new VM(storage)
-vm.execTx(tx)
 
 app.get('/status', (req, res) => {
   res.send('OK')
@@ -43,7 +36,7 @@ app.get('/state/:location', (req, res) => {
 })
 
 function parseTransactionJson (json) {
-  const tx = new Transaction('tx2')
+  const tx = new Transaction('tx1')
 
   json.instructions.forEach(jsonInstruction => {
     switch (jsonInstruction.name) {
@@ -51,6 +44,14 @@ function parseTransactionJson (json) {
         const className = jsonInstruction.className
         const argList = jsonInstruction.argList.map(arg => new LiteralArg(arg))
         const instruction = new NewInstruction(className, argList)
+        tx.add(instruction)
+      } break
+
+      case 'call': {
+        const masterListIndex = jsonInstruction.masterListIndex
+        const methodName = jsonInstruction.methodName
+        const args = jsonInstruction.args.map(arg => new LiteralArg(arg))
+        const instruction = new CallInstruction(masterListIndex, methodName, args)
         tx.add(instruction)
       } break
 

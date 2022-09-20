@@ -37,6 +37,12 @@ curl -X POST localhost:$PORT/tx \
                  "argList": ["excalibur"]
              },
              {
+                 "name": "call",
+                 "masterListIndex": 0,
+                 "methodName": "sharp",
+                 "args": []
+             },
+             {
                  "name": "lock",
                  "jigIndex": 0,
                  "lock": "02e87f8ac25172cbc2f6e3fc858c970e0668a9c359452a4ef80e552db9cd9d987a"
