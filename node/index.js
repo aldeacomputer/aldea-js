@@ -12,7 +12,7 @@ import { UserLock } from '../vm/vm/locks/user-lock.js'
 const app = express()
 const port = 4000
 
-// TEST
+// TEST SETUP
 const storage = new Storage()
 const tx = new Transaction('tx1')
 const lock = new UserLock('02e87f8ac25172cbc2f6e3fc858c970e0668a9c359452a4ef80e552db9cd9d987a')
@@ -21,7 +21,6 @@ tx.add(new CallInstruction(0, 'sharp', []))
 tx.add(new LockInstruction(0, lock))
 const vm = new VM(storage)
 vm.execTx(tx)
-console.log(storage.getJigState('tx1_0'))
 
 app.get('/status', (req, res) => {
   res.send('OK')
@@ -33,8 +32,12 @@ app.get('/tx/:txid', (req, res) => {
 })
 
 app.get('/state/:location', (req, res) => {
-  // TODO
-  res.send('OK')
+  const state = storage.getJigState(req.params.location)
+  if (state) {
+    res.send(state)
+  } else {
+    res.status(404).send("Sorry can't find that!")
+  }
 })
 
 app.post('/tx', (req, res) => {
