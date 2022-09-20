@@ -1,6 +1,8 @@
+import blake3 from "blake3-wasm"
+
 class Transaction {
-  constructor (txid) {
-    this.id = txid
+  constructor () {
+    // this.id = txid
     this.instructions = []
   }
 
@@ -13,6 +15,14 @@ class Transaction {
     for (const instruction of this.instructions) {
       instruction.exec(context)
     }
+  }
+
+  encode () {
+    return this.instructions.map(instruction => instruction.encode()).join('\n')
+  }
+
+  get id () {
+    return blake3.hash(this.encode())
   }
 }
 
