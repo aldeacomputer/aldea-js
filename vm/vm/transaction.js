@@ -18,11 +18,11 @@ class Transaction {
   }
 
   encode () {
-    return this.instructions[0].encode()
+    return this.instructions.map(instruction => instruction.encode()).join('\n')
   }
 
   get id () {
-    return blake3.hash(this.instructions[0].encode())
+    return blake3.hash(this.encode())
   }
 }
 

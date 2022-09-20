@@ -1,3 +1,5 @@
+// import { UserLock } from "../locks/user-lock"
+
 export class LockInstruction {
   constructor (masterListIndex, pubkey) {
     this.masterListIndex = masterListIndex

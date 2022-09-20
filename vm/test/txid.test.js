@@ -38,7 +38,7 @@ describe('Transaction#encode', () => {
     tx.add(new LockInstruction(0, 'somepubkey'))
 
 
-    expect(tx.id).to.eql(blake3.hash('LOCK $0 somepubkey'))
+    expect(tx.id).to.eql(blake3.hash('LOCK $0 "somepubkey"'))
   })
 
   it('it returns correct hash for a tx with a call instruction with no args', () => {
@@ -81,5 +81,18 @@ describe('Transaction#encode', () => {
     tx.add(new UnlockInstruction(0, 'somekey'))
 
     expect(tx.id).to.eql(blake3.hash('UNLOCK $0 "somekey"'))
+  })
+
+  it('it renders multiple instructions', () => {
+    const tx = new Transaction()
+      .add(new NewInstruction('someClass', [new LiteralArg("foo")]))
+      .add(new CallInstruction(0, 'm1', [new JigArg(1)]))
+      .add(new LockInstruction(0, 'somekey'))
+
+    expect(tx.id).to.eql(blake3.hash([
+      'NEW someClass "foo"',
+      'CALL $0 m1 $1',
+      'LOCK $0 "somekey"'
+    ].join('\n')))
   })
 })
