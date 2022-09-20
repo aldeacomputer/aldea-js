@@ -10,6 +10,7 @@ import { Storage } from '../vm/storage.js'
 // import { ExecutionError, PermissionError } from "../vm/errors.js"
 import { LockInstruction } from "../vm/instructions/lock-instruction.js"
 import { UserLock } from "../vm/locks/user-lock.js"
+import { locationF } from "../vm/location.js"
 // import { UnlockInstruction } from "../vm/instructions/unlock-instruction.js"
 
 const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" }).data
@@ -44,7 +45,7 @@ describe('execute txs', () => {
     vm.execTx(tx1)
     // vm.execTx(tx2)
 
-    const state = storage.getJigState('tx1_0')
+    const state = storage.getJigState(locationF(tx1, 0))
     const parsed = parse(state.stateBuf)
     expect(parsed[0]).to.eql([])
   })
