@@ -27,6 +27,7 @@
     }
   },
   "dependencies": {
+    "blake3-wasm": "^2.1.5",
     "cbor-redux": "1.0.0-3"
   }
 }

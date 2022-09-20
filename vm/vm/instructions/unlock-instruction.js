@@ -9,4 +9,8 @@ export class UnlockInstruction {
     jigRef.open(this.key)
     context.addKey(this.key)
   }
+
+  encode () {
+    return `UNLOCK $${this.jigIndex} "${this.key}"`
+  }
 }

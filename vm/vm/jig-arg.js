@@ -7,4 +7,8 @@ export class JigArg {
     const jig = context.getJigRef(this.index)
     return jig.origin
   }
+
+  encode () {
+    return `$${this.index}`
+  }
 }
