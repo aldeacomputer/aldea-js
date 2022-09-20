@@ -1,11 +1,11 @@
-import { Transaction } from '../vm/vm/transaction.js'
-import { NewInstruction } from '../vm/vm/instructions/new-instruction.js'
-import { CallInstruction } from '../vm/vm/instructions/call-instruction.js'
-import { LockInstruction } from '../vm/vm/instructions/lock-instruction.js'
-import { UnlockInstruction } from '../vm/vm/instructions/unlock-instruction.js'
-import { LoadInstruction } from '../vm/vm/instructions/load-instruction.js'
-import { LiteralArg } from '../vm/vm/literal-arg.js'
-import { UserLock } from '../vm/vm/locks/user-lock.js'
+import { Transaction } from '../../vm/vm/transaction.js'
+import { NewInstruction } from '../../vm/vm/instructions/new-instruction.js'
+import { CallInstruction } from '../../vm/vm/instructions/call-instruction.js'
+import { LockInstruction } from '../../vm/vm/instructions/lock-instruction.js'
+import { UnlockInstruction } from '../../vm/vm/instructions/unlock-instruction.js'
+import { LoadInstruction } from '../../vm/vm/instructions/load-instruction.js'
+import { LiteralArg } from '../../vm/vm/literal-arg.js'
+import { UserLock } from '../../vm/vm/locks/user-lock.js'
 
 export class TransactionJSON {
   static parse (json) {

@@ -2,7 +2,6 @@ import blake3 from "blake3-wasm"
 
 class Transaction {
   constructor () {
-    // this.id = txid
     this.instructions = []
   }
 

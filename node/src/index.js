@@ -1,7 +1,7 @@
 import express from 'express'
 
-import { VM } from '../vm/vm/vm.js'
-import { Storage } from '../vm/vm/storage.js'
+import { VM } from '../../vm/vm/vm.js'
+import { Storage } from '../../vm/vm/storage.js'
 import { TransactionJSON } from './transaction-json.js'
 
 const storage = new Storage()
