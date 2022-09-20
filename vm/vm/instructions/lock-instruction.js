@@ -1,10 +1,14 @@
 export class LockInstruction {
-  constructor (masterListIndex, lock) {
+  constructor (masterListIndex, pubkey) {
     this.masterListIndex = masterListIndex
-    this.lock = lock
+    this.pubkey = pubkey
   }
 
   exec (context) {
-    context.lockJig(this.masterListIndex, this.lock)
+    context.lockJig(this.masterListIndex, new UserLock(this.pubkey))
+  }
+
+  encode () {
+    return `LOCK $${this.masterListIndex} ${this.pubkey}`
   }
 }
