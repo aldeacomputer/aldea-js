@@ -1,4 +1,4 @@
-// import { UserLock } from "../locks/user-lock"
+import { UserLock } from "../locks/user-lock.js"
 
 export class LockInstruction {
   constructor (masterListIndex, pubkey) {

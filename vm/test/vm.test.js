@@ -10,26 +10,25 @@ import { LiteralArg } from '../vm/literal-arg.js'
 import { JigArg } from '../vm/jig-arg.js'
 import { LockInstruction } from "../vm/instructions/lock-instruction.js"
 import { UnlockInstruction } from "../vm/instructions/unlock-instruction.js"
-import { UserLock } from "../vm/locks/user-lock.js"
 
 const parse = (data) => CBOR.decode(data.buffer, null, { mode: "sequence" })
 
 describe('execute txs', () => {
   let storage
-  const userLock = () => new UserLock('pubkey')
   const userKey = 'pubkey'
+  const userLock = () => 'pubkey'
   beforeEach(() => {
     storage = new Storage()
   })
   it('can create a sword and call a method', async () => {
-    const tx = new Transaction('tx1')
+    const tx = new Transaction()
     tx.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('excalibur')]))
     tx.add(new CallInstruction(0, 'sharp', []))
     tx.add(new LockInstruction(0, userLock()))
 
     const vm = new VM(storage)
     await vm.execTx(tx)
-    const parsed = parse(storage.getJigState('tx1_0').stateBuf)
+    const parsed = parse(storage.getJigState(`${tx.id}_0`).stateBuf)
     expect(parsed.get(0)).to.eql('excalibur')
     expect(parsed.get(1)).to.eql(2)
   })
@@ -38,10 +37,10 @@ describe('execute txs', () => {
     const tx1 = new Transaction('tx1')
     tx1.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('excalibur')]))
     tx1.add(new CallInstruction(0, 'sharp', []))
-    tx1.add(new LockInstruction(0, userLock()))
+    tx1.add(new LockInstruction(0, userKey))
 
     const tx2 = new Transaction('tx1')
-    tx2.add(new LoadInstruction('tx1_0'))
+    tx2.add(new LoadInstruction(`${tx1.id}_0`))
     tx2.add(new UnlockInstruction(0, userKey))
     tx2.add(new CallInstruction(0, 'sharp', []))
     tx2.add(new LockInstruction(0, userLock()))
@@ -49,7 +48,7 @@ describe('execute txs', () => {
     const vm = new VM(storage)
     await vm.execTx(tx1)
     await vm.execTx(tx2)
-    const parsed = parse(storage.getJigState('tx1_0').stateBuf)
+    const parsed = parse(storage.getJigState(`${tx1.id}_0`).stateBuf)
     expect(parsed.get(0)).to.eql('excalibur')
     expect(parsed.get(1)).to.eql(3)
   })
@@ -61,7 +60,7 @@ describe('execute txs', () => {
 
     const vm = new VM(storage)
     await vm.execTx(tx1)
-    const parsed = parse(storage.getJigState('tx1_0').stateBuf)
+    const parsed = parse(storage.getJigState(`${tx1.id}_0`).stateBuf)
     expect(parsed.get(0)).to.eql('Eduardo')
   })
 
