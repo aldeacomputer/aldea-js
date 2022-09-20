@@ -7,6 +7,13 @@ curl "localhost:$PORT/status"
 echo
 echo
 
+echo "Posting tx"
+curl -X POST localhost:$PORT/tx \
+   -H 'Content-Type: application/json' \
+   -d '{"login":"my_login","password":"my_password"}'
+echo
+echo
+
 echo "Reading state"
 curl "localhost:$PORT/state/tx1_0"
 echo

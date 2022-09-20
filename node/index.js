@@ -12,6 +12,8 @@ import { UserLock } from '../vm/vm/locks/user-lock.js'
 const app = express()
 const port = 4000
 
+app.use(express.json())
+
 // TEST SETUP
 const storage = new Storage()
 const tx = new Transaction('tx1')
@@ -41,6 +43,8 @@ app.get('/state/:location', (req, res) => {
 })
 
 app.post('/tx', (req, res) => {
+  console.log(req.body)
+
   // TODO
   res.send('OK')
 
