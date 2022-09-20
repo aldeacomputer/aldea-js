@@ -89,7 +89,7 @@ app.post('/tx', (req, res) => {
   try {
     const tx = parseTransactionJson(req.body)
     vm.execTx(tx)
-    res.send('OK')
+    res.send(tx.id)
   } catch (e) {
     res.status(400).send(e.message)
   }
