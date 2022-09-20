@@ -11,6 +11,6 @@ export class LockInstruction {
   }
 
   encode () {
-    return `LOCK $${this.masterListIndex} ${this.pubkey}`
+    return `LOCK $${this.masterListIndex} "${this.pubkey}"`
   }
 }

@@ -5,6 +5,7 @@ import { TxExecution } from './tx-execution.js'
 import { JigState } from './jig-state.js'
 import { PermissionError } from "./errors.js"
 import fs from "fs"
+import { locationF } from "./location.js"
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -24,7 +25,7 @@ export class VM {
       }
     })
     currentExecution.jigs.forEach((jigRef, index) => {
-      const location = `${tx.id}_${index}`
+      const location = locationF(tx, index)
       const origin = jigRef.origin || location
       const serialized = jigRef.module.instanceCall(jigRef.ref, 'serialize')
       const jig = new JigState(origin, location, serialized, jigRef.module.id, jigRef.lock.serialize())

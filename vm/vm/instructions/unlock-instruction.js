@@ -11,6 +11,6 @@ export class UnlockInstruction {
   }
 
   encode () {
-    return `UNLOCK $${this.jigIndex} "${this.key}"`
+    return `UNLOCK $${this.masterListIndex} "${this.key}"`
   }
 }

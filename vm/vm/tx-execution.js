@@ -3,6 +3,7 @@ import { JigRef } from "./jig-ref.js"
 import { ExecutionError, PermissionError } from "./errors.js"
 import { UserLock } from "./locks/user-lock.js"
 import { NoLock } from "./locks/no-lock.js"
+import { locationF } from "./location.js"
 
 class TxExecution {
   constructor (tx, vm) {
@@ -133,7 +134,7 @@ class TxExecution {
   }
 
   newOrigin () {
-    return `${this.tx.id}_${this.jigs.length}`
+    return locationF(this.tx, this.jigs.length)
   }
 }
 
