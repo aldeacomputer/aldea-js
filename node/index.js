@@ -18,18 +18,26 @@ app.get('/state/:location', (req, res) => {
 
 app.post('/tx', (req, res) => {
   // TODO
+  res.send('OK')
 
   /**
+   * Example JSON tx to instantiate a sword
    *
    * {
    *      instructions: [
    *          {
-   *              name: '...'
+   *              name: 'new',
+   *              className: 'v1/sword.wasm'
+   *              argList: ['excalibur']
+   *          },
+   *          {
+   *              name: 'lock',
+   *              jigIndex: 0,
+   *              lock: '1EPSihtxLkiXc3NPRHucZpFUoLDWWwETn4'
    *          }
    *      ]
    * }
    */
-  res.send('OK')
 })
 
 app.listen(port, () => {
