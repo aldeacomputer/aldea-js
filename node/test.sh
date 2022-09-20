@@ -52,6 +52,36 @@ curl -X POST localhost:$PORT/tx \
 echo
 echo
 
+echo "Posting transaction 2"
+curl -X POST localhost:$PORT/tx \
+   -H 'Content-Type: application/json' \
+   -d '{
+         "instructions": [
+             {
+                 "name": "load",
+                 "location": "tx1_0"
+             },
+             {
+                 "name": "unlock",
+                 "masterListIndex": 0,
+                 "key": "02e87f8ac25172cbc2f6e3fc858c970e0668a9c359452a4ef80e552db9cd9d987a"
+             },
+             {
+                 "name": "call",
+                 "masterListIndex": 0,
+                 "methodName": "sharp",
+                 "args": []
+             },
+             {
+                 "name": "lock",
+                 "masterListIndex": 0,
+                 "lock": "02e87f8ac25172cbc2f6e3fc858c970e0668a9c359452a4ef80e552db9cd9d987a"
+             }
+         ]
+    }'
+echo
+echo
+
 echo "Reading state"
 curl "localhost:$PORT/state/tx1_0"
 echo
