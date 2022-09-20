@@ -38,7 +38,8 @@ app.post('/tx', (req, res) => {
   try {
     const tx = TransactionJSON.parse(req.body)
     vm.execTx(tx)
-    res.send(tx.id)
+    storage.addTransaction(tx)
+    res.send(tx.id.toString('hex'))
   } catch (e) {
     res.status(400).send(e.message)
   }

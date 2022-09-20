@@ -9,7 +9,7 @@ import { UserLock } from '../../vm/vm/locks/user-lock.js'
 
 export class TransactionJSON {
   static parse (json) {
-    const tx = new Transaction('tx1')
+    const tx = new Transaction()
 
     json.instructions.forEach(jsonInstruction => {
       switch (jsonInstruction.name) {
