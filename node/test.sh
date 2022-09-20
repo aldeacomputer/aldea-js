@@ -3,7 +3,7 @@
 PORT=4000
 node . &
 serverPID=$!
-sleep 0.5
+sleep 1
 echo
 
 echo "Getting status"
