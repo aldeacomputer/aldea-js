@@ -23,10 +23,10 @@ export class Storage {
     }
 
     addTransaction(tx) {
-        this.transactions.set(tx.id, tx)
+        this.transactions.set(tx.id.toString('hex'), tx)
     }
 
     getTransaction(txid) {
-        this.transactions.get(txid)
+        return this.transactions.get(txid)
     }
 }

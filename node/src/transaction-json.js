@@ -30,7 +30,7 @@ export class TransactionJSON {
 
         case 'lock': {
           const masterListIndex = jsonInstruction.masterListIndex
-          const lock = new UserLock(jsonInstruction.lock)
+          const lock = jsonInstruction.lock
           const instruction = new LockInstruction(masterListIndex, lock)
           tx.add(instruction)
         } break
