@@ -1,5 +1,5 @@
 {
-  "name": "assymbly-script-empty",
+  "name": "@aldea/vm",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",

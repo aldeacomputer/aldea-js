@@ -20,8 +20,12 @@ class Transaction {
     return this.instructions.map(instruction => instruction.encode()).join('\n')
   }
 
-  get id () {
+  get hash () {
     return blake3.hash(this.encode())
+  }
+
+  get id () {
+    return this.hash.toString('hex')
   }
 }
 

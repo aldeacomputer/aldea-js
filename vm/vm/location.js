@@ -1,1 +1,1 @@
-export function locationF (tx, index) { return `${tx.id.toString('hex')}_${index}` }
+export function locationF (tx, index) { return `${tx.id}_${index}` }

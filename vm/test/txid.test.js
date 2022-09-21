@@ -16,21 +16,21 @@ describe('Transaction#encode', () => {
       tx.add(new LoadInstruction('someLocation'))
 
 
-    expect(tx.id).to.eql(blake3.hash('LOAD someLocation'))
+    expect(tx.id).to.eql(blake3.hash('LOAD someLocation').toString('hex'))
   })
 
   it('it returns correct hash for a tx with a new instruction with no args', () => {
     const tx = new Transaction()
     tx.add(new NewInstruction('v1/sword.wasm', []))
 
-    expect(tx.id).to.eql(blake3.hash('NEW v1/sword.wasm'))
+    expect(tx.id).to.eql(blake3.hash('NEW v1/sword.wasm').toString('hex'))
   })
 
   it('it returns correct hash for a tx with literal args', () => {
     const tx = new Transaction()
     tx.add(new NewInstruction('v1/sword.wasm', [new LiteralArg("foo"), new LiteralArg(10), new JigArg(101)]))
 
-    expect(tx.id).to.eql(blake3.hash('NEW v1/sword.wasm "foo" 10 $101'))
+    expect(tx.id).to.eql(blake3.hash('NEW v1/sword.wasm "foo" 10 $101').toString('hex'))
   })
 
   it('it returns correct hash for a tx with a lock instruction', () => {
@@ -38,49 +38,49 @@ describe('Transaction#encode', () => {
     tx.add(new LockInstruction(0, 'somepubkey'))
 
 
-    expect(tx.id).to.eql(blake3.hash('LOCK $0 "somepubkey"'))
+    expect(tx.id).to.eql(blake3.hash('LOCK $0 "somepubkey"').toString('hex'))
   })
 
   it('it returns correct hash for a tx with a call instruction with no args', () => {
     const tx = new Transaction()
     tx.add(new CallInstruction(0, 'm1', []))
 
-    expect(tx.id).to.eql(blake3.hash('CALL $0 m1'))
+    expect(tx.id).to.eql(blake3.hash('CALL $0 m1').toString('hex'))
   })
 
   it('it returns correct hash for a tx with a call instruction with a literal string arg', () => {
     const tx = new Transaction()
     tx.add(new CallInstruction(0, 'm1', [new LiteralArg('foo')]))
 
-    expect(tx.id).to.eql(blake3.hash('CALL $0 m1 "foo"'))
+    expect(tx.id).to.eql(blake3.hash('CALL $0 m1 "foo"').toString('hex'))
   })
 
   it('it returns correct hash for a tx with a call instruction with a literal number arg', () => {
     const tx = new Transaction()
     tx.add(new CallInstruction(0, 'm1', [new LiteralArg(1)]))
 
-    expect(tx.id).to.eql(blake3.hash('CALL $0 m1 1'))
+    expect(tx.id).to.eql(blake3.hash('CALL $0 m1 1').toString('hex'))
   })
 
   it('it returns correct hash for a tx with a call instruction with a jig arg', () => {
     const tx = new Transaction()
     tx.add(new CallInstruction(0, 'm1', [new JigArg(0)]))
 
-    expect(tx.id).to.eql(blake3.hash('CALL $0 m1 $0'))
+    expect(tx.id).to.eql(blake3.hash('CALL $0 m1 $0').toString('hex'))
   })
 
   it('it returns a correct hash for tx with a call instruction with multiple args', () => {
     const tx = new Transaction()
     tx.add(new CallInstruction(0, 'm1', [new LiteralArg('foo'), new LiteralArg(100), new JigArg(0)]))
 
-    expect(tx.id).to.eql(blake3.hash('CALL $0 m1 "foo" 100 $0'))
+    expect(tx.id).to.eql(blake3.hash('CALL $0 m1 "foo" 100 $0').toString('hex'))
   })
 
   it('it returns a correct hash for tx with an unlock instruction', () => {
     const tx = new Transaction()
     tx.add(new UnlockInstruction(0, 'somekey'))
 
-    expect(tx.id).to.eql(blake3.hash('UNLOCK $0 "somekey"'))
+    expect(tx.id).to.eql(blake3.hash('UNLOCK $0 "somekey"').toString('hex'))
   })
 
   it('it renders multiple instructions', () => {
@@ -93,6 +93,6 @@ describe('Transaction#encode', () => {
       'NEW someClass "foo"',
       'CALL $0 m1 $1',
       'LOCK $0 "somekey"'
-    ].join('\n')))
+    ].join('\n')).toString('hex'))
   })
 })
