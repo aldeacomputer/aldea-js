@@ -7,7 +7,7 @@ export class Toothpaste {
     this.weight = 100;
   }
 
-  use (): void {
-    this.weight--;
+  magic (): u8 {
+    return 10;
   }
 }
