@@ -15,6 +15,7 @@ __metadata:
     cbor-redux: 1.0.0-3
     chai: ^4.3.6
     chokidar: ^3.5.3
+    glob: ^8.0.3
     mocha: ^10.0.0
     nodemon: ^2.0.19
     typescript: ^4.8.3
@@ -118,13 +119,13 @@ __metadata:
 
 "aldea-zero-compiler@file:///home/migue/Projects/aldea/aldea-zero/compiler::locator=%40aldea%2Fvm%40workspace%3A.":
   version: 0.0.1
-  resolution: "aldea-zero-compiler@file:///home/migue/Projects/aldea/aldea-zero/compiler#///home/migue/Projects/aldea/aldea-zero/compiler::hash=d3103e&locator=%40aldea%2Fvm%40workspace%3A."
+  resolution: "aldea-zero-compiler@file:///home/migue/Projects/aldea/aldea-zero/compiler#///home/migue/Projects/aldea/aldea-zero/compiler::hash=a28eea&locator=%40aldea%2Fvm%40workspace%3A."
   dependencies:
     assemblyscript: ^0.21.3
     yargs: ^17.5.1
   bin:
     aldea: bin/aldea.js
-  checksum: 9e5c178931fe257cebe4b3fe8dff7493452cad6fcb30fa186ead01df8f07b84cb882a1fbb15dadd6dc585d7204464e6e1030314a1681b9f95658ab66ed54df28
+  checksum: 3df058961c84ec7073fb05a5204dabd67fdd15928a3c0ac9360db911b0120a733890ea72c040659aa2b046db4762bde08501a4bbbf1403b9ffa085c17d38cced
   languageName: node
   linkType: hard
 
@@ -660,7 +661,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:^8.0.1":
+"glob@npm:^8.0.1, glob@npm:^8.0.3":
   version: 8.0.3
   resolution: "glob@npm:8.0.3"
   dependencies:

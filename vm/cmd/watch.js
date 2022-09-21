@@ -2,12 +2,12 @@
 import chokidar from 'chokidar'
 import { fileURLToPath } from "url"
 import { path } from "assemblyscript/util/node.js"
-import { compile } from "./compile.js"
+import { compileFile } from "./compile-file.js"
 const __dir = fileURLToPath(import.meta.url)
 
-chokidar.watch(path.join(__dir, '../../assembly/compiled')).on('all', async (event, path) => {
+chokidar.watch(path.join(__dir, '../../assembly/manual')).on('all', async (event, path) => {
   if (event === 'change') {
     console.log('compiling...')
-    await compile(path)
+    await compileFile(path)
   }
 });

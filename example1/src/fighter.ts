@@ -33,6 +33,7 @@ export class Fighter {
   }
 }
 
+// @ts-ignore
 @jig('./build/weapon.wasm')
 declare class Weapon {
   power: u32;
