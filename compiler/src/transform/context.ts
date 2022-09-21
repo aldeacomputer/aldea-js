@@ -1,43 +1,60 @@
 import {
   ClassDeclaration,
-  CommonFlags,
-  IdentifierExpression,
   Node,
   NodeKind,
   Parser,
   Source,
   SourceKind,
+  Statement,
 } from 'assemblyscript'
 
-/**
- * The context module is WIP - currently serves no function
- */
+import { ClassNode } from './nodes.js'
 
-class TransformCtx {
+
+/**
+ * Transform context
+ */
+export class TransformCtx {
   parser: Parser;
   src: Source;
-  classNodes: ClassDeclaration[];
+  classNodes: ClassNode[];
 
   constructor(parser: Parser) {
     this.parser = parser
     this.src = findUserSource(this.parser.sources)
-    this.classNodes = findClasses(this.src)
+    this.classNodes = collectClassNodes(this.src.statements, this)
   }
 
-  get abstractClasses(): ClassDeclaration[] {
-    return this.classNodes.filter(n => isAmbient(n) && !isExternal(n))
+  get abstractClasses(): ClassNode[] {
+    return this.classNodes.filter(n => n.isAbstract)
   }
 
-  get complexClasses(): ClassDeclaration[] {
-    return this.classNodes.filter(n => !isAmbient(n))
+  get complexClasses(): ClassNode[] {
+    return this.classNodes.filter(n => n.isComplex)
+  }
+
+  get jigClasses(): ClassNode[] {
+    return this.classNodes.filter(n => n.isJig)
+  }
+
+  get externalClasses(): ClassNode[] {
+    return this.classNodes.filter(n => n.isExternal)
+  }
+
+  parse(code: string): Source {
+    const parser = new Parser(this.parser.diagnostics)
+    parser.parseFile(code, this.src.normalizedPath, true)
+    return parser.sources[0]
   }
 }
 
 /**
- * TODO
+ * Helpers
  */
+
+// Find and return the user entry source
 function findUserSource(sources: Source[]): Source {
-  const userSrc = sources.filter((s: Source): boolean => {
+  const userSrc = sources.filter(s => {
     return s.sourceKind === SourceKind.USER_ENTRY && /^(?!~lib).+/.test(s.internalPath)
   })
 
@@ -46,27 +63,9 @@ function findUserSource(sources: Source[]): Source {
   return userSrc[0]
 }
 
-/**
- * TODO
- */
-function findClasses(s: Source): ClassDeclaration[] {
-  const nodes = s.statements.filter((n: Node): boolean => {
-    return n.kind === NodeKind.CLASSDECLARATION
-  })
-  return nodes as ClassDeclaration[]
-}
-
-/**
- * TODO
- */
-function isAmbient(n: ClassDeclaration): boolean {
-  return (n.flags & CommonFlags.AMBIENT) === CommonFlags.AMBIENT
-}
-
-/**
- * TODO
- */
-function isExternal(n: ClassDeclaration): boolean {
-  const decorators = n.decorators?.filter(d => (d.name as IdentifierExpression).text === 'jig')
-  return isAmbient(n) && !!decorators?.length
+// Collect all classes declared in the statement nodes
+function collectClassNodes(nodes: Statement[], ctx: TransformCtx): ClassNode[] {
+  return nodes
+    .filter(n => n.kind === NodeKind.CLASSDECLARATION)
+    .map((n): ClassNode => new ClassNode(n as ClassDeclaration, ctx))
 }
