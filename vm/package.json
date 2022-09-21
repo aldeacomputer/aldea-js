@@ -27,6 +27,7 @@
     }
   },
   "dependencies": {
+    "aldea-zero-compiler": "file:///home/migue/Projects/aldea/aldea-zero/compiler",
     "blake3-wasm": "^2.1.5",
     "cbor-redux": "1.0.0-3"
   }

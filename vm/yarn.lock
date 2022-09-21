@@ -9,6 +9,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/vm@workspace:."
   dependencies:
+    aldea-zero-compiler: "file:///home/migue/Projects/aldea/aldea-zero/compiler"
     assemblyscript: ^0.21.3
     blake3-wasm: ^2.1.5
     cbor-redux: 1.0.0-3
@@ -112,6 +113,18 @@ __metadata:
     clean-stack: ^2.0.0
     indent-string: ^4.0.0
   checksum: 1101a33f21baa27a2fa8e04b698271e64616b886795fd43c31068c07533c7b3facfcaf4e9e0cab3624bd88f729a592f1c901a1a229c9e490eafce411a8644b79
+  languageName: node
+  linkType: hard
+
+"aldea-zero-compiler@file:///home/migue/Projects/aldea/aldea-zero/compiler::locator=%40aldea%2Fvm%40workspace%3A.":
+  version: 0.0.1
+  resolution: "aldea-zero-compiler@file:///home/migue/Projects/aldea/aldea-zero/compiler#///home/migue/Projects/aldea/aldea-zero/compiler::hash=d3103e&locator=%40aldea%2Fvm%40workspace%3A."
+  dependencies:
+    assemblyscript: ^0.21.3
+    yargs: ^17.5.1
+  bin:
+    aldea: bin/aldea.js
+  checksum: 9e5c178931fe257cebe4b3fe8dff7493452cad6fcb30fa186ead01df8f07b84cb882a1fbb15dadd6dc585d7204464e6e1030314a1681b9f95658ab66ed54df28
   languageName: node
   linkType: hard
 
@@ -1681,6 +1694,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"yargs-parser@npm:^21.0.0":
+  version: 21.1.1
+  resolution: "yargs-parser@npm:21.1.1"
+  checksum: ed2d96a616a9e3e1cc7d204c62ecc61f7aaab633dcbfab2c6df50f7f87b393993fe6640d017759fe112d0cb1e0119f2b4150a87305cc873fd90831c6a58ccf1c
+  languageName: node
+  linkType: hard
+
 "yargs-unparser@npm:2.0.0":
   version: 2.0.0
   resolution: "yargs-unparser@npm:2.0.0"
@@ -1705,6 +1725,21 @@ __metadata:
     y18n: ^5.0.5
     yargs-parser: ^20.2.2
   checksum: b14afbb51e3251a204d81937c86a7e9d4bdbf9a2bcee38226c900d00f522969ab675703bee2a6f99f8e20103f608382936034e64d921b74df82b63c07c5e8f59
+  languageName: node
+  linkType: hard
+
+"yargs@npm:^17.5.1":
+  version: 17.5.1
+  resolution: "yargs@npm:17.5.1"
+  dependencies:
+    cliui: ^7.0.2
+    escalade: ^3.1.1
+    get-caller-file: ^2.0.5
+    require-directory: ^2.1.1
+    string-width: ^4.2.3
+    y18n: ^5.0.5
+    yargs-parser: ^21.0.0
+  checksum: 00d58a2c052937fa044834313f07910fd0a115dec5ee35919e857eeee3736b21a4eafa8264535800ba8bac312991ce785ecb8a51f4d2cc8c4676d865af1cfbde
   languageName: node
   linkType: hard
 
