@@ -48,17 +48,34 @@ class Module {
         }
       },
       vm: {
-        vm_call(location, ref, fn, argBuf) {
+        vm_call(location, fn, argBuf) {
           const thisMod = vm.modules.get(path)
           location = __liftString(thisMod, location >>> 0);
-          ref = ref >>> 0;
           fn = __liftString(thisMod, fn >>> 0);
           argBuf = __liftBuffer(thisMod, argBuf >>> 0)
 
           const thatMod = vm.modules.get(location)
-          console.log('REMOTE CALL', location, ref, fn, argBuf)
-          let ret = thatMod.instanceCall(new TaggedValue(ref, 42), fn, [__decodeArgs(argBuf)])
-          let retBuf = __encodeArgs([ret])
+          console.log('REMOTE CALL', location, fn, argBuf)
+          let retBuf = thatMod.call(fn, [__decodeArgs(argBuf)], false)
+          retBuf = __lowerBuffer(thisMod, retBuf)
+          return retBuf
+        },
+        vm_prop(location, fn, argBuf) {
+          const thisMod = vm.modules.get(path)
+          location = __liftString(thisMod, location >>> 0);
+          fn = __liftString(thisMod, fn >>> 0);
+          argBuf = __liftBuffer(thisMod, argBuf >>> 0)
+
+          const thatMod = vm.modules.get(location)
+          const [name, prop] = fn.split('$')
+          console.log('REMOTE PROP', location, name, prop)
+
+          const schema = thatMod.call(`${name}_schema`, [__decodeArgs(argBuf)])
+          const data = thatMod.call(`${name}$serialize`, [__decodeArgs(argBuf)])
+          const idx = Object.keys(schema).indexOf(prop)
+          const seq = Sequence.from([idx > 0 ? data.get(idx) : data])
+          
+          let retBuf = new Uint8Array(CBOR.encode(seq))
           retBuf = __lowerBuffer(thisMod, retBuf)
           return retBuf
         }
@@ -83,22 +100,40 @@ class Module {
 
 async function main() {
   const vm = new VM()
-  await vm.load('./build/person.wasm')
-  const mod = vm.modules.get('./build/person.wasm')
+  await vm.load('./build/fighter.wasm')
+  await vm.load('./build/weapon.wasm')
+  const mod1 = vm.modules.get('./build/fighter.wasm')
+  const mod2 = vm.modules.get('./build/weapon.wasm')
 
   console.log('\n---')
 
-  console.log('creating person')
-  const ref = mod.call('Person_constructor', ['James', 19])
-  const data1 = mod.call('Person$serialize', [ref], false)
-  inspectData(data1)
+  console.log('\ncreating player 1')
+  const p1 = mod1.call('Fighter_constructor', ['Zangief'])
+  inspectData( mod1.call('Fighter$serialize', [p1], false) )
 
-  console.log('mutating person')
-  mod.call('Person$rename', [ref, 'Bobby'])
-  mod.call('Person$getOlder', [ref, 11])
-  const data2 = mod.call('Person$serialize', [ref], false)
-  inspectData(data2)
+  console.log('\ncreating player 2')
+  const p2 = mod1.call('Fighter_constructor', ['E. Honda'])
+  inspectData( mod1.call('Fighter$serialize', [p2], false) )
 
+  console.log('\ncreating weapon')
+  const w1 = mod2.call('Weapon_constructor', ['Excalibur', 100])
+  inspectData( mod2.call('Weapon$serialize', [w1], false) )
+
+  console.log('\ncreating another weapon')
+  const w2 = mod2.call('Weapon_constructor', ['Harpe', 64])
+  inspectData( mod2.call('Weapon$serialize', [w2], false) )
+
+  console.log('\nequip swords')
+  mod1.call('Fighter$equip', [p1, w1])
+  mod1.call('Fighter$equip', [p2, w2])
+  inspectData( mod1.call('Fighter$serialize', [p1], false) )
+  inspectData( mod1.call('Fighter$serialize', [p2], false) )
+
+  console.log('\nFIGHT')
+  const result = mod1.call('Fighter$battle', [p1, p2])
+  console.log(result)
+  inspectData( mod1.call('Fighter$serialize', [p1], false) )
+  inspectData( mod1.call('Fighter$serialize', [p2], false) )
 
 }
 

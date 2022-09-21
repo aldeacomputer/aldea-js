@@ -1,11 +1,29 @@
 import { BufferWriter } from "./buffer-writer";
 
 export class CborWriter extends BufferWriter {
+  encode<T>(val: T): CborWriter {
+    if      (isInteger(val))  { this.encodeInt(val) }
+    else if (isFloat(val))    { this.encodeFloat<T>(val) }
+    else if (isString(val))   { this.encodeStr(val as string) }
+    else if (isArray(val))    { this.encodeArr(val) }
+    return this
+  }
+
   encodeInt(val: isize): CborWriter {
     if (val >= 0) {
       return this.writeHead(0, val)
     } else {
       return this.writeHead(1, -(val + 1))
+    }
+  }
+
+  encodeFloat<T>(val: T): CborWriter {
+    if (nameof(val) === 'f32') {
+      return this.writeU8((7 << 5) | 26).writeF32(val as f32)
+    } else if (nameof(val) === 'f64') {
+      return this.writeU8((7 << 5) | 27).writeF64(val as f64)
+    } else {
+      throw new Error('invalid value. not float')
     }
   }
 
@@ -29,6 +47,25 @@ export class CborWriter extends BufferWriter {
     return this.writeHead(6, 43).encodeStr(location).encodeInt(ref)
   }
 
+  encodeArr<T>(val: ArrayLike<T>): CborWriter {
+    this.writeHead(4, val.length)
+    for (let i = 0; i < val.length; i++) {
+      this.encode<T>(val[i])
+    }
+    return this
+  }
+
+  encodeMap<K, V>(val: Map<K, V>): CborWriter {
+    this.writeHead(5, val.size)
+    const keys = val.keys()
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i]
+      this.encode<K>(key)
+      this.encode<V>(val.get(key))
+    }
+    return this
+  }
+
   writeHead(type: u8, val: usize): CborWriter {
     if (val < 24) {
       this.writeU8((type << 5) | val as u8)
@@ -39,8 +76,7 @@ export class CborWriter extends BufferWriter {
     } else if (val <= 0xFFFFFFFF) {
       this.writeU8((type << 5) | 26).writeU32(val as u32)
     } else {
-      throw new Error('eeek no 64bit ints right now pls')
-      //this.writeU8((type << 5) | 27).writeU64(val as u64)
+      this.writeU8((type << 5) | 27).writeU64(val as u64)
     }
     return this
   }
@@ -69,6 +105,20 @@ export class CborWriter extends BufferWriter {
   writeU64(num: u64): CborWriter {
     const buf = new ArrayBuffer(8)
     new DataView(buf).setUint64(0, num)
+    this.push(Uint8Array.wrap(buf))
+    return this
+  }
+
+  writeF32(num: f32): CborWriter {
+    const buf = new ArrayBuffer(4)
+    new DataView(buf).setFloat32(0, num)
+    this.push(Uint8Array.wrap(buf))
+    return this
+  }
+
+  writeF64(num: f64): CborWriter {
+    const buf = new ArrayBuffer(8)
+    new DataView(buf).setFloat64(0, num)
     this.push(Uint8Array.wrap(buf))
     return this
   }

@@ -2,67 +2,65 @@ import {
   ASTBuilder,
   ClassDeclaration,
   CommonFlags,
-  DiagnosticMessage,
-  Node,
-  NodeKind,
   Parser,
-  Source,
-  SourceKind,
+  Statement,
 } from 'assemblyscript'
-
-import { ClassNode } from './transform/class-node.js'
-import { ClassMethod } from './transform/class-method.js'
 
 import {
   writeClassWrapper,
   writeDeserializeStaticMethod,
   writeSerializeInstanceMethod,
   writeExportMethod,
+  writeExportSchemaMethod,
   writeExportDeserializeMethod,
   writeExportSerializeMethod,
+  writeProxyClassWrapper,
+  writeProxyGetter,
+  writeProxyMethod
 } from './transform/code-writer.js'
+
+import { TransformCtx } from './transform/context.js'
+import { ClassNode, FieldNode, MethodNode } from './transform/nodes.js'
 
 
 /**
  * Called when parsing is complete, and the AST is ready.
  */
 export function afterParse(parser: Parser): void {
-  const nodes = selectClassNodes(parser.sources)
+  const ctx = new TransformCtx(parser)
 
-  console.log('ORIGINAL')
-  console.log(ASTBuilder.build(nodes[0].source))
+  console.log('\n   == ORIGINAL ==   ')
+  console.log('********************')
+  console.log(ASTBuilder.build(ctx.src))
 
-  transform(nodes.filter(n => n.isComplex), parser.diagnostics, transformComplexObj)
-  transform(nodes.filter(n => n.isComplex), parser.diagnostics, transformJigObj)
-  transform(nodes.filter(n => n.isComplex), parser.diagnostics, transformExternalObj)
+  if (ctx.externalClasses.length) { transformImports(ctx) }
+  ctx.complexClasses.forEach(n => transformComplexObj(n, ctx))
+  ctx.jigClasses.forEach(n => transformJigObj(n, ctx))
+  ctx.externalClasses.forEach(n => transformExternalObj(n, ctx))
 
-  console.log('TRANSFORMED')
-  console.log(ASTBuilder.build(nodes[0].source))
+  console.log('\n  == TRANSFORMED == ')
+  console.log('********************')
+  console.log(ASTBuilder.build(ctx.src))
 }
 
 
 /**
- * Selects class nodes from the given sources.
+ * Declares imported functions for interfacing with external jigs.
+ * 
+ * - Adds vm_call() imported function
+ * - Adds vm_prop() imported function
  */
-function selectClassNodes(sources: Source[]): ClassNode[] {
-  const classNodes = sources
-    .filter((s: Source): boolean => {
-      return s.sourceKind === SourceKind.USER_ENTRY && /^(?!~lib).+/.test(s.internalPath)
-    })
-    .flatMap((s: Source): Node[] => {
-      return s.statements.filter((n: Node): boolean => n.kind === NodeKind.CLASSDECLARATION)
-    })
+function transformImports(ctx: TransformCtx) {
+  const code = `
+  @external("vm", "vm_call")
+  declare function vm_call(origin: string, fn: string, argBuf: Uint8Array): Uint8Array
 
-  return classNodes.map(n => new ClassNode(n as ClassDeclaration))
-}
+  @external("vm", "vm_prop")
+  declare function vm_prop(origin: string, fn: string, argBuf: Uint8Array): Uint8Array
+  `.trim()
 
-
-/**
- * Executes the callback transform method on each of the nodes, passing in a
- * new Parser instance each time.
- */
-function transform(nodes: ClassNode[], diagnostics: DiagnosticMessage[], callback: Function): void {
-  nodes.forEach(obj => callback(obj, new Parser(diagnostics)))
+  const src = ctx.parse(code)
+  ctx.src.statements.unshift(...src.statements)
 }
 
 
@@ -72,16 +70,18 @@ function transform(nodes: ClassNode[], diagnostics: DiagnosticMessage[], callbac
  * - Adds #deserialize() method to the class
  * - Adds .serialize() method to the class
  */
-function transformComplexObj(obj: ClassNode, parser: Parser): void {
+function transformComplexObj(obj: ClassNode, ctx: TransformCtx): void {
   console.log(obj.name, 'Adding #deserialize() and .serialize()')
   const code = writeClassWrapper(obj, [
     writeDeserializeStaticMethod(obj),
     writeSerializeInstanceMethod(obj)
   ])
-  parser.parseFile(code, obj.source.normalizedPath, true)
-  const members = (parser.sources[0].statements[0] as ClassDeclaration).members
+
+  const src = ctx.parse(code)
+  const members = (src.statements[0] as ClassDeclaration).members
   obj.node.members.push(...members)
 }
+
 
 /**
  * Transforms jig objects.
@@ -90,25 +90,62 @@ function transformComplexObj(obj: ClassNode, parser: Parser): void {
  * - Exports deserialize() method
  * - Exports serialize() method
  */
-function transformJigObj(obj: ClassNode, parser: Parser): void {
+function transformJigObj(obj: ClassNode, ctx: TransformCtx): void {
   console.log(obj.name, 'Exporting all methods')
-  const codes = obj.methods.reduce((acc: string[], m: ClassMethod): string[] => {
-    acc.push(writeExportMethod(m, obj))
-    return acc
-  }, [])
+  const codes = obj.methods
+    .filter(n => !n.isPrivate && !n.isProtected)
+    .reduce((acc: string[], n: MethodNode): string[] => {
+      acc.push(writeExportMethod(n, obj))
+      return acc
+    }, [])
 
-  console.log(obj.name, 'Assing schema, deserialize, and serialize')
+  console.log(obj.name, 'Adding schema, deserialize, and serialize')
+  codes.push(writeExportSchemaMethod(obj))
   codes.push(writeExportDeserializeMethod(obj))
   codes.push(writeExportSerializeMethod(obj))
 
   // Remove the class export
   obj.node.flags = obj.node.flags & ~CommonFlags.EXPORT
 
-  parser.parseFile(codes.join('\n'), obj.source.normalizedPath, true)
-  obj.source.statements.push(...parser.sources[0].statements)
+  const src = ctx.parse(codes.join('\n'))
+  ctx.src.statements.push(...src.statements)
 }
 
-function transformExternalObj(obj: ClassNode): void {
+
+/**
+ * Transforms external objects.
+ * 
+ * - Creates a proxy class for the external object
+ * - Adds proxy methods for each declared property and method
+ * - Removes the user dclared code
+ */
+function transformExternalObj(obj: ClassNode, ctx: TransformCtx): void {
   console.log(obj.name, 'Creating external obj')
+
+  const fieldCodes = obj.fields
+    .filter(n => !n.isPrivate && !n.isProtected)
+    .reduce((acc: string[], n: FieldNode): string[] => {
+      acc.push(writeProxyGetter(n, obj))
+      return acc
+    }, [])
+
+  const methodCodes = obj.methods
+    .filter(n => !n.isPrivate && !n.isProtected)
+    .reduce((acc: string[], n: MethodNode): string[] => {
+      acc.push(writeProxyMethod(n, obj))
+      return acc
+    }, [])
+
   // Not yet implemented
+  const code = writeProxyClassWrapper(obj, [
+    fieldCodes.join('\n'),
+    methodCodes.join('\n')
+  ])
+
+  // Remove user node
+  const idx = ctx.src.statements.indexOf(obj.node as Statement)
+  if (idx > -1) { ctx.src.statements.splice(idx, 1) }
+
+  const src = ctx.parse(code)
+  ctx.src.statements.push(...src.statements)
 }

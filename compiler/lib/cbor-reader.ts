@@ -61,18 +61,17 @@ export class CborReader extends BufferReader {
     }
   }
 
-  decodeExtRef(): ExternalRef {
+  decodeExtRef<T>(): T {
     const head = this.readHead()
     const type = head[0]
     const info = head[1]
     const tag = this.readLength(info)
 
-    if (type == 6 && tag == 43) {
-      const buf = this.decodeBuf()
-      const nested = new CborReader(buf)
-      const location = nested.decodeStr()
-      const ref = nested.decodeInt() as u32
-      return { location, ref }
+    if (type == 6 && tag == 42) {
+      const ref = this.decodeInt() as u32
+      const ptr = __new(offsetof<T>(), idof<T>())
+      store<usize>(ptr + offsetof<T>('ref'), ref)
+      return changetype<T>(ptr)
     } else {
       throw new Error('not ref tag '+tag.toString())
     }
