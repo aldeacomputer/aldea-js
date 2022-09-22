@@ -15,7 +15,7 @@ app.use(express.json())
 app.use(cors())
 
 app.get('/status', (req, res) => {
-  res.send('OK')
+  res.send('really really OK')
 })
 
 app.get('/tx/:txid', (req, res) => {
