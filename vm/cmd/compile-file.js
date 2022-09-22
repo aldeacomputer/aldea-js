@@ -5,12 +5,11 @@ import { fileURLToPath } from 'url';
 
 const __dir = fileURLToPath(import.meta.url)
 
-export async function compile (aPath) {
-  const [_, filePath] = aPath.split('/compiled/')
+export async function compileFile (aPath) {
   const { error, stderr } = await asc.main([
-    path.join(__dir, '../../assembly/compiled', filePath),
-    "--outFile", path.join(__dir, '../../build', filePath.replace('.ts', '.wasm')),
-    "--textFile", path.join(__dir, '../../build', filePath.replace('.ts', '.wat')),
+    path.join(__dir, '../../assembly/manual', aPath),
+    "--outFile", path.join(__dir, '../../build/manual', aPath.replace('.ts', '.wasm')),
+    "--textFile", path.join(__dir, '../../build/manual', aPath.replace('.ts', '.wat')),
     "--debug",
     "--sourceMap",
     "--runtime", "stub",
@@ -33,5 +32,5 @@ export async function compile (aPath) {
 }
 
 if (process.argv[2]) {
-  compile(process.argv[2])
+  compileFile(process.argv[2])
 }

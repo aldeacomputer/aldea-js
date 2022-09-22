@@ -13,11 +13,11 @@ import {CborWriter} from "../cbor-writer";
 // }
 
 // @ts-ignore
-@external("$aldea", "callMethod")
+@external("vm", "vm_call")
 declare function callMethod(args: Uint8Array): Uint8Array;
 
 // @ts-ignore
-@external("$aldea", "adoptJig")
+@external("vm", "vm_adopt")
 declare function adoptJig(buffPointer: Uint8Array): Uint8Array;
 
 function adopt(childOrigin: string): void {
@@ -98,7 +98,7 @@ class Fight {
   }
 }
 
-export function $_constructor (_argBuf: Uint8Array): Uint8Array {
+export function Fight_constructor (_argBuf: Uint8Array): Uint8Array {
   const instance = new Fight();
 
   const ret = new CborWriter();
@@ -106,7 +106,7 @@ export function $_constructor (_argBuf: Uint8Array): Uint8Array {
   return ret.toBuffer();
 }
 
-export function $_parse(argBuf: Uint8Array): Uint8Array {
+export function Fight_deserialize(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const origins = args.decodeArray();
   const fighters = origins.map((origin: string) => new FighterProxy(origin))
@@ -119,7 +119,7 @@ export function $_parse(argBuf: Uint8Array): Uint8Array {
   return ret.toBuffer();
 }
 
-export function $$serialize(argBuf: Uint8Array): Uint8Array {
+export function Fight$serialize(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const instance = args.decodeRef<Fight>();
 
@@ -128,7 +128,7 @@ export function $$serialize(argBuf: Uint8Array): Uint8Array {
   return ret.toBuffer();
 }
 
-export function $$addParticipant(argBuf: Uint8Array): Uint8Array {
+export function Fight$addParticipant(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const ref = args.decodeRef<Fight>();
   const fighterOrigin = args.decodeStr();
@@ -139,7 +139,7 @@ export function $$addParticipant(argBuf: Uint8Array): Uint8Array {
   return new Uint8Array(0);
 }
 
-export function $$playTurn(argBuf: Uint8Array): Uint8Array {
+export function Fight$playTurn(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const ref = args.decodeRef<Fight>();
 

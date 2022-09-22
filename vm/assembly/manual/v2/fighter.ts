@@ -2,22 +2,23 @@ import {CborReader} from "../cbor_reader";
 import {CborWriter} from "../cbor-writer";
 
 // @ts-ignore
-@external("$aldea", "newInstance")
+@external("vm", "vm_create")
 declare function aldeaCreate(args: Uint8Array): Uint8Array;
-function createInstance (moduleName:string, argBuf: Uint8Array): string {
+function createInstance (moduleName:string, className:string, argBuf: Uint8Array): string {
   const writer = new CborWriter();
   writer.encodeStr(moduleName);
+  writer.encodeStr(className);
   writer.encodeBuf(argBuf);
   const responseBuf = aldeaCreate(writer.toBuffer());
   return new CborReader(responseBuf).decodeStr();
 }
 
 // @ts-ignore
-@external("$aldea", "callMethod")
+@external("vm", "vm_call")
 declare function callMethod(args: Uint8Array): Uint8Array;
 
 // @ts-ignore
-@external("$aldea", "adoptJig")
+@external("vm", "vm_adopt")
 declare function adoptJig(buffPointer: Uint8Array): Uint8Array;
 
 function adopt(childOrigin: string): void {
@@ -27,7 +28,7 @@ function adopt(childOrigin: string): void {
 }
 
 // @ts-ignore
-@external("$aldea", "releaseJig")
+@external("vm", "vm_release")
 declare function releaseJig(buffPointer: Uint8Array): Uint8Array;
 
 function release<T>(childOrigin: string, parent: T): void {
@@ -62,7 +63,7 @@ class HandProxy extends WeaponProxy{
   }
 
   static $$create(): HandProxy {
-    const origin = createInstance('v2/hand.wasm', new Uint8Array(0));
+    const origin = createInstance('manual/v2/hand.wasm', 'Hand', new Uint8Array(0));
     return new HandProxy(origin);
   }
 }
@@ -100,7 +101,7 @@ class Fighter {
   }
 }
 
-export function $_constructor (_argBuf: Uint8Array): Uint8Array {
+export function Fighter_constructor (_argBuf: Uint8Array): Uint8Array {
   const instance = new Fighter();
 
   const ret = new CborWriter();
@@ -108,7 +109,7 @@ export function $_constructor (_argBuf: Uint8Array): Uint8Array {
   return ret.toBuffer();
 }
 
-export function $_parse(argBuf: Uint8Array): Uint8Array {
+export function Fighter_deserialize(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const health = args.decodeInt() as u32;
   const leftArmOrigin = args.decodeStr();
@@ -124,7 +125,7 @@ export function $_parse(argBuf: Uint8Array): Uint8Array {
   return ret.toBuffer();
 }
 
-export function $$serialize(argBuf: Uint8Array): Uint8Array {
+export function Fighter$serialize(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const instance = args.decodeRef<Fighter>();
 
@@ -135,7 +136,7 @@ export function $$serialize(argBuf: Uint8Array): Uint8Array {
   return ret.toBuffer();
 }
 
-export function $$equipLeftHand(argBuf: Uint8Array): Uint8Array {
+export function Fighter$equipLeftHand(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const ref = args.decodeRef<Fighter>();
   const leftHandOrigin = args.decodeStr();
@@ -146,7 +147,7 @@ export function $$equipLeftHand(argBuf: Uint8Array): Uint8Array {
   return new Uint8Array(0);
 }
 
-export function $$releaseSomething(argBuf: Uint8Array): Uint8Array {
+export function Fighter$releaseSomething(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const ref = args.decodeRef<Fighter>();
 
@@ -155,7 +156,7 @@ export function $$releaseSomething(argBuf: Uint8Array): Uint8Array {
   return new Uint8Array(0);
 }
 
-export function $$getAttackPower (argBuf: Uint8Array): Uint8Array {
+export function Fighter$getAttackPower (argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const ref = args.decodeRef<Fighter>();
 

@@ -26,7 +26,7 @@ class Sword extends Weapon {
   }
 }
 
-export function $_constructor (_argBuf: Uint8Array): Uint8Array {
+export function Sword_constructor (_argBuf: Uint8Array): Uint8Array {
   const instance = new Sword();
 
   const ret = new CborWriter();
@@ -34,7 +34,7 @@ export function $_constructor (_argBuf: Uint8Array): Uint8Array {
   return ret.toBuffer();
 }
 
-export function $_parse(argBuf: Uint8Array): Uint8Array {
+export function Sword_deserialize(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const power = args.decodeInt() as u32;
 
@@ -46,7 +46,7 @@ export function $_parse(argBuf: Uint8Array): Uint8Array {
   return ret.toBuffer();
 }
 
-export function $$serialize(argBuf: Uint8Array): Uint8Array {
+export function Sword$serialize(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf)
   const instance = args.decodeRef<Sword>()
 
@@ -55,7 +55,7 @@ export function $$serialize(argBuf: Uint8Array): Uint8Array {
   return ret.toBuffer();
 }
 
-export function $$use (argBuf: Uint8Array): Uint8Array {
+export function Sword$use (argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const instance = args.decodeRef<Sword>();
 

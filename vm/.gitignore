@@ -9,3 +9,6 @@
 
 # node deps
 node_modules
+
+# generated files
+build

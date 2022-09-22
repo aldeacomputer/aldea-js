@@ -1,5 +1,4 @@
 import { BufferReader } from "./buffer-reader";
-import { ExternalRef } from "./external-jig";
 
 export class CborReader extends BufferReader {
   view: DataView;

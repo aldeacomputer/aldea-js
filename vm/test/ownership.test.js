@@ -15,6 +15,9 @@ import { locationF } from "../vm/location.js"
 
 const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" })
 
+const FIGHTER_MODULE = 'manual/v2/fighter.wasm'
+const SWORD_MODULE = 'manual/v2/sword.wasm'
+
 describe('execute txs', () => {
   let storage
   const userKey = 'somePubKey'
@@ -24,7 +27,7 @@ describe('execute txs', () => {
 
   it('throws an error if a new instance is not locked', () => {
     const tx = new Transaction('tx1')
-    tx.add(new NewInstruction('v2/sword.wasm', []))
+    tx.add(new NewInstruction(SWORD_MODULE, 'Sword', []))
 
     const vm = new VM(storage)
     expect(() => vm.execTx(tx)).to.throw(PermissionError, `unlocked jig: ${locationF(tx, 0)}`)
@@ -32,7 +35,7 @@ describe('execute txs', () => {
 
   it('can create a fighter', async () => {
     const tx = new Transaction('tx1')
-    tx.add(new NewInstruction('v2/fighter.wasm', []))
+    tx.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', []))
     tx.add(new LockInstruction(0, userKey))
 
     const vm = new VM(storage)
@@ -44,7 +47,7 @@ describe('execute txs', () => {
 
   it('can create a sword', async () => {
     const tx = new Transaction('tx1')
-    tx.add(new NewInstruction('v2/sword.wasm', []))
+    tx.add(new NewInstruction(SWORD_MODULE, 'Sword', []))
     tx.add(new LockInstruction(0, userKey))
 
     const vm = new VM(storage)
@@ -55,8 +58,8 @@ describe('execute txs', () => {
 
   it('can equip a sword', async () => {
     const tx = new Transaction()
-    tx.add(new NewInstruction('v2/fighter.wasm', []))
-    tx.add(new NewInstruction('v2/sword.wasm', []))
+    tx.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', []))
+    tx.add(new NewInstruction(SWORD_MODULE, 'Sword', []))
     tx.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
     tx.add(new LockInstruction(0, userKey))
 
@@ -69,7 +72,7 @@ describe('execute txs', () => {
 
   it('a new fighter has an empty stash', async () => {
     const tx = new Transaction('tx1')
-    tx.add(new NewInstruction('v2/fighter.wasm', []))
+    tx.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', []))
     tx.add(new LockInstruction(0, userKey))
 
     const vm = new VM(storage)
@@ -81,8 +84,8 @@ describe('execute txs', () => {
 
   it('a fighter with a sword has the hand in the stash', async () => {
     const tx = new Transaction()
-    tx.add(new NewInstruction('v2/fighter.wasm', []))
-    tx.add(new NewInstruction('v2/sword.wasm', []))
+    tx.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', []))
+    tx.add(new NewInstruction(SWORD_MODULE, 'Sword', []))
     tx.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
     tx.add(new LockInstruction(0, userKey))
 
@@ -95,8 +98,8 @@ describe('execute txs', () => {
 
   it('once the sword was owned by the fighter it cannot be used outside', () => {
     const tx1 = new Transaction()
-    tx1.add(new NewInstruction('v2/fighter.wasm', []))
-    tx1.add(new NewInstruction('v2/sword.wasm',[]))
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', []))
+    tx1.add(new NewInstruction(SWORD_MODULE, 'Sword',[]))
     tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
     tx1.add(new LockInstruction(0, userKey))
 
@@ -112,8 +115,8 @@ describe('execute txs', () => {
 
   it('locking a locked jig fails', () => {
     const tx1 = new Transaction()
-    tx1.add(new NewInstruction('v2/fighter.wasm', []))
-    tx1.add(new NewInstruction('v2/sword.wasm',[]))
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', []))
+    tx1.add(new NewInstruction(SWORD_MODULE, 'Sword',[]))
     tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
     tx1.add(new LockInstruction(0, userKey))
     tx1.add(new LockInstruction(2, userKey)) // the sword is controlled by the fighter
@@ -124,8 +127,8 @@ describe('execute txs', () => {
 
   it('once the sword was owned is stored with a proper jig lock', () => {
     const tx1 = new Transaction()
-    tx1.add(new NewInstruction('v2/fighter.wasm', []))
-    tx1.add(new NewInstruction('v2/sword.wasm',[]))
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', []))
+    tx1.add(new NewInstruction(SWORD_MODULE, 'Sword',[]))
     tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
     tx1.add(new LockInstruction(0, userKey))
 
@@ -143,8 +146,8 @@ describe('execute txs', () => {
 
   it('when a jig releases a child jig there is an error if the jig is not locked', () => {
     const tx1 = new Transaction('tx1')
-    tx1.add(new NewInstruction('v2/fighter.wasm', []))
-    tx1.add(new NewInstruction('v2/sword.wasm',[]))
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', []))
+    tx1.add(new NewInstruction(SWORD_MODULE, 'Sword',[]))
     tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
     tx1.add(new CallInstruction(0, 'releaseSomething', [new JigArg(2)]))
     tx1.add(new LockInstruction(0, userKey))
@@ -155,8 +158,8 @@ describe('execute txs', () => {
 
   it('when a jig releases a child it can be locked later', () => {
     const tx1 = new Transaction('tx1')
-    tx1.add(new NewInstruction('v2/fighter.wasm', []))
-    tx1.add(new NewInstruction('v2/sword.wasm',[]))
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', []))
+    tx1.add(new NewInstruction(SWORD_MODULE, 'Sword',[]))
     tx1.add(new CallInstruction(0, 'equipLeftHand', [new JigArg(2)]))
     tx1.add(new CallInstruction(0, 'releaseSomething', [new JigArg(2)]))
     tx1.add(new LockInstruction(0, userKey))
