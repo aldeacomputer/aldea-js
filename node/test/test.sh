@@ -33,7 +33,8 @@ TXID1=$(curl -s -X POST localhost:$PORT/tx \
          "instructions": [
              {
                  "name": "new",
-                 "className": "v1/sword.wasm",
+                 "moduleName": "manual/v1/sword.wasm",
+                 "className": "Sword",
                  "argList": ["excalibur"]
              },
              {

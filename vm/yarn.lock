@@ -119,13 +119,13 @@ __metadata:
 
 "aldea-zero-compiler@file:///home/migue/Projects/aldea/aldea-zero/compiler::locator=%40aldea%2Fvm%40workspace%3A.":
   version: 0.0.1
-  resolution: "aldea-zero-compiler@file:///home/migue/Projects/aldea/aldea-zero/compiler#///home/migue/Projects/aldea/aldea-zero/compiler::hash=5013a4&locator=%40aldea%2Fvm%40workspace%3A."
+  resolution: "aldea-zero-compiler@file:///home/migue/Projects/aldea/aldea-zero/compiler#///home/migue/Projects/aldea/aldea-zero/compiler::hash=23257f&locator=%40aldea%2Fvm%40workspace%3A."
   dependencies:
     assemblyscript: ^0.21.3
     yargs: ^17.5.1
   bin:
     aldea: bin/aldea.js
-  checksum: 2b63e91fa15ce70d120c20904c72bc2869d789494d60c1671299908f72e0cad85ed3597c7c9389366553a60d66db463d0363a58a84c9a12159ede0438581e668
+  checksum: 9d28f8bfb3b0200e0a7371e7bdbc53c862a6434704654071af46fe4b6851f28e38e4daafb429f65d598c0a6d67a6d4270a8e8a2bded53832c9c67c2dc0bef2f8
   languageName: node
   linkType: hard
 

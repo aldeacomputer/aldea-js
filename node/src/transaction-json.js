@@ -5,7 +5,6 @@ import { LockInstruction } from '../../vm/vm/instructions/lock-instruction.js'
 import { UnlockInstruction } from '../../vm/vm/instructions/unlock-instruction.js'
 import { LoadInstruction } from '../../vm/vm/instructions/load-instruction.js'
 import { LiteralArg } from '../../vm/vm/literal-arg.js'
-import { UserLock } from '../../vm/vm/locks/user-lock.js'
 
 export class TransactionJSON {
   static parse (json) {
@@ -14,9 +13,10 @@ export class TransactionJSON {
     json.instructions.forEach(jsonInstruction => {
       switch (jsonInstruction.name) {
         case 'new': {
+          const moduleName = jsonInstruction.moduleName
           const className = jsonInstruction.className
           const argList = jsonInstruction.argList.map(arg => TransactionJSON.parseArg(arg))
-          const instruction = new NewInstruction(className, argList)
+          const instruction = new NewInstruction(moduleName, className, argList)
           tx.add(instruction)
         } break
 
