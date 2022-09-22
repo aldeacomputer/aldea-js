@@ -49,7 +49,7 @@ TXID1=$(curl -s -X POST localhost:$PORT/tx \
                  "lock": "02e87f8ac25172cbc2f6e3fc858c970e0668a9c359452a4ef80e552db9cd9d987a"
              }
          ]
-    }')
+    }' | jq --raw-output .txid)
 echo $TXID1
 echo
 
@@ -79,7 +79,7 @@ TXID2=$(curl -s -X POST localhost:$PORT/tx \
                  "lock": "02e87f8ac25172cbc2f6e3fc858c970e0668a9c359452a4ef80e552db9cd9d987a"
              }
          ]
-    }')
+    }' | jq --raw-output .txid)
 echo $TXID2
 echo
 

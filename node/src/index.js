@@ -41,7 +41,7 @@ app.post('/tx', (req, res) => {
     const tx = TransactionJSON.parse(req.body)
     vm.execTx(tx)
     storage.addTransaction(tx)
-    res.send(tx.id)
+    res.send({ txid: tx.id })
   } catch (e) {
     res.status(400).send(e.message)
   }
