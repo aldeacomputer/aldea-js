@@ -275,7 +275,7 @@ export function writeMethodCall(method: MethodNode, obj: ClassNode): string {
 export function writeProxyClassWrapper(obj: ClassNode, members: string[]): string {
   return `
   class ${obj.name} {
-    ref: usize;
+    origin: Uint8Array;
     ${members.join('\n')}
   }
   `.trim()
@@ -293,7 +293,7 @@ export function writeProxyGetter(field: FieldNode, obj: ClassNode): string {
   const origin = obj.decorators.find(d => d.name === 'jig')?.args[0]
   const argWriterChunks = [
     'const args = new CborWriter()',
-    'args.encodeRef(this.ref)'
+    'args.encodeBuf(this.origin)'
   ]
 
   return `
@@ -315,10 +315,10 @@ export function writeProxyGetter(field: FieldNode, obj: ClassNode): string {
  */
 export function writeProxyMethod(method: MethodNode, obj: ClassNode): string {
   const origin = obj.decorators.find(d => d.name === 'jig')?.args[0]
-  const separator = method.isConstructor || method.isStatic ? '_' : '$'
+  const prefix = method.isConstructor || method.isStatic ? '_' : '$'
   const argWriterChunks = ['const args = new CborWriter()']
   if (!method.isConstructor && !method.isStatic) {
-    argWriterChunks.push('args.encodeRef(this.ref)')
+    argWriterChunks.push('args.encodeBuf(this.origin)')
   }
 
   const rType = method.isConstructor ? { name: obj.name } : method.rType
@@ -326,7 +326,7 @@ export function writeProxyMethod(method: MethodNode, obj: ClassNode): string {
   return `
   ${method.name}(${ method.args.map((a, i) => `a${i}: ${a.type.name}`) })${method.isConstructor ? '' : `: ${rType.name}`} {
     ${ writeArgWriter(method.args, obj, argWriterChunks) }
-    const retBuf = vm_call('${origin}', '${obj.name}${separator}${method.name}', args.toBuffer())
+    const retBuf = vm_call('${origin}', '${prefix}${method.name}', args.toBuffer())
     ${ writeProxyReturn({ name: '', type: rType }, obj, method.isConstructor) }
   }
   `.trim()
@@ -338,7 +338,7 @@ export function writeProxyMethod(method: MethodNode, obj: ClassNode): string {
  * decoded value.
  */
 export function writeProxyReturn(field: Field, obj: ClassNode, isConstructor: boolean = false): string {
-  const prefixStmt = isConstructor ? 'this.ref =' : 'return'
+  const prefixStmt = isConstructor ? 'this.origin =' : 'return'
   return `
   const retn = new CborReader(retBuf)
   ${prefixStmt} retn.${ decodeMethod(field, obj) }

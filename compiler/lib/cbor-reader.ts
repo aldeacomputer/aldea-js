@@ -67,9 +67,9 @@ export class CborReader extends BufferReader {
     const tag = this.readLength(info)
 
     if (type == 6 && tag == 42) {
-      const ref = this.decodeInt() as u32
+      const origin = this.decodeBuf()
       const ptr = __new(offsetof<T>(), idof<T>())
-      store<usize>(ptr + offsetof<T>('ref'), ref)
+      store<usize>(ptr + offsetof<T>('origin'), changetype<usize>(origin))
       return changetype<T>(ptr)
     } else {
       throw new Error('not ref tag '+tag.toString())
