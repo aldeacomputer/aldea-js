@@ -6,4 +6,8 @@ export class Weapon {
     this.name = name
     this.power = power
   }
+
+  sharp(): void {
+    this.power += 1
+  }
 }
