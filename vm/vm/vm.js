@@ -27,8 +27,8 @@ export class VM {
     currentExecution.jigs.forEach((jigRef, index) => {
       const location = locationF(tx, index)
       const origin = jigRef.origin || location
-      const serialized = jigRef.module.instanceCall(jigRef.ref, 'serialize')
-      const jig = new JigState(origin, location, serialized, jigRef.module.id, jigRef.lock.serialize())
+      const serialized = jigRef.module.instanceCall(jigRef.ref, jigRef.className, 'serialize')
+      const jig = new JigState(origin, location, jigRef.className, serialized, jigRef.module.id, jigRef.lock.serialize())
       this.storage.addJig(jig)
     })
     return currentExecution

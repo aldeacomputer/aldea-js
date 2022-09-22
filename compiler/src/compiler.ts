@@ -32,9 +32,10 @@ export async function compile(args: Arguments): Promise<void> {
     '--outFile', outPath,
     '--debug',
     '--sourceMap',
-    //'--textFile', textFilePath
+    '--textFile', outPath.replace('.wasm', '.wat'),
     '--runtime', 'stub',
     '--exportRuntime',
+    '--importMemory',
     '--lib', relative(process.cwd(), join(baseDir, 'lib')),
     '--transform', './'+relative(process.cwd(), join(baseDir, './dist/transform.js'))
   ])

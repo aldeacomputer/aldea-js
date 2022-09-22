@@ -1,8 +1,9 @@
 import { PermissionError } from "./errors.js"
 
 export class JigRef {
-  constructor (ref, module, origin, lock) {
+  constructor (ref, className, module, origin, lock) {
     this.ref = ref
+    this.className = className
     this.module = module
     this.origin = origin
     this.lock = lock
@@ -12,7 +13,7 @@ export class JigRef {
     if (!this.lock.checkCaller(caller)) {
       throw new PermissionError(`jig ${this.origin} does not accept messages from ${caller}`)
     }
-    this.module.instanceCall(this.ref, methodName, args)
+    this.module.instanceCall(this.ref, this.className, methodName, args)
   }
 
   setOwner (newLock) {

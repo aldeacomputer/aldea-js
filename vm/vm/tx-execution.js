@@ -90,9 +90,9 @@ class TxExecution {
   loadJig (location) {
     const jigState = this.vm.findJigState(location)
     const module = this.loadModule(jigState.moduleId)
-    const ref = module.hidrate(jigState.stateBuf)
+    const ref = module.hidrate(jigState.className, jigState.stateBuf)
     const lock = this._hidrateLock(jigState.lock)
-    const jigRef = new JigRef(ref, module, jigState.origin, lock)
+    const jigRef = new JigRef(ref, jigState.className, module, jigState.origin, lock)
     this.addNewJigRef(jigRef)
     return jigRef
   }
@@ -115,13 +115,13 @@ class TxExecution {
     jigRef.close(lock)
   }
 
-  instantiate (moduleId, args, initialLock) {
+  instantiate (moduleId, className, args, initialLock) {
     const module = this.loadModule(moduleId)
     const newOrigin = this.newOrigin()
-    const jigRef = new JigRef(null, module, newOrigin, initialLock)
+    const jigRef = new JigRef(null, className, module, newOrigin, initialLock)
     this.addNewJigRef(jigRef)
     this.stack.push(newOrigin)
-    jigRef.ref = module.staticCall('constructor', args)
+    jigRef.ref = module.staticCall(className,'constructor', args)
     this.stack.pop()
     return jigRef
   }

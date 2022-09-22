@@ -36,10 +36,11 @@ class Module {
           fileName = __liftString(thisMod, fileName >>> 0);
           lineNumber = lineNumber >>> 0;
           columnNumber = columnNumber >>> 0;
-          (() => {
-            // @external.js
-            throw Error(`${message} in ${fileName}:${lineNumber}:${columnNumber}`);
-          })();
+          // (() => {
+          //   // @external.js
+          //   throw Error(`${message} in ${fileName}:${lineNumber}:${columnNumber}`);
+          // })();
+          throw new Error(`abort was called ${message}`)
         },
         'console.log'(message) {
           const thisMod = vm.modules.get(path)
@@ -85,13 +86,16 @@ class Module {
     return new this(vm, wasm.instance.exports)
   }
 
-  call(fn, args = [], decode = true) {
+  call (fn, args = [], decode = true) {
     if (!Object.keys(this.exports).includes(fn)) {
       throw new Error('unknown function: ' + fn)
     }
 
     let argBuf = __encodeArgs(args)
+    console.log(argBuf)
     argBuf = __lowerBuffer(this, argBuf) || __notnull()
+    console.log(argBuf)
+    console.log(fn)
     let retBuf = __liftBuffer(this, this.exports[fn](argBuf) >>> 0);
     return decode ? __decodeArgs(retBuf) : retBuf
   }
@@ -107,33 +111,33 @@ async function main() {
 
   console.log('\n---')
 
-  console.log('\ncreating player 1')
-  const p1 = mod1.call('Fighter_constructor', ['Zangief'])
-  inspectData( mod1.call('Fighter$serialize', [p1], false) )
-
-  console.log('\ncreating player 2')
-  const p2 = mod1.call('Fighter_constructor', ['E. Honda'])
-  inspectData( mod1.call('Fighter$serialize', [p2], false) )
+  // console.log('\ncreating player 1')
+  // const p1 = mod1.call('Fighter_constructor', ['Zangief'])
+  // inspectData( mod1.call('Fighter$serialize', [p1], false) )
+  //
+  // console.log('\ncreating player 2')
+  // const p2 = mod1.call('Fighter_constructor', ['E. Honda'])
+  // inspectData( mod1.call('Fighter$serialize', [p2], false) )
 
   console.log('\ncreating weapon')
-  const w1 = mod2.call('Weapon_constructor', ['Excalibur', 100])
+  const w1 = mod2.call('Weapon_constructor', ['ancho', 10])
   inspectData( mod2.call('Weapon$serialize', [w1], false) )
 
-  console.log('\ncreating another weapon')
-  const w2 = mod2.call('Weapon_constructor', ['Harpe', 64])
-  inspectData( mod2.call('Weapon$serialize', [w2], false) )
-
-  console.log('\nequip swords')
-  mod1.call('Fighter$equip', [p1, w1])
-  mod1.call('Fighter$equip', [p2, w2])
-  inspectData( mod1.call('Fighter$serialize', [p1], false) )
-  inspectData( mod1.call('Fighter$serialize', [p2], false) )
-
-  console.log('\nFIGHT')
-  const result = mod1.call('Fighter$battle', [p1, p2])
-  console.log(result)
-  inspectData( mod1.call('Fighter$serialize', [p1], false) )
-  inspectData( mod1.call('Fighter$serialize', [p2], false) )
+  // console.log('\ncreating another weapon')
+  // const w2 = mod2.call('Weapon_constructor', ['Harpe', 64])
+  // inspectData( mod2.call('Weapon$serialize', [w2], false) )
+  //
+  // console.log('\nequip swords')
+  // mod1.call('Fighter$equip', [p1, w1])
+  // mod1.call('Fighter$equip', [p2, w2])
+  // inspectData( mod1.call('Fighter$serialize', [p1], false) )
+  // inspectData( mod1.call('Fighter$serialize', [p2], false) )
+  //
+  // console.log('\nFIGHT')
+  // const result = mod1.call('Fighter$battle', [p1, p2])
+  // console.log(result)
+  // inspectData( mod1.call('Fighter$serialize', [p1], false) )
+  // inspectData( mod1.call('Fighter$serialize', [p2], false) )
 
 }
 
