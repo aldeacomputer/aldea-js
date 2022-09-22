@@ -9,7 +9,7 @@ const storage = new Storage()
 const vm = new VM(storage)
 
 const app = express()
-const port = 4000
+const port = process.env.PORT || 4000
 
 app.use(express.json())
 app.use(cors())

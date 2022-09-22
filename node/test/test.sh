@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PORT=4000
-node . &
+env PORT=$PORT node . &
 SERVER_PID=$!
 sleep 1
 echo
