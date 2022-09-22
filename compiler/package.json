@@ -6,12 +6,18 @@
   "bin": {
     "aldea": "bin/aldea.js"
   },
+  "scripts": {
+    "test:as": "asp --summary && yarn test:as:clean",
+    "test:as:clean": "find lib2/__tests__ -type f \\( -iname \\*.wasm -o -iname \\*.wat \\) -delete"
+  },
   "packageManager": "yarn@3.2.3",
   "dependencies": {
     "assemblyscript": "^0.21.3",
     "yargs": "^17.5.1"
   },
   "devDependencies": {
+    "@as-pect/cli": "^7.0.8",
+    "@assemblyscript/loader": "^0.21.3",
     "@types/node": "^18.7.17",
     "@types/yargs": "^17.0.12",
     "typescript": "^4.8.3"

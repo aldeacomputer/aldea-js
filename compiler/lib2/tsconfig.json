@@ -1,0 +1,7 @@
+{
+  "extends": "assemblyscript/std/assembly.json",
+  "include": [
+    "./**/*.ts",
+    "../node_modules/assemblyscript/std/assembly/rt/index.d.ts"
+  ]
+}
