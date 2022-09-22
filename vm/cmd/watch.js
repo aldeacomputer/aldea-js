@@ -7,7 +7,7 @@ const __dir = fileURLToPath(import.meta.url)
 
 chokidar.watch(path.join(__dir, '../../assembly/manual')).on('all', async (event, path) => {
   if (event === 'change') {
-    console.log('compiling...')
-    await compileFile(path)
+    const subpath = path.split('/manual/')[1]
+    await compileFile(subpath)
   }
 });

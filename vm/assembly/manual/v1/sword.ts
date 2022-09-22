@@ -19,7 +19,7 @@ class Sword {
     }
 }
 
-export function $_constructor (argBuf: Uint8Array): Uint8Array {
+export function Sword_constructor (argBuf: Uint8Array): Uint8Array {
     const cbor = new CborReader(argBuf);
     const name = cbor.decodeStr();
 
@@ -30,7 +30,7 @@ export function $_constructor (argBuf: Uint8Array): Uint8Array {
     return ret.toBuffer();
 }
 
-export function $$sharp (argBuf: Uint8Array): Uint8Array {
+export function Sword$sharp (argBuf: Uint8Array): Uint8Array {
     // parse
     const cbor = new CborReader(argBuf);
     const instance = cbor.decodeRef<Sword>();
@@ -42,7 +42,7 @@ export function $$sharp (argBuf: Uint8Array): Uint8Array {
     return new Uint8Array(0);
 }
 
-export function $$getPower (argBuf: Uint8Array): Uint8Array {
+export function Sword$getPower (argBuf: Uint8Array): Uint8Array {
     // parse
     const cbor = new CborReader(argBuf);
     const instance = cbor.decodeRef<Sword>();
@@ -56,7 +56,7 @@ export function $$getPower (argBuf: Uint8Array): Uint8Array {
     return writer.toBuffer();
 }
 
-export function $_parse(argBuf: Uint8Array): Uint8Array {
+export function Sword_deserialize(argBuf: Uint8Array): Uint8Array {
     // Read all args
     const args = new CborReader(argBuf)
     const name = args.decodeStr()
@@ -73,7 +73,7 @@ export function $_parse(argBuf: Uint8Array): Uint8Array {
     return retn.toBuffer()
 }
 
-export function $$serialize(argBuf: Uint8Array): Uint8Array {
+export function Sword$serialize(argBuf: Uint8Array): Uint8Array {
     // Read all args
     const args = new CborReader(argBuf)
     const sword = args.decodeRef<Sword>()

@@ -34,12 +34,12 @@ class TxExecution {
       jig = this.jigs.find(j => j.origin === origin)
     }
 
-    return jig.module.rawInstanceCall(jig.ref, methodName, args)
+    return jig.module.rawInstanceCall(jig.ref, jig.className, methodName, args)
   }
 
-  _onCreate (moduleId, args) {
+  _onCreate (moduleId, className, args) {
     this.loadModule(moduleId)
-    return this.instantiate(moduleId, args, null)
+    return this.instantiate(moduleId, className, args, null)
   }
 
   _onAdopt(childOrigin) {

@@ -50,7 +50,7 @@ export class WasmInstance {
       },
       vm: {
         vm_call: (buffPointer) => {
-          const argBuf = this.__liftTypedArray(Uint8Array, buffPointer >>> 0)
+          const argBuf = this.__liftBuffer(buffPointer)
           const args = __decodeArgs(argBuf)
           const origin = args.get(0)
           const methodName = args.get(1)
@@ -58,32 +58,33 @@ export class WasmInstance {
           const argSeq = methodArgumentsBuff.length === 0 ? { data: [] } : CBOR.decode(methodArgumentsBuff.slice().buffer, null, { mode: "sequence" })
 
           const resBuf = this.methodHandler(origin, methodName, Array.from(argSeq.data))
-          return this.__lowerBuffer(Uint8Array, 3, 0, resBuf)
+          return this.__lowerBuffer(resBuf)
         },
         vm_prop: () => {
           throw new Error()
+        },
+        vm_create: (buffPointer) => {
+          const argBuf = this.__liftBuffer(buffPointer)
+          const args = __decodeArgs(argBuf)
+          const moduleName = args.get(0)
+          const className = args.get(1)
+          const methodArgumentsBuff = args.get(2)
+          const argSeq = methodArgumentsBuff.length === 0 ? { data: [] } : CBOR.decode(methodArgumentsBuff.slice().buffer, null, { mode: "sequence" })
+          const jigRef = this.createHandler(moduleName, className, argSeq.data)
+          const originBuff = __encodeArgs([jigRef.origin])
+
+          return this.__lowerBuffer(originBuff)
+        },
+        vm_adopt: (buffPointer) => {
+          const argBuf = this.__liftBuffer(buffPointer)
+          const childOrigin = __decodeArgs(argBuf)
+          this.adoptHandler(childOrigin)
+        },
+        vm_release: (buffPointer) => {
+          const argBuf = this.__liftBuffer(buffPointer)
+          const [childOrigin, parentRef] = __decodeArgs(argBuf).data
+          this.releaseHandler(childOrigin, parentRef)
         }
-        // newInstance: (buffPointer) => {
-        //   const argBuf = this.__liftTypedArray(Uint8Array, buffPointer >>> 0)
-        //   const args = __decodeArgs(argBuf)
-        //   const moduleName = args.get(0)
-        //   const methodArgumentsBuff = args.get(1)
-        //   const argSeq = methodArgumentsBuff.length === 0 ? { data: [] } : CBOR.decode(methodArgumentsBuff.slice().buffer, null, { mode: "sequence" })
-        //   const jigRef = this.createHandler(moduleName, argSeq.data)
-        //   const originBuff = __encodeArgs([jigRef.origin])
-        //
-        //   return this.__lowerTypedArray(Uint8Array, 3, 0, originBuff)
-        // },
-        // adoptJig: (buffPointer) => {
-        //   const argBuf = this.__liftTypedArray(Uint8Array, buffPointer >>> 0)
-        //   const childOrigin = __decodeArgs(argBuf)
-        //   this.adoptHandler(childOrigin)
-        // },
-        // releaseJig: (buffPointer) => {
-        //   const argBuf = this.__liftTypedArray(Uint8Array, buffPointer >>> 0)
-        //   const [childOrigin, parentRef] = __decodeArgs(argBuf).data
-        //   this.releaseHandler(childOrigin, parentRef)
-        // }
       }
     }
     this.module = module
@@ -119,7 +120,7 @@ export class WasmInstance {
     // const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" })
     // console.log(parse(argBuf))
     const resultPointer = this.instance.exports[fnName](argPointer) >>> 0
-    let retBuf = this.__liftTypedArray(resultPointer)
+    let retBuf = this.__liftBuffer(resultPointer)
     return __decodeArgs(retBuf)
   }
 
@@ -128,7 +129,7 @@ export class WasmInstance {
 
     let argBuf = frozenState
     argBuf = this.__lowerBuffer(argBuf) || this.__notnull()
-    let retBuf = this.__liftTypedArray(this.instance.exports[fnName](argBuf))
+    let retBuf = this.__liftBuffer(this.instance.exports[fnName](argBuf))
     return __decodeArgs(retBuf)
   }
 
@@ -141,20 +142,20 @@ export class WasmInstance {
     args.unshift(ref)
     let argBuf = __encodeArgs(args)
     argBuf = this.__lowerBuffer(argBuf) || this.__notnull()
-    let retBuf = this.__liftTypedArray(this.instance.exports[fnName](argBuf))
+    let retBuf = this.__liftBuffer(this.instance.exports[fnName](argBuf))
     return methodName === methodName ? retBuf : __decodeArgs(retBuf)
   }
 
-  rawInstanceCall (ref, methodName, args = []) {
-    methodName = '$$' + methodName
+  rawInstanceCall (ref, className, methodName, args = []) {
+    methodName = `${className}$${methodName}`
     if (!Object.keys(this.instance.exports).includes(methodName)) {
       throw new Error(`unknown function: ${methodName}`)
     }
 
     args.unshift(ref)
     let argBuf = __encodeArgs(args)
-    argBuf = this.__lowerBuffer(Uint8Array, 3, 0, argBuf) || this.__notnull()
-    return this.__liftTypedArray(Uint8Array, this.instance.exports[methodName](argBuf))
+    argBuf = this.__lowerBuffer(argBuf) || this.__notnull()
+    return this.__liftBuffer(this.instance.exports[methodName](argBuf))
   }
 
   __lowerBuffer (values) {
@@ -173,7 +174,7 @@ export class WasmInstance {
     return header;
   }
 
-  __liftTypedArray (pointer) {
+  __liftBuffer (pointer) {
     const mod = this.instance
     if (!pointer) return null;
     const memoryU32 = new Uint32Array(mod.exports.memory.buffer);

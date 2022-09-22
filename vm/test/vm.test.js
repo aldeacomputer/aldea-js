@@ -14,6 +14,9 @@ import { locationF } from "../vm/location.js"
 
 const parse = (data) => CBOR.decode(data.buffer, null, { mode: "sequence" })
 
+const SWORD_MODULE = 'manual/v1/sword.wasm'
+const FIGHTER_MODULE = 'manual/v1/fighter.wasm'
+
 describe('execute txs', () => {
   let storage
   const userKey = 'pubkey'
@@ -23,7 +26,7 @@ describe('execute txs', () => {
   })
   it('can create a sword and call a method', async () => {
     const tx = new Transaction()
-    tx.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('excalibur')]))
+    tx.add(new NewInstruction(SWORD_MODULE, 'Sword', [new LiteralArg('excalibur')]))
     tx.add(new CallInstruction(0, 'sharp', []))
     tx.add(new LockInstruction(0, userLock()))
 
@@ -36,7 +39,7 @@ describe('execute txs', () => {
 
   it('can persist state of the sword', async () => {
     const tx1 = new Transaction('tx1')
-    tx1.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('excalibur')]))
+    tx1.add(new NewInstruction(SWORD_MODULE,  'Sword',[new LiteralArg('excalibur')]))
     tx1.add(new CallInstruction(0, 'sharp', []))
     tx1.add(new LockInstruction(0, userKey))
 
@@ -56,7 +59,7 @@ describe('execute txs', () => {
 
   it('can create a fighter', async () => {
     const tx1 = new Transaction('tx1')
-    tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Eduardo')]))
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', [new LiteralArg('Eduardo')]))
     tx1.add(new LockInstruction(0, userLock()))
 
     const vm = new VM(storage)
@@ -67,7 +70,7 @@ describe('execute txs', () => {
 
   it('a frighter fresly made stores null in its sword state', async () => {
     const tx1 = new Transaction('tx1')
-    tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Eduardo')]))
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', [new LiteralArg('Eduardo')]))
     tx1.add(new LockInstruction(0, userLock()))
 
     const vm = new VM(storage)
@@ -78,8 +81,8 @@ describe('execute txs', () => {
 
   it('can equip a sword into a fighter', async () => {
     const tx1 = new Transaction('tx1')
-    tx1.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('Masamune')]))
-    tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Goro')]))
+    tx1.add(new NewInstruction(SWORD_MODULE, 'Sword', [new LiteralArg('Masamune')]))
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', [new LiteralArg('Goro')]))
     tx1.add(new LockInstruction(0, userLock()))
     tx1.add(new LockInstruction(1, userLock()))
 
@@ -99,8 +102,8 @@ describe('execute txs', () => {
 
   it('can equip a sword into a fighter and then the fighter can be bring back into context with right attributes', async () => {
     const tx1 = new Transaction('tx1')
-    tx1.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('Masamune')]))
-    tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Goro')]))
+    tx1.add(new NewInstruction(SWORD_MODULE, 'Sword', [new LiteralArg('Masamune')]))
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', [new LiteralArg('Goro')]))
     tx1.add(new LockInstruction(0, userLock()))
     tx1.add(new LockInstruction(1, userLock()))
 
@@ -134,8 +137,8 @@ describe('execute txs', () => {
 
   it('a fighter can attack another fighter', async () => {
     const tx1 = new Transaction('tx1')
-    tx1.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('Masamune')]))
-    tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Goro')]))
+    tx1.add(new NewInstruction(SWORD_MODULE, 'Sword', [new LiteralArg('Masamune')]))
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', [new LiteralArg('Goro')]))
     tx1.add(new LockInstruction(0, userLock()))
     tx1.add(new LockInstruction(1, userLock()))
 
@@ -154,7 +157,7 @@ describe('execute txs', () => {
 
     const tx4 = new Transaction('tx4')
     tx4.add(new LoadInstruction(locationF(tx3, 0)))
-    tx4.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Target')]))
+    tx4.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', [new LiteralArg('Target')]))
     tx4.add(new UnlockInstruction(0, userKey))
     tx4.add(new CallInstruction(0, 'attack', [new JigArg(1)]))
     tx4.add(new LockInstruction(0, userLock()))
@@ -178,8 +181,8 @@ describe('execute txs', () => {
     let i = 10000
     while (i--) {
       const tx1 = new Transaction('tx1')
-      tx1.add(new NewInstruction('v1/sword.wasm', [new LiteralArg('Masamune')]))
-      tx1.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Goro')]))
+      tx1.add(new NewInstruction(SWORD_MODULE, 'Sword', [new LiteralArg('Masamune')]))
+      tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', [new LiteralArg('Goro')]))
       tx1.add(new LockInstruction(0, userLock()))
       tx1.add(new LockInstruction(1, userLock()))
 
@@ -199,7 +202,7 @@ describe('execute txs', () => {
 
       const tx4 = new Transaction('tx4')
       tx4.add(new LoadInstruction(locationF(tx3, 0)))
-      tx4.add(new NewInstruction('v1/fighter.wasm', [new LiteralArg('Target')]))
+      tx4.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', [new LiteralArg('Target')]))
       tx4.add(new UnlockInstruction(0, userKey))
       tx4.add(new CallInstruction(0, 'attack', [new JigArg(1)]))
       tx4.add(new LockInstruction(0, userLock()))
@@ -209,13 +212,7 @@ describe('execute txs', () => {
       await vm.execTx(tx1)
       await vm.execTx(tx2)
       await vm.execTx(tx3)
-      const parsedSword = parse(storage.getJigState(locationF(tx3, 1)).stateBuf)
-      expect(parsedSword.get(1)).to.eql(2)
       await vm.execTx(tx4)
-
-      const parsedFighter = parse(storage.getJigState(locationF(tx4, 1)).stateBuf)
-      expect(parsedFighter.get(1)).to.eql(97)
-      expect(parsedFighter.get(2)).to.eql(null)
     }
   })
 })

@@ -21,7 +21,7 @@ class Hand extends Weapon {
 }
 
 
-export function $_constructor (_argBuf: Uint8Array): Uint8Array {
+export function Hand_constructor (_argBuf: Uint8Array): Uint8Array {
   const instance = new Hand();
 
   const ret = new CborWriter();
@@ -29,7 +29,7 @@ export function $_constructor (_argBuf: Uint8Array): Uint8Array {
   return ret.toBuffer();
 }
 
-export function $_parse(argBuf: Uint8Array): Uint8Array {
+export function Hand_parse(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf)
   const power = args.decodeInt();
   const ptr = __new(offsetof<Hand>(), idof<Hand>());
@@ -40,7 +40,7 @@ export function $_parse(argBuf: Uint8Array): Uint8Array {
   return ret.toBuffer();
 }
 
-export function $$serialize(argBuf: Uint8Array): Uint8Array {
+export function Hand$serialize(argBuf: Uint8Array): Uint8Array {
   const args = new CborReader(argBuf);
   const instance = args.decodeRef<Hand>();
 
