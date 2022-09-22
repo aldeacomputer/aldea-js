@@ -9,6 +9,7 @@ import { UserLock } from "../vm/locks/user-lock.js"
 import { locationF } from "../vm/location.js"
 
 const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" }).data
+const FIGHT_MODULE = 'manual/v2/fight.wasm'
 
 describe('execute txs', () => {
   let storage, vm
@@ -34,7 +35,7 @@ describe('execute txs', () => {
       // .add(new LoadInstruction('tx1_2'))
       // .add(new UnlockInstruction(0, userkey))
       // .add(new UnlockInstruction(1, userkey))
-      .add(new NewInstruction('v2/fight.wasm', []))
+      .add(new NewInstruction(FIGHT_MODULE, 'Fight', []))
       .add(new LockInstruction(0, userLock()))
 
     vm.execTx(tx1)

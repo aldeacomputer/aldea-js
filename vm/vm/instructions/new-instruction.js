@@ -14,6 +14,6 @@ export class NewInstruction {
 
   encode () {
     const encodedArgs = this.argList.map(arg => arg.encode()).join(' ')
-    return `NEW ${this.moduleId} ${encodedArgs}`.trim()
+    return `NEW ${this.moduleId} ${this.className} ${encodedArgs}`.trim()
   }
 }
