@@ -2,8 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import cbor from 'cbor'
 
-import { VM } from '../../vm/vm/vm.js'
-import { Storage } from '../../vm/vm/storage.js'
+import { VM, Storage } from '@aldea/vm'
 import { TransactionJSON } from './transaction-json.js'
 
 const storage = new Storage()
