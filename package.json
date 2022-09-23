@@ -3,6 +3,7 @@
   "packageManager": "yarn@3.2.3",
   "workspaces": [
     "compiler",
+    "demos-webapp",
     "example1",
     "node",
     "vm"
