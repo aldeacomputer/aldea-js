@@ -1,5 +1,5 @@
 {
-  "name": "aldea-zero-compiler",
+  "name": "@aldea/compiler",
   "version": "0.0.1",
   "type": "module",
   "license": "MIT",
