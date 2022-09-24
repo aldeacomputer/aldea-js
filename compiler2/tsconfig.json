@@ -102,7 +102,6 @@
   },
   "exclude": [
     "./lib",
-    "./lib2",
     "./playground"
   ]
 }
