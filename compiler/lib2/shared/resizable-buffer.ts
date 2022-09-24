@@ -1,38 +1,35 @@
+import { WritableBuffer, createWritableBuffer } from "./writable-buffer"
+
 export class ResizableBuffer {
-  private chunk: i32;
-  data: Uint8Array;
-  view: DataView;
+  buffer: WritableBuffer;
+  chunk: i32;
 
   constructor(size: i32 = 1024) {
+    this.buffer = createWritableBuffer(size)
     this.chunk = size
-    this.data = new Uint8Array(this.chunk)
-    this.view = asDataView(this.data)
   }
 
-  get(size: i32): ResizableBuffer {
-    if (size > this.data.length) {
-      const oldPtr = changetype<usize>(this.data)
+  add(size: i32): WritableBuffer {
+    if (size > this.buffer.data.length) {
+      //const oldPtr = changetype<usize>(this.buffer)
       const chunks = ceil(size as f32 / (this.chunk as f32)) as i32
-      const newData = new Uint8Array(chunks * this.chunk)
-      newData.set(this.data)
-      this.data = newData
-      this.view = asDataView(this.data)
-      heap.free(oldPtr)
+      const newBuf = createWritableBuffer(chunks * this.chunk)
+
+      newBuf.data.set(this.buffer.data)
+      this.buffer = newBuf
+      //heap.free(oldPtr)
     }
-    return this
+    return this.buffer
   }
 
-  trim(size: i32): ResizableBuffer {
-    if (size < this.data.length) {
-      const oldPtr = changetype<usize>(this.data)
-      this.data = this.data.subarray(0, size)
-      this.view = asDataView(this.data)
-      heap.free(oldPtr)
+  export(size: i32): Uint8Array {
+    if (size < this.buffer.data.length) {
+      //const oldPtr = changetype<usize>(this.buffer)
+      const newBuf = createWritableBuffer(size)
+      newBuf.data.set(this.buffer.data.subarray(0, size))
+      this.buffer = newBuf
+      //heap.free(oldPtr)
     }
-    return this
+    return this.buffer.data
   }
-}
-
-function asDataView(data: Uint8Array): DataView {
-  return new DataView(data.buffer, data.byteOffset, data.byteLength)
 }

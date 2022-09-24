@@ -2,11 +2,6 @@ import { toHex } from "../support"
 import { BufferWriter } from "../../shared/buffer-writer"
 
 describe("BufferWriter", () => {
-  test("new BufferWriter() defaults to 512 byte buffer", () => {
-    const buf = new BufferWriter()
-    expect(buf.buffer.data.length).toBe(512)
-  })
-
   test("BufferWriter#writeBytes() writes a Uint8Array", () => {
     const buf = new BufferWriter()
     const bytes = new Uint8Array(4)
