@@ -1,11 +1,8 @@
 {
   "name": "aldea-zero",
   "packageManager": "yarn@3.2.3",
+  "private": true,
   "workspaces": [
-    "compiler",
-    "demos-webapp",
-    "example1",
-    "node",
-    "vm"
+    "demos-webapp"
   ]
 }
