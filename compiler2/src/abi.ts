@@ -10,7 +10,7 @@ import {
   MethodCbor,
   MethodNode,
   TypeCbor,
-  TypeNode
+  TypeNode,
 } from './abi/types.js'
 
 import { validateAbi } from './abi/validations.js'

@@ -12,7 +12,7 @@ import { MethodWrap, ObjectWrap } from './transform/nodes.js'
 let $ctx: TransformCtx
 
 /**
- * TODO
+ * Hook to access the current Transform Context.
  */
 export function useCtx(): TransformCtx { return $ctx }
 
@@ -33,9 +33,11 @@ export function afterParse(parser: Parser): void {
   console.log(ASTBuilder.build($ctx.entry))
 }
 
-
-
-
+/**
+ * Transform exported object.
+ * 
+ * - Writes exported method for each public method of the object.
+ */
 function transformExports(obj: ObjectWrap, ctx: TransformCtx): void {
   const codes = (obj.methods as MethodWrap[])
     .reduce((acc: string[], n: MethodWrap): string[] => {
@@ -49,6 +51,9 @@ function transformExports(obj: ObjectWrap, ctx: TransformCtx): void {
   const src = ctx.parse(codes.join('\n'), ctx.entry.normalizedPath)
   ctx.entry.statements.push(...src.statements)
 }
+
+
+// Helpers
 
 function writeExportedMethod(method: MethodWrap, obj: ObjectWrap): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR

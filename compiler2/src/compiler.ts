@@ -29,7 +29,7 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     '--textFile', outPath.replace('.wasm', '.wat'),
     '--runtime', 'stub',
     '--exportRuntime',
-    '--importMemory',
+    //'--importMemory', - miguel can add this back
     '--lib', relative(process.cwd(), join(baseDir, 'lib')),
     '--transform', './'+relative(process.cwd(), join(baseDir, './dist/transform.js'))
   ])
