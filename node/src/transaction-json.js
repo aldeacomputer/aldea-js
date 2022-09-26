@@ -17,8 +17,8 @@ export class TransactionJSON {
         case 'new': {
           const moduleName = jsonInstruction.moduleName
           const className = jsonInstruction.className
-          const argList = jsonInstruction.argList.map(arg => TransactionJSON.parseArg(arg))
-          const instruction = new NewInstruction(moduleName, className, argList)
+          const args = jsonInstruction.args.map(arg => TransactionJSON.parseArg(arg))
+          const instruction = new NewInstruction(moduleName, className, args)
           tx.add(instruction)
         } break
 
@@ -76,7 +76,7 @@ export class TransactionJSON {
         jsonInstruction.args = jsonInstruction.args.map(arg => TransactionJSON.argToJSON(arg))
       } else if (instruction instanceof NewInstruction) {
         jsonInstruction.name = 'new'
-        jsonInstruction.argList = jsonInstruction.argList.map(arg => TransactionJSON.argToJSON(arg))
+        jsonInstruction.args = jsonInstruction.args.map(arg => TransactionJSON.argToJSON(arg))
       }
 
       instructions.push(jsonInstruction)

@@ -35,7 +35,7 @@ TXID1=$(curl -s -X POST localhost:$PORT/tx \
                  "name": "new",
                  "moduleName": "aldea/weapon.wasm",
                  "className": "Weapon",
-                 "argList": ["excalibur", 10]
+                 "args": ["excalibur", 10]
              },
              {
                  "name": "call",
