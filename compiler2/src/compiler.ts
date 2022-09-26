@@ -3,6 +3,8 @@ import { basename, dirname, join, relative } from 'path'
 import { fileURLToPath } from 'url'
 import asc from 'assemblyscript/asc'
 import { Command } from 'commander'
+import { useCtx } from './transform.js'
+import { abiToCbor, abiToJson } from './abi.js'
 
 const baseDir = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -31,6 +33,17 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     '--lib', relative(process.cwd(), join(baseDir, 'lib')),
     '--transform', './'+relative(process.cwd(), join(baseDir, './dist/transform.js'))
   ])
+
+  const ctx = useCtx()
+
+  fs.writeFileSync(
+    join(dirname(outPath), basename(outPath).replace(/\.\w+$/, '')+'.abi.cbor'),
+    Buffer.from(abiToCbor(ctx.abi))
+  )
+  fs.writeFileSync(
+    join(dirname(outPath), basename(outPath).replace(/\.\w+$/, '')+'.abi.json'),
+    abiToJson(ctx.abi, 2)
+  )
 
   if (error) {
     console.log("Compilation failed: " + error.message)
