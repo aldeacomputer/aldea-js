@@ -58,6 +58,33 @@ export class TransactionJSON {
     return tx
   }
 
+  static toJSON (tx) {
+    const instructions = []
+    const json = { instructions }
+
+    tx.instructions.forEach(instruction => {
+      const jsonInstruction = Object.assign({}, instruction)
+
+      if (instruction instanceof LoadInstruction) {
+        jsonInstruction.name = 'load'
+      } else if (instruction instanceof UnlockInstruction) {
+        jsonInstruction.name = 'unlock'
+      } else if (instruction instanceof LockInstruction) {
+        jsonInstruction.name = 'lock'
+      } else if (instruction instanceof CallInstruction) {
+        jsonInstruction.name = 'call'
+        jsonInstruction.args = jsonInstruction.args.map(arg => TransactionJSON.argToJSON(arg))
+      } else if (instruction instanceof NewInstruction) {
+        jsonInstruction.name = 'new'
+        jsonInstruction.argList = jsonInstruction.argList.map(arg => TransactionJSON.argToJSON(arg))
+      }
+
+      instructions.push(jsonInstruction)
+    })
+
+    return json
+  }
+
   static parseArg (arg) {
     if (typeof arg === 'string') {
       return new LiteralArg(arg)
@@ -65,6 +92,14 @@ export class TransactionJSON {
 
     if (typeof arg === 'number') {
       return new LiteralArg(arg)
+    }
+
+    throw new Error(`Unsupported arg: ${arg}`)
+  }
+
+  static argToJSON (arg) {
+    if (arg instanceof LiteralArg) {
+      return arg.literal
     }
 
     throw new Error(`Unsupported arg: ${arg}`)

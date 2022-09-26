@@ -21,7 +21,7 @@ app.get('/status', (req, res) => {
 app.get('/tx/:txid', (req, res) => {
   const tx = storage.getTransaction(req.params.txid)
   if (tx) {
-    res.send(tx)
+    res.send(TransactionJSON.toJSON(tx))
   } else {
     res.status(404).send("Sorry can't find that!")
   }
