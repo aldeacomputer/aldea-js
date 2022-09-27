@@ -102,7 +102,8 @@ export function liftTypedArray(mod: Module, type: TypeNode, ptr: number) {
 /**
  * TODO
  */
-export function lowerValue(mod: Module, type: TypeNode, val: any) {
+export function lowerValue(mod: Module, type: TypeNode | null, val: any) {
+  if (!type || type.name === 'void') return;
   if (val === null) return 0;
 
   if (allImportedObjects(mod.abi).map(obj => obj.name).includes(type.name)) {
@@ -161,6 +162,28 @@ export function lowerBuffer(mod: Module, val: ArrayBuffer): number {
   const ptr = mod.exports.__new(val.byteLength, 0) >>> 0;
   new Uint8Array(mod.memory.buffer).set(new Uint8Array(val), ptr);
   return ptr;
+}
+
+/**
+ * TODO
+ */
+export function lowerObject(mod: Module, obj: ObjectNode, vals: any[]): number {
+  if (obj.fields.length !== vals.length) {
+    throw new Error(`invalid state for ${obj.name}`)
+  }
+
+  const rtid = mod.abi.rtids[obj.name]
+  const bytes = obj.fields.reduce((sum, n) => sum + getTypeBytes(n.type), 0)
+  const ptr = mod.exports.__new(bytes, rtid) >>> 0
+  const offsets = getObjectMemLayout(obj)
+
+  obj.fields.forEach((n, i) => {
+    const TypedArray = getTypeBufConstructor(n.type)
+    const mem = new TypedArray(mod.memory.buffer, ptr, bytes)
+    const { align, offset } = offsets[n.name]
+    mem[offset >>> align] = lowerValue(mod, n.type, vals[i])
+  })
+  return ptr
 }
 
 /**

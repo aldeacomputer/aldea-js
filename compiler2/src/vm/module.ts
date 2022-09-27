@@ -1,9 +1,8 @@
+import { CBOR, Sequence } from 'cbor-redux'
+
 import {
   Abi,
-  FieldNode,
   MethodKind,
-  MethodNode,
-  ObjectNode,
 } from "../abi/types.js"
 
 import {
@@ -15,10 +14,12 @@ import {
 import {
   Internref,
   createRegistry,
+  getTypeBytes,
   liftValue,
   liftInternref,
   lowerValue,
   lowerInternref,
+  lowerObject,
   getObjectMemLayout,
   getTypeBufConstructor
 } from "./memory.js"
@@ -109,6 +110,18 @@ export class Module {
       arr.push(this.getProp(`${name}.${field.name}`, ptr))
       return arr
     }, [])
+  }
+
+  restore(name: string, data: ArrayBuffer): Internref {
+    const obj = findExportedObject(this.abi, name, `unknown export: ${name}`)
+    const vals = CBOR.decode(data, null, { mode: 'sequence' })
+    const ptr = lowerObject(this, obj, vals.data)
+    return liftInternref(this, ptr)
+  }
+
+  serialize(name: string, ptr: Internref): ArrayBuffer {
+    const seq = Sequence.from(this.getState(name, ptr))
+    return CBOR.encode(seq)
   }
 
   //cache<T>(key: string, callback: () => any, error?: string): T {

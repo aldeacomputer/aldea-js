@@ -30,11 +30,29 @@ export function allImportedObjects(abi: Abi): ObjectNode[] {
 /**
  * TODO
  */
+ export function findPlainObject(abi: Abi, name: string): ObjectNode | void;
+ export function findPlainObject(abi: Abi, name: string, error: string): ObjectNode;
+ export function findPlainObject(abi: Abi, name: string, error?: string): ObjectNode | void {
+   return allPlainObjects(abi).find(obj => obj.name === name) || maybeThrow(error)
+ }
+
+/**
+ * TODO
+ */
 export function findExportedObject(abi: Abi, name: string): ObjectNode | void;
 export function findExportedObject(abi: Abi, name: string, error: string): ObjectNode;
 export function findExportedObject(abi: Abi, name: string, error?: string): ObjectNode | void {
   return allExportedObjects(abi).find(obj => obj.name === name) || maybeThrow(error)
 }
+
+/**
+ * TODO
+ */
+ export function findImportedObject(abi: Abi, name: string): ObjectNode | void;
+ export function findImportedObject(abi: Abi, name: string, error: string): ObjectNode;
+ export function findImportedObject(abi: Abi, name: string, error?: string): ObjectNode | void {
+   return allImportedObjects(abi).find(obj => obj.name === name) || maybeThrow(error)
+ }
 
 /**
  * TODO

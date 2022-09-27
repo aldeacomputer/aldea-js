@@ -16,7 +16,6 @@ import {
   Source,
   SourceKind,
   Program,
-  Class
 } from 'assemblyscript'
 
 import {
@@ -38,11 +37,10 @@ import {
 
 import {
   Abi,
-  RtIds,
+  RuntimeIds,
   FieldKind,
   MethodKind,
   ObjectKind,
-  TypeNode,
 } from '../abi/types.js'
 
 /**
@@ -68,7 +66,7 @@ export class TransformCtx {
 
   get abi(): Abi {
     const rtids = this.program ?
-      [...this.program.managedClasses].reduce((obj: RtIds, [id, klass]) => {
+      [...this.program.managedClasses].reduce((obj: RuntimeIds, [id, klass]) => {
         obj[klass.name] = id
         return obj
       }, {}) :

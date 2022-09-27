@@ -1,7 +1,10 @@
 import fs from 'fs/promises'
 import { abiFromCbor } from './abi.js'
+import { findImportedObject, findObjectMethod } from './abi/query.js'
+import { FieldNode } from './abi/types.js'
 import { Module } from './vm/module.js'
-import { liftBuffer, liftString, lowerBuffer, lowerValue } from './vm/memory.js'
+import { liftBuffer, liftInternref, liftString, liftValue, lowerValue } from './vm/memory.js'
+import { ArgReader, readType } from './vm/arg-reader.js'
 
 /**
  * TODO
@@ -20,36 +23,65 @@ export class VM {
 
     const wasm = await WebAssembly.instantiate(wasmBuf, {
       env: {
-        abort: (a0: number, a1: number, a2: number, a3: number) => {
-          // ~lib/builtins/abort(~lib/string/String | null?, ~lib/string/String | null?, u32?, u32?) => void
+        // ~lib/builtins/abort(~lib/string/String | null?, ~lib/string/String | null?, u32?, u32?) => void
+        abort: (messagePtr: number, fileNamePtr: number, lineNumPtr: number, colNumPtr: number) => {
           const mod = this.getModule(key)
-          const message = liftString(mod, a0 >>> 0)
-          const fileName = liftString(mod, a1 >>> 0)
-          const lineNumber = a2 >>> 0
-          const columnNumber = a3 >>> 0
+          const message = liftString(mod, messagePtr >>> 0)
+          const fileName = liftString(mod, fileNamePtr >>> 0)
+          const lineNumber = lineNumPtr >>> 0
+          const columnNumber = colNumPtr >>> 0
           throw new Error(`${message} in ${fileName}:${lineNumber}:${columnNumber}`)
         },
-        'console.log': (a0: number) => {
+        'console.log': (messagePtr: number) => {
           const mod = this.getModule(key)
-          const message = liftString(mod, a0 >>> 0)
+          const message = liftString(mod, messagePtr >>> 0)
           console.log(message)
         }
       },
       vm: {
-        vm_prop: (a0: number, a1: number, a2: number) => {
-          // vm_prop(string, string, ArrayBuffer)
-          const localMod = this.getModule(key)
-          const clsOrigin = liftString(localMod, a0 >>> 0)
-          const refBuf = liftBuffer(localMod, a1 >>> 0)
-          const prop = liftString(localMod, a2 >>> 0)
+        // vm_call<T>(string, ArrayBuffer, string, ArrayBuffer): T
+        vm_call: (rmtOriginPtr: number, rmtRefPtr: number, fnStrPtr: number, argBufPtr: number) => {
+          const mod = this.getModule(key)
+          const rmtOrigin = liftString(mod, rmtOriginPtr >>> 0)
+          const rmtRefBuf = liftBuffer(mod, rmtRefPtr >>> 0)
+          const fnStr = liftString(mod, fnStrPtr >>> 0)
+          const argBuf = liftBuffer(mod, argBufPtr >>> 0)
 
-          const view = new DataView(refBuf)
-          const ref = view.getUint32(0)
+          // In my vm I refer to remote jigs by ptr
+          // miguel can skip this and pass the buffer
+          const view = new DataView(rmtRefBuf)
+          const rmtRef = liftInternref(mod, view.getUint32(0))
 
-          const remoteMod = this.getModule(clsOrigin)
-          const val = remoteMod.getProp(prop, ref)
+          const [className, fn] = fnStr.split(/(?:_|\$)/)
+          const obj = findImportedObject(mod.abi, className, 'could not find object')
+          const method = findObjectMethod(obj, fn, 'could not find method')
 
-          return lowerValue(localMod, { name: 'string', args: [] }, val)
+          const argReader = new ArgReader(argBuf)
+          const vals = method.args.reduce((vals: any[], n: FieldNode) => {
+            const ptr = readType(argReader, n.type)
+            vals.push(liftValue(mod, n.type, ptr))
+            return vals
+          }, [rmtRef])
+          
+          const rmtMod = this.getModule(rmtOrigin)
+          const val = rmtMod.callMethod(fnStr, vals)
+          return lowerValue(mod, method.rtype, val)
+        },
+        // vm_prop(string, ArrayBuffer, string)
+        vm_prop: (rmtOriginPtr: number, rmtRefPtr: number, propStrPtr: number) => {
+          const mod = this.getModule(key)
+          const rmtOrigin = liftString(mod, rmtOriginPtr >>> 0)
+          const rmtRefBuf = liftBuffer(mod, rmtRefPtr >>> 0)
+          const propStr = liftString(mod, propStrPtr >>> 0)
+
+          // In my vm I refer to remote jigs by ptr
+          // miguel can skip this and pass the buffer
+          const view = new DataView(rmtRefBuf)
+          const rmtRef = liftInternref(mod, view.getUint32(0))
+          
+          const rmtMod = this.getModule(rmtOrigin)
+          const val = rmtMod.getProp(propStr, rmtRef)
+          return lowerValue(mod, { name: 'string', args: [] }, val)
         }
       }
     })
