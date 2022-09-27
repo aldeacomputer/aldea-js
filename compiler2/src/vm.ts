@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import { abiFromCbor } from './abi.js'
 import { Module } from './vm/module.js'
-import { liftString } from './vm/memory.js'
+import { liftBuffer, liftString, lowerBuffer, lowerValue } from './vm/memory.js'
 
 /**
  * TODO
@@ -33,6 +33,23 @@ export class VM {
           const mod = this.getModule(key)
           const message = liftString(mod, a0 >>> 0)
           console.log(message)
+        }
+      },
+      vm: {
+        vm_prop: (a0: number, a1: number, a2: number) => {
+          // vm_prop(string, string, ArrayBuffer)
+          const localMod = this.getModule(key)
+          const clsOrigin = liftString(localMod, a0 >>> 0)
+          const refBuf = liftBuffer(localMod, a1 >>> 0)
+          const prop = liftString(localMod, a2 >>> 0)
+
+          const view = new DataView(refBuf)
+          const ref = view.getUint32(0)
+
+          const remoteMod = this.getModule(clsOrigin)
+          const val = remoteMod.getProp(prop, ref)
+
+          return lowerValue(localMod, { name: 'string', args: [] }, val)
         }
       }
     })

@@ -3,9 +3,14 @@ import {
   FieldNode,
   MethodKind,
   MethodNode,
-  ObjectKind,
   ObjectNode,
 } from "../abi/types.js"
+
+import {
+  findExportedObject,
+  findObjectField,
+  findObjectMethod,
+} from '../abi/query.js'
 
 import {
   Internref,
@@ -58,8 +63,8 @@ export class Module {
 
   callMethod(methodStr: string, args: any[] = []): any {
     const [expName, methodName] = methodStr.split(/(?:_|\$)/)
-    const exp = this.findExportedObject(expName)
-    const method = this.findObjectMethod(exp, methodName)
+    const exp = findExportedObject(this.abi, expName, `unknown export: ${expName}`)
+    const method = findObjectMethod(exp, methodName, `unknown method: ${methodName}`)
     
     const ptrs = []
     if (method.kind === MethodKind.INSTANCE) {
@@ -80,8 +85,8 @@ export class Module {
 
   getProp(propStr: string, ptr: Internref): any {
     const [expName, fieldName] = propStr.split('.')
-    const exp = this.findExportedObject(expName)
-    const field = this.findObjectField(exp, fieldName)
+    const exp = findExportedObject(this.abi, expName, `unknown export: ${expName}`)
+    const field = findObjectField(exp, fieldName, `unknown field: ${fieldName}`)
 
     const offsets = getObjectMemLayout(exp)
     const { offset, align } = offsets[field.name]
@@ -91,7 +96,7 @@ export class Module {
   }
 
   getSchema(name: string): Schema  {
-    const exp = this.findExportedObject(name)
+    const exp = findExportedObject(this.abi, name, `unknown export: ${name}`)
     return exp.fields.reduce((obj: Schema, prop) => {
       obj[prop.name] = prop.type.name
       return obj
@@ -99,33 +104,11 @@ export class Module {
   }
 
   getState(name: string, ptr: Internref): any[] {
-    const exp = this.findExportedObject(name)
+    const exp = findExportedObject(this.abi, name, `unknown export: ${name}`)
     return exp.fields.reduce((arr: any, field) => {
       arr.push(this.getProp(`${name}.${field.name}`, ptr))
       return arr
     }, [])
-  }
-
-  private collectExportedObjects(): ObjectNode[] {
-    return this.abi.objects.filter(n => n.kind === ObjectKind.EXPORTED)
-  }
-
-  private findExportedObject(name: string): ObjectNode {
-    const obj = this.collectExportedObjects().find(n => n.name === name)
-    if (!obj) { throw new Error(`unknown export: ${name}`) }
-    return obj
-  }
-
-  private findObjectMethod(obj: ObjectNode, name: string): MethodNode {
-    const method = obj.methods.find(n => n.name === name)
-    if (!method) { throw new Error(`unknown method: ${name}`) }
-    return method
-  }
-
-  private findObjectField(obj: ObjectNode, name: string): FieldNode {
-    const field = obj.fields.find(n => n.name === name)
-    if (!field) { throw new Error(`unknown field: ${name}`) }
-    return field
   }
 
   //cache<T>(key: string, callback: () => any, error?: string): T {

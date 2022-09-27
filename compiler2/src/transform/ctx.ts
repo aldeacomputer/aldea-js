@@ -14,7 +14,9 @@ import {
   Parser,
   StringLiteralExpression,
   Source,
-  SourceKind
+  SourceKind,
+  Program,
+  Class
 } from 'assemblyscript'
 
 import {
@@ -36,9 +38,11 @@ import {
 
 import {
   Abi,
+  RtIds,
   FieldKind,
   MethodKind,
   ObjectKind,
+  TypeNode,
 } from '../abi/types.js'
 
 /**
@@ -49,6 +53,7 @@ import {
  */
 export class TransformCtx {
   parser: Parser;
+  program?: Program;
   sources: Source[]; 
   entry: Source;
   objects: ObjectWrap[];
@@ -62,8 +67,16 @@ export class TransformCtx {
   }
 
   get abi(): Abi {
+    const rtids = this.program ?
+      [...this.program.managedClasses].reduce((obj: RtIds, [id, klass]) => {
+        obj[klass.name] = id
+        return obj
+      }, {}) :
+      {};
+
     return {
       version: 1,
+      rtids,
       objects: this.objects
     }
   }
@@ -140,7 +153,7 @@ function collectDecoratorNodes(nodes: DecoratorNode[]): DecoratorWrap[] {
 function mapObjectNode(node: ClassDeclaration): ObjectWrap {
   const decorators = collectDecoratorNodes(node.decorators || [])
   const kind = isAmbient(node.flags) ?
-    (decorators.some(d => d.name === 'jig') ? ObjectKind.IMPORTED : ObjectKind.PLAIN) :
+    (decorators.some(d => d.name === 'imported') ? ObjectKind.IMPORTED : ObjectKind.PLAIN) :
     (isExported(node.flags) ? ObjectKind.EXPORTED : -1);
 
   return {

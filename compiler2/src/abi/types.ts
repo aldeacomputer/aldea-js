@@ -3,7 +3,15 @@
  */
 export interface Abi {
   version: number;
+  rtids: RtIds;
   objects: ObjectNode[];
+}
+
+/**
+ * TODO
+ */
+export interface RtIds {
+  [type: string]: number;
 }
 
 /**
@@ -74,7 +82,7 @@ export enum MethodKind {
 /**
  * ABI CBOR type
  */
-export type AbiCbor = [number, ObjectCbor[]]
+export type AbiCbor = [number, RtIds, ObjectCbor[]]
 
 /**
  * Object CBOR type

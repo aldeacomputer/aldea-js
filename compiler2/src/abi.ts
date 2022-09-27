@@ -20,10 +20,11 @@ import { validateAbi } from './abi/validations.js'
  */
 export function abiFromCbor(cbor: ArrayBuffer): Abi {
   const seq = CBOR.decode(cbor, null, { mode: 'sequence'})
-  const [version, objects] = seq.data as AbiCbor
+  const [version, rtids, objects] = seq.data as AbiCbor
   
   return {
     version,
+    rtids,
     objects: objects.map(objectFromCbor)
   }
 }
@@ -44,7 +45,7 @@ export function abiFromJson(json: string): Abi {
  * Serializes the given ABI interface to CBOR data.
  */
 export function abiToCbor(abi: Abi): ArrayBuffer {
-  const seq = Sequence.from([ abi.version, abi.objects.map(objectToCbor) ])
+  const seq = Sequence.from([ abi.version, abi.rtids, abi.objects.map(objectToCbor) ])
   return CBOR.encode(seq)
 }
 
@@ -54,6 +55,7 @@ export function abiToCbor(abi: Abi): ArrayBuffer {
 export function abiToJson(abi: Abi, space: number = 0): string {
   return JSON.stringify({
     version: abi.version,
+    rtids: abi.rtids,
     objects: abi.objects.map(objectToJson)
   }, null, space)
 }
