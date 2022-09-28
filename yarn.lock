@@ -9,10 +9,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/compiler2@workspace:compiler2"
   dependencies:
+    "@as-pect/cli": ^7.0.8
+    "@assemblyscript/loader": ^0.21.4
     "@types/node": ^18.7.19
     assemblyscript: ^0.21.3
     ava: ^4.3.3
-    cbor-redux: prerelease
+    cbor-redux: ^1.0.0-3
     commander: ^9.4.0
     typescript: ^4.8.3
   bin:
@@ -214,7 +216,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@assemblyscript/loader@npm:^0.21.3":
+"@assemblyscript/loader@npm:^0.21.3, @assemblyscript/loader@npm:^0.21.4":
   version: 0.21.4
   resolution: "@assemblyscript/loader@npm:0.21.4"
   checksum: ea1166be30d9d8fa6e597a3ce30afe6c50b469b5d5f5f119b76b595f89eef694f18446e758ae22272e303206b53cebed38edf16ce5437500c0bc8f12657edc7d
@@ -1344,7 +1346,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cbor-redux@npm:1.0.0-3, cbor-redux@npm:prerelease":
+"cbor-redux@npm:1.0.0-3, cbor-redux@npm:^1.0.0-3":
   version: 1.0.0-3
   resolution: "cbor-redux@npm:1.0.0-3"
   dependencies:

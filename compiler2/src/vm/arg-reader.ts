@@ -1,7 +1,10 @@
 import { TypeNode } from "../abi/types.js";
 
 /**
- * TODO
+ * ArgReader class
+ * 
+ * Sequentially reads values of different types from an ArrayBuffer.
+ * Used to receive an arbitrary length list integers and pointers from WASM.
  */
 export class ArgReader {
   buffer: ArrayBuffer;
@@ -76,7 +79,7 @@ export class ArgReader {
 }
 
 /**
- * TODO
+ * Reads and returns a value of the specified type from the given ArgReader.
  */
 export function readType(reader: ArgReader, type: TypeNode): number | bigint {
   switch (type.name) {
@@ -91,6 +94,6 @@ export function readType(reader: ArgReader, type: TypeNode): number | bigint {
     case 'u32': return reader.readU32()
     case 'u64': return reader.readU64()
     default:
-      case 'f32': return reader.readU32()
+      return reader.readU32()
   }
 }

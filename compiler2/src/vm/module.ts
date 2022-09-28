@@ -14,7 +14,6 @@ import {
 import {
   Internref,
   createRegistry,
-  getTypeBytes,
   liftValue,
   liftInternref,
   lowerValue,
@@ -25,14 +24,14 @@ import {
 } from "./memory.js"
 
 /**
- * TODO
+ * Class schema interface
  */
 export interface Schema {
   [key: string]: string
 }
 
 /**
- * TODO
+ * AssemblyScript Exports interface
  */
 export interface ExportsWithRuntime extends WebAssembly.Exports {
   __new(size: number, id: number): number;
@@ -43,7 +42,11 @@ export interface ExportsWithRuntime extends WebAssembly.Exports {
 }
 
 /**
- * TODO
+ * Module class
+ * 
+ * Wraps around a WASM module and ABI, and provides an interface for calling
+ * methods, accessing properties, serializing state and restoring an instance
+ * from serialized state.
  */
 export class Module {
   abi: Abi;

@@ -3,21 +3,14 @@ import { allImportedObjects } from '../abi/query.js';
 import { Module } from './module.js'
 
 /**
- * TODO
- */
-export class Internref extends Number {}
-
-export type AnyTypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | BigInt64Array | BigUint64Array | Float32Array | Float64Array
-
-/**
- * TODO
+ * Creates a finalization registry
  */
 export function createRegistry(mod: Module): FinalizationRegistry<number> {
   return new FinalizationRegistry((ptr: number) => release(mod, ptr))
 }
 
 /**
- * TODO
+ * Lifts any supported type from WASM memory and returns the value.
  */
 export function liftValue(mod: Module, type: TypeNode | null, val: number | bigint): any {
   if (type === null || type.name === 'void') return;
@@ -53,28 +46,28 @@ export function liftValue(mod: Module, type: TypeNode | null, val: number | bigi
     case 'Float64Array':
       return liftTypedArray(mod, type, val as number >>> 0)
     default:
-      throw new Error(`unspported type: ${type.name}`)
+      throw new Error(`cannot lift unspported type: ${type.name}`)
   }
 }
 
 /**
- * TODO
+ * Casts the Ptr as an Internref and adds it to the module registry.
  */
-export function liftBuffer(mod: Module, ptr: number): ArrayBuffer {
-  return mod.memory.buffer.slice(ptr, ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2]);
-}
-
-/**
- * TODO
- */
-export function liftInternref(mod: Module, ptr: number): Internref {
+ export function liftInternref(mod: Module, ptr: number): Internref {
   const sentinel = new Internref(retain(mod, ptr))
   mod.registry.register(sentinel, ptr)
   return sentinel
 }
 
 /**
- * TODO
+ * Lifts an ArrayBuffer from WASM memory at the given Ptr.
+ */
+export function liftBuffer(mod: Module, ptr: number): ArrayBuffer {
+  return mod.memory.buffer.slice(ptr, ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2]);
+}
+
+/**
+ * Lifts a String from WASM memory at the given Ptr.
  */
 export function liftString(mod: Module, ptr: number): string {
   const end = ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2] >>> 1
@@ -87,9 +80,9 @@ export function liftString(mod: Module, ptr: number): string {
 }
 
 /**
- * TODO
+ * Lifts a TypedArray from WASM memory at the given Ptr.
  */
-export function liftTypedArray(mod: Module, type: TypeNode, ptr: number) {
+export function liftTypedArray(mod: Module, type: TypeNode, ptr: number): AnyTypedArray {
   const memU32 = new Uint32Array(mod.memory.buffer);
   const TypedArray = getTypeBufConstructor(type)
   return new TypedArray(
@@ -100,11 +93,10 @@ export function liftTypedArray(mod: Module, type: TypeNode, ptr: number) {
 }
 
 /**
- * TODO
+ * Lowers any supported type into WASM memory and returns the value or Ptr.
  */
-export function lowerValue(mod: Module, type: TypeNode | null, val: any) {
-  if (!type || type.name === 'void') return;
-  if (val === null) return 0;
+export function lowerValue(mod: Module, type: TypeNode | null, val: any): number {
+  if (!type || type.name === 'void' || val === null) return 0;
 
   if (allImportedObjects(mod.abi).map(obj => obj.name).includes(type.name)) {
     return retain(mod, lowerImportedObject(mod, type, val))
@@ -141,13 +133,12 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any) {
     case 'Float64Array':
       return retain(mod, lowerTypedArray(mod, type, val))
     default:
-      console.log(mod.abi)
-      throw new Error(`Cannot lower unspported type: ${type.name}`)
+      throw new Error(`cannot lower unspported type: ${type.name}`)
   }
 }
 
 /**
- * TODO
+ * Casts the Internref as its number value.
  */
  export function lowerInternref(ptr: Internref): number {
   if (ptr == null) return 0;
@@ -156,7 +147,7 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any) {
 }
 
 /**
- * TODO
+ * Lowers an ArrayBuffer into WASM memory and returns the Ptr.
  */
 export function lowerBuffer(mod: Module, val: ArrayBuffer): number {
   const ptr = mod.exports.__new(val.byteLength, 0) >>> 0;
@@ -165,7 +156,7 @@ export function lowerBuffer(mod: Module, val: ArrayBuffer): number {
 }
 
 /**
- * TODO
+ * Lowers a complex object into WASM memory and returns the Ptr.
  */
 export function lowerObject(mod: Module, obj: ObjectNode, vals: any[]): number {
   if (obj.fields.length !== vals.length) {
@@ -187,7 +178,21 @@ export function lowerObject(mod: Module, obj: ObjectNode, vals: any[]): number {
 }
 
 /**
- * TODO
+ * Lowers an imported object (setting the origin ArrayBuffer) into WASM memory
+ * and returns the Ptr.
+ */
+export function lowerImportedObject(mod: Module, type: TypeNode, val: ArrayBuffer): number {
+  const rtid = mod.abi.rtids[type.name]
+  const buffer = lowerBuffer(mod, val)
+
+  const ptr = mod.exports.__new(val.byteLength, 0) >>> 0;
+  const memU32 = new Uint32Array(mod.memory.buffer)
+  memU32[ptr + 0 >>> 2] = buffer
+  return ptr
+}
+
+/**
+ * Lowers a string into WASM memory and returns the Ptr.
  */
 export function lowerString(mod: Module, val: string): number {
   const ptr = mod.exports.__new(val.length << 1, 1) >>> 0
@@ -199,7 +204,7 @@ export function lowerString(mod: Module, val: string): number {
 }
 
 /**
- * TODO
+ * Lowers a TypedArray into WASM memory and returns the Ptr.
  */
 export function lowerTypedArray(mod: Module, type: TypeNode, val: ArrayLike<number> & ArrayLike<bigint>): number {
   const rtid = mod.abi.rtids[type.name]
@@ -219,30 +224,10 @@ export function lowerTypedArray(mod: Module, type: TypeNode, val: ArrayLike<numb
 }
 
 /**
- * TODO
- */
-export function lowerImportedObject(mod: Module, type: TypeNode, val: ArrayBuffer): number {
-  const rtid = mod.abi.rtids[type.name]
-  const buffer = lowerBuffer(mod, val)
-
-  const ptr = mod.exports.__new(val.byteLength, 0) >>> 0;
-  const memU32 = new Uint32Array(mod.memory.buffer)
-  memU32[ptr + 0 >>> 2] = buffer
-  return ptr
-}
-
-/**
- * TODO
- */
-interface MemoryLayout {
-  [field: string]: {
-    align: 0 | 1 | 2 | 4;
-    offset: number;
-  }
-}
-
-/**
- * TODO
+ * Returns the memory layout of the given object.
+ * 
+ * Is an object where each key is a field name, and its value is an object with
+ * offset and align values.
  */
 export function getObjectMemLayout(object: ObjectNode): MemoryLayout {
   return object.fields.reduce((obj: any, field, i, fields) => {
@@ -267,7 +252,7 @@ export function getObjectMemLayout(object: ObjectNode): MemoryLayout {
 }
 
 /**
- * TODO
+ * Returns the number of bytes for the given type.
  */
 export function getTypeBytes(type: TypeNode): number {
   switch(type.name) {
@@ -289,7 +274,7 @@ export function getTypeBytes(type: TypeNode): number {
 }
 
 /**
- * TODO
+ * Returns a typed array constructor for the given type.
  */
 export function getTypeBufConstructor(type: TypeNode) {
   switch(type.name) {
@@ -308,7 +293,9 @@ export function getTypeBufConstructor(type: TypeNode) {
   }
 }
 
-
+// TBH, don't really know what this function does 😂
+// Possibly this is relevant when using AS garbage collection
+// Maybe we can get rid of the retain/release calls??
 function retain(mod: Module, ptr: number) {
   if (ptr) {
     const refcount = mod.refcounts.get(ptr);
@@ -319,6 +306,7 @@ function retain(mod: Module, ptr: number) {
   return ptr;
 }
 
+// See comments about retain()
 function release(mod: Module, ptr: number) {
   if (ptr) {
     const refcount = mod.refcounts.get(ptr);
@@ -328,5 +316,25 @@ function release(mod: Module, ptr: number) {
     }
     else if (refcount) { mod.refcounts.set(ptr, refcount - 1) }
     else { throw Error(`invalid refcount '${refcount}' for reference '${ptr}'`) }
+  }
+}
+
+/**
+ * Internref class - wraps around a WASM Ptr
+ */
+export class Internref extends Number {}
+
+/**
+ * Union type for any typed array
+ */
+export type AnyTypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | BigInt64Array | BigUint64Array | Float32Array | Float64Array
+
+/**
+ * Memory layout interface
+ */
+interface MemoryLayout {
+  [field: string]: {
+    align: 0 | 1 | 2 | 4;
+    offset: number;
   }
 }
