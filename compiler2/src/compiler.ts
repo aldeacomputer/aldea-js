@@ -9,7 +9,9 @@ import { abiToCbor, abiToJson } from './abi.js'
 const baseDir = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 /**
- * TODO
+ * Compiles AssemblyScript code using the given parameters.
+ * 
+ * This method is a Command action, designed to be called from Commander.
  */
 export async function compileCommand(src: string, opts: any, cmd: Command): Promise<void> {
   const srcPath = relative(process.cwd(), src)
@@ -29,7 +31,7 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     '--textFile', outPath.replace('.wasm', '.wat'),
     '--runtime', 'stub',
     '--exportRuntime',
-    //'--importMemory', - miguel can add this back
+    //'--importMemory', - miguel can add this back if needed?
     '--lib', relative(process.cwd(), join(baseDir, 'lib')),
     '--transform', './'+relative(process.cwd(), join(baseDir, './dist/transform.js'))
   ])

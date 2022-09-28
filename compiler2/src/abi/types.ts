@@ -8,7 +8,7 @@ export interface Abi {
 }
 
 /**
- * TODO
+ * Runtime IDs interface
  */
 export interface RuntimeIds {
   [type: string]: number;

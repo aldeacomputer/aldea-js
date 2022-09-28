@@ -6,16 +6,20 @@ import {
   Statement,
 } from 'assemblyscript'
 
-import {
-  FieldKind,
-  MethodKind
-} from './abi/types.js'
-
+import { FieldKind } from './abi/types.js'
 import { TransformCtx } from './transform/ctx.js'
 import { FieldWrap, MethodWrap, ObjectWrap } from './transform/nodes.js'
-import { getTypeBytes } from './vm/memory.js'
 
-// Set global scope
+import {
+  writeExportedMethod,
+  writeProxyImports,
+  writeProxyClass,
+  writeProxyGetter,
+  writeProxyMethod,
+} from './transform/code-helpers.js'
+
+
+// Set global scope for ctx - meh, does the job
 let $ctx: TransformCtx
 
 /**
@@ -34,14 +38,19 @@ export function afterParse(parser: Parser): void {
   console.log(ASTBuilder.build($ctx.entry))
 
   if ($ctx.importedObjects.length) { writeProxyImports($ctx) }
-  $ctx.exportedObjects.forEach(n => transformExports(n, $ctx))
-  $ctx.importedObjects.forEach(n => transformImports(n, $ctx))
+  $ctx.exportedObjects.forEach(n => transformExportedObject(n, $ctx))
+  $ctx.importedObjects.forEach(n => transformImportedObject(n, $ctx))
 
   console.log('  == TRANSFORMED == ')
   console.log('********************')
   console.log(ASTBuilder.build($ctx.entry))
 }
 
+/**
+ * Called once the program is initialized, before it is being compiled.
+ * 
+ * We simply attach the program to the Transform Context so we can use it later.
+ */
 export function afterInitialize(program: Program): void {
   $ctx.program = program
 }
@@ -51,7 +60,7 @@ export function afterInitialize(program: Program): void {
  * 
  * - Writes exported method for each public method of the object.
  */
-function transformExports(obj: ObjectWrap, ctx: TransformCtx): void {
+function transformExportedObject(obj: ObjectWrap, ctx: TransformCtx): void {
   const codes = (obj.methods as MethodWrap[])
     .reduce((acc: string[], n: MethodWrap): string[] => {
       acc.push(writeExportedMethod(n, obj))
@@ -65,9 +74,14 @@ function transformExports(obj: ObjectWrap, ctx: TransformCtx): void {
   ctx.entry.statements.push(...src.statements)
 }
 
-
-
-function transformImports(obj: ObjectWrap, ctx: TransformCtx): void {
+/**
+ * Transform imported object.
+ * 
+ * - Creates a proxy class for the imported object
+ * - Adds proxy methods for each declared property and method
+ * - Removes the user declared code
+ */
+function transformImportedObject(obj: ObjectWrap, ctx: TransformCtx): void {
   const fieldCodes = (obj.fields as FieldWrap[])
     .filter(n => n.kind === FieldKind.PUBLIC)
     .reduce((acc: string[], n: FieldWrap): string[] => {
@@ -92,97 +106,4 @@ function transformImports(obj: ObjectWrap, ctx: TransformCtx): void {
 
   const src = ctx.parse(code, ctx.entry.normalizedPath)
   ctx.entry.statements.push(...src.statements)
-}
-
-
-// Helpers
-
-function writeExportedMethod(method: MethodWrap, obj: ObjectWrap): string {
-  const isConstructor = method.kind === MethodKind.CONSTRUCTOR
-  const isInstance = method.kind === MethodKind.INSTANCE
-  const separator = isInstance ? '$' : '_'
-  const args = method.args.map((f, i) => `a${i}: ${f.type.name}`)
-  const rtype = isConstructor ? obj.name : method.rtype?.name
-  const callable = isConstructor ? `new ${obj.name}` : (
-    isInstance ? `ctx.${method.name}` : `${obj.name}.${method.name}`
-  )
-  if (isInstance) args.unshift(`ctx: ${obj.name}`)
-
-  return `
-  export function ${obj.name}${separator}${method.name}(${args.join(', ')}): ${rtype} {
-    return ${callable}(${ method.args.map((_f, i) => `a${i}`).join(', ') })
-  }
-  `.trim()
-}
-
-function writeProxyImports(ctx: TransformCtx) {
-  const code = `
-  @external("vm", "vm_call")
-  declare function vm_call<T>(klass: string, origin: ArrayBuffer, fn: string, argBuf: ArrayBuffer): T
-
-  @external("vm", "vm_prop")
-  declare function vm_prop<T>(klass: string, origin: ArrayBuffer, prop: string): T
-  `.trim()
-
-  const src = ctx.parse(code, ctx.entry.normalizedPath)
-  ctx.entry.statements.unshift(...src.statements)
-}
-
-function writeProxyClass(obj: ObjectWrap, chunks: string[]): string {
-  return `
-  class ${obj.name} {
-    origin: ArrayBuffer;
-    ${ chunks.join('\n') }
-  }
-  `
-}
-
-function writeProxyGetter(field: FieldWrap, obj: ObjectWrap): string {
-  const klass = obj.decorators.find(n => n.name === 'imported')?.args[0]
-  return `
-  get ${field.name}(): ${field.type.name} {
-    return vm_prop<${field.type.name}>('${klass}', this.origin, '${obj.name}.${field.name}')
-  }
-  `.trim()
-}
-
-function writeProxyMethod(method: MethodWrap, obj: ObjectWrap): string {
-  const isConstructor = method.kind === MethodKind.CONSTRUCTOR
-  const isInstance = method.kind === MethodKind.INSTANCE
-  const separator = isInstance ? '$' : '_'
-  const klass = obj.decorators.find(n => n.name === 'imported')?.args[0]
-  const args = method.args.map((f, i) => `a${i}: ${f.type.name}`)
-
-  return `
-  ${method.name}(${args.join(', ')}): ${method.rtype!.name} {
-    ${ writeArgWriter(method.args as FieldWrap[]) }
-    return vm_call<${method.rtype!.name}>('${klass}', this.origin, '${obj.name}${separator}${method.name}', args.buffer)
-  }
-  `.trim()
-}
-
-function writeArgWriter(fields: FieldWrap[]): string {
-  const bytes = fields.reduce((sum, n) => sum + getTypeBytes(n.type), 0)
-  const chunks = fields.map((n, i) => `args.${ writeArgWriterEncodeMethod(n, i) }`)
-  return `
-  const args = new ArgWriter(${bytes})
-  ${ chunks.join('\n') }
-  `.trim()
-}
-
-function writeArgWriterEncodeMethod(field: FieldWrap, i: number): string {
-  switch(field.type.name) {
-    case 'f32': return `writeF32(a${i})`
-    case 'i64': return `writeF64(a${i})`
-    case 'i8':  return `writeI8(a${i})`
-    case 'i16': return `writeI16(a${i})`
-    case 'i32': return `writeI32(a${i})`
-    case 'i64': return `writeI64(a${i})`
-    case 'u8':  return `writeU8(a${i})`
-    case 'u16': return `writeU16(a${i})`
-    case 'u32': return `writeU32(a${i})`
-    case 'u64': return `writeU64(a${i})`
-    default:
-      return `writeU32(changetype<usize>(a${i}) as u32)`
-  }
 }

@@ -82,7 +82,7 @@ function objectToCbor(node: ObjectNode): ObjectCbor {
   ]
 }
 
-// TODO
+// Casts the Object Node interface to a JSON object.
 function objectToJson(node: ObjectNode): ObjectNode {
   return {
     kind: node.kind,
@@ -113,7 +113,7 @@ function fieldToCbor(node: FieldNode): FieldCbor {
   }
 }
 
-// TODO
+// Casts the Field Node interface to a JSON object.
 function fieldToJson(node: FieldNode): FieldNode {
   return {
     kind: node.kind,
@@ -142,7 +142,7 @@ function methodToCbor(node: MethodNode): MethodCbor {
   ]
 }
 
-// TODO
+// Casts the Method Node interface to a JSON object.
 function methodToJson(node: MethodNode): MethodNode {
   return {
     kind: node.kind,
@@ -162,7 +162,7 @@ function typeToCbor(node: TypeNode): TypeCbor {
   return [ node.name, node.args.map(typeToCbor) ]
 }
 
-// TODO
+// Casts the Type Node interface to a JSON object.
 function typeToJson(node: TypeNode): TypeNode {
   return {
     name: node.name,

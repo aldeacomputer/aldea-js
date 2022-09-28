@@ -47,7 +47,9 @@ import {
  * Transform Context class.
  * 
  * Collects user sources from the given parser, and from there builds a list
- * of object nodes that represent the ABI.
+ * of object nodes that the transformer needs knowledge off.
+ * 
+ * From this list of we can build our own ABI.
  */
 export class TransformCtx {
   parser: Parser;
@@ -60,7 +62,7 @@ export class TransformCtx {
     this.parser = parser
     this.sources = collectUserSources(parser.sources)
     this.entry = findUserEntry(this.sources)
-    this.objects = collectObjectNodes(this.entry)
+    this.objects = collectObjectNodes(this.entry) // todo - analyse all sources!
     this.validate()
   }
 
