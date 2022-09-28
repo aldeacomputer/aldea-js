@@ -1,12 +1,25 @@
-import { ObjectNode, TypeNode } from '../abi/types.js';
+import { ObjectKind, ObjectNode, TypeNode } from '../abi/types.js';
 import { allImportedObjects } from '../abi/query.js';
 import { Module } from './module.js'
 
 /**
- * Creates a finalization registry
+ * Internref class - wraps around a WASM Ptr
  */
-export function createRegistry(mod: Module): FinalizationRegistry<number> {
-  return new FinalizationRegistry((ptr: number) => release(mod, ptr))
+export class Internref extends Number {}
+
+/**
+ * Union type for any typed array
+ */
+export type AnyTypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | BigInt64Array | BigUint64Array | Float32Array | Float64Array
+ 
+/**
+ * Memory layout interface
+ */
+interface MemoryLayout {
+   [field: string]: {
+     align: 0 | 1 | 2 | 3;
+     offset: number;
+   }
 }
 
 /**
@@ -45,6 +58,10 @@ export function liftValue(mod: Module, type: TypeNode | null, val: number | bigi
     case 'Float32Array':
     case 'Float64Array':
       return liftTypedArray(mod, type, val as number >>> 0)
+    case 'Array':
+      return liftArray(mod, type, val as number >>> 0)
+    case 'StaticArray':
+      return liftStaticArray(mod, type, val as number >>> 0)
     default:
       throw new Error(`cannot lift unspported type: ${type.name}`)
   }
@@ -54,9 +71,7 @@ export function liftValue(mod: Module, type: TypeNode | null, val: number | bigi
  * Casts the Ptr as an Internref and adds it to the module registry.
  */
  export function liftInternref(mod: Module, ptr: number): Internref {
-  const sentinel = new Internref(retain(mod, ptr))
-  mod.registry.register(sentinel, ptr)
-  return sentinel
+  return new Internref(ptr)
 }
 
 /**
@@ -80,11 +95,49 @@ export function liftString(mod: Module, ptr: number): string {
 }
 
 /**
+ * Lifts an Array from WASM memory at the given Ptr.
+ */
+export function liftArray(mod: Module, type: TypeNode, ptr: number): Array<any> {
+  const memU32 = new Uint32Array(mod.memory.buffer)
+  const start = memU32[ptr + 4 >>> 2]
+  const length = memU32[ptr + 12 >>> 2]
+  const elBytes = getTypeBytes(type.args[0])
+  const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
+  const TypedArray = getTypedArrayConstructor(type.args[0])
+  const values = new Array(length)
+  
+  for (let i = 0; i < length; i++) {
+    const nextPos = start + (i << align >>> 0)
+    const nextPtr = new TypedArray(mod.memory.buffer)[nextPos >>> align]
+    values[i] = liftValue(mod, type.args[0], nextPtr)
+  }
+  return values
+}
+
+/**
+ * Lifts a StaticArray from WASM memory at the given Ptr.
+ */
+export function liftStaticArray(mod: Module, type: TypeNode, ptr: number): Array<any> {
+  const elBytes = getTypeBytes(type.args[0])
+  const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
+  const length = new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2] >>> align
+  const TypedArray = getTypedArrayConstructor(type.args[0])
+  const values = new Array(length)
+
+  for (let i = 0; i < length; ++i) {
+    const nextPos = ptr + (i << align >>> 0)
+    const nextPtr = new TypedArray(mod.memory.buffer)[nextPos >>> align]
+    values[i] = liftValue(mod, type.args[0], nextPtr);
+  }
+  return values
+}
+
+/**
  * Lifts a TypedArray from WASM memory at the given Ptr.
  */
 export function liftTypedArray(mod: Module, type: TypeNode, ptr: number): AnyTypedArray {
   const memU32 = new Uint32Array(mod.memory.buffer);
-  const TypedArray = getTypeBufConstructor(type)
+  const TypedArray = getTypedArrayConstructor(type)
   return new TypedArray(
     mod.memory.buffer,
     memU32[ptr + 4 >>> 2],
@@ -98,8 +151,13 @@ export function liftTypedArray(mod: Module, type: TypeNode, ptr: number): AnyTyp
 export function lowerValue(mod: Module, type: TypeNode | null, val: any): number {
   if (!type || type.name === 'void' || val === null) return 0;
 
-  if (allImportedObjects(mod.abi).map(obj => obj.name).includes(type.name)) {
-    return retain(mod, lowerImportedObject(mod, type, val))
+  const obj = mod.abi.objects.find(n => n.name === type.name)
+  if (obj) {
+    switch (obj.kind) {
+      case ObjectKind.EXPORTED: return lowerInternref(val)
+      case ObjectKind.PLAIN:    return lowerObject(mod, obj, val)
+      case ObjectKind.IMPORTED: return lowerImportedObject(mod, type, val)
+    }
   }
 
   switch(type.name) {
@@ -120,7 +178,7 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
     case 'string':
       return lowerString(mod, val)
     case 'ArrayBuffer':
-      return retain(mod, lowerBuffer(mod, val))
+      return lowerBuffer(mod, val)
     case 'Int8Array':
     case 'Int16Array':
     case 'Int32Array':
@@ -131,7 +189,11 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
     case 'BigUint64Array':
     case 'Float32Array':
     case 'Float64Array':
-      return retain(mod, lowerTypedArray(mod, type, val))
+      return lowerTypedArray(mod, type, val)
+    case 'Array':
+      return lowerArray(mod, type, val)
+    case 'StaticArray':
+      return lowerStaticArray(mod, type, val)
     default:
       throw new Error(`cannot lower unspported type: ${type.name}`)
   }
@@ -140,7 +202,7 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
 /**
  * Casts the Internref as its number value.
  */
- export function lowerInternref(ptr: Internref): number {
+export function lowerInternref(ptr: Internref): number {
   if (ptr == null) return 0;
   if (ptr instanceof Internref) return ptr.valueOf();
   throw TypeError("internref expected");
@@ -156,42 +218,6 @@ export function lowerBuffer(mod: Module, val: ArrayBuffer): number {
 }
 
 /**
- * Lowers a complex object into WASM memory and returns the Ptr.
- */
-export function lowerObject(mod: Module, obj: ObjectNode, vals: any[]): number {
-  if (obj.fields.length !== vals.length) {
-    throw new Error(`invalid state for ${obj.name}`)
-  }
-
-  const rtid = mod.abi.rtids[obj.name]
-  const bytes = obj.fields.reduce((sum, n) => sum + getTypeBytes(n.type), 0)
-  const ptr = mod.exports.__new(bytes, rtid) >>> 0
-  const offsets = getObjectMemLayout(obj)
-
-  obj.fields.forEach((n, i) => {
-    const TypedArray = getTypeBufConstructor(n.type)
-    const mem = new TypedArray(mod.memory.buffer, ptr, bytes)
-    const { align, offset } = offsets[n.name]
-    mem[offset >>> align] = lowerValue(mod, n.type, vals[i])
-  })
-  return ptr
-}
-
-/**
- * Lowers an imported object (setting the origin ArrayBuffer) into WASM memory
- * and returns the Ptr.
- */
-export function lowerImportedObject(mod: Module, type: TypeNode, val: ArrayBuffer): number {
-  const rtid = mod.abi.rtids[type.name]
-  const buffer = lowerBuffer(mod, val)
-
-  const ptr = mod.exports.__new(val.byteLength, 0) >>> 0;
-  const memU32 = new Uint32Array(mod.memory.buffer)
-  memU32[ptr + 0 >>> 2] = buffer
-  return ptr
-}
-
-/**
  * Lowers a string into WASM memory and returns the Ptr.
  */
 export function lowerString(mod: Module, val: string): number {
@@ -204,6 +230,60 @@ export function lowerString(mod: Module, val: string): number {
 }
 
 /**
+ * Lowers an Array into WASM memory and returns the Ptr.
+ */
+export function lowerArray(mod: Module, type: TypeNode, val: Array<any>): number {
+  const rtid = mod.abi.rtids[type.name]
+  const elBytes = getTypeBytes(type.args[0])
+  const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
+  const TypedArray = getTypedArrayConstructor(type.args[0])
+
+  const length = val.length
+  const buffer = mod.exports.__pin(mod.exports.__new(val.length << align, 0)) >>> 0
+  const header = mod.exports.__new(16, rtid) >>> 0
+  const memU32 = new Uint32Array(mod.memory.buffer)
+  memU32[header + 0 >>> 2] = buffer;
+  memU32[header + 4 >>> 2] = buffer;
+  memU32[header + 8 >>> 2] = length << align;
+  memU32[header + 12 >>> 2] = length;
+
+  for (let i = 0; i < length; ++i) {
+    const nextPos = buffer + (i << align >>> 0)
+    const nextPtr = lowerValue(mod, type.args[0], val[i])
+    new TypedArray(mod.memory.buffer)[nextPos >>> align] = nextPtr
+  }
+  mod.exports.__unpin(buffer)
+  mod.exports.__unpin(header)
+  return header
+}
+
+/**
+ * Lowers a StaticArray into WASM memory and returns the Ptr.
+ */
+export function lowerStaticArray(mod: Module, type: TypeNode, val: Array<any>): number {
+  const rtid = mod.abi.rtids[type.name]
+  const elBytes = getTypeBytes(type.args[0])
+  const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
+  const TypedArray = getTypedArrayConstructor(type.args[0])
+
+  const length = val.length
+  const buffer = mod.exports.__pin(mod.exports.__new(val.length << align, rtid)) >>> 0
+
+  if (hasTypedArrayConstructor(type.args[0])) {
+    new TypedArray(mod.memory.buffer, buffer, length).set(val)
+  } else {
+    for (let i = 0; i < length; i++) {
+      const nextPos = buffer + (i << align >>> 0)
+      const nextPtr = lowerValue(mod, type.args[0], val[i])
+      new TypedArray(mod.memory.buffer)[nextPos >>> align] = nextPtr
+    }
+  }
+
+  mod.exports.__unpin(buffer);
+  return buffer;
+}
+
+/**
  * Lowers a TypedArray into WASM memory and returns the Ptr.
  */
 export function lowerTypedArray(mod: Module, type: TypeNode, val: ArrayLike<number> & ArrayLike<bigint>): number {
@@ -211,16 +291,51 @@ export function lowerTypedArray(mod: Module, type: TypeNode, val: ArrayLike<numb
   const elBytes = getTypeBytes(type)
   const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
 
-  const buffer = mod.exports.__pin(exports.__new(val.length << align, 0)) >>> 0
+  const buffer = mod.exports.__pin(mod.exports.__new(val.length << align, 0)) >>> 0
   const header = mod.exports.__new(12, rtid) >>> 0
   const memU32 = new Uint32Array(mod.memory.buffer)
   memU32[header + 0 >>> 2] = buffer
   memU32[header + 4 >>> 2] = buffer
   memU32[header + 8 >>> 2] = length << align
-  const TypedArray = getTypeBufConstructor(type)
+  const TypedArray = getTypedArrayConstructor(type)
   new TypedArray(mod.memory.buffer, buffer, length).set(val)
   mod.exports.__unpin(buffer)
   return header;
+}
+
+/**
+ * Lowers a plain object into WASM memory and returns the Ptr.
+ */
+export function lowerObject(mod: Module, obj: ObjectNode, vals: any[] | any): number {
+  if (!Array.isArray(vals)) { vals = Object.values(vals) }
+  if (!Array.isArray(vals) || obj.fields.length !== vals.length) {
+    throw new Error(`invalid state for ${obj.name}`)
+  }
+
+  const rtid = mod.abi.rtids[obj.name]
+  const bytes = obj.fields.reduce((sum, n) => sum + getTypeBytes(n.type), 0)
+  const ptr = mod.exports.__new(bytes, rtid) >>> 0
+  const offsets = getObjectMemLayout(obj)
+
+  obj.fields.forEach((n, i) => {
+    const TypedArray = getTypedArrayConstructor(n.type)
+    const mem = new TypedArray(mod.memory.buffer, ptr, bytes)
+    const { align, offset } = offsets[n.name]
+    mem[offset >>> align] = lowerValue(mod, n.type, vals[i])
+  })
+  return ptr
+}
+
+/**
+ * Lowers an imported object (setting the origin ArrayBuffer) into WASM memory
+ * and returns the Ptr.
+ */
+export function lowerImportedObject(mod: Module, type: TypeNode, val: ArrayBuffer): number {
+  const buffer = lowerBuffer(mod, val)
+  const ptr = mod.exports.__new(val.byteLength, 0) >>> 0;
+  const memU32 = new Uint32Array(mod.memory.buffer)
+  memU32[ptr + 0 >>> 2] = buffer
+  return ptr
 }
 
 /**
@@ -276,7 +391,7 @@ export function getTypeBytes(type: TypeNode): number {
 /**
  * Returns a typed array constructor for the given type.
  */
-export function getTypeBufConstructor(type: TypeNode) {
+export function getTypedArrayConstructor(type: TypeNode) {
   switch(type.name) {
     case 'i8': return Int8Array
     case 'i16': return Int16Array
@@ -286,55 +401,20 @@ export function getTypeBufConstructor(type: TypeNode) {
     case 'f64': return Float64Array
     case 'u8': return Uint8Array
     case 'u16': return Uint16Array
-    case 'u32': return Uint16Array
+    case 'u32': return Uint32Array
     case 'u64': return BigUint64Array
     default:
       return Uint32Array
   }
 }
 
-// TBH, don't really know what this function does 😂
-// Possibly this is relevant when using AS garbage collection
-// Maybe we can get rid of the retain/release calls??
-function retain(mod: Module, ptr: number) {
-  if (ptr) {
-    const refcount = mod.refcounts.get(ptr);
-    if (refcount) { mod.refcounts.set(ptr, refcount + 1) }
-    else { mod.refcounts.set(mod.exports.__pin(ptr), 1) }
-  }
-
-  return ptr;
-}
-
-// See comments about retain()
-function release(mod: Module, ptr: number) {
-  if (ptr) {
-    const refcount = mod.refcounts.get(ptr);
-    if (refcount === 1) {
-      mod.exports.__unpin(ptr)
-      mod.refcounts.delete(ptr)
-    }
-    else if (refcount) { mod.refcounts.set(ptr, refcount - 1) }
-    else { throw Error(`invalid refcount '${refcount}' for reference '${ptr}'`) }
-  }
-}
-
 /**
- * Internref class - wraps around a WASM Ptr
+ * Returns true if the type has TypedArray constructor
  */
-export class Internref extends Number {}
-
-/**
- * Union type for any typed array
- */
-export type AnyTypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array | BigInt64Array | BigUint64Array | Float32Array | Float64Array
-
-/**
- * Memory layout interface
- */
-interface MemoryLayout {
-  [field: string]: {
-    align: 0 | 1 | 2 | 4;
-    offset: number;
-  }
+export function hasTypedArrayConstructor(type: TypeNode): boolean {
+  return [
+    'f32', 'f64',
+    'i8', 'i16', 'i32', 'i64',
+    'u8', 'u16', 'u32', 'u64',
+  ].includes(type.name)
 }

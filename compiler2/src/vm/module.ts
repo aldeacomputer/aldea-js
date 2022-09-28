@@ -13,14 +13,13 @@ import {
 
 import {
   Internref,
-  createRegistry,
   liftValue,
   liftInternref,
   lowerValue,
   lowerInternref,
   lowerObject,
   getObjectMemLayout,
-  getTypeBufConstructor
+  getTypedArrayConstructor
 } from "./memory.js"
 
 /**
@@ -52,17 +51,11 @@ export class Module {
   abi: Abi;
   exports: ExportsWithRuntime;
   memory: WebAssembly.Memory;
-  refcounts: Map<number, number>;
-  registry: FinalizationRegistry<number>;
-  private _cache: Map<string, any>;
 
   constructor(wasm: WebAssembly.Instance, abi: Abi) {
     this.abi = abi
     this.exports = wasm.exports as ExportsWithRuntime
     this.memory = wasm.exports.memory as WebAssembly.Memory
-    this.refcounts = new Map<number, number>()
-    this.registry = createRegistry(this)
-    this._cache = new Map<string, any>()
   }
 
   callMethod(methodStr: string, args: any[] = []): any {
@@ -94,7 +87,7 @@ export class Module {
 
     const offsets = getObjectMemLayout(exp)
     const { offset, align } = offsets[field.name]
-    const TypedArray = getTypeBufConstructor(field.type)
+    const TypedArray = getTypedArrayConstructor(field.type)
     const val = new TypedArray(this.memory.buffer)[ptr as number + offset >>> align]
     return liftValue(this, field.type, val)
   }
