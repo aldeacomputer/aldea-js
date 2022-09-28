@@ -6,10 +6,15 @@ export class Storage {
         this.transactions = new Map()
     }
 
-    addJig (jigRef) {
-        this.statesPerLocation.set(jigRef.location, jigRef)
-        this.tips.set(jigRef.origin, jigRef.location)
-        this.origins.set(jigRef.location, jigRef.origin)
+    persist(txExecution) {
+      this.addTransaction(txExecution.tx)
+      txExecution.outputs.forEach(state => this.addJig(state))
+    }
+
+    addJig (jigState) {
+        this.statesPerLocation.set(jigState.location, jigState)
+        this.tips.set(jigState.origin, jigState.location)
+        this.origins.set(jigState.location, jigState.origin)
     }
 
     getJigState (location) {
@@ -23,7 +28,7 @@ export class Storage {
     }
 
     addTransaction(tx) {
-        this.transactions.set(tx.id.toString('hex'), tx)
+        this.transactions.set(tx.id, tx)
     }
 
     getTransaction(txid) {

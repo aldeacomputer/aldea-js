@@ -14,5 +14,9 @@ export class CallInstruction {
     const args = this.args.map(arg => arg.encode()).join(' ')
     return `CALL $${this.masterListIndex} ${this.methodName} ${args}`.trim()
   }
+
+  getPubKey () {
+    return null
+  }
 }
 

@@ -140,20 +140,21 @@ describe('Transaction#encode', () => {
       expect(tx.isCorrectlySigned()).to.eql(false)
     })
 
-    it('a tx with one correct signature returns true', () => {
+    it('a tx with one extra correct signature returns false', () => {
       const tx = new Transaction()
         .add(new LoadInstruction('someLocation'))
 
-      const rawSig = AldeaCrypto.sign(Buffer.from('LOAD someLocation'), aPrivateKey)
+      const rawSig = AldeaCrypto.sign(Buffer.from(tx.serialize()), aPrivateKey) // unneded signature
       const sig = new Signature(aPubKey, rawSig)
       tx.addSignature(sig)
 
-      expect(tx.isCorrectlySigned()).to.eql(true)
+      expect(tx.isCorrectlySigned()).to.eql(false)
     })
 
     it('a tx with wrong signature returns false', () => {
       const tx = new Transaction()
         .add(new LoadInstruction('someLocation'))
+        .add(new UnlockInstruction(0, aPubKey))
       const rawSig = AldeaCrypto.sign(Buffer.from('wrong data'), aPrivateKey)
       const sig = new Signature(aPubKey, rawSig)
       tx.addSignature(sig)
@@ -167,6 +168,54 @@ describe('Transaction#encode', () => {
       const sig = new Signature(aPubKey, rawSig)
       tx.addSignature(sig)
       expect(tx.isCorrectlySigned()).to.eql(false)
+    })
+
+    it('a when a used signature is missing returns false', () => {
+      const tx = new Transaction()
+        .add(new LoadInstruction('someLocation'))
+        .add(new UnlockInstruction(0, Buffer.from('anotherpubkey')))
+      const rawSig = AldeaCrypto.sign(Buffer.from(tx.serialize()), aPrivateKey)
+      const sig = new Signature(aPubKey, rawSig)
+      tx.addSignature(sig)
+      expect(tx.isCorrectlySigned()).to.eql(false)
+    })
+
+    it('when there is extra keys returns false', () => {
+      const tx = new Transaction()
+        .add(new LoadInstruction('someLocation'))
+        .add(new UnlockInstruction(0, aPubKey))
+      const rawSig = AldeaCrypto.sign(Buffer.from(tx.serialize()), aPrivateKey)
+      const sig = new Signature(aPubKey, rawSig)
+      tx.addSignature(sig)
+
+      const anotherPrivKey = AldeaCrypto.randomPrivateKey()
+      const rawSig2 = AldeaCrypto.sign(Buffer.from(tx.serialize()), anotherPrivKey)
+      const sig2 = new Signature(AldeaCrypto.publicKeyFromPrivateKey(anotherPrivKey), rawSig2)
+      tx.addSignature(sig2)
+      expect(tx.isCorrectlySigned()).to.eql(false)
+    })
+
+    it('when the right keys are there and the correct signatures are provided returns true', () => {
+      const tx = new Transaction()
+        .add(new LoadInstruction('someLocation'))
+        .add(new UnlockInstruction(0, aPubKey))
+      const rawSig = AldeaCrypto.sign(Buffer.from(tx.serialize()), aPrivateKey)
+      const sig = new Signature(aPubKey, rawSig)
+      tx.addSignature(sig)
+
+      expect(tx.isCorrectlySigned()).to.eql(true)
+    })
+
+
+    it('when the public keys are different instances works as expected', () => {
+      const tx = new Transaction()
+        .add(new LoadInstruction('someLocation'))
+        .add(new UnlockInstruction(0, Buffer.from(aPubKey)))
+      const rawSig = AldeaCrypto.sign(Buffer.from(tx.serialize()), aPrivateKey)
+      const sig = new Signature(aPubKey, rawSig)
+      tx.addSignature(sig)
+
+      expect(tx.isCorrectlySigned()).to.eql(true)
     })
   })
 

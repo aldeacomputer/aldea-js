@@ -4,6 +4,7 @@ import { ExecutionError, PermissionError } from "./errors.js"
 import { UserLock } from "./locks/user-lock.js"
 import { NoLock } from "./locks/no-lock.js"
 import { locationF } from "./location.js"
+import { JigState } from "./jig-state.js"
 
 class TxExecution {
   constructor (tx, vm) {
@@ -13,6 +14,23 @@ class TxExecution {
     this.wasms = new Map()
     this.keys = []
     this.stack = []
+    this.outputs = []
+  }
+
+  finalize () {
+    this.jigs.forEach(jigRef => {
+      if (jigRef.lock.isOpen()) {
+        throw new PermissionError(`unlocked jig: ${jigRef.origin}`)
+      }
+    })
+
+    this.jigs.forEach((jigRef, index) => {
+      const location = locationF(this.tx, index)
+      const origin = jigRef.origin || location
+      const serialized = jigRef.module.instanceCall(jigRef.ref, jigRef.className, 'serialize')
+      const jigState = new JigState(origin, location, jigRef.className, serialized, jigRef.module.id, jigRef.lock.serialize())
+      this.outputs.push(jigState)
+    })
   }
 
   loadModule (moduleId) {

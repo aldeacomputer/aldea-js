@@ -32,7 +32,16 @@ class Transaction {
   isCorrectlySigned () {
     if(this.signatures.length === 0) { return false }
     const data = Buffer.from(this.serialize())
-    return this.signatures.every(sig => sig.verifyAgainst(data))
+    const pubkeys = this.instructions.map(i => i.getPubKey()).filter(p => p)
+    if (pubkeys.length < this.signatures.length) {
+      return false
+    }
+    return pubkeys.every(pubk => {
+      const sig = this.signatures.find(s => {
+        return Buffer.compare(s.pubkey, pubk) === 0
+      })
+      return sig && sig.verifyAgainst(data)
+    })
   }
 
   addSignature (signature) {

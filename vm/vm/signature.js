@@ -9,4 +9,11 @@ export class Signature {
   verifyAgainst(data) {
     return AldeaCrypto.verify(this.rawsig, data, this.pubkey)
   }
+
+  static from(privKey, data) {
+    return new this(
+      AldeaCrypto.publicKeyFromPrivateKey(privKey),
+      AldeaCrypto.sign(Buffer.from(data), privKey)
+    )
+  }
 }

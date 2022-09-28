@@ -10,4 +10,8 @@ export class LoadInstruction {
   encode () {
     return `LOAD ${this.location}`
   }
+
+  getPubKey () {
+    return null
+  }
 }

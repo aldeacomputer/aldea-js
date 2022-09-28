@@ -16,4 +16,8 @@ export class NewInstruction {
     const encodedArgs = this.args.map(arg => arg.encode()).join(' ')
     return `NEW ${this.moduleId} ${this.className} ${encodedArgs}`.trim()
   }
+
+  getPubKey () {
+    return null
+  }
 }
