@@ -1,3 +1,11 @@
+/**
+ * ArgWriter class
+ * 
+ * Creates a buffer of a given length and can then sequentially can write values
+ * of different types to the buffer.
+ * 
+ * Used to pass an arbitrary length list integers and pointers to the VM.
+ */
 export class ArgWriter {
   buffer: ArrayBuffer;
   view: DataView;
