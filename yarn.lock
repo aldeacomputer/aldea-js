@@ -51,6 +51,7 @@ __metadata:
     prismjs: ^1.29.0
     react: 18.2.0
     react-dom: 18.2.0
+    react-spinners: ^0.13.4
     react-tabs: ^5.1.0
     react-useinterval: ^1.0.2
     sass: ^1.54.9
@@ -4727,6 +4728,16 @@ __metadata:
   version: 16.13.1
   resolution: "react-is@npm:16.13.1"
   checksum: f7a19ac3496de32ca9ae12aa030f00f14a3d45374f1ceca0af707c831b2a6098ef0d6bdae51bd437b0a306d7f01d4677fcc8de7c0d331eb47ad0f46130e53c5f
+  languageName: node
+  linkType: hard
+
+"react-spinners@npm:^0.13.4":
+  version: 0.13.4
+  resolution: "react-spinners@npm:0.13.4"
+  peerDependencies:
+    react: ^16.0.0 || ^17.0.0 || ^18.0.0
+    react-dom: ^16.0.0 || ^17.0.0 || ^18.0.0
+  checksum: ae9430bc8a2fede2ffdcac57c3586c56c5b459e1ba3ee60058c4eaf9b7cbdd87cf07c15927cfe0a171fc7460553385b69d961dc8448356bc558fd44db02eee63
   languageName: node
   linkType: hard
 
