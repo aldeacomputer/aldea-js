@@ -26,9 +26,10 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
   const { error, stdout, stderr, stats } = await asc.main([
     srcPath,
     '--outFile', outPath,
-    '--debug',
-    '--sourceMap',
+    '--debug',      // delete these eventually
+    '--sourceMap',  // ...
     '--textFile', outPath.replace('.wasm', '.wat'),
+    '-Ospeed',
     '--runtime', 'stub',
     '--exportRuntime',
     //'--importMemory', - miguel can add this back if needed?
