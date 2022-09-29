@@ -12,7 +12,6 @@ import {
 } from '../abi/query.js'
 
 import {
-  Internref,
   liftValue,
   liftInternref,
   lowerValue,
@@ -21,6 +20,32 @@ import {
   getObjectMemLayout,
   getTypedArrayConstructor
 } from "./memory.js"
+
+/**
+ * Internref class - wraps around a WASM Ptr
+ */
+export class Internref {
+  name: string;
+  ptr: number;
+
+  constructor(name: string, ptr: number) {
+    this.name = name
+    this.ptr = ptr
+  }
+}
+
+/**
+ * Externref class
+ */
+export class Externref {
+  name: string;
+  origin: ArrayBuffer;
+
+  constructor(name: string, origin: ArrayBuffer) {
+    this.name = name
+    this.origin = origin
+  }
+}
 
 /**
  * Class schema interface
@@ -60,8 +85,8 @@ export class Module {
 
   callMethod(methodStr: string, args: any[] = []): any {
     const [expName, methodName] = methodStr.split(/(?:_|\$)/)
-    const exp = findExportedObject(this.abi, expName, `unknown export: ${expName}`)
-    const method = findObjectMethod(exp, methodName, `unknown method: ${methodName}`)
+    const obj = findExportedObject(this.abi, expName, `unknown export: ${expName}`)
+    const method = findObjectMethod(obj, methodName, `unknown method: ${methodName}`)
     
     const ptrs = []
     if (method.kind === MethodKind.INSTANCE) {
@@ -76,34 +101,34 @@ export class Module {
 
     const result = this.exports[methodStr](...ptrs) as number
     return method.kind === MethodKind.CONSTRUCTOR ?
-      liftInternref(this, result >>> 0) :
+      liftInternref(this, obj, result >>> 0) :
       liftValue(this, method.rtype, result)
   }
 
-  getProp(propStr: string, ptr: Internref): any {
+  getProp(propStr: string, ref: Internref): any {
     const [expName, fieldName] = propStr.split('.')
-    const exp = findExportedObject(this.abi, expName, `unknown export: ${expName}`)
-    const field = findObjectField(exp, fieldName, `unknown field: ${fieldName}`)
+    const obj = findExportedObject(this.abi, expName, `unknown export: ${expName}`)
+    const field = findObjectField(obj, fieldName, `unknown field: ${fieldName}`)
 
-    const offsets = getObjectMemLayout(exp)
+    const offsets = getObjectMemLayout(obj)
     const { offset, align } = offsets[field.name]
     const TypedArray = getTypedArrayConstructor(field.type)
-    const val = new TypedArray(this.memory.buffer)[ptr as number + offset >>> align]
+    const val = new TypedArray(this.memory.buffer)[ref.ptr + offset >>> align]
     return liftValue(this, field.type, val)
   }
 
   getSchema(name: string): Schema  {
-    const exp = findExportedObject(this.abi, name, `unknown export: ${name}`)
-    return exp.fields.reduce((obj: Schema, prop) => {
-      obj[prop.name] = prop.type.name
-      return obj
+    const obj = findExportedObject(this.abi, name, `unknown export: ${name}`)
+    return obj.fields.reduce((s: Schema, prop) => {
+      s[prop.name] = prop.type.name
+      return s
     }, {})
   }
 
-  getState(name: string, ptr: Internref): any[] {
-    const exp = findExportedObject(this.abi, name, `unknown export: ${name}`)
-    return exp.fields.reduce((arr: any, field) => {
-      arr.push(this.getProp(`${name}.${field.name}`, ptr))
+  getState(name: string, ref: Internref): any[] {
+    const obj = findExportedObject(this.abi, name, `unknown export: ${name}`)
+    return obj.fields.reduce((arr: any, field) => {
+      arr.push(this.getProp(`${name}.${field.name}`, ref))
       return arr
     }, [])
   }
@@ -112,11 +137,11 @@ export class Module {
     const obj = findExportedObject(this.abi, name, `unknown export: ${name}`)
     const vals = CBOR.decode(data, null, { mode: 'sequence' })
     const ptr = lowerObject(this, obj, vals.data)
-    return liftInternref(this, ptr)
+    return liftInternref(this, obj, ptr)
   }
 
-  serialize(name: string, ptr: Internref): ArrayBuffer {
-    const seq = Sequence.from(this.getState(name, ptr))
+  serialize(name: string, ref: Internref): ArrayBuffer {
+    const seq = Sequence.from(this.getState(name, ref))
     return CBOR.encode(seq)
   }
 

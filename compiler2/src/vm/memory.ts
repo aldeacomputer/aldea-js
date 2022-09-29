@@ -1,21 +1,6 @@
 import { normalizeTypeName } from '../abi.js'
 import { FieldNode, ObjectKind, ObjectNode, TypeNode } from '../abi/types.js';
-import { Module } from './module.js'
-
-/**
- * Internref class - wraps around a WASM Ptr
- */
-export class Internref extends Number {}
-
-/**
- * Externref class
- */
-export class Externref {
-  origin: ArrayBuffer;
-  constructor(origin: ArrayBuffer) {
-    this.origin = origin
-  }
-}
+import { Module, Internref, Externref } from './module.js'
 
 /**
  * Union type for any typed array
@@ -76,7 +61,7 @@ export function liftValue(mod: Module, type: TypeNode | null, val: number | bigi
       const obj = mod.abi.objects.find(n => n.name === type.name)
       if (obj) {
         switch (obj.kind) {
-          case ObjectKind.EXPORTED: return liftInternref(mod, val as number)
+          case ObjectKind.EXPORTED: return liftInternref(mod, obj, val as number)
           case ObjectKind.PLAIN:    return liftObject(mod, obj, val as number)
           case ObjectKind.IMPORTED: return liftImportedObject(mod, type, val as number)
         }
@@ -88,8 +73,8 @@ export function liftValue(mod: Module, type: TypeNode | null, val: number | bigi
 /**
  * Casts the Ptr as an Internref and adds it to the module registry.
  */
- export function liftInternref(mod: Module, ptr: number): Internref {
-  return new Internref(ptr)
+ export function liftInternref(mod: Module, obj: ObjectNode, ptr: number): Internref {
+  return new Internref(obj.name, ptr)
 }
 
 /**
@@ -183,7 +168,7 @@ export function liftObject(mod: Module, obj: ObjectNode, ptr: number): any {
 export function liftImportedObject(mod: Module, type: TypeNode, ptr: number): Externref {
   const bufPtr = new Uint32Array(mod.memory.buffer)[ptr + 0 >>> 2]
   const origin = liftBuffer(mod, bufPtr)
-  return new Externref(origin)
+  return new Externref(normalizeTypeName(type), origin)
 }
 
 /**
@@ -242,10 +227,8 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
 /**
  * Casts the Internref as its number value.
  */
-export function lowerInternref(ptr: Internref): number {
-  if (ptr == null) return 0;
-  if (ptr instanceof Internref) return ptr.valueOf();
-  throw TypeError("internref expected");
+export function lowerInternref(ref: Internref): number {
+  return ref.ptr
 }
 
 /**

@@ -1,5 +1,4 @@
-import { Module } from './module.js';
-import { Internref } from './memory.js';
+import { Module, Internref } from './module.js';
 import { FieldKind, MethodKind, ObjectNode } from '../abi/types.js';
 import { allExportedObjects } from '../abi/query.js'
 

@@ -2,8 +2,8 @@ import fs from 'fs/promises'
 import { abiFromCbor } from './abi.js'
 import { findImportedObject, findObjectMethod } from './abi/query.js'
 import { FieldNode } from './abi/types.js'
-import { Module } from './vm/module.js'
-import { liftBuffer, liftInternref, liftString, liftValue, lowerValue } from './vm/memory.js'
+import { Module, Internref } from './vm/module.js'
+import { liftBuffer, liftString, liftValue, lowerValue } from './vm/memory.js'
 import { ArgReader, readType } from './vm/arg-reader.js'
 
 /**
@@ -47,14 +47,14 @@ export class VM {
           const fnStr = liftString(mod, fnStrPtr >>> 0)
           const argBuf = liftBuffer(mod, argBufPtr >>> 0)
 
-          // In my vm I refer to remote jigs by ptr
-          // miguel can skip this and pass the buffer
-          const view = new DataView(rmtRefBuf)
-          const rmtRef = liftInternref(mod, view.getUint32(0))
-
           const [className, fn] = fnStr.split(/(?:_|\$)/)
           const obj = findImportedObject(mod.abi, className, 'could not find object')
           const method = findObjectMethod(obj, fn, 'could not find method')
+
+          // In my vm I refer to remote jigs by ptr
+          // miguel can skip this and pass the buffer
+          const view = new DataView(rmtRefBuf)
+          const rmtRef = new Internref(className, view.getUint32(0))
 
           const argReader = new ArgReader(argBuf)
           const vals = method.args.reduce((vals: any[], n: FieldNode) => {
@@ -74,10 +74,12 @@ export class VM {
           const rmtRefBuf = liftBuffer(mod, rmtRefPtr >>> 0)
           const propStr = liftString(mod, propStrPtr >>> 0)
 
+          const className = propStr.split('.')[0]
+
           // In my vm I refer to remote jigs by ptr
           // miguel can skip this and pass the buffer
           const view = new DataView(rmtRefBuf)
-          const rmtRef = liftInternref(mod, view.getUint32(0))
+          const rmtRef = new Internref(className, view.getUint32(0))
           
           const rmtMod = this.getModule(rmtOrigin)
           const val = rmtMod.getProp(propStr, rmtRef)
