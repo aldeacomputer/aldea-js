@@ -41,6 +41,7 @@ import {
   FieldKind,
   MethodKind,
   ObjectKind,
+  TypeNode,
 } from '../abi/types.js'
 
 /**
@@ -67,9 +68,21 @@ export class TransformCtx {
   }
 
   get abi(): Abi {
+    // This somewhat ugly snippet of code normalizes the type names so they will
+    // match with normalizeTypeName(type: TypeNode) from the abi module
+    // TODO - really this should only include types that are received/returned
+    // from public functions - TODO improve by add a filter
     const rtids = this.program ?
       [...this.program.managedClasses].reduce((obj: RuntimeIds, [id, klass]) => {
-        obj[klass.name] = id
+        let name = klass.name.replace(/^(\w+)<.*>$/, '$1')
+        if (klass.typeArguments) {
+          const args = klass.typeArguments.map(n => {
+            const arg = n.classReference?.name || n.toString()
+            return arg === 'String' ? arg.toLowerCase() : arg
+          })
+          name += `<${ args.join(',') }>`
+        }
+        obj[name] = id
         return obj
       }, {}) :
       {};

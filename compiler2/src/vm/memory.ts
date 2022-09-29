@@ -1,3 +1,4 @@
+import { normalizeTypeName } from '../abi.js'
 import { FieldNode, ObjectKind, ObjectNode, TypeNode } from '../abi/types.js';
 import { Module } from './module.js'
 
@@ -272,7 +273,7 @@ export function lowerString(mod: Module, val: string): number {
  * Lowers an Array into WASM memory and returns the Ptr.
  */
 export function lowerArray(mod: Module, type: TypeNode, val: Array<any>): number {
-  const rtid = mod.abi.rtids[type.name]
+  const rtid = mod.abi.rtids[normalizeTypeName(type)]
   const elBytes = getTypeBytes(type.args[0])
   const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
   const TypedArray = getTypedArrayConstructor(type.args[0])
@@ -300,7 +301,7 @@ export function lowerArray(mod: Module, type: TypeNode, val: Array<any>): number
  * Lowers a StaticArray into WASM memory and returns the Ptr.
  */
 export function lowerStaticArray(mod: Module, type: TypeNode, val: Array<any>): number {
-  const rtid = mod.abi.rtids[type.name]
+  const rtid = mod.abi.rtids[normalizeTypeName(type)]
   const elBytes = getTypeBytes(type.args[0])
   const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
   const TypedArray = getTypedArrayConstructor(type.args[0])
@@ -326,7 +327,7 @@ export function lowerStaticArray(mod: Module, type: TypeNode, val: Array<any>): 
  * Lowers a TypedArray into WASM memory and returns the Ptr.
  */
 export function lowerTypedArray(mod: Module, type: TypeNode, val: ArrayLike<number> & ArrayLike<bigint>): number {
-  const rtid = mod.abi.rtids[type.name]
+  const rtid = mod.abi.rtids[normalizeTypeName(type)]
   const elBytes = getTypeBytes(type)
   const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
 

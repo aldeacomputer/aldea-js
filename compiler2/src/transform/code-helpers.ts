@@ -1,5 +1,6 @@
 import { TransformCtx } from './ctx.js'
 import { FieldWrap, MethodWrap, ObjectWrap } from './nodes.js'
+import { normalizeTypeName } from '../abi.js'
 import { MethodKind, TypeNode } from '../abi/types.js'
 import { getTypeBytes } from '../vm/memory.js'
 
@@ -13,8 +14,8 @@ export function writeExportedMethod(method: MethodWrap, obj: ObjectWrap): string
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
   const separator = isInstance ? '$' : '_'
-  const args = method.args.map((f, i) => `a${i}: ${typeStr(f.type)}`)
-  const rtype = isConstructor ? obj.name : typeStr(method.rtype)
+  const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
+  const rtype = isConstructor ? obj.name : normalizeTypeName(method.rtype)
   const callable = isConstructor ? `new ${obj.name}` : (
     isInstance ? `ctx.${method.name}` : `${obj.name}.${method.name}`
   )
@@ -120,12 +121,4 @@ export function writeArgWriterEncodeMethod(field: FieldWrap, i: number): string 
     default:
       return `writeU32(changetype<usize>(a${i}) as u32)`
   }
-}
-
-// TODO - maybe this should be an ABI helper as rtids maps should use similar names
-function typeStr(type: TypeNode | null): string {
-  if (!type) return ''
-
-  const generics = type.args.map(a => a.name)
-  return type.name + (generics.length ? `<${ generics.join(', ') }>` : '')
 }

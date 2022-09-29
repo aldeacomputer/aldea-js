@@ -60,6 +60,17 @@ export function abiToJson(abi: Abi, space: number = 0): string {
   }, null, space)
 }
 
+/**
+ * Normalizes a types name by concatenating type args (generics)
+ * 
+ * Example: `Map<u32,string>`
+ */
+export function normalizeTypeName(type: TypeNode | null): string {
+  if (!type) return ''
+  const args = type.args.length ? `<${ type.args.map(normalizeTypeName).join(',') }>` : ''
+  return type.name + args
+}
+
 // Casts the CBOR array to an Object Node interface.
 function objectFromCbor([kind, name, ext, fields, methods]: ObjectCbor): ObjectNode {
   return {
