@@ -1,11 +1,20 @@
-import { ObjectKind, ObjectNode, TypeNode } from '../abi/types.js';
-import { allImportedObjects } from '../abi/query.js';
+import { FieldNode, ObjectKind, ObjectNode, TypeNode } from '../abi/types.js';
 import { Module } from './module.js'
 
 /**
  * Internref class - wraps around a WASM Ptr
  */
 export class Internref extends Number {}
+
+/**
+ * Externref class
+ */
+export class Externref {
+  origin: ArrayBuffer;
+  constructor(origin: ArrayBuffer) {
+    this.origin = origin
+  }
+}
 
 /**
  * Union type for any typed array
@@ -63,6 +72,14 @@ export function liftValue(mod: Module, type: TypeNode | null, val: number | bigi
     case 'StaticArray':
       return liftStaticArray(mod, type, val as number >>> 0)
     default:
+      const obj = mod.abi.objects.find(n => n.name === type.name)
+      if (obj) {
+        switch (obj.kind) {
+          case ObjectKind.EXPORTED: return liftInternref(mod, val as number)
+          case ObjectKind.PLAIN:    return liftObject(mod, obj, val as number)
+          case ObjectKind.IMPORTED: return liftImportedObject(mod, type, val as number)
+        }
+      }
       throw new Error(`cannot lift unspported type: ${type.name}`)
   }
 }
@@ -146,19 +163,33 @@ export function liftTypedArray(mod: Module, type: TypeNode, ptr: number): AnyTyp
 }
 
 /**
+ * Lifts a Plain Object from WASM memory at the given Ptr.
+ */
+export function liftObject(mod: Module, obj: ObjectNode, ptr: number): any {
+  const offsets = getObjectMemLayout(obj)
+  return obj.fields.reduce((obj: any, n: FieldNode, i) => {
+    const TypedArray = getTypedArrayConstructor(n.type)
+    const { align, offset } = offsets[n.name]
+    const nextPtr = new TypedArray(mod.memory.buffer)[ptr + offset >>> align]
+    obj[n.name] = liftValue(mod, n.type, nextPtr)
+    return obj
+  }, {})
+}
+
+/**
+ * Lifts an Imported Object from WASM memory at the given Ptr.
+ */
+export function liftImportedObject(mod: Module, type: TypeNode, ptr: number): Externref {
+  const bufPtr = new Uint32Array(mod.memory.buffer)[ptr + 0 >>> 2]
+  const origin = liftBuffer(mod, bufPtr)
+  return new Externref(origin)
+}
+
+/**
  * Lowers any supported type into WASM memory and returns the value or Ptr.
  */
 export function lowerValue(mod: Module, type: TypeNode | null, val: any): number {
   if (!type || type.name === 'void' || val === null) return 0;
-
-  const obj = mod.abi.objects.find(n => n.name === type.name)
-  if (obj) {
-    switch (obj.kind) {
-      case ObjectKind.EXPORTED: return lowerInternref(val)
-      case ObjectKind.PLAIN:    return lowerObject(mod, obj, val)
-      case ObjectKind.IMPORTED: return lowerImportedObject(mod, type, val)
-    }
-  }
 
   switch(type.name) {
     case 'i8':
@@ -195,6 +226,14 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
     case 'StaticArray':
       return lowerStaticArray(mod, type, val)
     default:
+      const obj = mod.abi.objects.find(n => n.name === type.name)
+      if (obj) {
+        switch (obj.kind) {
+          case ObjectKind.EXPORTED: return lowerInternref(val)
+          case ObjectKind.PLAIN:    return lowerObject(mod, obj, val)
+          case ObjectKind.IMPORTED: return lowerImportedObject(mod, val)
+        }
+      }
       throw new Error(`cannot lower unspported type: ${type.name}`)
   }
 }
@@ -330,9 +369,9 @@ export function lowerObject(mod: Module, obj: ObjectNode, vals: any[] | any): nu
  * Lowers an imported object (setting the origin ArrayBuffer) into WASM memory
  * and returns the Ptr.
  */
-export function lowerImportedObject(mod: Module, type: TypeNode, val: ArrayBuffer): number {
-  const buffer = lowerBuffer(mod, val)
-  const ptr = mod.exports.__new(val.byteLength, 0) >>> 0;
+export function lowerImportedObject(mod: Module, val: Externref): number {
+  const buffer = lowerBuffer(mod, val.origin)
+  const ptr = mod.exports.__new(val.origin.byteLength, 0) >>> 0;
   const memU32 = new Uint32Array(mod.memory.buffer)
   memU32[ptr + 0 >>> 2] = buffer
   return ptr
