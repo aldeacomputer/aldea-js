@@ -29,23 +29,4 @@ class Fighter {
         : weaponPower
     )
   }
-
-  send (address: string) {
-    const weapon = this.weaponBox.releaseOrHalt();
-    const box = new UserBox(address);
-    box.save(weapon);
-    return box;
-  }
-
-  attackPowerv2 (anotherJig: Master): u32 {
-    // const myWeapon = this.arm.releaseOrHalt();
-    // const myWearonOrigin = myWeapon.getOrigin();
-    const sameWeaponAgain = anotherJig.give(this.weaponBox);
-    if (sameWeaponAgain.getOrigin() !== myWearonOrigin) {
-      throw new Error('error')
-    }
-    this.weaponBox.save(sameWeaponAgain)
-
-    return 10
-  }
 }
