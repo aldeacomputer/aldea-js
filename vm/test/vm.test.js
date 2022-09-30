@@ -12,6 +12,7 @@ import { UnlockInstruction } from "../vm/index.js"
 import { locationF } from "../vm/location.js"
 import { AldeaCrypto } from "../vm/aldea-crypto.js"
 import { Signature } from "../vm/signature.js"
+import { ExecutionError } from "../vm/errors.js"
 
 const SWORD_MODULE = 'manual/v1/sword.wasm'
 const FIGHTER_MODULE = 'manual/v1/fighter.wasm'
@@ -186,6 +187,62 @@ describe('execute txs', () => {
     const parsedFighter = exec4.outputs[1].parsedState()
     expect(parsedFighter[1]).to.eql(97)
     expect(parsedFighter[2]).to.eql(null)
+  })
+
+  it('a jig can be loaded using an old location', async () => {
+    const tx1 = new Transaction()
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', [new LiteralArg('Goro')]))
+    tx1.add(new LockInstruction(0, userLock()))
+
+    const tx2 = new Transaction()
+    tx2.add(new LoadInstruction(locationF(tx1, 0)))
+    tx2.add(new UnlockInstruction(0, userKey))
+    tx2.add(new CallInstruction(0, 'takeDamage', [ new LiteralArg(1) ]))
+    tx2.add(new LockInstruction(0, userLock()))
+
+    const tx3 = new Transaction()
+    tx3.add(new LoadInstruction(locationF(tx1, 0))) // load using origin
+    tx3.add(new UnlockInstruction(0, userKey))
+    tx3.add(new CallInstruction(0, 'takeDamage', [ new LiteralArg(1) ]))
+    tx3.add(new LockInstruction(0, userLock()))
+
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    storage.persist(exec1)
+    const exec2 = vm.execTx(tx2)
+    storage.persist(exec2)
+    const exec3 = vm.execTx(tx2)
+    storage.persist(exec3)
+
+    const parsedFighter = exec3.outputs[0].parsedState()
+    expect(parsedFighter[1]).to.eql(98)
+  })
+
+  it('when a tx loads forcing a location fails if the location was already spend', async () => {
+    const tx1 = new Transaction()
+    tx1.add(new NewInstruction(FIGHTER_MODULE, 'Fighter', [new LiteralArg('Goro')]))
+    tx1.add(new LockInstruction(0, userLock()))
+
+    const tx2 = new Transaction()
+    tx2.add(new LoadInstruction(locationF(tx1, 0)))
+    tx2.add(new UnlockInstruction(0, userKey))
+    tx2.add(new CallInstruction(0, 'takeDamage', [ new LiteralArg(1) ]))
+    tx2.add(new LockInstruction(0, userLock()))
+
+    const tx3 = new Transaction()
+    tx3.add(new LoadInstruction(locationF(tx1, 0), true)) // load using origin and forcing location
+    tx3.add(new UnlockInstruction(0, userKey))
+    tx3.add(new CallInstruction(0, 'takeDamage', [ new LiteralArg(1) ]))
+    tx3.add(new LockInstruction(0, userLock()))
+
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    storage.persist(exec1)
+    const exec2 = vm.execTx(tx2)
+    storage.persist(exec2)
+    expect(() => vm.execTx(tx3)).to.throw(ExecutionError, '')
   })
 
   it.skip('40000 txs', async () => {

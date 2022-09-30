@@ -105,8 +105,11 @@ class TxExecution {
     this.tx.exec(this)
   }
 
-  loadJig (location) {
+  loadJig (location, force) {
     const jigState = this.vm.findJigState(location)
+    if (force === true && location !== jigState.location) {
+      throw new ExecutionError('jig already spent')
+    }
     const module = this.loadModule(jigState.moduleId)
     const ref = module.hidrate(jigState.className, jigState.stateBuf)
     const lock = this._hidrateLock(jigState.lock)
