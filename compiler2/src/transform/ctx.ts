@@ -16,6 +16,7 @@ import {
   Source,
   SourceKind,
   Program,
+  Class,
 } from 'assemblyscript'
 
 import {
@@ -41,8 +42,8 @@ import {
   FieldKind,
   MethodKind,
   ObjectKind,
-  TypeNode,
 } from '../abi/types.js'
+import { normalizeTypeName } from '../abi.js';
 
 /**
  * Transform Context class.
@@ -68,28 +69,9 @@ export class TransformCtx {
   }
 
   get abi(): Abi {
-    // This somewhat ugly snippet of code normalizes the type names so they will
-    // match with normalizeTypeName(type: TypeNode) from the abi module
-    // TODO - really this should only include types that are received/returned
-    // from public functions - TODO improve by add a filter
-    const rtids = this.program ?
-      [...this.program.managedClasses].reduce((obj: RuntimeIds, [id, klass]) => {
-        let name = klass.name.replace(/^(\w+)<.*>$/, '$1')
-        if (klass.typeArguments) {
-          const args = klass.typeArguments.map(n => {
-            const arg = n.classReference?.name || n.toString()
-            return arg === 'String' ? arg.toLowerCase() : arg
-          })
-          name += `<${ args.join(',') }>`
-        }
-        obj[name] = id
-        return obj
-      }, {}) :
-      {};
-
     return {
       version: 1,
-      rtids,
+      rtids: this.mapManagedClassRtIds(),
       objects: this.objects
     }
   }
@@ -115,6 +97,30 @@ export class TransformCtx {
   validate(): boolean {
     // TODO - validate context
     return true
+  }
+
+  private mapManagedClassRtIds(): RuntimeIds {
+    if (!this.program) return {}
+
+    const whitelist = this.objects
+      .flatMap(obj => {
+        return obj.fields
+          .map(n => normalizeTypeName(n.type))
+          .concat(obj.methods.flatMap(n => {
+            return n.args
+              .map(a => normalizeTypeName(a.type))
+              .concat(normalizeTypeName(n.rtype))
+          }))
+      })
+      .filter((v, i, a) => !!v && a.indexOf(v) === i);
+
+    return [...this.program.managedClasses].reduce((obj: RuntimeIds, [id, klass]) => {
+      const name = normalizeClassName(klass)
+      if (whitelist.includes(name)) {
+        obj[name] = id
+      }
+      return obj
+    }, {})
   }
 }
 
@@ -237,5 +243,21 @@ function mapDecoratorNode(node: DecoratorNode): DecoratorWrap {
     node,
     name: (node.name as IdentifierExpression).text,
     args,
+  }
+}
+
+// Normalizes class name to match normalize type name
+function normalizeClassName(klass: Class): string {
+  const normalizeName = (n: string) => n === 'String' ? n.toLowerCase() : n
+  const name = klass.name.replace(/^(\w+)<.*>$/, '$1')
+
+  if (klass.typeArguments) {
+    const args = klass.typeArguments.map(n => {
+      const arg = n.classReference?.name || n.toString()
+      return normalizeName(arg)
+    })
+    return name + `<${ args.join(',') }>`
+  } else {
+    return normalizeName(name)
   }
 }

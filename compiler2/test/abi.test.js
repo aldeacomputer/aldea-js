@@ -9,6 +9,7 @@ import { validateAbi } from '../dist/abi/validations.js'
 
 const abi = {
   version: 1,
+  rtids: {},
   objects: [{
     kind: 1,
     name: 'Person',

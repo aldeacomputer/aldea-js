@@ -1,12 +1,11 @@
-import { Module, Internref } from './module.js';
-import { FieldKind, MethodKind, ObjectNode } from '../abi/types.js';
-import { allExportedObjects } from '../abi/query.js'
-
 /**
  * This module is highly experimental and in fact doesn't properly work yet.
  * 
  * Tread carefully.
  */
+import { Module, Internref } from './module.js';
+import { FieldKind, MethodKind, ObjectNode } from '../abi/types.js';
+import { allExportedObjects } from '../abi/query.js'
 
 
 export function proxifyModule(mod: Module) {
