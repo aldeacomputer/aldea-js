@@ -1,11 +1,11 @@
 import { Transaction } from '../vm/transaction.js'
-import { NewInstruction } from '../vm/instructions/new-instruction.js'
+import { NewInstruction } from '../vm/index.js'
 import { VM } from '../vm/vm.js'
 import { CBOR } from 'cbor-redux'
 import { expect } from 'chai'
 import { Storage } from '../vm/storage.js'
-import { LockInstruction } from "../vm/instructions/lock-instruction.js"
-import { UserLock } from "../vm/locks/user-lock.js"
+import { LockInstruction } from '../vm/index.js'
+import { UserLock } from '../vm/locks/user-lock.js'
 import { locationF } from "../vm/location.js"
 
 const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" }).data
@@ -38,15 +38,11 @@ describe('execute txs', () => {
       .add(new NewInstruction(FIGHT_MODULE, 'Fight', []))
       .add(new LockInstruction(0, userLock()))
 
-    vm.execTx(tx1)
+    const exec = vm.execTx(tx1)
     // vm.execTx(tx2)
 
-    const state = storage.getJigState(locationF(tx1, 0))
-    const parsed = parse(state.stateBuf)
+    const state = exec.outputs[0]
+    const parsed = state.parsedState()
     expect(parsed[0]).to.eql([])
-  })
-
-  it('can add fighters to a match', () => {
-
   })
 })

@@ -77,6 +77,7 @@ __metadata:
   resolution: "@aldea/vm@workspace:vm"
   dependencies:
     "@aldea/compiler": 0.0.1
+    "@noble/ed25519": ^1.7.1
     assemblyscript: ^0.21.3
     blake3-wasm: ^2.1.5
     cbor-redux: 1.0.0-3
@@ -573,6 +574,13 @@ __metadata:
   version: 12.3.0
   resolution: "@next/swc-win32-x64-msvc@npm:12.3.0"
   conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@noble/ed25519@npm:^1.7.1":
+  version: 1.7.1
+  resolution: "@noble/ed25519@npm:1.7.1"
+  checksum: b8e50306ac70f5cecc349111997e72e897b47a28d406b96cf95d0ebe7cbdefb8380d26117d7847d94102281db200aa3a494e520f9fc12e2f292e0762cb0fa333
   languageName: node
   linkType: hard
 
