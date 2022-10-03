@@ -2,11 +2,11 @@ export default {
   /**
    * A set of globs passed to the glob package that qualify typescript files for testing.
    */
-  entries: ["lib/__tests__/**/*.spec.ts"],
+  entries: ["lib2/__tests__/**/*.spec.ts"],
   /**
    * A set of globs passed to the glob package that quality files to be added to each test.
    */
-  include: ["lib/__tests__/**/*.include.ts"],
+  include: ["lib2/__tests__/**/*.include.ts"],
   /**
    * A set of regexp that will disclude source files from testing.
    */

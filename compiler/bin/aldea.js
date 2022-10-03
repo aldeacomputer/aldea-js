@@ -1,9 +1,15 @@
 #!/usr/bin/env node
-import yargs from 'yargs/yargs'
-import { hideBin } from 'yargs/helpers'
-import { compileCmd } from '../dist/compiler.js'
+import { program } from 'commander'
+import { compileCommand } from '../dist/compiler.js'
 
-await yargs(hideBin(process.argv))
-  .scriptName('aldea')
-  .command(compileCmd)
-  .parse()
+program
+  .name('aldea')
+  .showHelpAfterError()
+
+program
+  .command('compile')
+  .argument('<src>', 'assemblyscript source')
+  .option('-o --output <output>', 'wasm output path')
+  .action(compileCommand)
+  
+;(async _ => await program.parseAsync())()

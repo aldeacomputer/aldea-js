@@ -15,6 +15,10 @@ import {
 
 import { validateAbi } from './abi/validations.js'
 
+export * from './abi/types.js'
+export * from './abi/query.js'
+export * from './abi/validations.js'
+
 /**
  * Parses the given CBOR data to an ABI interface.
  */

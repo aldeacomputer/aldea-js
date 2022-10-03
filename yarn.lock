@@ -5,9 +5,25 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@aldea/compiler2@workspace:compiler2":
+"@aldea/compiler-old@0.0.1, @aldea/compiler-old@workspace:compiler-old":
   version: 0.0.0-use.local
-  resolution: "@aldea/compiler2@workspace:compiler2"
+  resolution: "@aldea/compiler-old@workspace:compiler-old"
+  dependencies:
+    "@as-pect/cli": ^7.0.8
+    "@assemblyscript/loader": ^0.21.3
+    "@types/node": ^18.7.17
+    "@types/yargs": ^17.0.12
+    assemblyscript: ^0.21.3
+    typescript: ^4.8.3
+    yargs: ^17.5.1
+  bin:
+    aldea: bin/aldea.js
+  languageName: unknown
+  linkType: soft
+
+"@aldea/compiler2@workspace:compiler":
+  version: 0.0.0-use.local
+  resolution: "@aldea/compiler2@workspace:compiler"
   dependencies:
     "@as-pect/cli": ^7.0.8
     "@assemblyscript/loader": ^0.21.4
@@ -17,22 +33,6 @@ __metadata:
     cbor-redux: ^1.0.0-3
     commander: ^9.4.0
     typescript: ^4.8.3
-  bin:
-    aldea: bin/aldea.js
-  languageName: unknown
-  linkType: soft
-
-"@aldea/compiler@0.0.1, @aldea/compiler@workspace:compiler":
-  version: 0.0.0-use.local
-  resolution: "@aldea/compiler@workspace:compiler"
-  dependencies:
-    "@as-pect/cli": ^7.0.8
-    "@assemblyscript/loader": ^0.21.3
-    "@types/node": ^18.7.17
-    "@types/yargs": ^17.0.12
-    assemblyscript: ^0.21.3
-    typescript: ^4.8.3
-    yargs: ^17.5.1
   bin:
     aldea: bin/aldea.js
   languageName: unknown
@@ -76,7 +76,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/vm@workspace:vm"
   dependencies:
-    "@aldea/compiler": 0.0.1
+    "@aldea/compiler-old": 0.0.1
     "@noble/ed25519": ^1.7.1
     assemblyscript: ^0.21.3
     blake3-wasm: ^2.1.5

@@ -4,7 +4,7 @@
   "private": true,
   "workspaces": [
     "compiler",
-    "compiler2",
+    "compiler-old",
     "demos-webapp",
     "node",
     "vm"
