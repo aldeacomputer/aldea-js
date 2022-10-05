@@ -1,12 +1,12 @@
-import { Transaction } from '../vm/transaction.js'
+import { Transaction } from '../vm/transaction.ts'
 import { NewInstruction } from '../vm/index.js'
-import { VM } from '../vm/vm.js'
+import { VM } from '../vm/vm.ts'
 import { CBOR } from 'cbor-redux'
 import { expect } from 'chai'
-import { Storage } from '../vm/storage.js'
+import { Storage } from '../vm/storage.ts'
 import { LockInstruction } from '../vm/index.js'
-import { UserLock } from '../vm/locks/user-lock.js'
-import { locationF } from "../vm/location.js"
+import { UserLock } from '../vm/locks/user-lock.ts'
+import { locationF } from "../vm/location.ts"
 
 const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" }).data
 const FIGHT_MODULE = 'manual/v2/fight.wasm'

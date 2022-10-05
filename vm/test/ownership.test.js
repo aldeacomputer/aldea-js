@@ -1,17 +1,17 @@
-import { Transaction } from '../vm/transaction.js'
+import { Transaction } from '../vm/transaction.ts'
 import { NewInstruction } from '../vm/index.js'
 import { CallInstruction } from '../vm/index.js'
-import { VM } from '../vm/vm.js'
+import { VM } from '../vm/vm.ts'
 import { CBOR } from 'cbor-redux'
 import { expect } from 'chai'
-import { Storage } from '../vm/storage.js'
+import { Storage } from '../vm/storage.ts'
 import { LoadInstruction } from '../vm/index.js'
-import { JigArg } from '../vm/jig-arg.js'
-import { ExecutionError, PermissionError } from "../vm/errors.js"
+import { JigArg } from '../vm/arguments/jig-arg.ts'
+import { ExecutionError, PermissionError } from "../vm/errors.ts"
 import { LockInstruction } from "../vm/index.js"
-import { UserLock } from "../vm/locks/user-lock.js"
+import { UserLock } from "../vm/locks/user-lock.ts"
 import { UnlockInstruction } from "../vm/index.js"
-import { locationF } from "../vm/location.js"
+import { locationF } from "../vm/location.ts"
 
 const FIGHTER_MODULE = 'manual/v2/fighter.wasm'
 const SWORD_MODULE = 'manual/v2/sword.wasm'

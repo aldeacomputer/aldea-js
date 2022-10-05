@@ -8,19 +8,23 @@
     "build": "node cmd/compile-all.js",
     "dev": "node cmd/watch.js"
   },
+  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/chai": "^4.3.3",
+    "@types/mocha": "^10.0.0",
     "assemblyscript": "^0.21.3",
     "chai": "^4.3.6",
     "chokidar": "^3.5.3",
     "glob": "^8.0.3",
     "mocha": "^10.0.0",
     "nodemon": "^2.0.19",
-    "typescript": "^4.8.3"
+    "ts-mocha": "^10.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.4"
   },
-  "type": "module",
   "dependencies": {
     "@aldea/compiler-old": "0.0.1",
     "@noble/ed25519": "^1.7.1",

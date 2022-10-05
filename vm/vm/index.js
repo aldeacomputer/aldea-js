@@ -1,3 +1,3 @@
-export * from './vm.js'
-export * from './instructions/index.js'
-export * from './storage.js'
+export * from './vm.ts'
+export * from './instructions/index.ts'
+export * from './storage.ts'

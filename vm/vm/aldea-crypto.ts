@@ -9,7 +9,7 @@ ed.utils.sha512Sync = (...m) => {
 
 export const AldeaCrypto = {
   randomPrivateKey: () => ed.utils.randomPrivateKey(),
-  publicKeyFromPrivateKey: (privKey) => ed.sync.getPublicKey(privKey),
-  sign: (message, privKey) => ed.sync.sign(message, privKey),
-  verify: (sig, message, pubKey) => ed.sync.verify(sig, message, pubKey)
+  publicKeyFromPrivateKey: (privKey: Uint8Array ) => ed.sync.getPublicKey(privKey),
+  sign: (message: Buffer, privKey: Uint8Array): Uint8Array => ed.sync.sign(message, privKey),
+  verify: (sig: Uint8Array, message: Uint8Array, pubKey: Uint8Array) => ed.sync.verify(sig, message, pubKey)
 }

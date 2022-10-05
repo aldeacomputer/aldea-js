@@ -1,4 +1,4 @@
-import { Transaction } from '../../vm/vm/transaction.js'
+import { Transaction } from '@aldea/vm/vm/transaction.ts'
 import {
   NewInstruction,
   CallInstruction,
@@ -6,7 +6,7 @@ import {
   UnlockInstruction,
   LoadInstruction
 } from '@aldea/vm'
-import { LiteralArg } from '../../vm/vm/literal-arg.js'
+import { LiteralArg } from '@aldea/vm/vm/arguments/literal-arg.ts'
 
 export class TransactionJSON {
   static parse (json) {

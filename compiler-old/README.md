@@ -44,6 +44,6 @@ Within your own package, make sure you also have `assemblyscript` installed, and
 }
 ```
 
-## How to use compiled modules in the VM?
+## How to use compiled modules in the Vm?
 
 TBC

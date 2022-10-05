@@ -1,13 +1,25 @@
 import { JigLock } from "./locks/jig-lock.js"
-import { JigRef } from "./jig-ref.js"
+import {JigPointer, JigRef} from "./jig-ref.js"
 import { ExecutionError, PermissionError } from "./errors.js"
 import { UserLock } from "./locks/user-lock.js"
 import { NoLock } from "./locks/no-lock.js"
-import { locationF } from "./location.js"
+import { locationF } from './location.js'
 import { JigState } from "./jig-state.js"
+import {Transaction} from "./transaction.js";
+import {VM} from "./vm.js";
+import {WasmInstance} from "./wasm-instance.js";
+import {Lock} from "./locks/lock.js";
 
 class TxExecution {
-  constructor (tx, vm) {
+  tx: Transaction;
+  private vm: VM;
+  private jigs: JigRef[];
+  private wasms: Map<string, WasmInstance>;
+  private keys: Uint8Array[];
+  private stack: string[];
+  outputs: JigState[];
+
+  constructor (tx: Transaction, vm: VM) {
     this.tx = tx
     this.vm = vm
     this.jigs = []
@@ -27,13 +39,13 @@ class TxExecution {
     this.jigs.forEach((jigRef, index) => {
       const location = locationF(this.tx, index)
       const origin = jigRef.origin || location
-      const serialized = jigRef.module.instanceCall(jigRef.ref, jigRef.className, 'serialize')
+      const serialized = jigRef.serialize() //  module.instanceCall(jigRef.ref, jigRef.className, 'serialize')
       const jigState = new JigState(origin, location, jigRef.className, serialized, jigRef.module.id, jigRef.lock.serialize())
       this.outputs.push(jigState)
     })
   }
 
-  loadModule (moduleId) {
+  loadModule (moduleId: string) {
     const existing = this.getWasmInstance(moduleId)
     if (existing) { return existing }
     const wasmModule = this.vm.createWasmInstance(moduleId)
@@ -45,80 +57,73 @@ class TxExecution {
     return wasmModule
   }
 
-  _onMethodCall (origin, methodName, args) {
+  _onMethodCall (origin: string, methodName: string, args: any[]): Uint8Array {
     let jig = this.jigs.find(j => j.origin === origin)
     if (!jig) {
-      this.loadJig(origin)
-      jig = this.jigs.find(j => j.origin === origin)
+      jig = this.loadJig(origin, false)
     }
 
     return jig.module.rawInstanceCall(jig.ref, jig.className, methodName, args)
   }
 
-  _onCreate (moduleId, className, args) {
+  _onCreate (moduleId: string, className: string, args: any[]): JigRef {
     this.loadModule(moduleId)
-    return this.instantiate(moduleId, className, args, null)
+    return this.instantiate(moduleId, className, args, new NoLock())
   }
 
-  _onAdopt(childOrigin) {
+  _onAdopt(childOrigin: string): void {
     const childJigRef = this.getJigRefByOrigin(childOrigin)
     const parentJigOrigin = this.stack[this.stack.length - 1]
     childJigRef.setOwner(new JigLock(parentJigOrigin))
   }
 
-  _onRelease(childOrigin, parentPointer) {
-    const childJigRef = this.getJigRefByOrigin(childOrigin)
-    const parentJigRef = this.jigs.find(jigR => jigR.ref.value === parentPointer.value)
-    if (childJigRef.lock.checkCaller(parentJigRef.origin)) {
-      childJigRef.setOwner(new NoLock())
-    } else {
-      throw new PermissionError(`${parentJigRef.origin} does not have permission to release ${childJigRef.origin}`)
-    }
+  _onRelease(childOrigin: string, parentOrigin: string) {
+    throw new Error('on release not implemented')
   }
 
-  getWasmInstance (moduleName) {
+  getWasmInstance (moduleName: string) {
     return this.wasms.get(moduleName)
   }
 
-  getJigRef (index) {
+  getJigRef (index: number) {
     return this.jigs[index]
   }
 
-  getJigRefByOrigin (origin) {
-    return this.jigs.find(jr => jr.origin === origin)
-  }
-
-  addInputJig (jigRef) {
-    return this.addNewJigRef(jigRef)
-  }
-
-  addNewJigRef (jigRef) {
-    this.jigs.push(jigRef)
+  getJigRefByOrigin (origin: string): JigRef {
+    const jigRef = this.jigs.find(jr => jr.origin === origin);
+    if (!jigRef) {
+      throw new Error('does not exists')
+    }
     return jigRef
   }
 
-  addKey (key) {
-    this.keys = key
+  addInputJig (jigRef: JigRef) {
+    return this.addNewJigRef(jigRef)
+  }
+
+  addNewJigRef (jigRef: JigRef) {
+    this.jigs.push(jigRef)
+    return jigRef
   }
 
   run () {
     this.tx.exec(this)
   }
 
-  loadJig (location, force) {
+  loadJig (location: string, force: boolean): JigRef {
     const jigState = this.vm.findJigState(location)
     if (force === true && location !== jigState.location) {
       throw new ExecutionError('jig already spent')
     }
     const module = this.loadModule(jigState.moduleId)
     const ref = module.hidrate(jigState.className, jigState.stateBuf)
-    const lock = this._hidrateLock(jigState.lock)
+    const lock = this._hidrateLock(jigState.serializedLock)
     const jigRef = new JigRef(ref, jigState.className, module, jigState.origin, lock)
     this.addNewJigRef(jigRef)
     return jigRef
   }
 
-  _hidrateLock (frozenLock) {
+  _hidrateLock (frozenLock: any): Lock {
     if (frozenLock.type === 'UserLock') {
       return new UserLock(frozenLock.data.pubkey)
     } else if (frozenLock.type === 'JigLock') {
@@ -128,30 +133,32 @@ class TxExecution {
     }
   }
 
-  lockJig (masterListIndex, lock) {
+  lockJig (masterListIndex: number, lock: Lock) {
     const jigRef = this.getJigRef(masterListIndex)
-    if (!jigRef.lock.checkCaller()) {
+    const stackTop = this.stack[this.stack.length - 1]
+    if (!jigRef.lock.checkCaller(stackTop)) {
       throw new ExecutionError(`no permission to remove lock from jig ${jigRef.origin}`)
     }
     jigRef.close(lock)
   }
 
-  instantiate (moduleId, className, args, initialLock) {
+  instantiate (moduleId: string, className: string, args: any[], initialLock: Lock): JigRef {
     const module = this.loadModule(moduleId)
     const newOrigin = this.newOrigin()
-    const jigRef = new JigRef(null, className, module, newOrigin, initialLock)
+    const jigRef = new JigRef(new JigPointer('null', 0), className, module, newOrigin, initialLock)
     this.addNewJigRef(jigRef)
     this.stack.push(newOrigin)
-    jigRef.ref = module.staticCall(className,'constructor', args)
+    jigRef.ref = module.createNew(className, args)
     this.stack.pop()
     return jigRef
   }
 
-  call (masterListIndex, methodName, args, caller) {
+  call (masterListIndex: number, methodName: string, args: any[], caller: string): Uint8Array {
     const jigRef = this.getJigRef(masterListIndex)
     this.stack.push(jigRef.origin)
-    jigRef.sendMessage(methodName, args, caller)
+    const ret = jigRef.sendMessage(methodName, args, caller)
     this.stack.pop()
+    return ret
   }
 
   newOrigin () {

@@ -1,14 +1,18 @@
+import {TxExecution} from "../tx-execution.js";
+
 export class JigArg {
-  constructor (masterListIndex) {
+  index: number
+
+  constructor (masterListIndex: number) {
     this.index = masterListIndex
   }
 
-  get (context) {
+  get (context: TxExecution): any {
     const jig = context.getJigRef(this.index)
     return jig.origin
   }
 
-  encode () {
+  encode (): string {
     return `$${this.index}`
   }
 }

@@ -1,18 +1,18 @@
-import { Transaction } from '../vm/transaction.js'
+import { Transaction } from '../vm/transaction.ts'
 import { NewInstruction } from '../vm/index.js'
 import { CallInstruction } from '../vm/index.js'
-import { VM } from '../vm/vm.js'
+import { VM } from '../vm/vm.ts'
 import { expect } from 'chai'
-import { Storage } from '../vm/storage.js'
+import { Storage } from '../vm/storage.ts'
 import { LoadInstruction } from '../vm/index.js'
-import { LiteralArg } from '../vm/literal-arg.js'
-import { JigArg } from '../vm/jig-arg.js'
+import { LiteralArg } from '../vm/arguments/literal-arg.ts'
+import { JigArg } from '../vm/arguments/jig-arg.ts'
 import { LockInstruction } from "../vm/index.js"
 import { UnlockInstruction } from "../vm/index.js"
-import { locationF } from "../vm/location.js"
-import { AldeaCrypto } from "../vm/aldea-crypto.js"
-import { Signature } from "../vm/signature.js"
-import { ExecutionError } from "../vm/errors.js"
+import { locationF } from "../vm/location.ts"
+import { AldeaCrypto } from "../vm/aldea-crypto.ts"
+import { Signature } from "../vm/signature.ts"
+import { ExecutionError } from "../vm/errors.ts"
 
 const SWORD_MODULE = 'manual/v1/sword.wasm'
 const FIGHTER_MODULE = 'manual/v1/fighter.wasm'
