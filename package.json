@@ -6,6 +6,7 @@
     "compiler",
     "compiler2",
     "demos-webapp",
+    "explorer",
     "node",
     "vm"
   ]
