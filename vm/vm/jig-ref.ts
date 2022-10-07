@@ -2,30 +2,21 @@ import { PermissionError } from './errors.js'
 import { WasmInstance } from './wasm-instance.js';
 import {Lock} from "./locks/lock.js";
 import {UserLock} from "./locks/user-lock.js";
-import {CBOR, Sequence} from "cbor-redux";
+import {Internref} from "./memory.js";
+
 
 // export type JigPointer = {
 //   value: number
 // }
 
-export class JigPointer {
-  name: string;
-  ptr: number;
-
-  constructor(name: string, ptr: number) {
-    this.name = name
-    this.ptr = ptr
-  }
-}
-
 export class JigRef {
-  ref: JigPointer;
+  ref: Internref;
   className: string;
   module: WasmInstance;
   origin: string;
   lock: Lock;
 
-  constructor (ref: JigPointer, className: string, module: WasmInstance, origin: string, lock: Lock) {
+  constructor (ref: Internref, className: string, module: WasmInstance, origin: string, lock: Lock) {
     this.ref = ref
     this.className = className
     this.module = module
@@ -33,11 +24,30 @@ export class JigRef {
     this.lock = lock
   }
 
-  sendMessage (methodName: string, args: Uint8Array[] , caller: string): Uint8Array {
+  // getPropValue (propName: any): any {
+  //   const [expName, fieldName] = propStr.split('.')
+  //   const obj = findExportedObject(this.abi, expName, `unknown export: ${expName}`)
+  //   const field = findObjectField(obj, fieldName, `unknown field: ${fieldName}`)
+  //
+  //   const offsets = getObjectMemLayout(obj)
+  //   const { offset, align } = offsets[field.name]
+  //   const TypedArray = getTypedArrayConstructor(field.type)
+  //   const val = new TypedArray(this.memory.buffer)[ref.ptr + offset >>> align]
+  //   return liftValue(this, field.type, val)
+  //
+  //   // propStr: string, ref: Internref
+  // }
+
+  sendMessage (methodName: string, args: any[] , caller: string): Uint8Array {
     if (!this.lock.checkCaller(caller)) {
       throw new PermissionError(`jig ${this.origin} does not accept messages from ${caller}`)
     }
-    return this.module.instanceCall(this.ref, this.className, methodName, args)
+    this.module.instanceCall(this, this.className, methodName, args)
+    return new Uint8Array(0)
+  }
+
+  get originBuf (): Buffer {
+    return Buffer.from(this.origin)
   }
 
   setOwner (newLock: Lock) {
@@ -59,9 +69,6 @@ export class JigRef {
   }
 
   serialize(): Uint8Array {
-    // const seq = Sequence.from(this.getState(name, ref))
-    // return CBOR.encode(seq)
-    // return
-    return new Uint8Array(0)
+    return this.module.extractState(this.ref, this.className)
   }
 }

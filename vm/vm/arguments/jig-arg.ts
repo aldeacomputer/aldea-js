@@ -8,8 +8,7 @@ export class JigArg {
   }
 
   get (context: TxExecution): any {
-    const jig = context.getJigRef(this.index)
-    return jig.origin
+    return context.getJigRef(this.index)
   }
 
   encode (): string {

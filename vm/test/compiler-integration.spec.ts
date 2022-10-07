@@ -10,6 +10,8 @@ import { Storage } from '../vm/storage.js'
 // import { JigArg } from '../vm/arguments/jig-arg.ts'
 import { LockInstruction } from '../vm/instructions/lock-instruction.js'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
+import {LiteralArg} from "../vm/arguments/literal-arg.js";
+import {JigArg} from "../vm/arguments/jig-arg.js";
 // import { UnlockInstruction } from '../vm/index.js'
 // import { locationF } from '../vm/location.ts'
 
@@ -23,7 +25,7 @@ describe('execute txs', () => {
   //
   it('can create a flock', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[]))
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(0)]))
       // .add(new CallInstruction(0, 'countSheep', []))
       .add(new LockInstruction(0, userPub))
 
@@ -31,7 +33,90 @@ describe('execute txs', () => {
     const exec = vm.execTx(tx)
 
     const parsed = exec.outputs[0].parsedState()
+    expect(parsed[0]).to.eql(0)
+  })
+
+  it('can create a flock with initial size', () => {
+    const tx = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(10)]))
+      // .add(new CallInstruction(0, 'countSheep', []))
+      .add(new LockInstruction(0, userPub))
+
+    const vm = new VM(storage)
+    const exec = vm.execTx(tx)
+
+    const parsed = exec.outputs[0].parsedState()
+    expect(parsed[0]).to.eql(10)
+  })
+
+  it('can create a flock and call a method', () => {
+    const tx = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[ new LiteralArg(0)]))
+      .add(new CallInstruction(0, 'grow', []))
+      .add(new LockInstruction(0, userPub))
+
+    const vm = new VM(storage)
+    const exec = vm.execTx(tx)
+
+    const parsed = exec.outputs[0].parsedState()
     expect(parsed[0]).to.eql(1)
+  })
+
+  it('can create a flock and call a method with an argument', () => {
+    const amount = 15;
+    const tx = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[ new LiteralArg(0)]))
+      .add(new CallInstruction(0, 'growMany', [new LiteralArg(amount)]))
+      .add(new LockInstruction(0, userPub))
+
+    const vm = new VM(storage)
+    const exec = vm.execTx(tx)
+
+    const parsed = exec.outputs[0].parsedState()
+    expect(parsed[0]).to.eql(amount)
+  })
+
+  it('can create a sheep counter', () => {
+    const tx = new Transaction()
+      .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+      .add(new LockInstruction(0, userPub))
+
+    const vm = new VM(storage)
+    const exec = vm.execTx(tx)
+
+    const parsed = exec.outputs[0].parsedState()
+    expect(parsed[0]).to.eql(0)
+    expect(parsed[1]).to.eql(0)
+  })
+
+  it('can call methods over a sheep counter', () => {
+    const tx = new Transaction()
+      .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+      .add(new CallInstruction(0, 'countSheep' ,[]))
+      .add(new LockInstruction(0, userPub))
+
+    const vm = new VM(storage)
+    const exec = vm.execTx(tx)
+
+    const parsed = exec.outputs[0].parsedState()
+    expect(parsed[0]).to.eql(1)
+    expect(parsed[1]).to.eql(4)
+  })
+
+  it('can send a jig as a parameter', () => {
+    const tx = new Transaction()
+      .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
+      .add(new CallInstruction(0, 'countFlock' ,[new JigArg(1)]))
+      .add(new LockInstruction(0, userPub))
+      .add(new LockInstruction(1, userPub))
+
+    const vm = new VM(storage)
+    const exec = vm.execTx(tx)
+
+    const parsed = exec.outputs[0].parsedState()
+    expect(parsed[0]).to.eql(2)
+    expect(parsed[1]).to.eql(8)
   })
   //
   // it('can create a sheep counter and then re hidrate it and then call a method', () => {

@@ -1,5 +1,5 @@
 import { JigLock } from "./locks/jig-lock.js"
-import {JigPointer, JigRef} from "./jig-ref.js"
+import { JigRef } from "./jig-ref.js"
 import { ExecutionError, PermissionError } from "./errors.js"
 import { UserLock } from "./locks/user-lock.js"
 import { NoLock } from "./locks/no-lock.js"
@@ -7,8 +7,10 @@ import { locationF } from './location.js'
 import { JigState } from "./jig-state.js"
 import {Transaction} from "./transaction.js";
 import {VM} from "./vm.js";
-import {WasmInstance} from "./wasm-instance.js";
+import {MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
+import {Internref, lowerValue} from "./memory.js";
+import {MethodNode, FieldNode} from '@aldea/compiler/abi'
 
 class TxExecution {
   tx: Transaction;
@@ -50,6 +52,7 @@ class TxExecution {
     if (existing) { return existing }
     const wasmModule = this.vm.createWasmInstance(moduleId)
     wasmModule.onMethodCall(this._onMethodCall.bind(this))
+    wasmModule.onGetProp(this._onGetProp.bind(this))
     wasmModule.onCreate(this._onCreate.bind(this))
     wasmModule.onAdopt(this._onAdopt.bind(this))
     wasmModule.onRelease(this._onRelease.bind(this))
@@ -57,13 +60,26 @@ class TxExecution {
     return wasmModule
   }
 
-  _onMethodCall (origin: string, methodName: string, args: any[]): Uint8Array {
+  _onMethodCall (origin: string, methodNode: MethodNode, args: any[]): MethodResult {
+    let jig = this.jigs.find(j => j.origin === origin) as JigRef
+    if (!jig) {
+      jig = this.loadJig(origin, false)
+    }
+
+    methodNode.args.forEach((arg: FieldNode, i: number) => {
+      lowerValue(jig.module, arg.type, args[i])
+    })
+
+    return jig.module.instanceCall(jig, jig.className, methodNode.name, args)
+  }
+
+  _onGetProp (origin: string, propName: string): Prop {
     let jig = this.jigs.find(j => j.origin === origin)
     if (!jig) {
       jig = this.loadJig(origin, false)
     }
 
-    return jig.module.rawInstanceCall(jig.ref, jig.className, methodName, args)
+    return jig.module.getPropValue(jig.ref, jig.className, propName)
   }
 
   _onCreate (moduleId: string, className: string, args: any[]): JigRef {
@@ -145,7 +161,7 @@ class TxExecution {
   instantiate (moduleId: string, className: string, args: any[], initialLock: Lock): JigRef {
     const module = this.loadModule(moduleId)
     const newOrigin = this.newOrigin()
-    const jigRef = new JigRef(new JigPointer('null', 0), className, module, newOrigin, initialLock)
+    const jigRef = new JigRef(new Internref('null', 0), className, module, newOrigin, initialLock)
     this.addNewJigRef(jigRef)
     this.stack.push(newOrigin)
     jigRef.ref = module.createNew(className, args)

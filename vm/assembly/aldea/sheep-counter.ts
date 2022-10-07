@@ -21,7 +21,7 @@ export class SheepCounter {
 }
 
 // @ts-ignore
-@jig('./flock.wasm')
+@imported('./flock.wasm')
 declare class Flock {
   size: u32;
   legCount (): u32;
