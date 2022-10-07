@@ -8,8 +8,8 @@ import {
   findObjectField,
   findObjectMethod,
   MethodKind,
-  TypeNode,
-  MethodNode
+  MethodNode,
+  TypeNode
 } from "@aldea/compiler/abi";
 import {
   getObjectMemLayout,
@@ -17,8 +17,10 @@ import {
   Internref,
   liftBuffer,
   liftInternref,
-  liftString, liftValue,
+  liftString,
+  liftValue,
   lowerInternref,
+  lowerObject,
   lowerValue,
 } from "./memory.js";
 import {ArgReader, readType} from "./arg-reader.js";
@@ -35,18 +37,6 @@ export type MethodResult = {
   node: TypeNode | null;
   mod: WasmInstance;
   value: any;
-}
-
-function __liftString(memory: WebAssembly.Memory, pointer: number) {
-  if (!pointer) return null;
-  const
-    end = pointer + new Uint32Array(memory.buffer)[pointer - 4 >>> 2] >>> 1,
-    memoryU16 = new Uint16Array(memory.buffer);
-  let
-    start = pointer >>> 1,
-    string = "";
-  while (end - start > 1024) string += String.fromCharCode(...memoryU16.subarray(start, start += 1024));
-  return string + String.fromCharCode(...memoryU16.subarray(start, end));
 }
 
 function __encodeArgs (args: any[]) {
@@ -100,8 +90,8 @@ export class WasmInstance {
       },
       vm: {
         vm_call: (rmtOriginPtr: number, rmtRefPtr: number, fnStrPtr: number, argBufPtr: number): number => {
-          const rmtOrigin = liftString(this, rmtOriginPtr)
-          const rmtRefBuf = liftBuffer(this, rmtRefPtr)
+          // const rmtOrigin = liftString(this, rmtOriginPtr)
+          const targetOriginArrBuf = liftBuffer(this, rmtRefPtr)
           const fnStr = liftString(this, fnStrPtr)
           const argBuf = liftBuffer(this, argBufPtr)
 
@@ -118,7 +108,7 @@ export class WasmInstance {
 
           // const rmtMod = this.getModule(rmtOrigin)
           // const val = rmtMod.callMethod(fnStr, vals)
-          const methodResult = this.methodHandler(Buffer.from(rmtRefBuf).toString(), method, args)
+          const methodResult = this.methodHandler(Buffer.from(targetOriginArrBuf).toString(), method, args)
           return lowerValue(this, methodResult.node, methodResult.value)
           // console.log(methodResult)
           // return lowerValue(mod, method.rtype, val)
@@ -201,19 +191,14 @@ export class WasmInstance {
   createNew (className: string, args: any[]): Internref {
     const ptr = this.staticCall(className, 'constructor', args)
     const abiNode = findExportedObject(this.abi, className, 'should be present')
-    const jigPointer = liftInternref(this, abiNode, ptr)
-    return jigPointer
+    return liftInternref(this, abiNode, ptr)
   }
 
-  hidrate (className: string, frozenState: Uint8Array): any {
-    throw new Error('not implemented')
-    // const fnName = `${className}_deserialize`
-    //
-    // const argBuf = frozenState
-    // const argPointer = this.memory.lowerBuffer(argBuf)
-    // const deserializeMethod = this.instance.exports[fnName] as Function;
-    // let retBuf = liftBuffer(this, deserializeMethod(argPointer))
-    // return __decodeArgs(retBuf)
+  hidrate (className: string, frozenState: Uint8Array): Internref {
+    const rawState = __decodeArgs(frozenState)
+    const objectNode = findExportedObject(this.abi, className, `unknown class ${className}`)
+    const pointer = lowerObject(this, objectNode, rawState)
+    return liftInternref(this, objectNode, pointer)
   }
 
   instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): MethodResult {

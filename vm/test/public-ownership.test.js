@@ -1,14 +1,12 @@
 import { Transaction } from '../vm/transaction.ts'
-import { NewInstruction } from '../vm/index.js'
+import { NewInstruction } from '../vm/index.ts'
 import { VM } from '../vm/vm.ts'
 import { CBOR } from 'cbor-redux'
 import { expect } from 'chai'
 import { Storage } from '../vm/storage.ts'
-import { LockInstruction } from '../vm/index.js'
+import { LockInstruction } from '../vm/index.ts'
 import { UserLock } from '../vm/locks/user-lock.ts'
-import { locationF } from "../vm/location.ts"
 
-const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" }).data
 const FIGHT_MODULE = 'manual/v2/fight.wasm'
 
 describe('execute txs', () => {

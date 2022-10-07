@@ -1,14 +1,14 @@
 import { describe } from "mocha"
 import { Transaction } from "../vm/transaction.ts"
-import { LoadInstruction } from "../vm/index.js"
+import { LoadInstruction } from "../vm/index.ts"
 import blake3 from 'blake3-wasm'
 import { expect } from "chai"
-import { NewInstruction } from "../vm/index.js"
-import { LockInstruction } from "../vm/index.js"
-import { CallInstruction } from "../vm/index.js"
+import { NewInstruction } from "../vm/index.ts"
+import { LockInstruction } from "../vm/index.ts"
+import { CallInstruction } from "../vm/index.ts"
 import { LiteralArg } from "../vm/arguments/literal-arg.ts"
 import { JigArg } from "../vm/arguments/jig-arg.ts"
-import { UnlockInstruction } from "../vm/index.js"
+import { UnlockInstruction } from "../vm/index.ts"
 import * as ed from '@noble/ed25519'
 // import { sha512 } from '@noble/hashes/sha512'
 import { createHash } from 'crypto'
