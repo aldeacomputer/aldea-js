@@ -2,10 +2,7 @@ import path from 'path'
 import { WasmInstance } from './wasm-instance.js'
 import { fileURLToPath } from 'url'
 import { TxExecution } from './tx-execution.js'
-import { JigState } from './jig-state.js'
-import { PermissionError } from "./errors.js"
 import fs from "fs"
-import { locationF } from "./location.js"
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -19,18 +16,7 @@ export class VM {
   execTx (tx) {
     const currentExecution = new TxExecution(tx, this)
     currentExecution.run()
-    currentExecution.jigs.forEach(jigRef => {
-      if (jigRef.lock.isOpen()) {
-        throw new PermissionError(`unlocked jig: ${jigRef.origin}`)
-      }
-    })
-    currentExecution.jigs.forEach((jigRef, index) => {
-      const location = locationF(tx, index)
-      const origin = jigRef.origin || location
-      const serialized = jigRef.module.instanceCall(jigRef.ref, jigRef.className, 'serialize')
-      const jig = new JigState(origin, location, jigRef.className, serialized, jigRef.module.id, jigRef.lock.serialize())
-      this.storage.addJig(jig)
-    })
+    currentExecution.finalize()
     return currentExecution
   }
 

@@ -52,8 +52,8 @@ app.get('/state/:location', (req, res) => {
 app.post('/tx', (req, res) => {
   try {
     const tx = TransactionJSON.parse(req.body)
-    vm.execTx(tx)
-    storage.addTransaction(tx)
+    const execution = vm.execTx(tx)
+    storage.persist(execution)
     res.send({ txid: tx.id })
   } catch (e) {
     res.status(400).send(e.message)

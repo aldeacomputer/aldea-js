@@ -13,4 +13,8 @@ export class UnlockInstruction {
   encode () {
     return `UNLOCK $${this.masterListIndex} "${this.key}"`
   }
+
+  getPubKey () {
+    return this.key
+  }
 }
