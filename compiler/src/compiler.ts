@@ -5,6 +5,7 @@ import asc from 'assemblyscript/asc'
 import { Command } from 'commander'
 import { useCtx } from './transform.js'
 import { abiToCbor, abiToJson } from './abi.js'
+import { TransformCtx } from './transform/ctx.js'
 
 const baseDir = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -37,8 +38,18 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     '--transform', './'+relative(process.cwd(), join(baseDir, './dist/transform.js'))
   ])
 
-  const ctx = useCtx()
+  if (!error) {
+    writeAbi(outPath, useCtx())
+    console.log("Compilation success: ")
+    console.log(stats.toString())
+    console.log(stdout.toString())
+  } else {
+    console.log("Compilation failed: " + error.message)
+    console.log(stderr.toString())
+  }
+}
 
+function writeAbi(outPath: string, ctx: TransformCtx) {
   fs.writeFileSync(
     join(dirname(outPath), basename(outPath).replace(/\.\w+$/, '')+'.abi.cbor'),
     Buffer.from(abiToCbor(ctx.abi))
@@ -47,13 +58,4 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     join(dirname(outPath), basename(outPath).replace(/\.\w+$/, '')+'.abi.json'),
     abiToJson(ctx.abi, 2)
   )
-
-  if (error) {
-    console.log("Compilation failed: " + error.message)
-    console.log(stderr.toString())
-  } else {
-    console.log("Compilation success: ")
-    console.log(stats.toString())
-    console.log(stdout.toString())
-  }
 }

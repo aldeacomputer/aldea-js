@@ -33,16 +33,13 @@ export function useCtx(): TransformCtx { return $ctx }
 export function afterParse(parser: Parser): void {
   $ctx = new TransformCtx(parser)
 
-  console.log('   == ORIGINAL ==   ')
-  console.log('********************')
-  console.log(ASTBuilder.build($ctx.entry))
-
   if ($ctx.importedObjects.length) { writeProxyImports($ctx) }
   $ctx.exportedObjects.forEach(n => transformExportedObject(n, $ctx))
   $ctx.importedObjects.forEach(n => transformImportedObject(n, $ctx))
+  injectJigNamesToAuth($ctx)
 
-  console.log('  == TRANSFORMED == ')
-  console.log('********************')
+  console.log('»»» TRANSFORMED «««')
+  console.log('*******************')
   console.log(ASTBuilder.build($ctx.entry))
 }
 
@@ -106,4 +103,20 @@ function transformImportedObject(obj: ObjectWrap, ctx: TransformCtx): void {
 
   const src = ctx.parse(code, ctx.entry.normalizedPath)
   ctx.entry.statements.push(...src.statements)
+}
+
+/**
+ * Writes code that pushes exported and imported jig names to the Auth module.
+ */
+export function injectJigNamesToAuth(ctx: TransformCtx): void {
+  const auth = ctx.parser.sources.find(s => s.normalizedPath === '~lib/auth.ts')
+  if (auth) {
+    const writeJigName = (str: string, obj: ObjectWrap): string => str + `.push('${obj.name}')`
+    const exportedCode = ctx.exportedObjects.reduce(writeJigName, 'EXPORTED_JIGS')
+    const importedCode = ctx.importedObjects.reduce(writeJigName, 'IMPORTED_JIGS')
+    const src = ctx.parse(`${exportedCode}\n${importedCode}`, auth.normalizedPath)
+    auth.statements.push(...src.statements)
+  } else {
+    throw new Error('could not find auth api source')
+  }
 }

@@ -112,7 +112,8 @@ export class TransformCtx {
               .concat(normalizeTypeName(n.rtype))
           }))
       })
-      .filter((v, i, a) => !!v && a.indexOf(v) === i);
+      .filter((v, i, a) => !!v && a.indexOf(v) === i)
+      .concat('LockState', 'UtxoState')
 
     return [...this.program.managedClasses].reduce((obj: RuntimeIds, [id, klass]) => {
       const name = normalizeClassName(klass)
