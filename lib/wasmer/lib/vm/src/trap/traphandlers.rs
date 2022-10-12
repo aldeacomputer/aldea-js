@@ -7,6 +7,7 @@
 use crate::vmcontext::{VMFunctionContext, VMTrampoline};
 use crate::{Trap, VMFunctionBody};
 use backtrace::Backtrace;
+use core::cell::RefCell;
 use core::ptr::{read, read_unaligned};
 use corosensei::stack::DefaultStack;
 use corosensei::trap::{CoroutineTrapHandler, TrapHandlerRegs};
@@ -21,7 +22,7 @@ use std::mem;
 use std::mem::MaybeUninit;
 use std::ptr::{self, NonNull};
 use std::sync::atomic::{compiler_fence, AtomicPtr, Ordering};
-use std::sync::{Mutex, Once};
+use std::sync::Once;
 use wasmer_types::TrapCode;
 
 // TrapInformation can be stored in the "Undefined Instruction" itself.
@@ -863,12 +864,19 @@ fn on_wasm_stack<F: FnOnce() -> T, T>(
     // Allocating a new stack is pretty expensive since it involves several
     // system calls. We therefore keep a cache of pre-allocated stacks which
     // allows them to be reused multiple times.
-    // FIXME(Amanieu): We should refactor this to avoid the lock.
-    lazy_static::lazy_static! {
-        static ref STACK_POOL: Mutex<Vec<DefaultStack>> = Mutex::new(vec![]);
+    //
+    // UPDATE (brentongunning): This code was changed from lazy_static! and a
+    // Mutex to thread_local! and a RefCell. With no mutex locks, executing WASM
+    // is much faster when done on multiple threads in the same process. It means
+    // we can't share stacks across threads but that's a fine tradeoff.
+    thread_local! {
+        static STACK_POOL: RefCell<Vec<DefaultStack>> = RefCell::new(vec![]);
     }
-    let stack = STACK_POOL.lock().unwrap().pop().unwrap_or_default();
-    let mut stack = scopeguard::guard(stack, |stack| STACK_POOL.lock().unwrap().push(stack));
+    let mut stack = STACK_POOL.with(|pool| {
+        let stack = pool.borrow_mut().pop().unwrap_or_default();
+        let scoped_stack = scopeguard::guard(stack, |stack| STACK_POOL.with(|pool| pool.borrow_mut().push(stack)));
+        scoped_stack
+    });
 
     // Create a coroutine with a new stack to run the function on.
     let mut coro = ScopedCoroutine::with_stack(&mut *stack, move |yielder, ()| {
