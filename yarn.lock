@@ -38,9 +38,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/demos-website@workspace:demos-webapp":
+"@aldea/demos-webapp@workspace:demos-webapp":
   version: 0.0.0-use.local
-  resolution: "@aldea/demos-website@workspace:demos-webapp"
+  resolution: "@aldea/demos-webapp@workspace:demos-webapp"
   dependencies:
     "@fortawesome/fontawesome-svg-core": ^6.2.0
     "@fortawesome/free-solid-svg-icons": ^6.2.0
