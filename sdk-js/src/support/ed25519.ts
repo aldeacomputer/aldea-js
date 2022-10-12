@@ -1,5 +1,5 @@
 import { Point, utils, sync } from '@noble/ed25519'
-import { HDKey } from 'micro-ed25519-hdkey'
+import { HDKey } from '../vendor/ed25519-hdkey.js'
 import { PrivKey } from '../privkey.js'
 import { PubKey } from '../pubkey.js'
 import { blake3 } from './hash.js'
@@ -7,8 +7,8 @@ import { blake3 } from './hash.js'
 // Internally we replace nobles sha512Sync function with our own blake3
 // function. As long as we use the sync methods, we are now using
 // blake3-flavoured ed25519 - just like magic!
-utils.sha512Sync = function(...messages: Uint8Array[]): Uint8Array {
-  return blake3(utils.concatBytes(...messages), 64)
+utils.sha512Sync = (...m: Uint8Array[]): Uint8Array => {
+  return blake3(utils.concatBytes(...m), 64)
 }
 
 /**

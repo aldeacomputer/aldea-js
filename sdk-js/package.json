@@ -6,7 +6,7 @@
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "require": "./dist/aldea.bundle.js",
+      "require": "./dist/aldea.bundle.cjs",
       "types": "./dist/index.ts.d"
     },
     "./*": {
@@ -14,7 +14,7 @@
       "types": "./dist/*.ts.d"
     }
   },
-  "main": "./dist/aldea.bundle.js",
+  "main": "./dist/aldea.bundle.cjs",
   "browser": "./dist/aldea.bundle.min.js",
   "unpkg": "./dist/aldea.bundle.min.js",
   "files": [

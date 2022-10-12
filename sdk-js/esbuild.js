@@ -10,7 +10,7 @@ const makeAllPackagesExternalPlugin = {
 
 esbuild.build({
   entryPoints: ['src/index.ts'],
-  outfile: 'dist/aldea.bundle.js',
+  outfile: 'dist/aldea.bundle.cjs',
   bundle: true,
   format: 'cjs',
   platform: 'node',
