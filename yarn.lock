@@ -60,6 +60,24 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@aldea/explorer@workspace:explorer":
+  version: 0.0.0-use.local
+  resolution: "@aldea/explorer@workspace:explorer"
+  dependencies:
+    "@fortawesome/react-fontawesome": ^0.2.0
+    crypto: ^1.0.1
+    eslint: 8.24.0
+    eslint-config-next: 12.3.1
+    framer-motion: ^7.5.2
+    next: 12.3.1
+    react: 18.2.0
+    react-dom: 18.2.0
+    react-hot-toast: ^2.4.0
+    react-tabs: ^5.1.0
+    toaster: ^0.1.2
+  languageName: unknown
+  linkType: soft
+
 "@aldea/node@workspace:node":
   version: 0.0.0-use.local
   resolution: "@aldea/node@workspace:node"
@@ -3294,24 +3312,6 @@ __metadata:
   checksum: 571aeb3dbe0f2bbd4e4fadbdb44f325fc75335cd5f6f6b6a091e6a06a9f25ed5392f0863c5442acb0646787446e816f13cbfc6edce5b07658541dff573cab1ff
   languageName: node
   linkType: hard
-
-"explorer@workspace:explorer":
-  version: 0.0.0-use.local
-  resolution: "explorer@workspace:explorer"
-  dependencies:
-    "@fortawesome/react-fontawesome": ^0.2.0
-    crypto: ^1.0.1
-    eslint: 8.24.0
-    eslint-config-next: 12.3.1
-    framer-motion: ^7.5.2
-    next: 12.3.1
-    react: 18.2.0
-    react-dom: 18.2.0
-    react-hot-toast: ^2.4.0
-    react-tabs: ^5.1.0
-    toaster: ^0.1.2
-  languageName: unknown
-  linkType: soft
 
 "express-errors@npm:*":
   version: 0.3.1
