@@ -1,6 +1,6 @@
 # Dokku Configuration
 
-Our Digital Ocean droplet has dokku configured with 2 apps:
+Our Digital Ocean droplet has dokku configured various apps:
 
 ```bash
 root@aldea-zero-1:~$ dokku apps:list
