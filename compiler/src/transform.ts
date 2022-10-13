@@ -36,6 +36,7 @@ export function afterParse(parser: Parser): void {
   if ($ctx.importedObjects.length) { writeProxyImports($ctx) }
   $ctx.exportedObjects.forEach(n => transformExportedObject(n, $ctx))
   $ctx.importedObjects.forEach(n => transformImportedObject(n, $ctx))
+  writeBaseHeapExport($ctx)
   injectJigNamesToAuth($ctx)
 
   console.log('»»» TRANSFORMED «««')
@@ -102,6 +103,14 @@ function transformImportedObject(obj: ObjectWrap, ctx: TransformCtx): void {
   if (idx > -1) { ctx.entry.statements.splice(idx, 1) }
 
   const src = ctx.parse(code, ctx.entry.normalizedPath)
+  ctx.entry.statements.push(...src.statements)
+}
+
+/**
+ * Writes a function that returns the __heap_base hidden global so that we can optimize execution
+ */
+export function writeBaseHeapExport(ctx: TransformCtx): void {
+  const src = ctx.parse('export function _getHeapBase(): usize { return __heap_base }', ctx.entry.normalizedPath)
   ctx.entry.statements.push(...src.statements)
 }
 
