@@ -1,6 +1,6 @@
 {
-  "name": "@aldea/compiler2",
-  "version": "0.0.2",
+  "name": "@aldea/compiler",
+  "version": "0.0.1",
   "type": "module",
   "license": "MIT",
   "bin": {
