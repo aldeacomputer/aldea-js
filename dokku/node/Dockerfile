@@ -7,7 +7,7 @@ COPY . .
 
 RUN yarn install
 
-WORKDIR /app/compiler
+WORKDIR /app/compiler-old
 RUN yarn tsc
 
 WORKDIR /app/vm
