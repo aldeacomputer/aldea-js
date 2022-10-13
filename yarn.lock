@@ -64,6 +64,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/explorer@workspace:explorer"
   dependencies:
+    "@fortawesome/fontawesome-svg-core": ^6.2.0
+    "@fortawesome/free-solid-svg-icons": ^6.2.0
     "@fortawesome/react-fontawesome": ^0.2.0
     crypto: ^1.0.1
     eslint: 8.24.0
@@ -73,7 +75,9 @@ __metadata:
     react: 18.2.0
     react-dom: 18.2.0
     react-hot-toast: ^2.4.0
+    react-spinners: ^0.13.4
     react-tabs: ^5.1.0
+    sass: ^1.54.9
     toaster: ^0.1.2
   languageName: unknown
   linkType: soft
