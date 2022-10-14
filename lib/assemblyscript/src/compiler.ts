@@ -671,6 +671,9 @@ export class Compiler extends DiagnosticEmitter {
     if (!startIsEmpty || exportStart != null) {
       let signature = startFunctionInstance.signature;
       if (!startIsEmpty && exportStart != null) {
+        // Note (brentongunning): Disable the check if the module is already started
+        // because we want to allow this to be called to restart the module.
+        /*
         module.addGlobal(BuiltinNames.started, TypeRef.I32, true, module.i32(0));
         startFunctionBody.unshift(
           module.global_set(BuiltinNames.started, module.i32(1))
@@ -681,6 +684,7 @@ export class Compiler extends DiagnosticEmitter {
             module.return()
           )
         );
+        */
       }
       let funcRef = module.addFunction(
         startFunctionInstance.internalName,
