@@ -1,5 +1,5 @@
-import { toHex } from './support'
-import { ArgWriter } from '../arg-writer'
+import { toHex } from '../support'
+import { ArgWriter } from '../../aldea/arg-writer'
 
 describe("ArgWriter", () => {
   test("encodes an i8", () => {
