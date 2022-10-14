@@ -33,7 +33,8 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     '-Ospeed',
     '--runtime', 'stub',
     '--exportRuntime',
-    //'--importMemory', - miguel can add this back if needed?
+    '--importMemory', // Needed to reuse memory for speedy execution
+    '--exportStart', // Needed to reuse memory for speedy execution
     '--lib', relative(process.cwd(), join(baseDir, 'lib')),
     '--transform', './'+relative(process.cwd(), join(baseDir, './dist/transform.js'))
   ])
