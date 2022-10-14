@@ -1,7 +1,6 @@
-import { TransformCtx } from './ctx.js'
 import { FieldWrap, MethodWrap, ObjectWrap } from './nodes.js'
 import { normalizeTypeName } from '../abi.js'
-import { MethodKind, TypeNode } from '../abi/types.js'
+import { MethodKind } from '../abi/types.js'
 import { getTypeBytes } from '../vm/memory.js'
 
 /**
@@ -15,7 +14,7 @@ export function writeExportedMethod(method: MethodWrap, obj: ObjectWrap): string
   const isInstance = method.kind === MethodKind.INSTANCE
   const separator = isInstance ? '$' : '_'
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
-  const rtype = isConstructor ? obj.name : normalizeTypeName(method.rtype)
+  const rtype = isConstructor ? `${obj.name}` : normalizeTypeName(method.rtype)
   const callable = isConstructor ? `new ${obj.name}` : (
     isInstance ? `ctx.${method.name}` : `${obj.name}.${method.name}`
   )
@@ -29,42 +28,52 @@ export function writeExportedMethod(method: MethodWrap, obj: ObjectWrap): string
 }
 
 /**
- * Writes function declarations for interfacing with imported jigs.
+ * TODO
  */
-export function writeProxyImports(ctx: TransformCtx) {
-  const code = `
-  @external("vm", "vm_call")
-  declare function vm_call<T>(klass: string, origin: ArrayBuffer, fn: string, argBuf: ArrayBuffer): T
-
-  @external("vm", "vm_prop")
-  declare function vm_prop<T>(klass: string, origin: ArrayBuffer, prop: string): T
+export function writeLocalProxyClass(obj: ObjectWrap, members: string[]): string {
+  return `
+  class ${obj.name} {
+    ${ members.join('\n') }
+  }
   `.trim()
+}
 
-  const src = ctx.parse(code, ctx.entry.normalizedPath)
-  ctx.entry.statements.unshift(...src.statements)
+/**
+ * TODO
+ */
+ export function writeLocalProxyMethod(method: MethodWrap, obj: ObjectWrap): string {
+  const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
+  const returns = method.rtype?.name && method.rtype?.name !== 'void'
+  return `
+  ${method.name}(${args.join(', ')}): ${normalizeTypeName(method.rtype)} {
+    vm_local_call_start<${obj.name}>(this, '${obj.name}$${method.name}')
+    ${returns ? 'const res = ' : ''}this._${method.name}(${ method.args.map((_f, i) => `a${i}`).join(', ') })
+    vm_local_call_end()
+    ${returns ? 'return res' : ''}
+  }
+  `.trim()
 }
 
 /**
  * Writes a proxy class wrapper for the specific Class, around the given member
  * strings.
  */
-export function writeProxyClass(obj: ObjectWrap, members: string[]): string {
+export function writeRemoteProxyClass(obj: ObjectWrap, members: string[]): string {
   return `
   class ${obj.name} {
     origin: ArrayBuffer;
     ${ members.join('\n') }
   }
-  `
+  `.trim()
 }
 
 /**
- * Writes a getter on a proxy class. Returns the result of `vm_prop`.
+ * Writes a getter on a proxy class. Returns the result of `vm_remote_prop`.
  */
-export function writeProxyGetter(field: FieldWrap, obj: ObjectWrap): string {
-  const klass = obj.decorators.find(n => n.name === 'imported')?.args[0]
+export function writeRemoteProxyGetter(field: FieldWrap, obj: ObjectWrap): string {
   return `
   get ${field.name}(): ${field.type.name} {
-    return vm_prop<${field.type.name}>('${klass}', this.origin, '${obj.name}.${field.name}')
+    return vm_remote_prop<${field.type.name}>(this.origin, '${obj.name}.${field.name}')
   }
   `.trim()
 }
@@ -72,19 +81,21 @@ export function writeProxyGetter(field: FieldWrap, obj: ObjectWrap): string {
 /**
  * Writes a method on a proxy class. Returns the result of `vm_call`.
  */
-export function writeProxyMethod(method: MethodWrap, obj: ObjectWrap): string {
+export function writeRemoteProxyMethod(method: MethodWrap, obj: ObjectWrap): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
-  const separator = isInstance ? '$' : '_'
-  const klass = obj.decorators.find(n => n.name === 'imported')?.args[0]
+  const origin = obj.decorators.find(n => n.name === 'imported')?.args[0]
   const args = method.args.map((f, i) => `a${i}: ${f.type.name}`)
   const rtype = isConstructor ? 'ArrayBuffer' : method.rtype?.name
   const prefix = isConstructor ? 'this.origin =' : 'return'
+  const caller = isInstance ?
+    `vm_remote_call_i<${rtype}>(this.origin, '${obj.name}$${method.name}', args.buffer)` :
+    `vm_remote_call_s<${rtype}>('${origin}', '${obj.name}_${method.name}', args.buffer)` ;
 
   return `
   ${method.name}(${args.join(', ')})${isConstructor ? '' : `: ${rtype}`} {
     ${ writeArgWriter(method.args as FieldWrap[]) }
-    ${prefix} vm_call<${rtype}>('${klass}', this.origin, '${obj.name}${separator}${method.name}', args.buffer)
+    ${prefix} ${caller}
   }
   `.trim()
 }

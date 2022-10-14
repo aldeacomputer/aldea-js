@@ -174,7 +174,7 @@ export function liftImportedObject(mod: Module, type: TypeNode, ptr: number): Ex
 /**
  * Lowers any supported type into WASM memory and returns the value or Ptr.
  */
-export function lowerValue(mod: Module, type: TypeNode | null, val: any): number {
+export function lowerValue(mod: Module, type: TypeNode | null, val: any): number | bigint {
   if (!type || type.name === 'void' || val === null) return 0;
 
   switch(type.name) {
@@ -189,7 +189,7 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
       return val
     case 'i64':
     case 'u64':
-      return val || 0n
+      return BigInt.asUintN(64, BigInt(val))
     case 'bool':
       return val ? 1 : 0
     case 'string':

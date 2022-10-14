@@ -3,7 +3,7 @@ import { abiFromCbor } from './abi.js'
 import { findImportedObject, findObjectMethod } from './abi/query.js'
 import { FieldNode } from './abi/types.js'
 import { Module, Internref } from './vm/module.js'
-import { liftBuffer, liftString, liftValue, lowerValue } from './vm/memory.js'
+import { liftBuffer, liftInternref, liftString, liftValue, lowerValue } from './vm/memory.js'
 import { ArgReader, readType } from './vm/arg-reader.js'
 
 /**
@@ -39,52 +39,73 @@ export class VM {
         }
       },
       vm: {
-        // vm_call<T>(string, ArrayBuffer, string, ArrayBuffer): T
-        vm_call: (rmtOriginPtr: number, rmtRefPtr: number, fnStrPtr: number, argBufPtr: number) => {
+        vm_local_authcheck: () => true,
+        vm_local_lock: () => {},
+        vm_local_state: () => {},
+        vm_remote_authcheck: () => true,
+        vm_remote_lock: () => {},
+        vm_remote_state: () => {},
+
+        vm_local_call_start: (jigPtr: number, fnPtr: number) => {
           const mod = this.getModule(key)
-          const rmtOrigin = liftString(mod, rmtOriginPtr >>> 0)
-          const rmtRefBuf = liftBuffer(mod, rmtRefPtr >>> 0)
-          const fnStr = liftString(mod, fnStrPtr >>> 0)
-          const argBuf = liftBuffer(mod, argBufPtr >>> 0)
-
-          const [className, fn] = fnStr.split(/(?:_|\$)/)
-          const obj = findImportedObject(mod.abi, className, 'could not find object')
-          const method = findObjectMethod(obj, fn, 'could not find method')
-
-          // In my vm I refer to remote jigs by ptr
-          // miguel can skip this and pass the buffer
-          const view = new DataView(rmtRefBuf)
-          const rmtRef = new Internref(className, view.getUint32(0))
-
-          const argReader = new ArgReader(argBuf)
-          const vals = method.args.reduce((vals: any[], n: FieldNode) => {
-            const ptr = readType(argReader, n.type)
-            vals.push(liftValue(mod, n.type, ptr))
-            return vals
-          }, [rmtRef])
-          
-          const rmtMod = this.getModule(rmtOrigin)
-          const val = rmtMod.callMethod(fnStr, vals)
-          return lowerValue(mod, method.rtype, val)
+          const fn = liftString(mod, fnPtr)
+          console.log('VM', 'local', `${jigPtr} => ${fn}`)
         },
-        // vm_prop(string, ArrayBuffer, string)
-        vm_prop: (rmtOriginPtr: number, rmtRefPtr: number, propStrPtr: number) => {
-          const mod = this.getModule(key)
-          const rmtOrigin = liftString(mod, rmtOriginPtr >>> 0)
-          const rmtRefBuf = liftBuffer(mod, rmtRefPtr >>> 0)
-          const propStr = liftString(mod, propStrPtr >>> 0)
 
-          const className = propStr.split('.')[0]
+        vm_local_call_end: () => {
+          console.log('VM', 'end')
+        },
 
-          // In my vm I refer to remote jigs by ptr
-          // miguel can skip this and pass the buffer
-          const view = new DataView(rmtRefBuf)
-          const rmtRef = new Internref(className, view.getUint32(0))
-          
-          const rmtMod = this.getModule(rmtOrigin)
-          const val = rmtMod.getProp(propStr, rmtRef)
-          return lowerValue(mod, { name: 'string', args: [] }, val)
-        }
+        vm_remote_call_i: () => {},
+        vm_remote_call_s: () => {},
+        vm_remote_prop: () => {},
+
+//        // vm_call<T>(string, ArrayBuffer, string, ArrayBuffer): T
+//        vm_call: (rmtOriginPtr: number, rmtRefPtr: number, fnStrPtr: number, argBufPtr: number) => {
+//          const mod = this.getModule(key)
+//          const rmtOrigin = liftString(mod, rmtOriginPtr >>> 0)
+//          const rmtRefBuf = liftBuffer(mod, rmtRefPtr >>> 0)
+//          const fnStr = liftString(mod, fnStrPtr >>> 0)
+//          const argBuf = liftBuffer(mod, argBufPtr >>> 0)
+//
+//          const [className, fn] = fnStr.split(/(?:_|\$)/)
+//          const obj = findImportedObject(mod.abi, className, 'could not find object')
+//          const method = findObjectMethod(obj, fn, 'could not find method')
+//
+//          // In my vm I refer to remote jigs by ptr
+//          // miguel can skip this and pass the buffer
+//          const view = new DataView(rmtRefBuf)
+//          const rmtRef = new Internref(className, view.getUint32(0))
+//
+//          const argReader = new ArgReader(argBuf)
+//          const vals = method.args.reduce((vals: any[], n: FieldNode) => {
+//            const ptr = readType(argReader, n.type)
+//            vals.push(liftValue(mod, n.type, ptr))
+//            return vals
+//          }, [rmtRef])
+//          
+//          const rmtMod = this.getModule(rmtOrigin)
+//          const val = rmtMod.callMethod(fnStr, vals)
+//          return lowerValue(mod, method.rtype, val)
+//        },
+//        // vm_prop(string, ArrayBuffer, string)
+//        vm_prop: (rmtOriginPtr: number, rmtRefPtr: number, propStrPtr: number) => {
+//          const mod = this.getModule(key)
+//          const rmtOrigin = liftString(mod, rmtOriginPtr >>> 0)
+//          const rmtRefBuf = liftBuffer(mod, rmtRefPtr >>> 0)
+//          const propStr = liftString(mod, propStrPtr >>> 0)
+//
+//          const className = propStr.split('.')[0]
+//
+//          // In my vm I refer to remote jigs by ptr
+//          // miguel can skip this and pass the buffer
+//          const view = new DataView(rmtRefBuf)
+//          const rmtRef = new Internref(className, view.getUint32(0))
+//          
+//          const rmtMod = this.getModule(rmtOrigin)
+//          const val = rmtMod.getProp(propStr, rmtRef)
+//          return lowerValue(mod, { name: 'string', args: [] }, val)
+//        }
       }
     })
 

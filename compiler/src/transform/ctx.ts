@@ -249,16 +249,15 @@ function mapDecoratorNode(node: DecoratorNode): DecoratorWrap {
 
 // Normalizes class name to match normalize type name
 function normalizeClassName(klass: Class): string {
-  const normalizeName = (n: string) => n === 'String' ? n.toLowerCase() : n
+  //const normalizeName = (n: string) => n === 'String' ? n.toLowerCase() : n
   const name = klass.name.replace(/^(\w+)<.*>$/, '$1')
 
   if (klass.typeArguments) {
     const args = klass.typeArguments.map(n => {
-      const arg = n.classReference?.name || n.toString()
-      return normalizeName(arg)
+      return n.classReference?.name || n.toString()
     })
     return name + `<${ args.join(',') }>`
   } else {
-    return normalizeName(name)
+    return name
   }
 }

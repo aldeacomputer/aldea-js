@@ -74,9 +74,9 @@ export enum FieldKind {
  * Methoid Kind
  */
 export enum MethodKind {
+  STATIC,
   CONSTRUCTOR,
   INSTANCE,
-  STATIC,
 }
 
 /**
