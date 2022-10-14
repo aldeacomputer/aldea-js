@@ -1,0 +1,36 @@
+{
+  "threads": {
+    "asc_flags": [
+      "--enable threads"
+    ],
+    "v8_flags": [
+      "--experimental-wasm-threads"
+    ]
+  },
+  "reference-types": {
+    "asc_flags": [
+      "--enable reference-types"
+    ],
+    "v8_flags": [
+      "--experimental-wasm-reftypes"
+    ]
+  },
+  "gc": {
+    "asc_flags": [
+      "--enable reference-types",
+      "--enable gc"
+    ],
+    "v8_flags": [
+      "--experimental-wasm-reftypes",
+      "--experimental-wasm-gc"
+    ]
+  },
+  "exception-handling": {
+    "asc_flags": [
+      "--enable exception-handling"
+    ],
+    "v8_flags": [
+      "--experimental-wasm-eh"
+    ]
+  }
+}
