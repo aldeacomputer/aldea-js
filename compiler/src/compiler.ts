@@ -33,6 +33,7 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     '-Ospeed',
     '--runtime', 'stub',
     '--exportRuntime',
+    '--enable', 'simd',
     '--importMemory', // Needed to reuse memory for speedy execution
     '--exportStart', // Needed to reuse memory for speedy execution
     '--lib', relative(process.cwd(), join(baseDir, 'lib')),
