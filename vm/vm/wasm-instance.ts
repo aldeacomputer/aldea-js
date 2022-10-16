@@ -7,7 +7,6 @@ import {
   findImportedObject,
   findObjectField,
   findObjectMethod,
-  MethodKind,
   MethodNode,
   TypeNode
 } from "@aldea/compiler/abi";
@@ -89,13 +88,16 @@ export class WasmInstance {
         }
       },
       vm: {
-        vm_call: (rmtOriginPtr: number, rmtRefPtr: number, fnStrPtr: number, argBufPtr: number): number => {
-          // const rmtOrigin = liftString(this, rmtOriginPtr)
-          const targetOriginArrBuf = liftBuffer(this, rmtRefPtr)
-          const fnStr = liftString(this, fnStrPtr)
-          const argBuf = liftBuffer(this, argBufPtr)
+        vm_local_call_start: () => {
 
-          const [className, methodName] = fnStr.split(/(?:_|\$)/)
+        },
+        vm_local_call_end: () => {},
+        vm_remote_call_i: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number): number => {
+          const targetOriginArrBuf = liftBuffer(this, targetOriginPtr)
+          const fnStr = liftString(this, fnNamePtr)
+          const argBuf = liftBuffer(this, argsPtr)
+
+          const [className, methodName] = fnStr.split('_')
           const obj = findImportedObject(this.abi, className, 'could not find object')
           const method = findObjectMethod(obj, methodName, 'could not find method')
 
@@ -106,30 +108,31 @@ export class WasmInstance {
             return readType(argReader, n.type)
           })
 
-          // const rmtMod = this.getModule(rmtOrigin)
-          // const val = rmtMod.callMethod(fnStr, vals)
           const methodResult = this.methodHandler(Buffer.from(targetOriginArrBuf).toString(), method, args)
           return lowerValue(this, methodResult.node, methodResult.value)
-          // console.log(methodResult)
-          // return lowerValue(mod, method.rtype, val)
         },
-        vm_prop: (_srcptr: number, targetOriginPtr: number, propStrPtr: number): number => {
-          // const rmtOrigin = liftString(this, rmtOriginPtr >>> 0)
+        vm_remote_call_s: () => {},
+        vm_remote_prop: (targetOriginPtr: number, propNamePtr: number): number => {
           const rmtRefBuf = liftBuffer(this, targetOriginPtr)
-          const propStr = liftString(this, propStrPtr)
+          const propStr = liftString(this, propNamePtr)
           const propName = propStr.split('.')[1]
 
           const prop = this.getPropHandler(Buffer.from(rmtRefBuf).toString(), propName)
           return lowerValue(prop.mod, prop.node, prop.value)
         },
-        vm_create: (buffPointer: number) => {
-          throw new Error('not implemented')
+        vm_local_authcheck: () => {},
+        vm_local_lock: () => {
+          console.log('holu')
         },
-        vm_adopt: (buffPointer: number) => {
-          throw new Error('not implemented')
+        vm_local_state: () => {
+          console.log('holu')
         },
-        vm_release: (buffPointer: number) => {
-          throw new Error('not implemented')
+        vm_remote_lock: () => {
+          console.log('holu')
+        },
+        vm_print: (msgPtr: number ) => {
+          // const buf = liftBuffer(this, msgPtr)
+          // console.log(Buffer.from(buf).toString())
         }
       }
     }
@@ -161,19 +164,6 @@ export class WasmInstance {
   setUp () {}
 
   staticCall (className: string, methodName: string, args: any[]): number {
-    // const fnName = `${className}_${methodName}`
-    // if (!Object.keys(this.instance.exports).includes(fnName)) {
-    //   throw new Error(`unknown function: ${fnName}`)
-    // }
-    //
-    // const argBuf = __encodeArgs(args)
-    // const argPointer = lowerBuffer(this, argBuf)
-    // // const parse =  (data) => CBOR.decode(data.buffer, null, { mode: "sequence" })
-    // // console.log(parse(argBuf))
-    // const method = this.instance.exports[fnName] as Function;
-    // const resultPointer = method(argPointer)
-    // return resultPointer
-
     const fnName = `${className}_${methodName}`
     const abiObj = findExportedObject(this.abi, className, `unknown export: ${className}`)
     const method = findObjectMethod(abiObj, methodName, `unknown method: ${methodName}`)
@@ -238,32 +228,6 @@ export class WasmInstance {
       node: field.type
     }
     // return liftValue(this, field.type, val)
-  }
-
-  _executeExportedFunction (fnName: string, args: any[]): void {
-    const [expName, methodName] = fnName.split(/(?:_|\$)/)
-    const obj = findExportedObject(this.abi, expName, `unknown export: ${expName}`)
-    const method = findObjectMethod(obj, methodName, `unknown method: ${methodName}`)
-
-    if (method.kind === MethodKind.INSTANCE) {
-
-    }
-
-    const ptrs = method.args.map((arg, i) => {
-      return lowerValue(this, arg.type, args[i])
-    })
-    // if (method.kind === MethodKind.INSTANCE) {
-    //   if (!(args[0] instanceof Internref)) {
-    //     throw new Error(`arg error: ${methodStr} arg[0] must be internref`)
-    //   }
-    //   ptrs.push(lowerInternref(args.shift()))
-    // }
-
-    const fn = this.instance.exports[fnName] as Function;
-    fn(...ptrs)
-    // return method.kind === MethodKind.CONSTRUCTOR ?
-    //   liftInternref(this, obj, result >>> 0) :
-    //   liftValue(this, method.rtype, result)
   }
 
   __new (a: number, b: number): number {

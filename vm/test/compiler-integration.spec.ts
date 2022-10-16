@@ -7,7 +7,7 @@ import {
   Storage,
   UnlockInstruction,
   VM
-} from '../vm'
+} from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {LiteralArg} from "../vm/arguments/literal-arg.js";
@@ -144,6 +144,21 @@ describe('execute txs', () => {
     expect(parsed[0]).to.eql(3)
     expect(parsed[1]).to.eql(12)
   })
+
+  it('can create a Shepherd', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
+      .add(new NewInstruction('aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
+      .add(new LockInstruction(1, userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    // storage.persist(exec1)
+    const parsed = exec1.outputs[1].parsedState()
+    expect(parsed[0]).to.eql(3)
+    expect(parsed[1]).to.eql(12)
+  })
+
 
   it('a tx can be signed', () => {
     const tx = new Transaction()
