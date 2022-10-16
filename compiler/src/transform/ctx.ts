@@ -95,7 +95,23 @@ export class TransformCtx {
   }
 
   validate(): boolean {
-    // TODO - validate context
+    /**
+     * TODO
+     * 
+     * - ensure all object fields are supported types
+     *   - check against whitelist
+     *   - throw if map/set with coming soon warning
+     *   - throw if imported/exported jig with coming soon warning
+     * 
+     * - ensure all object methods
+     *   - valid names (no underscore prefix)
+     *   - valid arguments
+     *     - check against whitelitelist
+     *     - throw if map/set with coming soon warning
+     *   - valid return types
+     *     - check against whitelitelist
+     *     - throw if map/set with coming soon warning
+     */
     return true
   }
 

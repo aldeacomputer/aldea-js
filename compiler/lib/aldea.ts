@@ -1,5 +1,5 @@
-export * from './aldea/auth'
-export * from './aldea/arg-writer'
+export { Auth, AuthCheck, LockType, LockState, UtxoState } from './aldea/auth'
+export { ArgWriter } from './aldea/arg-writer'
 
 // @ts-ignore
 @external("vm", "vm_local_call_start")
