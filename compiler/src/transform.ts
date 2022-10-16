@@ -71,9 +71,8 @@ export function afterInitialize(program: Program): void {
 function injectJigNamesToAuth(ctx: TransformCtx): void {
   const auth = ctx.parser.sources.find(s => s.normalizedPath === '~lib/aldea/auth.ts')
   if (auth) {
-    const writeJigName = (str: string, obj: ObjectWrap): string => str + `.push('${obj.name}')`
-    const exportedCode = ctx.exportedObjects.reduce(writeJigName, 'EXPORTED_JIGS')
-    const importedCode = ctx.importedObjects.reduce(writeJigName, 'IMPORTED_JIGS')
+    const exportedCode = ctx.exportedObjects.map(obj => `EXPORTED_JIGS.push('${obj.name}')`).join('\n')
+    const importedCode = ctx.importedObjects.map(obj => `IMPORTED_JIGS.push('${obj.name}')`).join('\n')
     const src = ctx.parse(`${exportedCode}\n${importedCode}`, auth.normalizedPath)
     auth.statements.push(...src.statements)
   } else {
