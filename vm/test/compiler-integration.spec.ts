@@ -155,8 +155,8 @@ describe('execute txs', () => {
     const exec1 = vm.execTx(tx1)
     // storage.persist(exec1)
     const parsed = exec1.outputs[1].parsedState()
-    expect(parsed[0]).to.eql(3)
-    expect(parsed[1]).to.eql(12)
+    expect(parsed[0].name).to.eql('Flock')
+    expect(Buffer.from(parsed[0].origin).toString()).to.eql(`${tx1.id}_0`)
   })
 
 

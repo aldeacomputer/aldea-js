@@ -68,7 +68,7 @@ export class JigRef {
     this.lock = newLock
   }
 
-  serialize(): Uint8Array {
+  serialize(): ArrayBuffer {
     return this.module.extractState(this.ref, this.className)
   }
 }

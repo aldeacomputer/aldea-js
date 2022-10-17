@@ -28,10 +28,14 @@ export class Shepherd {
     Auth.lockToParent<Flock, Shepherd>(aFlock, this)
   }
 
-  // replace (anotherFlock: Flock): Flock {
-  //   if (this.flock.legCount() <= anotherFlock.legCount()) {
-  //   }
-  // }
+  replace (anotherFlock: Flock): Flock {
+    const currentFlock = this.flock
+    if (this.flock.legCount() <= anotherFlock.legCount()) {
+      this.flock = anotherFlock
+      return currentFlock
+    }
+    return anotherFlock
+  }
 }
 
 // @ts-ignore

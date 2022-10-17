@@ -17,7 +17,6 @@ class TxExecution {
   private vm: VM;
   private jigs: JigRef[];
   private wasms: Map<string, WasmInstance>;
-  private keys: Uint8Array[];
   private stack: string[];
   outputs: JigState[];
 
@@ -26,7 +25,6 @@ class TxExecution {
     this.vm = vm
     this.jigs = []
     this.wasms = new Map()
-    this.keys = []
     this.stack = []
     this.outputs = []
   }
@@ -56,6 +54,7 @@ class TxExecution {
     wasmModule.onCreate(this._onCreate.bind(this))
     wasmModule.onAdopt(this._onAdopt.bind(this))
     wasmModule.onRelease(this._onRelease.bind(this))
+    wasmModule.onFindUtxo(this._onFindUtxo.bind(this))
     this.wasms.set(moduleId, wasmModule)
     return wasmModule
   }
@@ -93,8 +92,16 @@ class TxExecution {
     childJigRef.setOwner(new JigLock(parentJigOrigin))
   }
 
-  _onRelease(childOrigin: string, parentOrigin: string) {
+  _onRelease(_childOrigin: string, _parentOrigin: string) {
     throw new Error('on release not implemented')
+  }
+
+  private _onFindUtxo(jigPtr: number): JigRef {
+    const jigRef = this.jigs.find(ref => ref.ref.ptr === jigPtr || ref.ref.ptr === -1)
+    if (!jigRef) {
+      throw new Error('jig should exist')
+    }
+    return jigRef
   }
 
   getWasmInstance (moduleName: string) {
@@ -128,7 +135,7 @@ class TxExecution {
 
   loadJig (location: string, force: boolean): JigRef {
     const jigState = this.vm.findJigState(location)
-    if (force === true && location !== jigState.location) {
+    if (force && location !== jigState.location) {
       throw new ExecutionError('jig already spent')
     }
     const module = this.loadModule(jigState.moduleId)
@@ -161,7 +168,7 @@ class TxExecution {
   instantiate (moduleId: string, className: string, args: any[], initialLock: Lock): JigRef {
     const module = this.loadModule(moduleId)
     const newOrigin = this.newOrigin()
-    const jigRef = new JigRef(new Internref('null', 0), className, module, newOrigin, initialLock)
+    const jigRef = new JigRef(new Internref(className, -1), className, module, newOrigin, initialLock)
     this.addNewJigRef(jigRef)
     this.stack.push(newOrigin)
     jigRef.ref = module.createNew(className, args)

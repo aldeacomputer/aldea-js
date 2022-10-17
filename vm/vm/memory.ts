@@ -382,9 +382,9 @@ export function lowerObject(mod: Module, obj: ObjectNode, vals: any[] | any): nu
  */
 export function lowerImportedObject(mod: Module, val: JigRef): number {
   const buffer = lowerBuffer(mod, val.originBuf)
-  const ptr = mod.__new(val.originBuf.byteLength, 0) >>> 0;
+  const ptr = mod.__new(val.originBuf.byteLength, 0);
   const memU32 = new Uint32Array(mod.memory.buffer)
-  memU32[ptr + 0 >>> 2] = buffer
+  memU32[ptr >>> 2] = buffer
   return ptr
 }
 
