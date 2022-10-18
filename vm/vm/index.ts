@@ -1,3 +1,6 @@
 export * from './vm.js'
 export * from './instructions/index.js'
 export * from './storage.js'
+export * from './arguments/literal-arg.js'
+export * from './arguments/jig-arg.js'
+export * from './transaction.js'

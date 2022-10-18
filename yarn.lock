@@ -86,6 +86,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/node@workspace:node"
   dependencies:
+    "@aldea/sdk-js": "workspace:^"
     "@aldea/vm": "workspace:^"
     cbor: ^8.1.0
     cors: ^2.8.5
@@ -103,7 +104,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/sdk-js@workspace:^, @aldea/sdk-js@workspace:sdk-js":
+"@aldea/sdk-js@workspace:*, @aldea/sdk-js@workspace:^, @aldea/sdk-js@workspace:sdk-js":
   version: 0.0.0-use.local
   resolution: "@aldea/sdk-js@workspace:sdk-js"
   dependencies:
@@ -125,6 +126,7 @@ __metadata:
   resolution: "@aldea/vm@workspace:vm"
   dependencies:
     "@aldea/compiler": 0.0.1
+    "@aldea/sdk-js": "workspace:*"
     "@noble/ed25519": ^1.7.1
     "@types/chai": ^4.3.3
     "@types/mocha": ^10.0.0

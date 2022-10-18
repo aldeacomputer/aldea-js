@@ -213,7 +213,7 @@ describe('execute txs', () => {
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(3)]))
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
-      .add(new CallInstruction(2, 'replaceAndSendTo', [new JigArg(1), new LiteralArg(userPub)]))
+      .add(new CallInstruction(2, 'replaceAndSendTo', [new JigArg(1), new LiteralArg(userPub.toBytes())]))
       .add(new LockInstruction(2, userPub))
 
     const vm = new VM(storage)
@@ -287,7 +287,8 @@ describe('execute txs', () => {
       .add(new CallInstruction(0, 'grow' ,[new JigArg(1)]))
       .add(new LockInstruction(0, userPub))
 
-    const sig = Signature.from(userPriv, Buffer.from(tx.serialize()))
+    const data = Buffer.from(tx.serialize());
+    const sig = Signature.from(userPriv, data)
     tx.addSignature(sig)
 
     const vm = new VM(storage)

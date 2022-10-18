@@ -2,7 +2,7 @@ import blake3 from "blake3-wasm"
 import {Instruction} from "./instructions/instruction.js";
 import {Signature} from "./signature.js";
 import {TxExecution} from "./tx-execution.js";
-import {LockInstruction} from "./instructions/index.js";
+import {PrivKey, PubKey} from '@aldea/sdk-js';
 
 class Transaction {
   private instructions: Instruction[];
@@ -37,30 +37,25 @@ class Transaction {
 
   isCorrectlySigned () {
     if(this.signatures.length === 0) { return false }
-    const data = Buffer.from(this.serialize())
-    const pubkeys = this.instructions
-      .filter(i => i instanceof LockInstruction)
-      .map((i: Instruction) => {
-        const lockInstruction = i as LockInstruction
-        return lockInstruction.getPubKey();
-      }).filter(p => p)
-    if (pubkeys.length < this.signatures.length) {
-      return false
-    }
-    return pubkeys.every((pubk: Uint8Array) => {
-      const sig = this.signatures.find(s => {
-        return Buffer.compare(s.pubkey, pubk) === 0
-      })
-      return sig && sig.verifyAgainst(data)
-    })
+    const data = this.toBuffer()
+    return this.signatures.every(sig => sig.verifyAgainst(data))
   }
 
   addSignature (signature :Signature): void {
     this.signatures.push(signature)
   }
 
-  isSignedBy (pubKey: Uint8Array) {
-    return this.signatures.some(s => Buffer.compare(s.pubkey, pubKey) === 0)
+  isSignedBy (pubKey: PubKey) {
+    return this.signatures.some(s => s.pubkey.equals(pubKey))
+  }
+
+  sign (privKey: PrivKey) {
+    const signature = Signature.from(privKey, this.toBuffer())
+    this.addSignature(signature)
+  }
+
+  toBuffer() {
+    return Buffer.from(this.serialize());
   }
 }
 

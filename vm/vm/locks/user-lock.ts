@@ -1,11 +1,12 @@
 import { Lock } from './lock.js'
 import {TxExecution} from "../tx-execution.js";
+import {PubKey} from '@aldea/sdk-js';
 
 export class UserLock implements Lock {
-  private pubkey: Uint8Array;
+  private pubkey: PubKey;
   private _isOpen: boolean;
 
-  constructor (pubkey: Uint8Array) {
+  constructor (pubkey: PubKey) {
     this.pubkey = pubkey
     this._isOpen = false
   }

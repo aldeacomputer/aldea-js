@@ -1,11 +1,12 @@
 import { UserLock } from "../locks/user-lock.js"
 import {TxExecution} from "../tx-execution.js";
+import {PubKey} from '@aldea/sdk-js';
 
 export class LockInstruction {
   private masterListIndex: number;
-  private pubkey: Uint8Array;
+  private pubkey: PubKey;
 
-  constructor (masterListIndex: number, pubkey: Uint8Array) {
+  constructor (masterListIndex: number, pubkey: PubKey) {
     this.masterListIndex = masterListIndex
     this.pubkey = pubkey
   }
@@ -15,10 +16,10 @@ export class LockInstruction {
   }
 
   encode () {
-    return `LOCK $${this.masterListIndex} "${Buffer.from(this.pubkey).toString('hex')}"`
+    return `LOCK $${this.masterListIndex} "${this.pubkey.toHex()}"`
   }
 
-  getPubKey (): Uint8Array {
+  getPubKey (): PubKey {
     return this.pubkey
   }
 }

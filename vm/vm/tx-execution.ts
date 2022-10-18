@@ -11,6 +11,7 @@ import {LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Internref} from "./memory.js";
 import {MethodNode} from '@aldea/compiler/abi'
+import {PubKey} from "@aldea/sdk-js";
 
 class TxExecution {
   tx: Transaction;
@@ -110,7 +111,7 @@ class TxExecution {
     } else if (type === LockType.NONE) {
       childJigRef.changeLock(new NoLock())
     } else if (type === LockType.PUBKEY) {
-      childJigRef.changeLock(new UserLock(new Uint8Array(extraArg)))
+      childJigRef.changeLock(new UserLock(PubKey.fromBytes(new Uint8Array(extraArg))))
     } else {
       throw new Error('not implemented yet')
     }

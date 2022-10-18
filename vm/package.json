@@ -5,8 +5,15 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "build": "node cmd/compile-all.js",
+    "build": "tsc",
+    "compile": "node cmd/compile-all.js",
     "dev": "node cmd/watch.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./tsc/index.js",
+      "types": "./tsc/index.ts.d"
+    }
   },
   "type": "module",
   "keywords": [],
@@ -27,6 +34,7 @@
   },
   "dependencies": {
     "@aldea/compiler": "0.0.1",
+    "@aldea/sdk-js": "workspace:*",
     "@noble/ed25519": "^1.7.1",
     "blake3-wasm": "^2.1.5",
     "cbor-redux": "1.0.0-3"
