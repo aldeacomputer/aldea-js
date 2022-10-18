@@ -9,8 +9,8 @@ import {Transaction} from "./transaction.js";
 import {VM} from "./vm.js";
 import {MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
-import {Internref, lowerValue} from "./memory.js";
-import {MethodNode, FieldNode} from '@aldea/compiler/abi'
+import {Internref} from "./memory.js";
+import {MethodNode} from '@aldea/compiler/abi'
 
 class TxExecution {
   tx: Transaction;
@@ -55,8 +55,17 @@ class TxExecution {
     wasmModule.onAdopt(this._onAdopt.bind(this))
     wasmModule.onRelease(this._onRelease.bind(this))
     wasmModule.onFindUtxo(this._onFindUtxo.bind(this))
+    wasmModule.onLocalLock(this._onLocalLock.bind(this))
+    wasmModule.onLocalCallStart(this._onLocalCallStart.bind(this))
+    wasmModule.onLocalCallEnd(this._onLocalCallEnd.bind(this))
     this.wasms.set(moduleId, wasmModule)
     return wasmModule
+  }
+
+  _onLocalLock(jigPtr: number, instance: WasmInstance): void {
+    const childJigRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance)
+    if (!childJigRef) {throw new Error('should exists')}
+    childJigRef.setOwner(new JigLock(this.stack[this.stack.length - 1]))
   }
 
   _onMethodCall (origin: string, methodNode: MethodNode, args: any[]): MethodResult {
@@ -65,11 +74,14 @@ class TxExecution {
       jig = this.loadJig(origin, false)
     }
 
-    methodNode.args.forEach((arg: FieldNode, i: number) => {
-      lowerValue(jig.module, arg.type, args[i])
-    })
+    return jig.sendMessage(methodNode.name, args, this.stack[this.stack.length - 1])
 
-    return jig.module.instanceCall(jig, jig.className, methodNode.name, args)
+    // methodNode.args.forEach((arg: FieldNode, i: number) => {
+    //   lowerValue(jig.module, arg.type, args[i])
+    // })
+    //
+    //
+    // return jig.module.instanceCall(jig, jig.className, methodNode.name, args)
   }
 
   _onGetProp (origin: string, propName: string): Prop {
@@ -94,6 +106,18 @@ class TxExecution {
 
   _onRelease(_childOrigin: string, _parentOrigin: string) {
     throw new Error('on release not implemented')
+  }
+
+  _onLocalCallStart(jigPtr: number, wasmInstance: WasmInstance) {
+    const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === wasmInstance)
+    if (!jig) {
+      throw new Error('jig should exist')
+    }
+    this.stack.push(jig.origin)
+  }
+
+  _onLocalCallEnd () {
+    this.stack.pop()
   }
 
   private _onFindUtxo(jigPtr: number): JigRef {
@@ -176,13 +200,13 @@ class TxExecution {
     return jigRef
   }
 
-  call (masterListIndex: number, methodName: string, args: any[], caller: string): Uint8Array {
-    const jigRef = this.getJigRef(masterListIndex)
-    this.stack.push(jigRef.origin)
-    const ret = jigRef.sendMessage(methodName, args, caller)
-    this.stack.pop()
-    return ret
-  }
+  // call (masterListIndex: number, methodName: string, args: any[], caller: string): Uint8Array {
+  //   const jigRef = this.getJigRef(masterListIndex)
+  //   this.stack.push(jigRef.origin)
+  //   const ret = jigRef.sendMessage(methodName, args, caller)
+  //   this.stack.pop()
+  //   return ret
+  // }
 
   newOrigin () {
     return locationF(this.tx, this.jigs.length)

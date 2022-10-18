@@ -1,5 +1,5 @@
 import { PermissionError } from './errors.js'
-import { WasmInstance } from './wasm-instance.js';
+import {MethodResult, WasmInstance} from './wasm-instance.js';
 import {Lock} from "./locks/lock.js";
 import {UserLock} from "./locks/user-lock.js";
 import {Internref} from "./memory.js";
@@ -38,12 +38,11 @@ export class JigRef {
   //   // propStr: string, ref: Internref
   // }
 
-  sendMessage (methodName: string, args: any[] , caller: string): Uint8Array {
+  sendMessage (methodName: string, args: any[] , caller: string): MethodResult {
     if (!this.lock.checkCaller(caller)) {
       throw new PermissionError(`jig ${this.origin} does not accept messages from ${caller}`)
     }
-    this.module.instanceCall(this, this.className, methodName, args)
-    return new Uint8Array(0)
+    return this.module.instanceCall(this, this.className, methodName, args)
   }
 
   get originBuf (): Buffer {

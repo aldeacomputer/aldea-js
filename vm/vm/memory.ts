@@ -249,8 +249,8 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
 /**
  * Casts the Internref as its number value.
  */
-export function lowerInternref(ref: Internref): number {
-  return ref.ptr
+export function lowerInternref(ref: JigRef): number {
+  return ref.ref.ptr
 }
 
 /**
@@ -380,9 +380,9 @@ export function lowerObject(mod: Module, obj: ObjectNode, vals: any[] | any): nu
  * Lowers an imported object (setting the origin ArrayBuffer) into WASM memory
  * and returns the Ptr.
  */
-export function lowerImportedObject(mod: Module, val: JigRef): number {
-  const buffer = lowerBuffer(mod, val.originBuf)
-  const ptr = mod.__new(val.originBuf.byteLength, 0);
+export function lowerImportedObject(mod: Module, val: Externref): number {
+  const buffer = lowerBuffer(mod, Buffer.from(val.origin))
+  const ptr = mod.__new(val.origin.byteLength, 0);
   const memU32 = new Uint32Array(mod.memory.buffer)
   memU32[ptr >>> 2] = buffer
   return ptr

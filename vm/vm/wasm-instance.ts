@@ -67,6 +67,9 @@ type CreateHandler = (moduleId: string, className: string, args: any[]) => JigRe
 type AdoptHandler = (childOrigin: string) => void
 type ReleaseHandler = (childOrigin: string, parentOrigin: string) => void
 type FindUtxoHandler = (jigPtr: number) => JigRef
+type LocalLockHandler = (jigPtr: number, wasmInstance: WasmInstance) => void
+type LocalCallStartHandler = (jigPtr: number, wasmInstance: WasmInstance) => void
+type LocalCallEndtHandler = () => void
 
 
 const utxoAbiNode = {
@@ -144,6 +147,9 @@ export class WasmInstance {
   private adoptHandler: AdoptHandler;
   private releaseHandler: ReleaseHandler;
   private findUtxoHandler: FindUtxoHandler
+  private localLockHandler: LocalLockHandler;
+  private localCallStartHandler: LocalCallStartHandler;
+  private localCallEndtHandler: LocalCallEndtHandler;
   private module: WebAssembly.Module;
   private instance: WebAssembly.Instance;
   abi: Abi;
@@ -160,6 +166,9 @@ export class WasmInstance {
     this.adoptHandler = () => { throw new Error('handler not defined')}
     this.releaseHandler = () => { throw new Error('handler not defined')}
     this.findUtxoHandler = () => { throw new Error('handler not defined')}
+    this.localLockHandler = () => { throw new Error('handler not defined')}
+    this.localCallStartHandler = () => { throw new Error('handler not defined') }
+    this.localCallEndtHandler = () => { throw new Error('handler not defined') }
     const imports: any = {
       env: {
         memory: wasmMemory,
@@ -174,10 +183,12 @@ export class WasmInstance {
         }
       },
       vm: {
-        vm_local_call_start: () => {
-
+        vm_local_call_start: (jigPtr: number, _fnNamePtr: number): void => {
+          this.localCallStartHandler(jigPtr, this)
         },
-        vm_local_call_end: () => {},
+        vm_local_call_end: () => {
+          this.localCallEndtHandler()
+        },
         vm_remote_call_i: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number): number => {
           const targetOriginArrBuf = liftBuffer(this, targetOriginPtr)
           const fnStr = liftString(this, fnNamePtr)
@@ -186,8 +197,6 @@ export class WasmInstance {
           const [className, methodName] = fnStr.split('$')
           const obj = findImportedObject(this.abi, className, 'could not find object')
           const method = findObjectMethod(obj, methodName, 'could not find method')
-
-
 
           const argReader = new ArgReader(argBuf)
           const args = method.args.map((n: FieldNode) => {
@@ -207,8 +216,8 @@ export class WasmInstance {
           return lowerValue(prop.mod, prop.node, prop.value)
         },
         vm_local_authcheck: () => {},
-        vm_local_lock: () => {
-          console.log('holu')
+        vm_local_lock: (targetJigRefPtr: number, _type: LockType, _argsPtr: number): void => {
+          this.localLockHandler(targetJigRefPtr, this)
         },
         vm_local_state: (jigPtr: number): number => {
           const jigRef = this.findUtxoHandler(jigPtr)
@@ -239,6 +248,8 @@ export class WasmInstance {
     }
     this.module = module
     this.instance = new WebAssembly.Instance(this.module, imports)
+    const start = this.instance.exports._start as Function;
+    start()
     this.memory = wasmMemory
   }
 
@@ -264,6 +275,18 @@ export class WasmInstance {
 
   onFindUtxo(fn: FindUtxoHandler) {
     this.findUtxoHandler = fn
+  }
+
+  onLocalLock(fn: LocalLockHandler) {
+    this.localLockHandler = fn
+  }
+
+  onLocalCallStart (fn: LocalCallStartHandler) {
+    this.localCallStartHandler = fn
+  }
+
+  onLocalCallEnd (fn: LocalCallEndtHandler) {
+    this.localCallEndtHandler = fn
   }
 
   setUp () {}
@@ -301,7 +324,7 @@ export class WasmInstance {
     const method = findObjectMethod(abiObj, methodName, `unknown method: ${methodName}`)
 
     const ptrs = [
-      lowerInternref(ref.ref),
+      lowerInternref(ref),
       ...method.args.map((argNode, i) => {
         return lowerValue(this, argNode.type, args[i])
       })

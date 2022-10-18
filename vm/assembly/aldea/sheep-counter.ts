@@ -18,6 +18,12 @@ export class SheepCounter {
     this.legCount += flock.legCount();
     return this.sheepCount;
   }
+
+  countShepherd (aShepherd: Shepherd): u32 {
+    this.sheepCount += aShepherd.sheepCount()
+    this.legCount += aShepherd.legCount()
+    return this.sheepCount
+  }
 }
 
 export class Shepherd {
@@ -35,6 +41,14 @@ export class Shepherd {
       return currentFlock
     }
     return anotherFlock
+  }
+
+  legCount (): u32 {
+    return this.flock.legCount() + 2
+  }
+
+  sheepCount (): u32 {
+    return this.flock.size
   }
 }
 
