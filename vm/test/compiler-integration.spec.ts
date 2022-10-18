@@ -5,7 +5,6 @@ import {
   LockInstruction,
   NewInstruction,
   Storage,
-  UnlockInstruction,
   VM
 } from '../vm/index.js'
 import {expect} from 'chai'
@@ -130,9 +129,10 @@ describe('execute txs', () => {
 
     const tx2 = new Transaction()
       .add(new LoadInstruction(locationF(tx1, 0)))
-      .add(new UnlockInstruction(0, userPub ))
       .add(new CallInstruction(0, 'countSheep' ,[new JigArg(1)]))
       .add(new LockInstruction(0, userPub))
+
+    tx2.addSignature(Signature.from(userPriv, Buffer.from(tx2.serialize())))
 
     const vm = new VM(storage)
     const exec1 = vm.execTx(tx1)
@@ -167,10 +167,11 @@ describe('execute txs', () => {
     const tx2 = new Transaction()
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(5)]))
       .add(new LoadInstruction(locationF(tx1, 1)))
-      .add(new UnlockInstruction(1, userPub))
       .add(new CallInstruction(1, 'replace', [ new JigArg(0) ]))
       .add(new LockInstruction(1, userPub))
       .add(new LockInstruction(0, userPub))
+
+    tx2.addSignature(Signature.from(userPriv, Buffer.from(tx2.serialize())))
 
     const vm = new VM(storage)
     const exec1 = vm.execTx(tx1)
@@ -191,10 +192,11 @@ describe('execute txs', () => {
     const tx2 = new Transaction()
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new LoadInstruction(locationF(tx1, 1)))
-      .add(new UnlockInstruction(1, userPub))
       .add(new CallInstruction(0, 'countShepherd', [ new JigArg(1) ]))
       .add(new LockInstruction(0, userPub))
       .add(new LockInstruction(1, userPub))
+
+    tx2.addSignature(Signature.from(userPriv, Buffer.from(tx2.serialize())))
 
     const vm = new VM(storage)
     const exec1 = vm.execTx(tx1)
@@ -229,6 +231,39 @@ describe('execute txs', () => {
 
     const vm = new VM(storage)
     expect(() => vm.execTx(tx)).to.throw()
+  })
+
+  it('throws error when tx not signed by the owner', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/tv.wasm', 'TV' ,[]))
+      .add(new LockInstruction(0, userPub))
+
+    const tx2 = new Transaction()
+      .add(new LoadInstruction(locationF(tx1, 0), false))
+      .add(new LockInstruction(0, userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    storage.persist(exec1)
+    expect(() => vm.execTx(tx2)).to.throw()
+  })
+
+  it('does not throw if tx was signed by the owner', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/tv.wasm', 'TV' ,[]))
+      .add(new LockInstruction(0, userPub))
+
+    const tx2 = new Transaction()
+      .add(new LoadInstruction(locationF(tx1, 0), false))
+      .add(new LockInstruction(0, userPub))
+
+    tx2.addSignature(Signature.from(userPriv, Buffer.from(tx2.serialize())))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    storage.persist(exec1)
+    vm.execTx(tx2)
+    expect(() => vm.execTx(tx2)).not.to.throw()
   })
 
 
