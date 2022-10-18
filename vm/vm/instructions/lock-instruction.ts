@@ -15,7 +15,7 @@ export class LockInstruction {
   }
 
   encode () {
-    return `LOCK $${this.masterListIndex} "${this.pubkey}"`
+    return `LOCK $${this.masterListIndex} "${Buffer.from(this.pubkey).toString('hex')}"`
   }
 
   getPubKey (): Uint8Array {
