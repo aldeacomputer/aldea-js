@@ -49,7 +49,7 @@ export class JigRef {
     return Buffer.from(this.origin)
   }
 
-  setOwner (newLock: Lock) {
+  changeLock (newLock: Lock) {
     this.lock = newLock
   }
 

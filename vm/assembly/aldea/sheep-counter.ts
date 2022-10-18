@@ -35,12 +35,20 @@ export class Shepherd {
   }
 
   replace (anotherFlock: Flock): Flock {
-    const currentFlock = this.flock
     if (this.flock.legCount() <= anotherFlock.legCount()) {
+      const oldFlock = this.flock
+      Auth.lockToParent<Flock, Shepherd>(anotherFlock, this)
+      Auth.lockToNone(oldFlock)
       this.flock = anotherFlock
-      return currentFlock
+      return oldFlock
+    } else {
+      return anotherFlock
     }
-    return anotherFlock
+  }
+
+  replaceAndSendTo (anotherFlock: Flock, newOwner: ArrayBuffer): void {
+    const oldFlock = this.replace(anotherFlock)
+    Auth.lockToPubkey(oldFlock, newOwner)
   }
 
   legCount (): u32 {

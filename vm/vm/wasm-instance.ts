@@ -31,7 +31,7 @@ import {ArgReader, readType} from "./arg-reader.js";
 //   LOCK,     // 1 - can the called lock the jig?
 // }
 
-enum LockType {
+export enum LockType {
   NONE,     // 0 - default, vm allows anyone to lock, but prevents function calls
   PUBKEY,   // 1 - vm requires valid signature to call function or change lock
   PARENT,   // 2 - vm requires parent is caller to call function or change lock
@@ -64,10 +64,10 @@ function __decodeArgs (data: ArrayBuffer): any[] {
 type MethodHandler = (origin: string, methodNode: MethodNode, args: any[]) => MethodResult
 type GetPropHandler = (origin: string, propName: string) => Prop
 type CreateHandler = (moduleId: string, className: string, args: any[]) => JigRef
-type AdoptHandler = (childOrigin: string) => void
+type RemoteLockHandler = (childOrigin: string, type: LockType, extraArg: ArrayBuffer) => void
 type ReleaseHandler = (childOrigin: string, parentOrigin: string) => void
 type FindUtxoHandler = (jigPtr: number) => JigRef
-type LocalLockHandler = (jigPtr: number, wasmInstance: WasmInstance) => void
+type LocalLockHandler = (jigPtr: number, wasmInstance: WasmInstance, type: LockType, extraArg: ArrayBuffer) => void
 type LocalCallStartHandler = (jigPtr: number, wasmInstance: WasmInstance) => void
 type LocalCallEndtHandler = () => void
 
@@ -144,7 +144,7 @@ export class WasmInstance {
   private methodHandler: MethodHandler;
   private getPropHandler: GetPropHandler;
   private createHandler: CreateHandler;
-  private adoptHandler: AdoptHandler;
+  private remoteLockHandler: RemoteLockHandler;
   private releaseHandler: ReleaseHandler;
   private findUtxoHandler: FindUtxoHandler
   private localLockHandler: LocalLockHandler;
@@ -163,7 +163,7 @@ export class WasmInstance {
     this.methodHandler = () => { throw new Error('handler not defined')}
     this.getPropHandler = () => { throw new Error('handler not defined')}
     this.createHandler = () => { throw new Error('handler not defined')}
-    this.adoptHandler = () => { throw new Error('handler not defined')}
+    this.remoteLockHandler = () => { throw new Error('handler not defined')}
     this.releaseHandler = () => { throw new Error('handler not defined')}
     this.findUtxoHandler = () => { throw new Error('handler not defined')}
     this.localLockHandler = () => { throw new Error('handler not defined')}
@@ -216,8 +216,9 @@ export class WasmInstance {
           return lowerValue(prop.mod, prop.node, prop.value)
         },
         vm_local_authcheck: () => {},
-        vm_local_lock: (targetJigRefPtr: number, _type: LockType, _argsPtr: number): void => {
-          this.localLockHandler(targetJigRefPtr, this)
+        vm_local_lock: (targetJigRefPtr: number, type: LockType, argsPtr: number): void => {
+          const argBuf = liftBuffer(this, argsPtr)
+          this.localLockHandler(targetJigRefPtr, this, type, argBuf)
         },
         vm_local_state: (jigPtr: number): number => {
           const jigRef = this.findUtxoHandler(jigPtr)
@@ -233,13 +234,10 @@ export class WasmInstance {
           }
           return lowerObject(this, abiNode, utxo)
         },
-        vm_remote_lock: (originPtr: number, type: LockType, _argsPtr: number) => {
+        vm_remote_lock: (originPtr: number, type: LockType, argsPtr: number) => {
+          const argBuf = liftBuffer(this, argsPtr)
           const origin = liftBuffer(this, originPtr)
-          if (type === LockType.PARENT) {
-            this.adoptHandler(Buffer.from(origin).toString())
-          } else {
-            throw new Error('not implemented yet')
-          }
+          this.remoteLockHandler(Buffer.from(origin).toString(), type, argBuf)
         },
         vm_print: (msgPtr: number ) => {
           console.log(msgPtr)
@@ -265,8 +263,8 @@ export class WasmInstance {
     this.createHandler = fn
   }
 
-  onAdopt (fn: AdoptHandler) {
-    this.adoptHandler = fn
+  onRemoteLockHandler (fn: RemoteLockHandler) {
+    this.remoteLockHandler = fn
   }
 
   onRelease (fn: ReleaseHandler) {

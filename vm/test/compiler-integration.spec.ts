@@ -169,7 +169,7 @@ describe('execute txs', () => {
       .add(new LoadInstruction(locationF(tx1, 1)))
       .add(new CallInstruction(1, 'replace', [ new JigArg(0) ]))
       .add(new LockInstruction(1, userPub))
-      .add(new LockInstruction(0, userPub))
+      .add(new LockInstruction(2, userPub))
 
     tx2.addSignature(Signature.from(userPriv, Buffer.from(tx2.serialize())))
 
@@ -206,6 +206,20 @@ describe('execute txs', () => {
 
     expect(parsed[0]).to.eql(2)
     expect(parsed[1]).to.eql(10)
+  })
+
+  it('can lock to a user from a jig method', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(3)]))
+      .add(new NewInstruction('aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
+      .add(new CallInstruction(2, 'replaceAndSendTo', [new JigArg(1), new LiteralArg(userPub)]))
+      .add(new LockInstruction(2, userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+
+    expect(exec1.outputs[0].serializedLock.type).to.eql('UserLock')
   })
 
   it('checks the permision on nested operations and works when invalid', () => {

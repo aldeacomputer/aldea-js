@@ -1,13 +1,13 @@
-import { JigLock } from "./locks/jig-lock.js"
-import { JigRef } from "./jig-ref.js"
-import { ExecutionError, PermissionError } from "./errors.js"
-import { UserLock } from "./locks/user-lock.js"
-import { NoLock } from "./locks/no-lock.js"
-import { locationF } from './location.js'
-import { JigState } from "./jig-state.js"
+import {JigLock} from "./locks/jig-lock.js"
+import {JigRef} from "./jig-ref.js"
+import {ExecutionError, PermissionError} from "./errors.js"
+import {UserLock} from "./locks/user-lock.js"
+import {NoLock} from "./locks/no-lock.js"
+import {locationF} from './location.js'
+import {JigState} from "./jig-state.js"
 import {Transaction} from "./transaction.js";
 import {VM} from "./vm.js";
-import {MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
+import {LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Internref} from "./memory.js";
 import {MethodNode} from '@aldea/compiler/abi'
@@ -52,7 +52,7 @@ class TxExecution {
     wasmModule.onMethodCall(this._onMethodCall.bind(this))
     wasmModule.onGetProp(this._onGetProp.bind(this))
     wasmModule.onCreate(this._onCreate.bind(this))
-    wasmModule.onAdopt(this._onAdopt.bind(this))
+    wasmModule.onRemoteLockHandler(this._onRemoteLock.bind(this))
     wasmModule.onRelease(this._onRelease.bind(this))
     wasmModule.onFindUtxo(this._onFindUtxo.bind(this))
     wasmModule.onLocalLock(this._onLocalLock.bind(this))
@@ -62,10 +62,11 @@ class TxExecution {
     return wasmModule
   }
 
-  _onLocalLock(jigPtr: number, instance: WasmInstance): void {
+  _onLocalLock(jigPtr: number, instance: WasmInstance, type: LockType, extraArg: ArrayBuffer): void {
     const childJigRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance)
     if (!childJigRef) {throw new Error('should exists')}
-    childJigRef.setOwner(new JigLock(this.stack[this.stack.length - 1]))
+    this._onRemoteLock(childJigRef.origin, type, extraArg)
+    // childJigRef.changeLock(new JigLock(this.stack[this.stack.length - 1]))
   }
 
   _onMethodCall (origin: string, methodNode: MethodNode, args: any[]): MethodResult {
@@ -98,10 +99,21 @@ class TxExecution {
     return this.instantiate(moduleId, className, args, new NoLock())
   }
 
-  _onAdopt(childOrigin: string): void {
+  _onRemoteLock (childOrigin: string, type: LockType, extraArg: ArrayBuffer): void {
     const childJigRef = this.getJigRefByOrigin(childOrigin)
-    const parentJigOrigin = this.stack[this.stack.length - 1]
-    childJigRef.setOwner(new JigLock(parentJigOrigin))
+    if (!childJigRef.lock.acceptsExecution(this)) {
+      throw new Error('lock cannot be changed')
+    }
+    if (type === LockType.PARENT) {
+      const parentJigOrigin = this.stack[this.stack.length - 1]
+      childJigRef.changeLock(new JigLock(parentJigOrigin))
+    } else if (type === LockType.NONE) {
+      childJigRef.changeLock(new NoLock())
+    } else if (type === LockType.PUBKEY) {
+      childJigRef.changeLock(new UserLock(new Uint8Array(extraArg)))
+    } else {
+      throw new Error('not implemented yet')
+    }
   }
 
   _onRelease(_childOrigin: string, _parentOrigin: string) {
