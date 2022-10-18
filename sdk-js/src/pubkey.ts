@@ -18,6 +18,13 @@ export class PubKey {
   }
 
   /**
+   * checks if 2 pubkey objects represent the same point
+   */
+  equals (another: PubKey) {
+    return this.x === another.x && this.y === another.y
+  }
+
+  /**
    * Point X coordiante
    */
   get x(): bigint { return this.point.x }
@@ -42,9 +49,6 @@ export class PubKey {
    * Returns a PubKey from the given hex-encoded string.
    */
   static fromHex(str: string): PubKey {
-    if (typeof str !== 'string') {
-      throw Error('The first argument to `PubKey.fromHex()` must be a `string`')
-    }
     const point = pointFromBytes(str)
     return new PubKey(point)
   }

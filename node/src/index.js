@@ -2,7 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import cbor from 'cbor'
 
-import { VM, Storage } from '@aldea/vm'
+import { Storage, VM } from '@aldea/vm'
 import { TransactionJSON } from './transaction-json.js'
 
 const storage = new Storage()
@@ -35,7 +35,7 @@ app.get('/state/:location', (req, res) => {
     const exports = wasm.instance.exports
     const schemaFunctionName = `${state.className}_schema`
     const schemaPointer = exports[schemaFunctionName]()
-    const schemaBuffer = wasm.__liftBuffer(schemaPointer)
+    const schemaBuffer = wasm.memory.liftBuffer(schemaPointer)
     const schema = cbor.decode(schemaBuffer)
     const values = cbor.decodeAllSync(Buffer.from(state.stateBuf))
     const stateJson = {}

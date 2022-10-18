@@ -1,12 +1,12 @@
-import { Transaction } from '../../vm/vm/transaction.js'
 import {
   NewInstruction,
   CallInstruction,
   LockInstruction,
-  UnlockInstruction,
-  LoadInstruction
+  LoadInstruction,
+  Transaction,
+  LiteralArg
 } from '@aldea/vm'
-import { LiteralArg } from '../../vm/vm/literal-arg.js'
+import { PrivKey } from "@aldea/sdk-js"
 
 export class TransactionJSON {
   static parse (json) {
@@ -32,15 +32,7 @@ export class TransactionJSON {
 
         case 'lock': {
           const masterListIndex = jsonInstruction.masterListIndex
-          const lock = jsonInstruction.lock
-          const instruction = new LockInstruction(masterListIndex, lock)
-          tx.add(instruction)
-        } break
-
-        case 'unlock': {
-          const masterListIndex = jsonInstruction.masterListIndex
-          const key = jsonInstruction.key
-          const instruction = new UnlockInstruction(masterListIndex, key)
+          const instruction = new LockInstruction(masterListIndex, PrivKey.fromRandom().toPubKey())
           tx.add(instruction)
         } break
 
@@ -55,6 +47,7 @@ export class TransactionJSON {
       }
     })
 
+
     return tx
   }
 
@@ -67,8 +60,6 @@ export class TransactionJSON {
 
       if (instruction instanceof LoadInstruction) {
         jsonInstruction.name = 'load'
-      } else if (instruction instanceof UnlockInstruction) {
-        jsonInstruction.name = 'unlock'
       } else if (instruction instanceof LockInstruction) {
         jsonInstruction.name = 'lock'
       } else if (instruction instanceof CallInstruction) {

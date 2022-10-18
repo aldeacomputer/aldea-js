@@ -5,24 +5,36 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "build": "node cmd/compile-all.js",
+    "build": "tsc",
+    "compile": "node cmd/compile-all.js",
     "dev": "node cmd/watch.js"
   },
+  "exports": {
+    ".": {
+      "import": "./tsc/index.js",
+      "types": "./tsc/index.ts.d"
+    }
+  },
+  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/chai": "^4.3.3",
+    "@types/mocha": "^10.0.0",
     "assemblyscript": "^0.21.3",
     "chai": "^4.3.6",
     "chokidar": "^3.5.3",
     "glob": "^8.0.3",
     "mocha": "^10.0.0",
     "nodemon": "^2.0.19",
-    "typescript": "^4.8.3"
+    "ts-mocha": "^10.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.4"
   },
-  "type": "module",
   "dependencies": {
-    "@aldea/compiler-old": "0.0.1",
+    "@aldea/compiler": "0.0.1",
+    "@aldea/sdk-js": "workspace:*",
     "@noble/ed25519": "^1.7.1",
     "blake3-wasm": "^2.1.5",
     "cbor-redux": "1.0.0-3"
