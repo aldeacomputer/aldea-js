@@ -1,5 +1,8 @@
+import {TxExecution} from "../tx-execution.js";
+
 export interface Lock {
-  checkCaller (caller: string): boolean
   serialize (): string
   isOpen (): boolean
+
+  acceptsExecution(context: TxExecution): boolean;
 }

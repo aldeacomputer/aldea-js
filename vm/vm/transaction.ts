@@ -58,6 +58,10 @@ class Transaction {
   addSignature (signature :Signature): void {
     this.signatures.push(signature)
   }
+
+  isSignedBy (pubKey: Uint8Array) {
+    return this.signatures.some(s => Buffer.compare(s.pubkey, pubKey) === 0)
+  }
 }
 
 export { Transaction }

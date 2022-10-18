@@ -1,5 +1,5 @@
-import { PermissionError } from "../errors.js"
 import {Lock} from "./lock.js";
+import {TxExecution} from "../tx-execution.js";
 
 export class JigLock implements Lock {
   private origin: string;
@@ -19,7 +19,7 @@ export class JigLock implements Lock {
     return false
   }
 
-  checkCaller (caller: string): boolean {
-    return caller === this.origin
+  acceptsExecution(context: TxExecution): boolean {
+    return context.stackTop() === this.origin;
   }
 }

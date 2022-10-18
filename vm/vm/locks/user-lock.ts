@@ -1,5 +1,5 @@
-import { PermissionError } from '../errors.js'
 import { Lock } from './lock.js'
+import {TxExecution} from "../tx-execution.js";
 
 export class UserLock implements Lock {
   private pubkey: Uint8Array;
@@ -10,15 +10,8 @@ export class UserLock implements Lock {
     this._isOpen = false
   }
 
-  open (key: Uint8Array): void {
-    if (key !== this.pubkey) {
-      throw new PermissionError('wrong key')
-    }
+  open (): void {
     this._isOpen = true
-  }
-
-  checkCaller (caller: string) {
-    return this._isOpen
   }
 
   isOpen () {
@@ -30,5 +23,9 @@ export class UserLock implements Lock {
       type: 'UserLock',
       data: { pubkey: this.pubkey }
     }
+  }
+
+  acceptsExecution(context: TxExecution): boolean {
+    return context.tx.isSignedBy(this.pubkey);
   }
 }

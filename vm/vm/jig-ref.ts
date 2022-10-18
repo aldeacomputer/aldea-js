@@ -1,8 +1,8 @@
 import { PermissionError } from './errors.js'
 import {MethodResult, WasmInstance} from './wasm-instance.js';
 import {Lock} from "./locks/lock.js";
-import {UserLock} from "./locks/user-lock.js";
 import {Internref} from "./memory.js";
+import {TxExecution} from "./tx-execution.js";
 
 
 // export type JigPointer = {
@@ -38,9 +38,9 @@ export class JigRef {
   //   // propStr: string, ref: Internref
   // }
 
-  sendMessage (methodName: string, args: any[] , caller: string): MethodResult {
-    if (!this.lock.checkCaller(caller)) {
-      throw new PermissionError(`jig ${this.origin} does not accept messages from ${caller}`)
+  sendMessage (methodName: string, args: any[] , context: TxExecution): MethodResult {
+    if (!this.lock.acceptsExecution(context)) {
+      throw new PermissionError(`jig ${this.origin} does not accept messages from ${context.stackTop()}`)
     }
     return this.module.instanceCall(this, this.className, methodName, args)
   }
@@ -51,16 +51,6 @@ export class JigRef {
 
   setOwner (newLock: Lock) {
     this.lock = newLock
-  }
-
-  open (key: Uint8Array): void {
-    const lock = this.lock
-    if (!(lock instanceof UserLock)) {
-      throw new Error('expected to be a user lock')
-    } else {
-      const userLock = lock as UserLock
-      userLock.open(key)
-    }
   }
 
   close (newLock: Lock) {

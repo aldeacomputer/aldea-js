@@ -16,7 +16,7 @@ export class CallInstruction implements Instruction {
   exec (context: TxExecution): void {
     const args = this.args.map(a => a.get(context))
     const jigRef = context.getJigRef(this.masterListIndex)
-    jigRef.sendMessage(this.methodName, args, 'topLevel')
+    jigRef.sendMessage(this.methodName, args, context)
   }
 
   encode (): string {

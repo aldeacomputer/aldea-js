@@ -74,7 +74,7 @@ class TxExecution {
       jig = this.loadJig(origin, false)
     }
 
-    return jig.sendMessage(methodNode.name, args, this.stack[this.stack.length - 1])
+    return jig.sendMessage(methodNode.name, args, this)
 
     // methodNode.args.forEach((arg: FieldNode, i: number) => {
     //   lowerValue(jig.module, arg.type, args[i])
@@ -172,7 +172,9 @@ class TxExecution {
 
   _hidrateLock (frozenLock: any): Lock {
     if (frozenLock.type === 'UserLock') {
-      return new UserLock(frozenLock.data.pubkey)
+      const lock = new UserLock(frozenLock.data.pubkey)
+      lock.open()
+      return lock
     } else if (frozenLock.type === 'JigLock') {
       return new JigLock(frozenLock.data.origin)
     } else {
@@ -182,8 +184,7 @@ class TxExecution {
 
   lockJig (masterListIndex: number, lock: Lock) {
     const jigRef = this.getJigRef(masterListIndex)
-    const stackTop = this.stack[this.stack.length - 1]
-    if (!jigRef.lock.checkCaller(stackTop)) {
+    if (!jigRef.lock.acceptsExecution(this)) {
       throw new ExecutionError(`no permission to remove lock from jig ${jigRef.origin}`)
     }
     jigRef.close(lock)
@@ -210,6 +211,10 @@ class TxExecution {
 
   newOrigin () {
     return locationF(this.tx, this.jigs.length)
+  }
+
+  stackTop () {
+    return this.stack[this.stack.length - 1]
   }
 }
 
