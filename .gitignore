@@ -18,3 +18,7 @@ node_modules
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Coverage data
+*.profraw
+*.profdata
