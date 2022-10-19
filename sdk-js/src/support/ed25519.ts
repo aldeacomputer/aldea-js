@@ -48,6 +48,7 @@ export function sign(msg: Uint8Array, privKey: PrivKey | Uint8Array): Uint8Array
  */
 export function verify(sig: Uint8Array, msg: Uint8Array, pubKey: PubKey | Uint8Array): boolean {
   let point: Point
+  console.log(sig)
   if ('point' in pubKey) { point = pubKey.point }
   else { point = pointFromBytes(pubKey) }
   return sync.verify(sig, msg, point)

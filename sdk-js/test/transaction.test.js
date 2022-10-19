@@ -74,3 +74,79 @@ test('after sign is signed by a given signature', t => {
   tx.addSignature(signature)
   t.true(tx.isSignedBy(pubkey))
 })
+
+test('toPlainObject returns a correctly serialized plain object', t => {
+  const privKey = PrivKey.fromRandom()
+  const pubkey = privKey.toPubKey()
+  const tx = new Transaction()
+    .add(new LoadInstruction('someLocation', true))
+    .add(new NewInstruction('someModule', 'SomeClass', [new JigArg(1), new StringArg('foo')]))
+    .add(new CallInstruction(0, 'someMethod', [new JigArg(3), new NumberArg(10)]))
+    .add(new LockInstruction(1, pubkey))
+
+  const signature = Signature.from(privKey, Buffer.from(tx.serialize()))
+  tx.addSignature(signature)
+
+  const serialized = tx.toPlainObject()
+  t.is(serialized.instructions.length, 4)
+  t.deepEqual(serialized.instructions, [
+    {
+      type: 'load',
+      props: {
+        location: 'someLocation', force: true
+      }
+    },
+    {
+      type: 'new',
+      props: {
+        moduleId: 'someModule',
+        className: 'SomeClass',
+        args: [{type: 'jig', index: 1}, {type: 'string', value: 'foo'}]
+      }
+    },
+    {
+      type: 'call',
+      props: {
+        masterListIndex: 0,
+        methodName: 'someMethod',
+        args: [{type: 'jig', index: 3}, {type: 'number', value: 10}]
+      }
+    },
+    {
+      type: 'lock',
+      props: {
+        masterListIndex: 1,
+        pubKey: pubkey.toHex()
+      }
+    }
+  ])
+  t.is(serialized.signatures.length, 1)
+
+  t.deepEqual(serialized.signatures, [
+    {
+      pubKey: pubkey.toHex(),
+      hexSig: signature.rawSigHex()
+    }
+  ])
+})
+
+test('fromPlainObject generates a correct signature', t => {
+  const privKey = PrivKey.fromRandom()
+  const pubkey = privKey.toPubKey()
+  const tx = new Transaction()
+    .add(new LoadInstruction('someLocation', true))
+    .add(new NewInstruction('someModule', 'SomeClass', [new JigArg(1), new StringArg('foo')]))
+    .add(new CallInstruction(0, 'someMethod', [new JigArg(3), new NumberArg(10)]))
+    .add(new LockInstruction(1, pubkey))
+
+
+  const signature = Signature.from(privKey, Buffer.from(tx.serialize()))
+  tx.addSignature(signature)
+
+  const plainObj = tx.toPlainObject()
+  const parsedTx = Transaction.fromPlainObject(plainObj)
+
+  t.is(parsedTx.instructions.length, 4)
+  t.true(parsedTx.isSignedBy(pubkey))
+  t.true(parsedTx.signaturesAreValid())
+})

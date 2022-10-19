@@ -20,4 +20,8 @@ export class Signature {
       sign(Buffer.from(data), privKey)
     )
   }
+
+  rawSigHex (): string {
+    return Buffer.from(this.rawSig).toString('hex')
+  }
 }

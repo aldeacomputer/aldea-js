@@ -1,5 +1,6 @@
 import {TxVisitor} from "../instructions/tx-visitor.js";
 import {PubKey} from "../pubkey.js";
+import {Signature} from "../signature.js";
 
 export class SerializeVisitor implements TxVisitor {
   lines: string[];
@@ -46,6 +47,10 @@ export class SerializeVisitor implements TxVisitor {
 
   visitStringArg(value: string): void {
     this.args.push(`"${value}"`)
+  }
+
+  visitSignature (_sig: Signature) {
+    // noop
   }
 
 }
