@@ -62,6 +62,7 @@ export class TransactionJSON {
         jsonInstruction.name = 'load'
       } else if (instruction instanceof LockInstruction) {
         jsonInstruction.name = 'lock'
+        jsonInstruction.pubkey = jsonInstruction.pubkey.toHex()
       } else if (instruction instanceof CallInstruction) {
         jsonInstruction.name = 'call'
         jsonInstruction.args = jsonInstruction.args.map(arg => TransactionJSON.argToJSON(arg))
