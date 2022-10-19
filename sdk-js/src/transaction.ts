@@ -8,6 +8,7 @@ import {ToObjectVisitor} from "./visitors/to-object-visitor.js";
 import {CallInstruction, LoadInstruction, LockInstruction, NewInstruction} from "./instructions/index.js";
 import {Argument} from "./arguments/argument.js";
 import {JigArg, NumberArg, StringArg} from "./arguments/index.js";
+import {blake3} from "./support/hash.js";
 
 const parseArgs = (args: any): Argument[] => {
   const ret = new Array<Argument>()
@@ -56,12 +57,13 @@ export class Transaction {
 
   sign(privKey: PrivKey): Signature {
     const signature = Signature.from(privKey, Buffer.from(this.serialize()));
-    this.signatures.push(signature)
+    this.addSignature(signature)
     return signature
   }
 
-  addSignature (signature: Signature): void {
+  addSignature (signature: Signature): Transaction {
     this.signatures.push(signature)
+    return this
   }
 
   isSignedBy(pubKey: PubKey) {
@@ -69,8 +71,8 @@ export class Transaction {
   }
 
   signaturesAreValid (): boolean {
-    const serialzed = this.serialize()
-    return this.signatures.every(sig => sig.verifyAgainst(Buffer.from(serialzed)))
+    const serialized = this.serialize()
+    return this.signatures.every(sig => sig.verifyAgainst(Buffer.from(serialized)))
   }
 
   toPlainObject(): any {
@@ -104,5 +106,13 @@ export class Transaction {
       tx.addSignature(new Signature(PubKey.fromHex(sigObj.pubKey), Buffer.from(sigObj.hexSig, 'hex')))
     })
     return tx
+  }
+
+  hash (): Buffer {
+    return Buffer.from(blake3(Buffer.from(this.serialize())))
+  }
+
+  get id (): string {
+    return this.hash().toString('hex')
   }
 }

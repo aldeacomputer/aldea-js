@@ -1,18 +1,22 @@
-import {TransactionWrap} from '../vm/transactionWrap'
+import {Transaction} from '../vm/transaction.js'
 import {
-  CallInstruction,
-  LoadInstruction,
-  LockInstruction,
-  NewInstruction,
   Storage,
   VM
 } from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {LiteralArg} from "../vm/arguments/literal-arg.js";
-import {JigArg} from "../vm/arguments/jig-arg.js";
 import {locationF} from '../vm/location.js'
-import {Signature} from "../vm/signature.js";
+// import {Signature} from "../vm/signature.js";
+import {
+  CallInstruction,
+  LoadInstruction,
+  LockInstruction,
+  NewInstruction,
+  Signature,
+  JigArg,
+  NumberArg,
+  StringArg
+} from '@aldea/sdk-js'
 
 describe('execute txs', () => {
   let storage: Storage
@@ -23,8 +27,8 @@ describe('execute txs', () => {
   })
   //
   it('can create a flock', () => {
-    const tx = new TransactionWrap()
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(0)]))
+    const tx = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new NumberArg(0)]))
       // .add(new CallInstruction(0, 'countSheep', []))
       .add(new LockInstruction(0, userPub))
 
@@ -36,8 +40,8 @@ describe('execute txs', () => {
   })
 
   it('can create a flock with initial size', () => {
-    const tx = new TransactionWrap()
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(10)]))
+    const tx = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new NumberArg(10)]))
       // .add(new CallInstruction(0, 'countSheep', []))
       .add(new LockInstruction(0, userPub))
 
@@ -49,8 +53,8 @@ describe('execute txs', () => {
   })
 
   it('can create a flock and call a method', () => {
-    const tx = new TransactionWrap()
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[ new LiteralArg(0)]))
+    const tx = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[ new NumberArg(0)]))
       .add(new CallInstruction(0, 'grow', []))
       .add(new LockInstruction(0, userPub))
 
@@ -63,9 +67,9 @@ describe('execute txs', () => {
 
   it('can create a flock and call a method with an argument', () => {
     const amount = 15;
-    const tx = new TransactionWrap()
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[ new LiteralArg(0)]))
-      .add(new CallInstruction(0, 'growMany', [new LiteralArg(amount)]))
+    const tx = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[ new NumberArg(0)]))
+      .add(new CallInstruction(0, 'growMany', [new NumberArg(amount)]))
       .add(new LockInstruction(0, userPub))
 
     const vm = new VM(storage)
@@ -76,7 +80,7 @@ describe('execute txs', () => {
   })
 
   it('can create a sheep counter', () => {
-    const tx = new TransactionWrap()
+    const tx = new Transaction()
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new LockInstruction(0, userPub))
 
@@ -89,7 +93,7 @@ describe('execute txs', () => {
   })
 
   it('can call methods over a sheep counter', () => {
-    const tx = new TransactionWrap()
+    const tx = new Transaction()
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new CallInstruction(0, 'countSheep' ,[]))
       .add(new LockInstruction(0, userPub))
@@ -103,9 +107,9 @@ describe('execute txs', () => {
   })
 
   it('can send a jig as a parameter', () => {
-    const tx = new TransactionWrap()
+    const tx = new Transaction()
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
       .add(new CallInstruction(0, 'countFlock' ,[new JigArg(1)]))
       .add(new LockInstruction(0, userPub))
       .add(new LockInstruction(1, userPub))
@@ -119,15 +123,15 @@ describe('execute txs', () => {
   })
 
   it('can use a jig in a second tx', () => {
-    const tx1 = new TransactionWrap()
+    const tx1 = new Transaction()
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
       .add(new CallInstruction(0, 'countFlock' ,[new JigArg(1)]))
       .add(new LockInstruction(0, userPub))
       .add(new LockInstruction(1, userPub))
 
 
-    const tx2 = new TransactionWrap()
+    const tx2 = new Transaction()
       .add(new LoadInstruction(locationF(tx1, 0)))
       .add(new CallInstruction(0, 'countSheep' ,[new JigArg(1)]))
       .add(new LockInstruction(0, userPub))
@@ -146,8 +150,8 @@ describe('execute txs', () => {
   })
 
   it('can create a Shepherd', () => {
-    const tx1 = new TransactionWrap()
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
       .add(new LockInstruction(1, userPub))
 
@@ -159,13 +163,13 @@ describe('execute txs', () => {
   })
 
   it('a shepard can replace its flock a new tx', () => {
-    const tx1 = new TransactionWrap()
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
       .add(new LockInstruction(1, userPub))
 
-    const tx2 = new TransactionWrap()
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(5)]))
+    const tx2 = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new NumberArg(5)]))
       .add(new LoadInstruction(locationF(tx1, 1)))
       .add(new CallInstruction(1, 'replace', [ new JigArg(0) ]))
       .add(new LockInstruction(1, userPub))
@@ -184,12 +188,12 @@ describe('execute txs', () => {
   })
 
   it('checks the permision on nested operations', () => {
-    const tx1 = new TransactionWrap()
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
       .add(new LockInstruction(1, userPub))
 
-    const tx2 = new TransactionWrap()
+    const tx2 = new Transaction()
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new LoadInstruction(locationF(tx1, 1)))
       .add(new CallInstruction(0, 'countShepherd', [ new JigArg(1) ]))
@@ -209,11 +213,11 @@ describe('execute txs', () => {
   })
 
   it('can lock to a user from a jig method', () => {
-    const tx1 = new TransactionWrap()
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(3)]))
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new NumberArg(3)]))
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
-      .add(new CallInstruction(2, 'replaceAndSendTo', [new JigArg(1), new LiteralArg(userPub.toBytes())]))
+      .add(new CallInstruction(2, 'replaceAndSendTo', [new JigArg(1), new StringArg(userPub.toBytes())]))
       .add(new LockInstruction(2, userPub))
 
     const vm = new VM(storage)
@@ -223,7 +227,7 @@ describe('execute txs', () => {
   })
 
   it('checks the permision on nested operations and works when invalid', () => {
-    const tx = new TransactionWrap()
+    const tx = new Transaction()
       .add(new NewInstruction('aldea/tv.wasm', 'TV' ,[]))
       .add(new NewInstruction('aldea/remote-control.wasm', 'RemoteControl' ,[new JigArg(0)]))
       .add(new NewInstruction('aldea/remote-control.wasm', 'TVUser' ,[new JigArg(1)]))
@@ -236,7 +240,7 @@ describe('execute txs', () => {
   })
 
   it('checks the permision on nested operations and fails when invalid', () => {
-    const tx = new TransactionWrap()
+    const tx = new Transaction()
       .add(new NewInstruction('aldea/tv.wasm', 'TV' ,[]))
       .add(new NewInstruction('aldea/remote-control.wasm', 'RemoteControl' ,[new JigArg(0)]))
       .add(new NewInstruction('aldea/remote-control.wasm', 'TVUser' ,[new JigArg(1)]))
@@ -248,11 +252,11 @@ describe('execute txs', () => {
   })
 
   it('throws error when tx not signed by the owner', () => {
-    const tx1 = new TransactionWrap()
+    const tx1 = new Transaction()
       .add(new NewInstruction('aldea/tv.wasm', 'TV' ,[]))
       .add(new LockInstruction(0, userPub))
 
-    const tx2 = new TransactionWrap()
+    const tx2 = new Transaction()
       .add(new LoadInstruction(locationF(tx1, 0), false))
       .add(new LockInstruction(0, userPub))
 
@@ -263,11 +267,11 @@ describe('execute txs', () => {
   })
 
   it('does not throw if tx was signed by the owner', () => {
-    const tx1 = new TransactionWrap()
+    const tx1 = new Transaction()
       .add(new NewInstruction('aldea/tv.wasm', 'TV' ,[]))
       .add(new LockInstruction(0, userPub))
 
-    const tx2 = new TransactionWrap()
+    const tx2 = new Transaction()
       .add(new LoadInstruction(locationF(tx1, 0), false))
       .add(new LockInstruction(0, userPub))
 
@@ -282,8 +286,8 @@ describe('execute txs', () => {
 
 
   it('a tx can be signed', () => {
-    const tx = new TransactionWrap()
-      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
+    const tx = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
       .add(new CallInstruction(0, 'grow' ,[new JigArg(1)]))
       .add(new LockInstruction(0, userPub))
 
@@ -294,6 +298,6 @@ describe('execute txs', () => {
     const vm = new VM(storage)
     vm.execTx(tx)
 
-    expect(tx.isCorrectlySigned()).to.eql(true)
+    expect(tx.signaturesAreValid()).to.eql(true)
   })
 })

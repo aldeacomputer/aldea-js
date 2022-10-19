@@ -5,23 +5,68 @@ import {UserLock} from "./locks/user-lock.js"
 import {NoLock} from "./locks/no-lock.js"
 import {locationF} from './location.js'
 import {JigState} from "./jig-state.js"
-import {TransactionWrap} from "./transactionWrap.js";
+import { Transaction } from "./transaction.js";
 import {VM} from "./vm.js";
 import {LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Internref} from "./memory.js";
 import {MethodNode} from '@aldea/compiler/abi'
-import {PubKey} from "@aldea/sdk-js";
+import {PubKey, Signature, TxVisitor} from "@aldea/sdk-js";
+
+class ExecVisitor implements TxVisitor {
+  exec: TxExecution
+  args: any[]
+  constructor(txExecution: TxExecution) {
+    this.exec = txExecution
+    this.args = []
+  }
+
+  visitCall(masterListIndex: number, methodName: string): void {
+    const target = this.exec.getJigRef(masterListIndex)
+    target.sendMessage(methodName, this.args, this.exec)
+    this.args = []
+  }
+
+  visitJigArg(masterListIndex: number): void {
+    const jigRef = this.exec.getJigRef(masterListIndex)
+    this.args.push(jigRef)
+  }
+
+  visitLoad(location: string, forceLocation: boolean): void {
+    this.exec.loadJig(location, forceLocation)
+  }
+
+  visitLockInstruction(masterListIndex: number, pubkey: PubKey): void {
+    this.exec.lockJig(masterListIndex, new UserLock(pubkey))
+  }
+
+  visitNew(moduleId: string, className: string): void {
+    this.exec.instantiate(moduleId, className, this.args, new NoLock())
+    this.args = []
+  }
+
+  visitNumberArg(value: number): void {
+    this.args.push(value)
+  }
+
+  visitSignature(sig: Signature): void {
+    // noop
+  }
+
+  visitStringArg(value: string): void {
+    this.args.push(value)
+  }
+}
 
 class TxExecution {
-  tx: TransactionWrap;
+  tx: Transaction;
   private vm: VM;
   private jigs: JigRef[];
   private wasms: Map<string, WasmInstance>;
   private stack: string[];
   outputs: JigState[];
 
-  constructor (tx: TransactionWrap, vm: VM) {
+  constructor (tx: Transaction, vm: VM) {
     this.tx = tx
     this.vm = vm
     this.jigs = []
@@ -77,13 +122,6 @@ class TxExecution {
     }
 
     return jig.sendMessage(methodNode.name, args, this)
-
-    // methodNode.args.forEach((arg: FieldNode, i: number) => {
-    //   lowerValue(jig.module, arg.type, args[i])
-    // })
-    //
-    //
-    // return jig.module.instanceCall(jig, jig.className, methodNode.name, args)
   }
 
   _onGetProp (origin: string, propName: string): Prop {
@@ -167,7 +205,8 @@ class TxExecution {
   }
 
   run () {
-    this.tx.exec(this)
+    const execVisitor = new ExecVisitor(this)
+    this.tx.accept(execVisitor)
   }
 
   loadJig (location: string, force: boolean): JigRef {

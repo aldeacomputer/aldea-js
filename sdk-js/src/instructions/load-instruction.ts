@@ -5,7 +5,7 @@ export class LoadInstruction implements Instruction {
   private location: string;
   private forceLocation: boolean;
 
-  constructor (location: string, forceLocation: boolean) {
+  constructor (location: string, forceLocation: boolean = false) {
     this.location = location
     this.forceLocation = forceLocation
   }
