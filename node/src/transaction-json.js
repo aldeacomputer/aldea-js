@@ -3,14 +3,14 @@ import {
   CallInstruction,
   LockInstruction,
   LoadInstruction,
-  Transaction,
+  TransactionWrap,
   LiteralArg
 } from '@aldea/vm'
 import { PrivKey } from "@aldea/sdk-js"
 
 export class TransactionJSON {
   static parse (json) {
-    const tx = new Transaction()
+    const tx = new TransactionWrap()
 
     json.instructions.forEach(jsonInstruction => {
       switch (jsonInstruction.name) {

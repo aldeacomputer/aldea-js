@@ -32,4 +32,7 @@ esbuild.build({
   minify: true,
   keepNames: true,
   sourcemap: true,
+  plugins: [
+    makeAllPackagesExternalPlugin
+  ]
 })

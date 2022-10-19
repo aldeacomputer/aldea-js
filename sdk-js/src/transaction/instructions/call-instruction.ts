@@ -1,6 +1,7 @@
 import {Instruction} from "./instruction.js";
 import {Argument} from "../arguments/argument.js";
-import {TxExecution} from "../tx-execution.js";
+import {TxVisitor} from "../tx-visitor.js";
+
 
 export class CallInstruction implements Instruction {
   masterListIndex: number
@@ -13,15 +14,9 @@ export class CallInstruction implements Instruction {
     this.args = args
   }
 
-  exec (context: TxExecution): void {
-    const args = this.args.map(a => a.get(context))
-    const jigRef = context.getJigRef(this.masterListIndex)
-    jigRef.sendMessage(this.methodName, args, context)
-  }
-
-  encode (): string {
-    const args = this.args.map(arg => arg.encode()).join(' ')
-    return `CALL $${this.masterListIndex} ${this.methodName} ${args}`.trim()
+  accept(visitor: TxVisitor): void {
+    this.args.forEach(arg => arg.accept(visitor))
+    visitor.visitCall(this.masterListIndex, this.methodName)
   }
 }
 
