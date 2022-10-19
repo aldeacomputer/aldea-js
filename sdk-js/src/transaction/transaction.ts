@@ -1,14 +1,14 @@
 import {Instruction} from "./instructions/instruction.js";
-import {Signature} from "./signature.js";
-import {TxVisitor} from "./instructions/tx-visitor.js";
-import {SerializeVisitor} from "./visitors/serialize-visitor.js";
-import {PrivKey} from "./privkey.js";
-import {PubKey} from "./pubkey.js";
-import {ToObjectVisitor} from "./visitors/to-object-visitor.js";
+import {Signature} from "../signature.js";
+import {TxVisitor} from "./tx-visitor.js";
+import {SerializeVisitor} from "../visitors/serialize-visitor.js";
+import {PrivKey} from "../privkey.js";
+import {PubKey} from "../pubkey.js";
+import {ToObjectVisitor} from "../visitors/to-object-visitor.js";
 import {CallInstruction, LoadInstruction, LockInstruction, NewInstruction} from "./instructions/index.js";
 import {Argument} from "./arguments/argument.js";
 import {JigArg, NumberArg, StringArg} from "./arguments/index.js";
-import {blake3} from "./support/hash.js";
+import {blake3} from "../support/hash.js";
 
 const parseArgs = (args: any): Argument[] => {
   const ret = new Array<Argument>()

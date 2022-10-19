@@ -1,5 +1,5 @@
 import {Instruction} from "./instruction.js";
-import {TxVisitor} from "./tx-visitor.js";
+import {TxVisitor} from "../tx-visitor.js";
 import {Argument} from "../arguments/argument.js";
 
 export class NewInstruction implements Instruction {

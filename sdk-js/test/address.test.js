@@ -22,9 +22,6 @@ test('Address.fromPubKey() throws with invalid PubKey', t => {
   t.throws(() => Address.fromPubKey('abc'))
 })
 
-
-runonbitcoin/aldea-zero
-
 test('Address.fromString() parses string and returns an Address', t => {
   const address = Address.fromString(t.context.addrStr)
   t.deepEqual(address, t.context.addr)

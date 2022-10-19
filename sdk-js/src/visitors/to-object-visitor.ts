@@ -1,4 +1,4 @@
-import {TxVisitor} from "../instructions/tx-visitor.js";
+import {TxVisitor} from "../transaction/tx-visitor.js";
 import {PubKey} from "../pubkey.js";
 import {Signature} from "../signature.js";
 

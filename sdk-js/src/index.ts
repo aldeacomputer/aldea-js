@@ -16,7 +16,7 @@ export * as hash from './support/hash.js'
 export * as bip39 from './support/mnemonic.js'
 export * as ed25519 from './support/ed25519.js'
 
-export * from './transaction.js'
-export * from './instructions/index.js'
-export * from './arguments/index.js'
+export * from './transaction/transaction.js'
+export * from './transaction/instructions/index.js'
+export * from './transaction/arguments/index.js'
 export {ToObjectVisitor} from "./visitors/to-object-visitor.js";

@@ -1,4 +1,4 @@
-import {TxVisitor} from "../instructions/tx-visitor.js";
+import {TxVisitor} from "../tx-visitor.js";
 import {Argument} from "./argument.js";
 
 export class NumberArg extends Argument {
