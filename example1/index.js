@@ -2,7 +2,7 @@ import fs from 'fs'
 import { CBOR, Sequence, TaggedValue } from 'cbor-redux'
 
 /*
- * Gert simple VM - just contains map of modules by location
+ * Gert simple Vm - just contains map of modules by location
  */
 class VM {
   constructor() {

@@ -19,7 +19,7 @@
   },
   "packageManager": "yarn@3.2.3",
   "dependencies": {
-    "assemblyscript": "0.0.0",
+    "assemblyscript": "^0.21.3",
     "cbor-redux": "^1.0.0-3",
     "commander": "^9.4.0"
   },

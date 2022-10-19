@@ -7,7 +7,7 @@ import { liftBuffer, liftInternref, liftString, liftValue, lowerValue } from './
 import { ArgReader, readType } from './vm/arg-reader.js'
 
 /**
- * A simple mans' VM module.
+ * A simple mans' Vm module.
  */
 export class VM {
   modules: Map<string, Module>

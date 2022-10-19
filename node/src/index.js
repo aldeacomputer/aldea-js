@@ -1,8 +1,7 @@
 import express from 'express'
 import cors from 'cors'
-import cbor from 'cbor'
 
-import { VM, Storage } from '@aldea/vm'
+import { Storage, VM } from '@aldea/vm'
 import { TransactionJSON } from './transaction-json.js'
 
 const storage = new Storage()
@@ -30,20 +29,8 @@ app.get('/tx/:txid', (req, res) => {
 app.get('/state/:location', (req, res) => {
   const state = storage.getJigState(req.params.location)
   if (state) {
-    const moduleId = state.moduleId
-    const wasm = vm.createWasmInstance(moduleId)
-    const exports = wasm.instance.exports
-    const schemaFunctionName = `${state.className}_schema`
-    const schemaPointer = exports[schemaFunctionName]()
-    const schemaBuffer = wasm.__liftBuffer(schemaPointer)
-    const schema = cbor.decode(schemaBuffer)
-    const values = cbor.decodeAllSync(Buffer.from(state.stateBuf))
-    const stateJson = {}
-    Object.entries(schema).forEach(([name, type], index) => {
-      stateJson[name] = values[index]
-    })
-    state.stateJson = stateJson
-    res.send(state)
+    const wasm = vm.createWasmInstance(state.moduleId)
+    res.send(state.objectState(wasm))
   } else {
     res.status(404).send("Sorry can't find that!")
   }

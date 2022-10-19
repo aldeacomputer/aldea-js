@@ -1,5 +1,3 @@
-import { ArgWriter } from "./arg-writer";
-
 // @ts-ignore
 @external("vm", "vm_local_authcheck")
 declare function vm_local_authcheck<T>(jig: T, check: AuthCheck): bool;
@@ -53,9 +51,9 @@ const IMPORTED_JIGS: string[] = []
 function isExported<T>(jig: T): bool {
   return EXPORTED_JIGS.includes(nameof(jig))
 }
-function isImported<T>(jig: T): bool {
-  return IMPORTED_JIGS.includes(nameof(jig))
-}
+// function isImported<T>(jig: T): bool {
+//   return IMPORTED_JIGS.includes(nameof(jig))
+// }
 
 /**
  * Auth API
@@ -66,15 +64,11 @@ export class Auth {
   }
 
   static lockToPubkey<T extends JigOrProxy>(jig: T, pubkey: ArrayBuffer): void {
-    const args = new ArgWriter(4)
-    args.writeU32(changetype<usize>(pubkey))
-    lockTo(jig, LockType.PUBKEY, args.buffer)
+    lockTo(jig, LockType.PUBKEY, pubkey)
   }
 
-  static lockToParent<T extends JigOrProxy, P extends JigOrProxy>(jig: T, parent: P): void {
-    const args = new ArgWriter(4)
-    args.writeU32(changetype<usize>(originOf(parent)))
-    lockTo(jig, LockType.PARENT, args.buffer)
+  static lockToParent<T extends JigOrProxy, P extends JigOrProxy>(jig: T, _parent: P): void {
+    lockTo(jig, LockType.PARENT, new ArrayBuffer(0))
   }
 
   static lockToAnyone<T extends JigOrProxy>(jig: T): void {
@@ -112,16 +106,16 @@ export class Auth {
   }
 }
 
-function originOf<T extends JigOrProxy>(jig: T): ArrayBuffer {
-  if (isExported(jig)) {
-    const utxo = Auth.getUtxoState(jig)
-    return utxo.origin
-  } else if (isDefined(jig.origin)) {
-    return jig.origin
-  } else {
-    throw 'invalid object - must be jig'
-  }
-}
+// function originOf<T extends JigOrProxy>(jig: T): ArrayBuffer {
+//   if (isExported(jig)) {
+//     const utxo = Auth.getUtxoState(jig)
+//     return utxo.origin
+//   } else if (isDefined(jig.origin)) {
+//     return jig.origin
+//   } else {
+//     throw 'invalid object - must be jig'
+//   }
+// }
 
 function lockTo<T extends JigOrProxy>(jig: T, type: LockType, args: ArrayBuffer): void {
   if (isExported(jig)) {
