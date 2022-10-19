@@ -1,4 +1,4 @@
-import {Transaction} from '../vm/transaction.js'
+import {TransactionWrap} from '../vm/transactionWrap'
 import {
   CallInstruction,
   LoadInstruction,
@@ -23,7 +23,7 @@ describe('execute txs', () => {
   })
   //
   it('can create a flock', () => {
-    const tx = new Transaction()
+    const tx = new TransactionWrap()
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(0)]))
       // .add(new CallInstruction(0, 'countSheep', []))
       .add(new LockInstruction(0, userPub))
@@ -36,7 +36,7 @@ describe('execute txs', () => {
   })
 
   it('can create a flock with initial size', () => {
-    const tx = new Transaction()
+    const tx = new TransactionWrap()
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(10)]))
       // .add(new CallInstruction(0, 'countSheep', []))
       .add(new LockInstruction(0, userPub))
@@ -49,7 +49,7 @@ describe('execute txs', () => {
   })
 
   it('can create a flock and call a method', () => {
-    const tx = new Transaction()
+    const tx = new TransactionWrap()
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[ new LiteralArg(0)]))
       .add(new CallInstruction(0, 'grow', []))
       .add(new LockInstruction(0, userPub))
@@ -63,7 +63,7 @@ describe('execute txs', () => {
 
   it('can create a flock and call a method with an argument', () => {
     const amount = 15;
-    const tx = new Transaction()
+    const tx = new TransactionWrap()
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[ new LiteralArg(0)]))
       .add(new CallInstruction(0, 'growMany', [new LiteralArg(amount)]))
       .add(new LockInstruction(0, userPub))
@@ -76,7 +76,7 @@ describe('execute txs', () => {
   })
 
   it('can create a sheep counter', () => {
-    const tx = new Transaction()
+    const tx = new TransactionWrap()
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new LockInstruction(0, userPub))
 
@@ -89,7 +89,7 @@ describe('execute txs', () => {
   })
 
   it('can call methods over a sheep counter', () => {
-    const tx = new Transaction()
+    const tx = new TransactionWrap()
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new CallInstruction(0, 'countSheep' ,[]))
       .add(new LockInstruction(0, userPub))
@@ -103,7 +103,7 @@ describe('execute txs', () => {
   })
 
   it('can send a jig as a parameter', () => {
-    const tx = new Transaction()
+    const tx = new TransactionWrap()
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
       .add(new CallInstruction(0, 'countFlock' ,[new JigArg(1)]))
@@ -119,7 +119,7 @@ describe('execute txs', () => {
   })
 
   it('can use a jig in a second tx', () => {
-    const tx1 = new Transaction()
+    const tx1 = new TransactionWrap()
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
       .add(new CallInstruction(0, 'countFlock' ,[new JigArg(1)]))
@@ -127,7 +127,7 @@ describe('execute txs', () => {
       .add(new LockInstruction(1, userPub))
 
 
-    const tx2 = new Transaction()
+    const tx2 = new TransactionWrap()
       .add(new LoadInstruction(locationF(tx1, 0)))
       .add(new CallInstruction(0, 'countSheep' ,[new JigArg(1)]))
       .add(new LockInstruction(0, userPub))
@@ -146,7 +146,7 @@ describe('execute txs', () => {
   })
 
   it('can create a Shepherd', () => {
-    const tx1 = new Transaction()
+    const tx1 = new TransactionWrap()
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
       .add(new LockInstruction(1, userPub))
@@ -159,12 +159,12 @@ describe('execute txs', () => {
   })
 
   it('a shepard can replace its flock a new tx', () => {
-    const tx1 = new Transaction()
+    const tx1 = new TransactionWrap()
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
       .add(new LockInstruction(1, userPub))
 
-    const tx2 = new Transaction()
+    const tx2 = new TransactionWrap()
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(5)]))
       .add(new LoadInstruction(locationF(tx1, 1)))
       .add(new CallInstruction(1, 'replace', [ new JigArg(0) ]))
@@ -184,12 +184,12 @@ describe('execute txs', () => {
   })
 
   it('checks the permision on nested operations', () => {
-    const tx1 = new Transaction()
+    const tx1 = new TransactionWrap()
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
       .add(new LockInstruction(1, userPub))
 
-    const tx2 = new Transaction()
+    const tx2 = new TransactionWrap()
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new LoadInstruction(locationF(tx1, 1)))
       .add(new CallInstruction(0, 'countShepherd', [ new JigArg(1) ]))
@@ -209,7 +209,7 @@ describe('execute txs', () => {
   })
 
   it('can lock to a user from a jig method', () => {
-    const tx1 = new Transaction()
+    const tx1 = new TransactionWrap()
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(3)]))
       .add(new NewInstruction('aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
@@ -223,7 +223,7 @@ describe('execute txs', () => {
   })
 
   it('checks the permision on nested operations and works when invalid', () => {
-    const tx = new Transaction()
+    const tx = new TransactionWrap()
       .add(new NewInstruction('aldea/tv.wasm', 'TV' ,[]))
       .add(new NewInstruction('aldea/remote-control.wasm', 'RemoteControl' ,[new JigArg(0)]))
       .add(new NewInstruction('aldea/remote-control.wasm', 'TVUser' ,[new JigArg(1)]))
@@ -236,7 +236,7 @@ describe('execute txs', () => {
   })
 
   it('checks the permision on nested operations and fails when invalid', () => {
-    const tx = new Transaction()
+    const tx = new TransactionWrap()
       .add(new NewInstruction('aldea/tv.wasm', 'TV' ,[]))
       .add(new NewInstruction('aldea/remote-control.wasm', 'RemoteControl' ,[new JigArg(0)]))
       .add(new NewInstruction('aldea/remote-control.wasm', 'TVUser' ,[new JigArg(1)]))
@@ -248,11 +248,11 @@ describe('execute txs', () => {
   })
 
   it('throws error when tx not signed by the owner', () => {
-    const tx1 = new Transaction()
+    const tx1 = new TransactionWrap()
       .add(new NewInstruction('aldea/tv.wasm', 'TV' ,[]))
       .add(new LockInstruction(0, userPub))
 
-    const tx2 = new Transaction()
+    const tx2 = new TransactionWrap()
       .add(new LoadInstruction(locationF(tx1, 0), false))
       .add(new LockInstruction(0, userPub))
 
@@ -263,11 +263,11 @@ describe('execute txs', () => {
   })
 
   it('does not throw if tx was signed by the owner', () => {
-    const tx1 = new Transaction()
+    const tx1 = new TransactionWrap()
       .add(new NewInstruction('aldea/tv.wasm', 'TV' ,[]))
       .add(new LockInstruction(0, userPub))
 
-    const tx2 = new Transaction()
+    const tx2 = new TransactionWrap()
       .add(new LoadInstruction(locationF(tx1, 0), false))
       .add(new LockInstruction(0, userPub))
 
@@ -282,7 +282,7 @@ describe('execute txs', () => {
 
 
   it('a tx can be signed', () => {
-    const tx = new Transaction()
+    const tx = new TransactionWrap()
       .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[new LiteralArg(2)]))
       .add(new CallInstruction(0, 'grow' ,[new JigArg(1)]))
       .add(new LockInstruction(0, userPub))

@@ -1,6 +1,6 @@
 import { UserLock } from "../locks/user-lock.js"
 import {TxExecution} from "../tx-execution.js";
-import {PubKey} from '@aldea/sdk-js';
+import {PubKey} from "@aldea/sdk-js";
 
 export class LockInstruction {
   private masterListIndex: number;

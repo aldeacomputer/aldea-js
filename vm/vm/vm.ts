@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 import { TxExecution } from './tx-execution.js'
 import fs from "fs"
 import {Storage} from "./storage.js";
-import {Transaction} from "./transaction.js";
+import {TransactionWrap} from "./transactionWrap.js";
 import { abiFromJson } from '@aldea/compiler/abi'
 
 const __dir = fileURLToPath(import.meta.url)
@@ -23,7 +23,7 @@ export class VM {
     this.modules = new Map<string, ModuleData>()
   }
 
-  execTx (tx: Transaction): TxExecution {
+  execTx (tx: TransactionWrap): TxExecution {
     const currentExecution = new TxExecution(tx, this)
     currentExecution.run()
     currentExecution.finalize()

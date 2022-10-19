@@ -1,3 +1,3 @@
-import {Transaction} from "./transaction.js";
+import {TransactionWrap} from "./transactionWrap.js";
 
-export function locationF (tx: Transaction, index: number) { return `${tx.id}_${index}` }
+export function locationF (tx: TransactionWrap, index: number) { return `${tx.id}_${index}` }

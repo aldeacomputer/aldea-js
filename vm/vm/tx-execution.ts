@@ -5,7 +5,7 @@ import {UserLock} from "./locks/user-lock.js"
 import {NoLock} from "./locks/no-lock.js"
 import {locationF} from './location.js'
 import {JigState} from "./jig-state.js"
-import {Transaction} from "./transaction.js";
+import {TransactionWrap} from "./transactionWrap.js";
 import {VM} from "./vm.js";
 import {LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
@@ -14,14 +14,14 @@ import {MethodNode} from '@aldea/compiler/abi'
 import {PubKey} from "@aldea/sdk-js";
 
 class TxExecution {
-  tx: Transaction;
+  tx: TransactionWrap;
   private vm: VM;
   private jigs: JigRef[];
   private wasms: Map<string, WasmInstance>;
   private stack: string[];
   outputs: JigState[];
 
-  constructor (tx: Transaction, vm: VM) {
+  constructor (tx: TransactionWrap, vm: VM) {
     this.tx = tx
     this.vm = vm
     this.jigs = []

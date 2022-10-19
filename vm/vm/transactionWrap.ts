@@ -4,7 +4,7 @@ import {Signature} from "./signature.js";
 import {TxExecution} from "./tx-execution.js";
 import {PrivKey, PubKey} from '@aldea/sdk-js';
 
-class Transaction {
+class TransactionWrap {
   private instructions: Instruction[];
   private signatures: Signature[];
   constructor () {
@@ -59,4 +59,4 @@ class Transaction {
   }
 }
 
-export { Transaction }
+export { TransactionWrap }

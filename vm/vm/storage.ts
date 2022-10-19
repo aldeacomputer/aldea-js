@@ -1,12 +1,12 @@
 import {JigState} from './jig-state.js';
-import {Transaction} from "./transaction.js";
+import {TransactionWrap} from "./transactionWrap.js";
 import {TxExecution} from "./tx-execution.js";
 
 export class Storage {
   private statesPerLocation: Map<string, JigState>;
   private tips: Map<string, string>;
   private origins: Map<string, string>;
-  private transactions: Map<string, Transaction>;
+  private transactions: Map<string, TransactionWrap>;
 
   constructor() {
     this.statesPerLocation = new Map()
@@ -42,7 +42,7 @@ export class Storage {
     return tip
   }
 
-  addTransaction(tx: Transaction) {
+  addTransaction(tx: TransactionWrap) {
     this.transactions.set(tx.id, tx)
   }
 
