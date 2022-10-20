@@ -33,7 +33,7 @@
     "typescript": "^4.8.4"
   },
   "dependencies": {
-    "@aldea/compiler": "0.0.1",
+    "@aldea/compiler": "workspace:^",
     "@aldea/sdk-js": "workspace:^",
     "@noble/ed25519": "^1.7.1",
     "blake3-wasm": "^2.1.5",

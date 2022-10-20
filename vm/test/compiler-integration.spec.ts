@@ -6,7 +6,6 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {locationF} from '../vm/location.js'
-// import {Signature} from "../vm/signature.js";
 import {
   CallInstruction,
   LoadInstruction,

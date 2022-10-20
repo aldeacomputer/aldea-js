@@ -7,17 +7,18 @@
     ".": {
       "import": "./dist/index.js",
       "require": "./dist/aldea.bundle.cjs",
-      "types": "./dist/index.ts.d",
-      "default": "./dist/index.js",
-      "node": "./dist/index.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./*": {
       "import": "./dist/*.js",
-      "node": "./dist/*.js",
-      "types": "./dist/*.ts.d",
+      "types": "./dist/*.d.ts",
       "default": "./dist/*.js"
     }
   },
+  "main": "./dist/index.js",
+  "browser": "./dist/aldea.bundle.min.js",
+  "unpkg": "./dist/aldea.bundle.min.js",
   "scripts": {
     "build": "run-s clean build:ts build:es",
     "build:ts": "tsc",
