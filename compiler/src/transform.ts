@@ -51,9 +51,9 @@ export function afterParse(parser: Parser): void {
     obj.node.flags = obj.node.flags & ~CommonFlags.EXPORT
   })
 
-  console.log('»»» TRANSFORMED «««')
-  console.log('*******************')
-  console.log(ASTBuilder.build($ctx.entry))
+  //console.log('»»» TRANSFORMED «««')
+  //console.log('*******************')
+  //console.log(ASTBuilder.build($ctx.entry))
 }
 
 /**

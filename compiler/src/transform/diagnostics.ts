@@ -19,7 +19,8 @@ export enum AldeaDiagnosticCode {
   Invalid_identifier = 405,
   Illegal_global = 406,
   Illegal_property = 407,
-  Illegal_assignment = 408
+  Illegal_assignment = 408,
+
 }
 
 /**
@@ -27,7 +28,7 @@ export enum AldeaDiagnosticCode {
  */
 export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
   switch(code) {
-    case 400: return 'Invalid statement. Only classes, functions and enums can be declared at the top level.'
+    case 400: return 'Invalid statement. Only classes, functions, enums and literal constants can be declared at the top level.'
     case 401: return 'Invalid member. {0} are not allowed on classes.'
     case 402: return 'Invalid method name. Underscore-prefixed method names are not allowed in jigs.'
     case 403: return 'Invalid type. `{0}` type cannot be serialized on `{1}` class.'
@@ -36,6 +37,7 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
     case 406: return 'Illegal access. The `{0}` global is restricted.'
     case 407: return 'Illegal access. The `{0}` property is restricted.'
     case 408: return 'Illegal assignment. `{0}` cannot be reassigned.'
+
     default:  return 'Unrecognized error code.'
   }
 }

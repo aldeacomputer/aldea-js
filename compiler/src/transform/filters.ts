@@ -76,6 +76,13 @@ export function isAmbient(flags: number): boolean {
 /**
  * Returns true if the node is a constructor method.
  */
+export function isConst(flags: number): boolean {
+  return (flags & CommonFlags.CONST) === CommonFlags.CONST
+}
+
+/**
+ * Returns true if the node is a constructor method.
+ */
 export function isConstructor(flags: number): boolean {
   return (flags & CommonFlags.CONSTRUCTOR) === CommonFlags.CONSTRUCTOR
 }
