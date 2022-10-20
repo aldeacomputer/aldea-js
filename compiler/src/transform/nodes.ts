@@ -9,6 +9,7 @@ import {
   MethodDeclaration,
   NamedTypeNode,
   ParameterNode,
+  TypeDeclaration,
 } from 'assemblyscript'
 
 import {
@@ -24,13 +25,15 @@ import {
 export interface ObjectWrap extends ObjectNode {
   node: ClassDeclaration;
   decorators: DecoratorWrap[];
+  fields: FieldWrap[];
+  methods: MethodWrap[];
 }
 
 /**
  * Field Node wrapping around Field Declaration or Parameter Node.
  */
 export interface FieldWrap extends FieldNode {
-  node: FieldDeclaration | ParameterNode;
+  node: FieldDeclaration | ParameterNode | TypeDeclaration;
 }
 
 /**
