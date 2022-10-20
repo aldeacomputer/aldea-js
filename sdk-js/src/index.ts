@@ -19,4 +19,4 @@ export * as ed25519 from './support/ed25519.js'
 export * from './transaction/transaction.js'
 export * from './transaction/instructions/index.js'
 export * from './transaction/arguments/index.js'
-export {ToObjectVisitor} from "./visitors/to-object-visitor.js";
+

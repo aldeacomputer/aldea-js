@@ -49,7 +49,7 @@ class ExecVisitor implements TxVisitor {
     this.args.push(value)
   }
 
-  visitSignature(sig: Signature): void {
+  visitSignature(_sig: Signature): void {
     // noop
   }
 
@@ -252,14 +252,6 @@ class TxExecution {
     this.stack.pop()
     return jigRef
   }
-
-  // call (masterListIndex: number, methodName: string, args: any[], caller: string): Uint8Array {
-  //   const jigRef = this.getJigRef(masterListIndex)
-  //   this.stack.push(jigRef.origin)
-  //   const ret = jigRef.sendMessage(methodName, args, caller)
-  //   this.stack.pop()
-  //   return ret
-  // }
 
   newOrigin () {
     return locationF(this.tx, this.jigs.length)

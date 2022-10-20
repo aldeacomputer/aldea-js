@@ -13,5 +13,8 @@
     "sdk-demo",
     "sdk-js",
     "vm"
-  ]
+  ],
+  "scripts": {
+    "build": "yarn workspaces foreach -ptv run build"
+  }
 }
