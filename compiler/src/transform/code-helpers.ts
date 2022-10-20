@@ -28,7 +28,8 @@ export function writeExportedMethod(method: MethodWrap, obj: ObjectWrap): string
 }
 
 /**
- * TODO
+ * Writes a placeholder proxy class wrapper for the specific Class, around the
+ * given member strings.
  */
 export function writeLocalProxyClass(obj: ObjectWrap, members: string[]): string {
   return `
@@ -39,7 +40,8 @@ export function writeLocalProxyClass(obj: ObjectWrap, members: string[]): string
 }
 
 /**
- * TODO
+ * Writes a local proxy method. Wraps the native call in `vm_local_call_start`
+ * and `vm_local_call_end`.
  */
  export function writeLocalProxyMethod(method: MethodWrap, obj: ObjectWrap): string {
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
@@ -84,6 +86,7 @@ export function writeRemoteProxyGetter(field: FieldWrap, obj: ObjectWrap): strin
 export function writeRemoteProxyMethod(method: MethodWrap, obj: ObjectWrap): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
+  const isStatic = method.kind === MethodKind.STATIC
   const origin = obj.decorators.find(n => n.name === 'imported')?.args[0]
   const args = method.args.map((f, i) => `a${i}: ${f.type.name}`)
   const rtype = isConstructor ? 'ArrayBuffer' : method.rtype?.name
@@ -93,7 +96,7 @@ export function writeRemoteProxyMethod(method: MethodWrap, obj: ObjectWrap): str
     `vm_remote_call_s<${rtype}>('${origin}', '${obj.name}_${method.name}', args.buffer)` ;
 
   return `
-  ${method.name}(${args.join(', ')})${isConstructor ? '' : `: ${rtype}`} {
+  ${isStatic ? 'static ' : ''}${method.name}(${args.join(', ')})${isConstructor ? '' : `: ${rtype}`} {
     ${ writeArgWriter(method.args as FieldWrap[]) }
     ${prefix} ${caller}
   }
