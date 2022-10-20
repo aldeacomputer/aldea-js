@@ -21,7 +21,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/compiler@0.0.1, @aldea/compiler@workspace:compiler":
+"@aldea/compiler@0.0.1, @aldea/compiler@workspace:^, @aldea/compiler@workspace:compiler":
   version: 0.0.0-use.local
   resolution: "@aldea/compiler@workspace:compiler"
   dependencies:
@@ -105,7 +105,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/sdk-js@0.0.1, @aldea/sdk-js@workspace:^, @aldea/sdk-js@workspace:sdk-js":
+"@aldea/sdk-js@workspace:^, @aldea/sdk-js@workspace:sdk-js":
   version: 0.0.0-use.local
   resolution: "@aldea/sdk-js@workspace:sdk-js"
   dependencies:
@@ -126,8 +126,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/vm@workspace:vm"
   dependencies:
-    "@aldea/compiler": 0.0.1
-    "@aldea/sdk-js": 0.0.1
+    "@aldea/compiler": "workspace:^"
+    "@aldea/sdk-js": "workspace:^"
     "@noble/ed25519": ^1.7.1
     "@types/chai": ^4.3.3
     "@types/mocha": ^10.0.0
@@ -295,21 +295,21 @@ __metadata:
   linkType: hard
 
 "@babel/parser@npm:^7.16.4":
-  version: 7.19.4
-  resolution: "@babel/parser@npm:7.19.4"
+  version: 7.19.6
+  resolution: "@babel/parser@npm:7.19.6"
   bin:
     parser: ./bin/babel-parser.js
-  checksum: 5ef97da97915085ff3b9c562b04fb6316074ece52d20de95f44c47b46abf87fd754cbcae769a69570a84652b736afe5bb2cb7dc117aa7ad6d81ab40eed0c613b
+  checksum: 9a3dca4ee3acd7e4fc3b58e1e1526a11fa334acbfe437f8ebf91dfaf48e943c147ef64b1733ba0a55af57d1eccafbf4e4a4afc46a15becd921971fe2ddf309bf
   languageName: node
   linkType: hard
 
 "@babel/runtime-corejs3@npm:^7.10.2":
-  version: 7.19.4
-  resolution: "@babel/runtime-corejs3@npm:7.19.4"
+  version: 7.19.6
+  resolution: "@babel/runtime-corejs3@npm:7.19.6"
   dependencies:
     core-js-pure: ^3.25.1
     regenerator-runtime: ^0.13.4
-  checksum: 3418534964d0d334da46b21bbe50510630101fd4a5afe632077d261656a715868e3f0f304ac7c9d608dc2aa72cbea49e31a5bc5cb9f7b5cb23ce01cb917acaef
+  checksum: 610012057190dc3a325beaa4a62fc467bab6fa5c2c7ecfddb7b78a3e759a759922cd0f9485ca4b9c12703e25671f0af007ce0a910f767d1cdeeab3c54630216a
   languageName: node
   linkType: hard
 
