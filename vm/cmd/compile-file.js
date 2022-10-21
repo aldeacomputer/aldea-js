@@ -1,36 +1,21 @@
 #!/bin/env node
-import path from 'path';
-import asc from "assemblyscript/asc";
-import { fileURLToPath } from 'url';
+import { exec } from "child_process"
+import { fileURLToPath } from "url"
 
-const __dir = fileURLToPath(import.meta.url)
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-export async function compileFile (aPath) {
-  const { error, stderr } = await asc.main([
-    path.join(__dir, '../../assembly/manual', aPath),
-    "--outFile", path.join(__dir, '../../build/manual', aPath.replace('.ts', '.wasm')),
-    "--textFile", path.join(__dir, '../../build/manual', aPath.replace('.ts', '.wat')),
-    "--debug",
-    "--sourceMap",
-    "--runtime", "stub",
-    "--importMemory",
-    "--exportRuntime"
-  ], {
-    "bindings": "esm",
-    "importMemory": true,
-    "initialMemory": 1,
-    "maximumMemory": 1,
-    "runtime": "stub"
+function run(cmd) {
+  return new Promise((resolve, reject) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) return reject(error)
+      if (stderr) return reject(stderr)
+      resolve(stdout)
+    })
   })
-
-  if (error) {
-    console.log("Compilation failed: " + error.message);
-    console.log(stderr.toString());
-  } else {
-    console.log('ok')
-  }
 }
 
-if (process.argv[2]) {
-  compileFile(process.argv[2])
+export async function compileFile (file) {
+  const relativePath = file.replace(/.*\/aldea\//, '')
+  const stdout = await run(`yarn aldea compile ${file} -o ${__dirname}../build/aldea/${relativePath.replace('.ts', '.wasm')}`).catch(console.error)
+  console.log(stdout)
 }

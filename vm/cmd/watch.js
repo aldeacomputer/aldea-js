@@ -5,9 +5,13 @@ import { path } from "assemblyscript/util/node.js"
 import { compileFile } from "./compile-file.js"
 const __dir = fileURLToPath(import.meta.url)
 
-chokidar.watch(path.join(__dir, '../../assembly/manual')).on('all', async (event, path) => {
-  if (event === 'change') {
-    const subpath = path.split('/manual/')[1]
-    await compileFile(subpath)
+// let promise = Promise.resolve()
+const current = new Set()
+
+chokidar.watch(path.join(__dir, '../../assembly/aldea')).on('all', async (event, path) => {
+  if (['change', 'add'].includes(event) && !current.has(path)) {
+    current.add(path)
+    console.log(`detected changes on ${path}. Compiling...`)
+    await compileFile(path).finally(() => current.delete(path))
   }
 });
