@@ -85,7 +85,7 @@ export async function compile(src: string | {[key: string]: string}): Promise<Co
     '--textFile', 'wat',
   ]).concat(baseOpts)
 
-  const { error, stdout, stats } = await asc.main(argv, {
+  const { error, stdout, stderr, stats } = await asc.main(argv, {
     readFile(filename, basedir) {
       if (input[filename]) return input[filename]
       try {
@@ -104,7 +104,9 @@ export async function compile(src: string | {[key: string]: string}): Promise<Co
   })
 
   if (error) {
-    throw error
+    const compileError = new CompileError(error.message, stderr)
+    compileError.stack = error.stack
+    throw compileError
   } else {
     const ctx = useCtx()
     output.abi = new Uint8Array(abiToCbor(ctx.abi))
@@ -125,4 +127,16 @@ function writeAbi(outPath: string, ctx: TransformCtx) {
     join(dirname(outPath), basename(outPath).replace(/\.\w+$/, '')+'.abi.json'),
     abiToJson(ctx.abi, 2)
   )
+}
+
+/**
+ * Compile Error class
+ */
+export class CompileError extends Error {
+  stderr: asc.OutputStream;
+
+  constructor(message: string, stderr: asc.OutputStream) {
+    super(message)
+    this.stderr = stderr
+  }
 }

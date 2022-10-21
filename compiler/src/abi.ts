@@ -11,6 +11,8 @@ import {
   MethodNode,
   TypeCbor,
   TypeNode,
+  FunctionCbor,
+  FunctionNode,
 } from './abi/types.js'
 
 import { validateAbi } from './abi/validations.js'
@@ -24,12 +26,13 @@ export * from './abi/validations.js'
  */
 export function abiFromCbor(cbor: ArrayBuffer): Abi {
   const seq = CBOR.decode(cbor, null, { mode: 'sequence'})
-  const [version, rtids, objects] = seq.data as AbiCbor
+  const [version, rtids, objects, functions] = seq.data as AbiCbor
   
   return {
     version,
     rtids,
-    objects: objects.map(objectFromCbor)
+    objects: objects.map(objectFromCbor),
+    functions: functions.map(functionFromCbor),
   }
 }
 
@@ -49,7 +52,7 @@ export function abiFromJson(json: string): Abi {
  * Serializes the given ABI interface to CBOR data.
  */
 export function abiToCbor(abi: Abi): ArrayBuffer {
-  const seq = Sequence.from([ abi.version, abi.rtids, abi.objects.map(objectToCbor) ])
+  const seq = Sequence.from([ abi.version, abi.rtids, abi.objects.map(objectToCbor), abi.functions.map(functionToCbor) ])
   return CBOR.encode(seq)
 }
 
@@ -60,7 +63,8 @@ export function abiToJson(abi: Abi, space: number = 0): string {
   return JSON.stringify({
     version: abi.version,
     rtids: abi.rtids,
-    objects: abi.objects.map(objectToJson)
+    objects: abi.objects.map(objectToJson),
+    functions: abi.functions.map(functionToJson),
   }, null, space)
 }
 
@@ -105,6 +109,33 @@ function objectToJson(node: ObjectNode): ObjectNode {
     extends: node.extends,
     fields: node.fields.map(fieldToJson),
     methods: node.methods.map(methodToJson),
+  }
+}
+
+// Casts the CBOR array to a Function Node interface.
+function functionFromCbor([name, args, rtype]: FunctionCbor): FunctionNode {
+  return {
+    name,
+    args: args.map(fieldFromCbor),
+    rtype: typeFromCbor(rtype)
+  }
+}
+
+// Casts the Function Node interface to a CBOR array.
+function functionToCbor(node: FunctionNode): FunctionCbor {
+  return [
+    node.name,
+    node.args.map(fieldToCbor),
+    typeToCbor(node.rtype)
+  ]
+}
+
+// Casts the Function Node interface to a JSON object.
+function functionToJson(node: FunctionNode): FunctionNode {
+  return {
+    name: node.name,
+    args: node.args.map(fieldToJson),
+    rtype: typeToJson(node.rtype)
   }
 }
 

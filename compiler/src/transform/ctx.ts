@@ -18,10 +18,12 @@ import {
   Program,
   Class,
   TypeDeclaration,
+  FunctionDeclaration,
 } from 'assemblyscript'
 
 import {
   ObjectWrap,
+  FunctionWrap,
   DecoratorWrap,
   FieldWrap,
   MethodWrap,
@@ -63,6 +65,7 @@ export class TransformCtx {
   sources: Source[]; 
   entry: Source;
   objects: ObjectWrap[];
+  functions: FunctionWrap[];
   validator: Validator;
   cache: SimpleCache = new SimpleCache();
 
@@ -70,39 +73,50 @@ export class TransformCtx {
     this.parser = parser
     this.sources = collectUserSources(parser.sources)
     this.entry = findUserEntry(this.sources)
-    this.objects = collectObjectNodes(this.entry) // todo - analyse all sources!
+    this.objects = collectObjectNodes(this.entry)     // todo - analyse all sources!
+    this.functions = collectFunctionNodes(this.entry) // todo - analyse all sources!
     this.validator = new Validator(this)
-    this.validator.validate()
+    this.validate()
   }
 
   get abi(): Abi {
     return {
       version: 1,
       rtids: this.mapManagedClassRtIds(),
-      objects: this.exposedObjects
+      objects: this.exposedObjects,
+      functions: this.exportedFunctions
     }
   }
 
   // Objects explicitly exported from the module
   get exportedObjects(): ObjectWrap[] {
-    return this.cache.get<ObjectWrap[]>('exported', () => {
+    return this.cache.get<ObjectWrap[]>('exportedObj', () => {
       return this.objects.filter(obj => obj.kind === ObjectKind.EXPORTED)
+    })
+  }
+
+  // Objects explicitly exported from the module
+  get exportedFunctions(): FunctionWrap[] {
+    return this.cache.get<FunctionWrap[]>('exportedFn', () => {
+      return this.functions.filter(obj => isExported(obj.node.flags))
     })
   }
 
   // Objects exposed by the module (exported, or as args or return values)
   get exposedObjects(): ObjectWrap[] {
-    return this.cache.get<ObjectWrap[]>('exposed', () => {
+    return this.cache.get<ObjectWrap[]>('exposedObj', () => {
       const objects: ObjectWrap[] = []
 
       const applyObject = (obj: ObjectWrap): void => {
         if (objects.includes(obj)) return
         objects.push(obj)
         obj.fields.forEach(n => applyType(n.type))
-        obj.methods.forEach(m => {
-          m.args.forEach(n => applyType(n.type))
-          if (m.rtype) applyType(m.rtype)
-        })
+        obj.methods.forEach(applyFunction)
+      }
+
+      const applyFunction = (fn: FunctionWrap | MethodWrap): void => {
+        fn.args.forEach(n => applyType(n.type))
+        if (fn.rtype) applyType(fn.rtype)
       }
 
       const applyType = (type: TypeNode): void => {
@@ -110,19 +124,20 @@ export class TransformCtx {
         if (obj) { applyObject(obj) }
       }
 
-      this.exportedObjects.forEach(obj => applyObject(obj))
+      this.exportedObjects.forEach(applyObject)
+      this.exportedFunctions.forEach(applyFunction)
       return objects
     })
   }
 
   get plainObjects(): ObjectWrap[] {
-    return this.cache.get<ObjectWrap[]>('plain', () => {
+    return this.cache.get<ObjectWrap[]>('plainObj', () => {
       return this.objects.filter(obj => obj.kind === ObjectKind.PLAIN)
     })
   }
 
   get importedObjects(): ObjectWrap[] {
-    return this.cache.get<ObjectWrap[]>('imported', () => {
+    return this.cache.get<ObjectWrap[]>('importedObj', () => {
       return this.objects.filter(obj => obj.kind === ObjectKind.IMPORTED)
     })
   }
@@ -133,27 +148,37 @@ export class TransformCtx {
     return parser.sources[0]
   }
 
+  validate() {
+    if (!this.exportedObjects.length) {
+      throw new Error('must export at least one object or function')
+    }
+    this.validator.validate()
+  }
+
   private mapManagedClassRtIds(): RuntimeIds {
     if (!this.program) return {}
 
-    const whitelist = this.objects
+    const functionMap = (n: FunctionWrap | MethodWrap) => {
+      return n.args
+        .map(a => normalizeTypeName(a.type))
+        .concat(normalizeTypeName(n.rtype))
+    }
+
+    const whitelist = this.exposedObjects
       .flatMap(obj => {
         return obj.fields
           .map(n => normalizeTypeName(n.type))
-          .concat(obj.methods.flatMap(n => {
-            return n.args
-              .map(a => normalizeTypeName(a.type))
-              .concat(normalizeTypeName(n.rtype))
-          }))
+          .concat(obj.methods.flatMap(functionMap))
       })
-      .filter((v, i, a) => !!v && a.indexOf(v) === i)
+      .concat(this.exportedFunctions.flatMap(functionMap))
       .concat('LockState', 'UtxoState')
+      .filter((v, i, a) => !!v && a.indexOf(v) === i)
+    
+    console.log(whitelist)
 
     return [...this.program.managedClasses].reduce((obj: RuntimeIds, [id, klass]) => {
       const name = normalizeClassName(klass)
-      if (whitelist.includes(name)) {
-        obj[name] = id
-      }
+      if (whitelist.includes(name)) { obj[name] = id }
       return obj
     }, {})
   }
@@ -189,6 +214,13 @@ function collectObjectNodes(source: Source): ObjectWrap[] {
   return source.statements
     .filter(n => n.kind === NodeKind.CLASSDECLARATION)
     .map(n => mapObjectNode(n as ClassDeclaration))
+}
+
+// todo
+function collectFunctionNodes(source: Source): FunctionWrap[] {
+  return source.statements
+    .filter(n => n.kind === NodeKind.FUNCTIONDECLARATION)
+    .map(n => mapFunctionNode(n as FunctionDeclaration))
 }
 
 // Collects Field Nodes from the given list of nodes
@@ -229,6 +261,19 @@ function mapObjectNode(node: ClassDeclaration): ObjectWrap {
     fields: collectFieldNodes(node.members),
     methods: collectMethodNodes(node.members),
     decorators,
+  }
+}
+
+// Maps the given AST node to a Function Node
+function mapFunctionNode(node: FunctionDeclaration): FunctionWrap {
+  const decorators = collectDecoratorNodes(node.decorators || [])
+
+  return {
+    node,
+    name: node.name.text,
+    args: node.signature.parameters.map(n => mapFieldNode(n as ParameterNode)),
+    rtype: mapTypeNode(node.signature.returnType as NamedTypeNode),
+    decorators
   }
 }
 
