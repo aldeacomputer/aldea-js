@@ -131,11 +131,14 @@ __metadata:
     "@noble/ed25519": ^1.7.1
     "@types/chai": ^4.3.3
     "@types/mocha": ^10.0.0
+    "@typescript-eslint/eslint-plugin": ^5.40.1
+    "@typescript-eslint/parser": ^5.40.1
     assemblyscript: ^0.21.3
     blake3-wasm: ^2.1.5
     cbor-redux: 1.0.0-3
     chai: ^4.3.6
     chokidar: ^3.5.3
+    eslint: ^8.25.0
     glob: ^8.0.3
     mocha: ^10.0.0
     nodemon: ^2.0.19
@@ -1038,7 +1041,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/eslint-plugin@npm:^5.4.0":
+"@typescript-eslint/eslint-plugin@npm:^5.4.0, @typescript-eslint/eslint-plugin@npm:^5.40.1":
   version: 5.40.1
   resolution: "@typescript-eslint/eslint-plugin@npm:5.40.1"
   dependencies:
@@ -1060,7 +1063,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/parser@npm:^5.21.0, @typescript-eslint/parser@npm:^5.4.0":
+"@typescript-eslint/parser@npm:^5.21.0, @typescript-eslint/parser@npm:^5.4.0, @typescript-eslint/parser@npm:^5.40.1":
   version: 5.40.1
   resolution: "@typescript-eslint/parser@npm:5.40.1"
   dependencies:
@@ -3628,7 +3631,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^8.13.0, eslint@npm:^8.2.0":
+"eslint@npm:^8.13.0, eslint@npm:^8.2.0, eslint@npm:^8.25.0":
   version: 8.25.0
   resolution: "eslint@npm:8.25.0"
   dependencies:
