@@ -93,4 +93,11 @@ export class ToObjectVisitor implements TxVisitor {
     })
     this.args = []
   }
+
+  visitBufferArg (buff: Uint8Array): void {
+    this.args.push({
+      type: 'buffer',
+      value: Buffer.from(buff).toString('hex')
+    })
+  }
 }

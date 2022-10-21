@@ -61,6 +61,10 @@ class ExecVisitor implements TxVisitor {
     this.exec.execFunction(moduleId, functionName, this.args)
     this.args = []
   }
+
+  visitBufferArg (buff: Uint8Array): void {
+    this.args.push(buff)
+  }
 }
 
 class TxExecution {

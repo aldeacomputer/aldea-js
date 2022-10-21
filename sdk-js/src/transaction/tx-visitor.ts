@@ -11,4 +11,6 @@ export interface TxVisitor {
   visitNumberArg(value: number): void;
   visitSignature(sig: Signature): void;
   visitExec(moduleId: string, methodName: string): void;
+
+  visitBufferArg(value: Uint8Array): void;
 }

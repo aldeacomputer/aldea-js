@@ -53,4 +53,8 @@ export class SerializeVisitor implements TxVisitor {
     this.lines.push(`EXEC ${moduleId} ${methodName} ${this.args.join(' ')}`)
     this.args = []
   }
+
+  visitBufferArg (buff: Uint8Array): void {
+    this.args.push(`0x${Buffer.from(buff).toString('hex')}`)
+  }
 }

@@ -24,7 +24,7 @@ declare enum AuthCheck {
 
 declare namespace Auth {
   export function lockToNone(jig: any): void;
-  export function lockToPubkey(jig: any, pubkey: ArrayBuffer): void;
+  export function lockToPubkey<T>(jig: T, pubkey: ArrayBuffer): void;
   export function lockToParent<T1, T2>(jig: T1, parent: T2): void;
   export function lockToAnyone(jif: any): void;
   export function authcheck(jig: any, check: AuthCheck): bool;

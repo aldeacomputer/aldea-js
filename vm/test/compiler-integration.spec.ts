@@ -15,7 +15,7 @@ import {
   JigArg,
   NumberArg,
   StringArg,
-  ExecInstruction
+  ExecInstruction, PrivKey, BufferArg
 } from '@aldea/sdk-js'
 
 describe('execute txs', () => {
@@ -384,6 +384,20 @@ describe('execute txs', () => {
     const exec2 = vm.execTx(tx2)
     const state = exec2.outputs[1].parsedState()
     expect(state[1]).to.eql(0)
+  })
+
+  it('can set auth to pubkey over self', () => {
+    const anotherKey = PrivKey.fromRandom().toPubKey()
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/weapon.wasm', 'Weapon' ,[new NumberArg(1)]))
+      .add(new CallInstruction(0, 'send', [new BufferArg(anotherKey.toBytes())]))
+
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+
+    const state = exec1.outputs[0]
+    expect(state.serializedLock.type).to.eql('UserLock')
   })
 
   // it(' authcheck returns true when can adopt', () => {

@@ -34,4 +34,8 @@ export class Weapon {
       this.incorporate(powerUp)
     }
   }
+
+  send (targetPubKey: ArrayBuffer): void {
+    Auth.lockToPubkey<Weapon>(this, targetPubKey)
+  }
 }
