@@ -22,9 +22,12 @@
   "devDependencies": {
     "@types/chai": "^4.3.3",
     "@types/mocha": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.40.1",
+    "@typescript-eslint/parser": "^5.40.1",
     "assemblyscript": "^0.21.3",
     "chai": "^4.3.6",
     "chokidar": "^3.5.3",
+    "eslint": "^8.25.0",
     "glob": "^8.0.3",
     "mocha": "^10.0.0",
     "nodemon": "^2.0.19",

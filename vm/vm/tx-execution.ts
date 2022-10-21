@@ -5,13 +5,13 @@ import {UserLock} from "./locks/user-lock.js"
 import {NoLock} from "./locks/no-lock.js"
 import {locationF} from './location.js'
 import {JigState} from "./jig-state.js"
-import { Transaction } from "./transaction.js";
+import {Transaction} from "./transaction.js";
 import {VM} from "./vm.js";
-import {LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
+import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Internref} from "./memory.js";
-import {MethodNode} from '@aldea/compiler/abi'
-import {PubKey, Signature, TxVisitor} from "@aldea/sdk-js";
+import {findExportedObject, findObjectMethod, MethodNode, ObjectKind} from '@aldea/compiler/abi'
+import {PubKey, Signature, TxVisitor} from '@aldea/sdk-js';
 
 class ExecVisitor implements TxVisitor {
   exec: TxExecution
@@ -32,8 +32,8 @@ class ExecVisitor implements TxVisitor {
     this.args.push(jigRef)
   }
 
-  visitLoad(location: string, forceLocation: boolean): void {
-    this.exec.loadJig(location, forceLocation)
+  visitLoad(location: string, readonly: boolean, forceLocation: boolean): void {
+    this.exec.loadJig(location, readonly, forceLocation)
   }
 
   visitLockInstruction(masterListIndex: number, pubkey: PubKey): void {
@@ -55,6 +55,15 @@ class ExecVisitor implements TxVisitor {
 
   visitStringArg(value: string): void {
     this.args.push(value)
+  }
+
+  visitExec(moduleId: string, functionName: string): void {
+    this.exec.execFunction(moduleId, functionName, this.args)
+    this.args = []
+  }
+
+  visitBufferArg (buff: Uint8Array): void {
+    this.args.push(buff)
   }
 }
 
@@ -104,8 +113,16 @@ class TxExecution {
     wasmModule.onLocalLock(this._onLocalLock.bind(this))
     wasmModule.onLocalCallStart(this._onLocalCallStart.bind(this))
     wasmModule.onLocalCallEnd(this._onLocalCallEnd.bind(this))
+    wasmModule.onAuthCheck(this._onAuthCheck.bind(this))
+    wasmModule.onLocalAuthCheck(this._onLocalAuthCheck.bind(this))
     this.wasms.set(moduleId, wasmModule)
     return wasmModule
+  }
+
+  _onLocalAuthCheck(jigPtr: number, instance: WasmInstance, check: AuthCheck): boolean {
+    const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance) || this.jigs.find(j => j.ref.ptr === -1 && j.module === instance)
+    if (!jig) {throw new Error('should exists')}
+    return this._onAuthCheck(jig.origin, check)
   }
 
   _onLocalLock(jigPtr: number, instance: WasmInstance, type: LockType, extraArg: ArrayBuffer): void {
@@ -118,7 +135,7 @@ class TxExecution {
   _onMethodCall (origin: string, methodNode: MethodNode, args: any[]): MethodResult {
     let jig = this.jigs.find(j => j.origin === origin) as JigRef
     if (!jig) {
-      jig = this.loadJig(origin, false)
+      jig = this.loadJig(origin, false,false)
     }
 
     return jig.sendMessage(methodNode.name, args, this)
@@ -127,9 +144,8 @@ class TxExecution {
   _onGetProp (origin: string, propName: string): Prop {
     let jig = this.jigs.find(j => j.origin === origin)
     if (!jig) {
-      jig = this.loadJig(origin, false)
+      jig = this.loadJig(origin, false,false)
     }
-
     return jig.module.getPropValue(jig.ref, jig.className, propName)
   }
 
@@ -160,7 +176,7 @@ class TxExecution {
   }
 
   _onLocalCallStart(jigPtr: number, wasmInstance: WasmInstance) {
-    const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === wasmInstance)
+    const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === wasmInstance) || this.jigs.find(j => j.ref.ptr === -1 && j.module === wasmInstance)
     if (!jig) {
       throw new Error('jig should exist')
     }
@@ -169,6 +185,19 @@ class TxExecution {
 
   _onLocalCallEnd () {
     this.stack.pop()
+  }
+
+
+  private _onAuthCheck (origin: string, check: AuthCheck): boolean {
+    const jigRef = this.jigs.find(jigR => jigR.origin === origin)
+    if (!jigRef) {
+      throw new Error('jig ref should exists')
+    }
+    if (check === AuthCheck.CALL) {
+      return jigRef.lock.acceptsExecution(this)
+    } else {
+      return jigRef.lock instanceof NoLock
+    }
   }
 
   private _onFindUtxo(jigPtr: number): JigRef {
@@ -209,7 +238,7 @@ class TxExecution {
     this.tx.accept(execVisitor)
   }
 
-  loadJig (location: string, force: boolean): JigRef {
+  loadJig (location: string, readOnly: boolean, force: boolean): JigRef {
     const jigState = this.vm.findJigState(location)
     if (force && location !== jigState.location) {
       throw new ExecutionError('jig already spent')
@@ -217,6 +246,9 @@ class TxExecution {
     const module = this.loadModule(jigState.moduleId)
     const ref = module.hidrate(jigState.className, jigState.stateBuf)
     const lock = this._hidrateLock(jigState.serializedLock)
+    if (lock instanceof UserLock && !readOnly) {
+      lock.open()
+    }
     const jigRef = new JigRef(ref, jigState.className, module, jigState.origin, lock)
     this.addNewJigRef(jigRef)
     return jigRef
@@ -224,9 +256,7 @@ class TxExecution {
 
   _hidrateLock (frozenLock: any): Lock {
     if (frozenLock.type === 'UserLock') {
-      const lock = new UserLock(frozenLock.data.pubkey)
-      lock.open()
-      return lock
+      return new UserLock(frozenLock.data.pubkey)
     } else if (frozenLock.type === 'JigLock') {
       return new JigLock(frozenLock.data.origin)
     } else {
@@ -251,6 +281,29 @@ class TxExecution {
     jigRef.ref = module.createNew(className, args)
     this.stack.pop()
     return jigRef
+  }
+
+  execFunction (moduleId: string, functionName: string, args: any[]) {
+    const module = this.loadModule(moduleId)
+    const [className, methodName] = functionName.split('_')
+    const abiNode = findExportedObject(module.abi, className, 'should exist')
+    const methodNode = findObjectMethod(abiNode, methodName, 'should exist')
+    if(!methodNode.rtype) { throw Error('should exist')}
+    const rTypeNode = findExportedObject(module.abi, methodNode.rtype.name, 'should exist')
+    if (rTypeNode.kind === ObjectKind.EXPORTED) {
+      const module = this.loadModule(moduleId)
+      const newOrigin = this.newOrigin()
+      const jigRef = new JigRef(new Internref(className, -1), className, module, newOrigin, new NoLock())
+      this.addNewJigRef(jigRef)
+      this.stack.push(newOrigin)
+      const retPtr = module.staticCall(className, methodName, args)
+      jigRef.ref = new Internref(moduleId, retPtr)
+      this.stack.pop()
+      return jigRef.ref
+    } else {
+      const retPtr = module.staticCall(className, 'constructor', args)
+      return new Internref(moduleId, retPtr)
+    }
   }
 
   newOrigin () {
