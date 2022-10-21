@@ -52,6 +52,11 @@ export type MethodResult = {
   value: any;
 }
 
+export enum AuthCheck {
+  CALL,
+  LOCK
+}
+
 function __encodeArgs (args: any[]): ArrayBuffer {
   const seq = Sequence.from(args)
   return CBOR.encode(seq)
@@ -70,6 +75,8 @@ type FindUtxoHandler = (jigPtr: number) => JigRef
 type LocalLockHandler = (jigPtr: number, wasmInstance: WasmInstance, type: LockType, extraArg: ArrayBuffer) => void
 type LocalCallStartHandler = (jigPtr: number, wasmInstance: WasmInstance) => void
 type LocalCallEndtHandler = () => void
+type AuthCheckHandler = (targetOrigin: string, check: AuthCheck) => boolean
+type LocalAuthCheckHandler = (jigPtr: number, module: WasmInstance, check: AuthCheck) => boolean
 
 
 const utxoAbiNode = {
@@ -150,6 +157,8 @@ export class WasmInstance {
   private localLockHandler: LocalLockHandler;
   private localCallStartHandler: LocalCallStartHandler;
   private localCallEndtHandler: LocalCallEndtHandler;
+  private authCheckHandler: AuthCheckHandler;
+  private localAuthCheckHandler: LocalAuthCheckHandler;
   private module: WebAssembly.Module;
   private instance: WebAssembly.Instance;
   abi: Abi;
@@ -169,6 +178,8 @@ export class WasmInstance {
     this.localLockHandler = () => { throw new Error('handler not defined')}
     this.localCallStartHandler = () => { throw new Error('handler not defined') }
     this.localCallEndtHandler = () => { throw new Error('handler not defined') }
+    this.authCheckHandler = () => { throw new Error('handler not defined') }
+    this.localAuthCheckHandler = () => { throw new Error('handler not defined') }
     const imports: any = {
       env: {
         memory: wasmMemory,
@@ -185,6 +196,16 @@ export class WasmInstance {
       vm: {
         vm_local_call_start: (jigPtr: number, _fnNamePtr: number): void => {
           this.localCallStartHandler(jigPtr, this)
+        },
+        vm_remote_authcheck: (originPtr: number, check: AuthCheck) => {
+          const origin = liftBuffer(this, originPtr)
+          return this.authCheckHandler(Buffer.from(origin).toString(), check)
+          // if (check === AuthCheck.CALL) {
+          //   const origin = liftBuffer(this, originPtr)
+          //   return
+          // } else {
+          //   throw new Error('not implemented yet')
+          // }
         },
         vm_local_call_end: () => {
           this.localCallEndtHandler()
@@ -217,7 +238,9 @@ export class WasmInstance {
           const prop = this.getPropHandler(Buffer.from(rmtRefBuf).toString(), propName)
           return lowerValue(prop.mod, prop.node, prop.value)
         },
-        vm_local_authcheck: () => {},
+        vm_local_authcheck: (targetJigPtr: number, check: AuthCheck) => {
+          return this.localAuthCheckHandler(targetJigPtr, this, check)
+        },
         vm_local_lock: (targetJigRefPtr: number, type: LockType, argsPtr: number): void => {
           const argBuf = liftBuffer(this, argsPtr)
           this.localLockHandler(targetJigRefPtr, this, type, argBuf)
@@ -287,6 +310,14 @@ export class WasmInstance {
 
   onLocalCallEnd (fn: LocalCallEndtHandler) {
     this.localCallEndtHandler = fn
+  }
+
+  onAuthCheck (fn: AuthCheckHandler) {
+    this.authCheckHandler = fn
+  }
+
+  onLocalAuthCheck (fn: LocalAuthCheckHandler) {
+    this.localAuthCheckHandler = fn
   }
 
   setUp () {}

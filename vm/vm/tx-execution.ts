@@ -5,12 +5,12 @@ import {UserLock} from "./locks/user-lock.js"
 import {NoLock} from "./locks/no-lock.js"
 import {locationF} from './location.js'
 import {JigState} from "./jig-state.js"
-import { Transaction } from "./transaction.js";
+import {Transaction} from "./transaction.js";
 import {VM} from "./vm.js";
-import {LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
+import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Internref} from "./memory.js";
-import {findExportedObject, findObjectField, findObjectMethod, MethodNode, ObjectKind} from '@aldea/compiler/abi'
+import {findExportedObject, findObjectMethod, MethodNode, ObjectKind} from '@aldea/compiler/abi'
 import {PubKey, Signature, TxVisitor} from '@aldea/sdk-js';
 
 class ExecVisitor implements TxVisitor {
@@ -32,8 +32,8 @@ class ExecVisitor implements TxVisitor {
     this.args.push(jigRef)
   }
 
-  visitLoad(location: string, forceLocation: boolean): void {
-    this.exec.loadJig(location, forceLocation)
+  visitLoad(location: string, readonly: boolean, forceLocation: boolean): void {
+    this.exec.loadJig(location, readonly, forceLocation)
   }
 
   visitLockInstruction(masterListIndex: number, pubkey: PubKey): void {
@@ -109,8 +109,16 @@ class TxExecution {
     wasmModule.onLocalLock(this._onLocalLock.bind(this))
     wasmModule.onLocalCallStart(this._onLocalCallStart.bind(this))
     wasmModule.onLocalCallEnd(this._onLocalCallEnd.bind(this))
+    wasmModule.onAuthCheck(this._onAuthCheck.bind(this))
+    wasmModule.onLocalAuthCheck(this._onLocalAuthCheck.bind(this))
     this.wasms.set(moduleId, wasmModule)
     return wasmModule
+  }
+
+  _onLocalAuthCheck(jigPtr: number, instance: WasmInstance, check: AuthCheck): boolean {
+    const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance) || this.jigs.find(j => j.ref.ptr === -1 && j.module === instance)
+    if (!jig) {throw new Error('should exists')}
+    return this._onAuthCheck(jig.origin, check)
   }
 
   _onLocalLock(jigPtr: number, instance: WasmInstance, type: LockType, extraArg: ArrayBuffer): void {
@@ -123,7 +131,7 @@ class TxExecution {
   _onMethodCall (origin: string, methodNode: MethodNode, args: any[]): MethodResult {
     let jig = this.jigs.find(j => j.origin === origin) as JigRef
     if (!jig) {
-      jig = this.loadJig(origin, false)
+      jig = this.loadJig(origin, false,false)
     }
 
     return jig.sendMessage(methodNode.name, args, this)
@@ -132,9 +140,8 @@ class TxExecution {
   _onGetProp (origin: string, propName: string): Prop {
     let jig = this.jigs.find(j => j.origin === origin)
     if (!jig) {
-      jig = this.loadJig(origin, false)
+      jig = this.loadJig(origin, false,false)
     }
-
     return jig.module.getPropValue(jig.ref, jig.className, propName)
   }
 
@@ -176,6 +183,19 @@ class TxExecution {
     this.stack.pop()
   }
 
+
+  private _onAuthCheck (origin: string, check: AuthCheck): boolean {
+    const jigRef = this.jigs.find(jigR => jigR.origin === origin)
+    if (!jigRef) {
+      throw new Error('jig ref should exists')
+    }
+    if (check === AuthCheck.CALL) {
+      return jigRef.lock.acceptsExecution(this)
+    } else {
+      return jigRef.lock instanceof NoLock
+    }
+  }
+
   private _onFindUtxo(jigPtr: number): JigRef {
     const jigRef = this.jigs.find(ref => ref.ref.ptr === jigPtr || ref.ref.ptr === -1)
     if (!jigRef) {
@@ -214,7 +234,7 @@ class TxExecution {
     this.tx.accept(execVisitor)
   }
 
-  loadJig (location: string, force: boolean): JigRef {
+  loadJig (location: string, readOnly: boolean, force: boolean): JigRef {
     const jigState = this.vm.findJigState(location)
     if (force && location !== jigState.location) {
       throw new ExecutionError('jig already spent')
@@ -222,6 +242,9 @@ class TxExecution {
     const module = this.loadModule(jigState.moduleId)
     const ref = module.hidrate(jigState.className, jigState.stateBuf)
     const lock = this._hidrateLock(jigState.serializedLock)
+    if (lock instanceof UserLock && !readOnly) {
+      lock.open()
+    }
     const jigRef = new JigRef(ref, jigState.className, module, jigState.origin, lock)
     this.addNewJigRef(jigRef)
     return jigRef
@@ -229,9 +252,7 @@ class TxExecution {
 
   _hidrateLock (frozenLock: any): Lock {
     if (frozenLock.type === 'UserLock') {
-      const lock = new UserLock(frozenLock.data.pubkey)
-      lock.open()
-      return lock
+      return new UserLock(frozenLock.data.pubkey)
     } else if (frozenLock.type === 'JigLock') {
       return new JigLock(frozenLock.data.origin)
     } else {

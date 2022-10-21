@@ -24,12 +24,8 @@ export class SerializeVisitor implements TxVisitor {
     this.args.push(`#${masterListIndex}`)
   }
 
-  visitLiteralArg(value: any): void {
-    this.args.push(`"${value.toString()}"`)
-  }
-
-  visitLoad(location: string, forceLocation: boolean): void {
-    this.lines.push(`LOAD ${location} ${forceLocation.toString()}`)
+  visitLoad(location: string, readonly: boolean, forceLocation: boolean): void {
+    this.lines.push(`LOAD ${location} ${readonly} ${forceLocation.toString()}`)
   }
 
   visitLockInstruction(masterListIndex: number, pubkey: PubKey): void {

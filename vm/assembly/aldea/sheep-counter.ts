@@ -24,6 +24,14 @@ export class SheepCounter {
     this.legCount += aShepherd.legCount()
     return this.sheepCount
   }
+
+  secureCountFlock (flock: Flock): u32 {
+    const canCall = Auth.authcheck(flock, AuthCheck.CALL)
+    if (canCall) {
+      return this.countFlock(flock)
+    }
+    return this.sheepCount
+  }
 }
 
 export class Shepherd {

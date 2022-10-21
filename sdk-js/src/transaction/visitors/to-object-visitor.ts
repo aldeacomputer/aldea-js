@@ -37,11 +37,12 @@ export class ToObjectVisitor implements TxVisitor {
     this.args.push({ type: 'jig', index: masterListIndex })
   }
 
-  visitLoad(location: string, forceLocation: boolean): void {
+  visitLoad(location: string, readonly: boolean, forceLocation: boolean): void {
     this.instructions.push({
       type: 'load',
       props: {
         location,
+        readonly,
         force: forceLocation
       }
     })

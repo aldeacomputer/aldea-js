@@ -316,6 +316,96 @@ describe('execute txs', () => {
     expect(state[0]).to.eql(10)
   })
 
+  it('authcheck allows the call when jig has no lock.', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[]))
+      .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+      .add(new CallInstruction(0, 'grow', []))
+      .add(new CallInstruction(1, 'secureCountFlock', [new JigArg(0)]))
+      .add(new LockInstruction(0, userPub))
+      .add(new LockInstruction(1, userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    const state = exec1.outputs[1].parsedState()
+    expect(state[0]).to.eql(1)
+  })
+
+
+  it('authcheck returns false when jig has no permission to call', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[]))
+      .add(new CallInstruction(0, 'grow', []))
+      .add(new LockInstruction(0, userPub))
+
+    const tx2 = new Transaction()
+      .add(new LoadInstruction(locationF(tx1, 0), true))
+      .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+      .add(new CallInstruction(1, 'secureCountFlock', [new JigArg(0)]))
+      .add(new LockInstruction(1, userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    storage.persist(exec1)
+    const exec2 = vm.execTx(tx2)
+    const state = exec2.outputs[1].parsedState()
+    expect(state[0]).to.eql(0)
+  })
+
+  it('authcheck returns true when jig has permission to adopt', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/weapon.wasm', 'PowerUp' ,[new NumberArg(1)]))
+      .add(new NewInstruction('aldea/weapon.wasm', 'Weapon' ,[new StringArg('sword'), new NumberArg(0)]))
+      .add(new CallInstruction(1, 'safeIncorporate', [new JigArg(0)]))
+      .add(new LockInstruction(1, userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    // storage.persist(exec1)
+    // const exec2 = vm.execTx(tx2)
+    const state = exec1.outputs[1].parsedState()
+    expect(state[1]).to.eql(1)
+  })
+
+  it('authcheck returns false when jig has no permission to adopt', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aldea/weapon.wasm', 'PowerUp' ,[new NumberArg(1)]))
+      .add(new LockInstruction(0, userPub))
+
+    const tx2 = new Transaction()
+      .add(new LoadInstruction(locationF(tx1, 0), true))
+      .add(new NewInstruction('aldea/weapon.wasm', 'Weapon' ,[new StringArg('sword'), new NumberArg(0)]))
+      .add(new CallInstruction(1, 'safeIncorporate', [new JigArg(0)]))
+      .add(new LockInstruction(1, userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    storage.persist(exec1)
+    const exec2 = vm.execTx(tx2)
+    const state = exec2.outputs[1].parsedState()
+    expect(state[1]).to.eql(0)
+  })
+
+  // it(' authcheck returns true when can adopt', () => {
+  //   const tx1 = new Transaction()
+  //     .add(new NewInstruction('aldea/flock.wasm', 'Flock' ,[]))
+  //     .add(new CallInstruction(0, 'grow', []))
+  //     .add(new LockInstruction(0, userPub))
+  //
+  //   const tx2 = new Transaction()
+  //     .add(new LoadInstruction(locationF(tx1, 0), true))
+  //     .add(new NewInstruction('aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+  //     .add(new CallInstruction(1, 'secureCountFlock', [new JigArg(0)]))
+  //     .add(new LockInstruction(1, userPub))
+  //
+  //   const vm = new VM(storage)
+  //   const exec1 = vm.execTx(tx1)
+  //   storage.persist(exec1)
+  //   const exec2 = vm.execTx(tx2)
+  //   const state = exec2.outputs[1].parsedState()
+  //   expect(state[0]).to.eql(0)
+  // })
+
 
   it('a tx can be signed', () => {
     const tx = new Transaction()
