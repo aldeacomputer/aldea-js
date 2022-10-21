@@ -10,8 +10,8 @@ import {VM} from "./vm.js";
 import {LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Internref} from "./memory.js";
-import {MethodNode} from '@aldea/compiler/abi'
-import {PubKey, Signature, TxVisitor} from "@aldea/sdk-js";
+import {findExportedObject, findObjectField, findObjectMethod, MethodNode, ObjectKind} from '@aldea/compiler/abi'
+import {PubKey, Signature, TxVisitor} from '@aldea/sdk-js';
 
 class ExecVisitor implements TxVisitor {
   exec: TxExecution
@@ -55,6 +55,11 @@ class ExecVisitor implements TxVisitor {
 
   visitStringArg(value: string): void {
     this.args.push(value)
+  }
+
+  visitExec(moduleId: string, functionName: string): void {
+    this.exec.execFunction(moduleId, functionName, this.args)
+    this.args = []
   }
 }
 
@@ -160,7 +165,7 @@ class TxExecution {
   }
 
   _onLocalCallStart(jigPtr: number, wasmInstance: WasmInstance) {
-    const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === wasmInstance)
+    const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === wasmInstance) || this.jigs.find(j => j.ref.ptr === -1 && j.module === wasmInstance)
     if (!jig) {
       throw new Error('jig should exist')
     }
@@ -251,6 +256,29 @@ class TxExecution {
     jigRef.ref = module.createNew(className, args)
     this.stack.pop()
     return jigRef
+  }
+
+  execFunction (moduleId: string, functionName: string, args: any[]) {
+    const module = this.loadModule(moduleId)
+    const [className, methodName] = functionName.split('_')
+    const abiNode = findExportedObject(module.abi, className, 'should exist')
+    const methodNode = findObjectMethod(abiNode, methodName, 'should exist')
+    if(!methodNode.rtype) { throw Error('should exist')}
+    const rTypeNode = findExportedObject(module.abi, methodNode.rtype.name, 'should exist')
+    if (rTypeNode.kind === ObjectKind.EXPORTED) {
+      const module = this.loadModule(moduleId)
+      const newOrigin = this.newOrigin()
+      const jigRef = new JigRef(new Internref(className, -1), className, module, newOrigin, new NoLock())
+      this.addNewJigRef(jigRef)
+      this.stack.push(newOrigin)
+      const retPtr = module.staticCall(className, methodName, args)
+      jigRef.ref = new Internref(moduleId, retPtr)
+      this.stack.pop()
+      return jigRef.ref
+    } else {
+      const retPtr = module.staticCall(className, 'constructor', args)
+      return new Internref(moduleId, retPtr)
+    }
   }
 
   newOrigin () {

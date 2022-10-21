@@ -1,6 +1,6 @@
-import {TxVisitor} from "../transaction/tx-visitor.js";
-import {PubKey} from "../pubkey.js";
-import {Signature} from "../signature.js";
+import {TxVisitor} from "../tx-visitor.js";
+import {PubKey} from "../../pubkey.js";
+import {Signature} from "../../signature.js";
 
 export class SerializeVisitor implements TxVisitor {
   lines: string[];
@@ -53,4 +53,8 @@ export class SerializeVisitor implements TxVisitor {
     // noop
   }
 
+  visitExec(moduleId: string, methodName: string): void {
+    this.lines.push(`EXEC ${moduleId} ${methodName} ${this.args.join(' ')}`)
+    this.args = []
+  }
 }

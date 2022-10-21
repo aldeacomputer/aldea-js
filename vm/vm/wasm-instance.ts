@@ -206,7 +206,9 @@ export class WasmInstance {
           const methodResult = this.methodHandler(Buffer.from(targetOriginArrBuf).toString(), method, args)
           return lowerValue(this, methodResult.node, methodResult.value)
         },
-        vm_remote_call_s: () => {},
+        vm_remote_call_s: () => {
+          throw new Error('not implemented yet')
+        },
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number): number => {
           const rmtRefBuf = liftBuffer(this, targetOriginPtr)
           const propStr = liftString(this, propNamePtr)
@@ -377,10 +379,5 @@ export class WasmInstance {
     return __encodeArgs(
       abiObj.fields.map(field => liftedObject[field.name])
     )
-    // return __encodeArgs(
-    //   abiObj.fields.map((field) => {
-    //     return this.getPropValue(ref, className, field.name).value
-    //   }, [])
-    // )
   }
 }

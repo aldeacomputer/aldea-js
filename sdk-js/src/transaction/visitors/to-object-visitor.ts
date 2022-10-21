@@ -1,6 +1,6 @@
-import {TxVisitor} from "../transaction/tx-visitor.js";
-import {PubKey} from "../pubkey.js";
-import {Signature} from "../signature.js";
+import {TxVisitor} from "../tx-visitor.js";
+import {PubKey} from "../../pubkey.js";
+import {Signature} from "../../signature.js";
 
 export class ToObjectVisitor implements TxVisitor {
   instructions: any[]
@@ -79,5 +79,17 @@ export class ToObjectVisitor implements TxVisitor {
 
   visitSignature (sig: Signature) {
     this.signatures.push({ pubKey: sig.pubKey.toHex(), hexSig: sig.rawSigHex() })
+  }
+
+  visitExec(moduleId: string, functionName: string): void {
+    this.instructions.push({
+      type: 'exec',
+      props: {
+        moduleId,
+        functionName,
+        args: this.args
+      }
+    })
+    this.args = []
   }
 }

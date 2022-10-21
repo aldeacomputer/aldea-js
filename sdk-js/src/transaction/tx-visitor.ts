@@ -10,4 +10,5 @@ export interface TxVisitor {
   visitStringArg(value: string): void;
   visitNumberArg(value: number): void;
   visitSignature(sig: Signature): void;
+  visitExec(moduleId: string, methodName: string): void;
 }
