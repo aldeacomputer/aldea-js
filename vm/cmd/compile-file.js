@@ -1,21 +1,21 @@
-#!/bin/env node
-import { exec } from "child_process"
 import { fileURLToPath } from "url"
+import { compile } from '@aldea/compiler'
+import fs from 'fs'
+import { abiFromCbor, abiToJson } from "@aldea/compiler/abi"
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-function run(cmd) {
-  return new Promise((resolve, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) return reject(error)
-      if (stderr) return reject(stderr)
-      resolve(stdout)
-    })
-  })
-}
-
 export async function compileFile (file) {
   const relativePath = file.replace(/.*\/aldea\//, '')
-  const stdout = await run(`yarn aldea compile ${file} -o ${__dirname}../build/aldea/${relativePath.replace('.ts', '.wasm')}`).catch(console.error)
-  console.log(stdout)
+  const fileBuf = fs.readFileSync(file)
+  try {
+    const result = await compile(fileBuf.toString())
+    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.wasm')}`, result.output.wasm)
+    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.wat')}`, result.output.wat)
+    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.cbor')}`, result.output.abi)
+    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.json')}`, JSON.stringify(abiToJson(abiFromCbor(result.output.abi.buffer))))
+    console.log(`compiled ${relativePath} ok.`)
+  } catch (e) {
+    console.warn(`error compiling ${relativePath}: ${e.message}`)
+  }
 }
