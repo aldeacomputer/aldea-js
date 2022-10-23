@@ -46,7 +46,7 @@ test('throws if source has 0 exports', async t => {
 
 test('compiles if source has >= 1 exports', async t => {
   await t.notThrowsAsync(() => compile('export class Test {}'))
-  //await t.notThrowsAsync(() => compile('export function test {}'))
+  await t.notThrowsAsync(() => compile('export function test(): void {}'))
 })
 
 test('throws if source root has var declaration', async t => {

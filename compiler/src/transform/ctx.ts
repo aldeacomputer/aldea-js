@@ -149,7 +149,7 @@ export class TransformCtx {
   }
 
   validate() {
-    if (!this.exportedObjects.length) {
+    if (!this.exportedObjects.length && !this.exportedFunctions.length) {
       throw new Error('must export at least one object or function')
     }
     this.validator.validate()
@@ -173,8 +173,6 @@ export class TransformCtx {
       .concat(this.exportedFunctions.flatMap(functionMap))
       .concat('LockState', 'UtxoState')
       .filter((v, i, a) => !!v && a.indexOf(v) === i)
-    
-    console.log(whitelist)
 
     return [...this.program.managedClasses].reduce((obj: RuntimeIds, [id, klass]) => {
       const name = normalizeClassName(klass)
