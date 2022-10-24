@@ -130,13 +130,11 @@ __metadata:
   dependencies:
     "@aldea/compiler": "workspace:^"
     "@aldea/sdk-js": "workspace:^"
-    "@noble/ed25519": ^1.7.1
     "@types/chai": ^4.3.3
     "@types/mocha": ^10.0.0
     "@typescript-eslint/eslint-plugin": ^5.40.1
     "@typescript-eslint/parser": ^5.40.1
     assemblyscript: ^0.21.3
-    blake3-wasm: ^2.1.5
     cbor-redux: 1.0.0-3
     chai: ^4.3.6
     chokidar: ^3.5.3
@@ -1810,13 +1808,6 @@ __metadata:
     wasm-opt: bin/wasm-opt
     wasm2js: bin/wasm2js
   checksum: a154448f050acc831928a25a2017445462391bfa37352397a669abced0da849882cc2d3c6d48f1574097fcb361fc23cee634db3a0fb38b1c30c01903bddb67c8
-  languageName: node
-  linkType: hard
-
-"blake3-wasm@npm:^2.1.5":
-  version: 2.1.5
-  resolution: "blake3-wasm@npm:2.1.5"
-  checksum: 5088e929c722b52b9c28701c1760ab850a963692056a417b894c943030e3267f12138ae6409e79069b8d7d0401a411426147e8d812b65a49e303fa432af18871
   languageName: node
   linkType: hard
 

@@ -9,9 +9,10 @@ import {Transaction} from "./transaction.js";
 import {VM} from "./vm.js";
 import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
-import {Internref} from "./memory.js";
-import {findExportedObject, findObjectMethod, MethodNode, ObjectKind} from '@aldea/compiler/abi'
+import {Internref, lowerValue} from "./memory.js";
+import {FieldNode, findExportedObject, findObjectMethod, MethodNode, ObjectKind} from '@aldea/compiler/abi'
 import {PubKey, Signature, TxVisitor} from '@aldea/sdk-js';
+import {ArgReader, readType} from "./arg-reader.js";
 
 class ExecVisitor implements TxVisitor {
   exec: TxExecution
@@ -21,8 +22,8 @@ class ExecVisitor implements TxVisitor {
     this.args = []
   }
 
-  visitCall(masterListIndex: number, methodName: string): void {
-    const target = this.exec.getJigRef(masterListIndex)
+  visitCall (varName:string, methodName:string): void {
+    const target = this.exec.getJigRefByVarName(varName)
     target.sendMessage(methodName, this.args, this.exec)
     this.args = []
   }
@@ -32,16 +33,21 @@ class ExecVisitor implements TxVisitor {
     this.args.push(jigRef)
   }
 
-  visitLoad(location: string, readonly: boolean, forceLocation: boolean): void {
-    this.exec.loadJig(location, readonly, forceLocation)
+  visitLoad(varName: string, location: string, readonly: boolean, forceLocation: boolean): void {
+    this.exec.loadJigIntoVariable(varName, location, readonly, forceLocation)
   }
 
-  visitLockInstruction(masterListIndex: number, pubkey: PubKey): void {
-    this.exec.lockJig(masterListIndex, new UserLock(pubkey))
+  visitLockInstruction(varName:string, pubkey:PubKey): void {
+    if (varName.startsWith('#')) {
+      const index = Number(varName.replace('#', ''))
+      this.exec.lockJigByIndex(index, new UserLock(pubkey))
+    } else {
+      this.exec.lockJigByVarName(varName, new UserLock(pubkey))
+    }
   }
 
-  visitNew(moduleId: string, className: string): void {
-    this.exec.instantiate(moduleId, className, this.args, new NoLock())
+  visitNew(varName:string, moduleId:string, className:string): void {
+    this.exec.instantiate(varName, moduleId, className, this.args, new NoLock())
     this.args = []
   }
 
@@ -57,8 +63,8 @@ class ExecVisitor implements TxVisitor {
     this.args.push(value)
   }
 
-  visitExec(moduleId: string, functionName: string): void {
-    this.exec.execFunction(moduleId, functionName, this.args)
+  visitExec(varName: string, moduleId: string, functionName: string): void {
+    this.exec.execFunction(varName, moduleId, functionName, this.args)
     this.args = []
   }
 
@@ -74,11 +80,13 @@ class TxExecution {
   private wasms: Map<string, WasmInstance>;
   private stack: string[];
   outputs: JigState[];
+  private variables: Map<string, JigRef>;
 
   constructor (tx: Transaction, vm: VM) {
     this.tx = tx
     this.vm = vm
     this.jigs = []
+    this.variables = new Map()
     this.wasms = new Map()
     this.stack = []
     this.outputs = []
@@ -115,8 +123,30 @@ class TxExecution {
     wasmModule.onLocalCallEnd(this._onLocalCallEnd.bind(this))
     wasmModule.onAuthCheck(this._onAuthCheck.bind(this))
     wasmModule.onLocalAuthCheck(this._onLocalAuthCheck.bind(this))
+    wasmModule.onRemoteStaticExecHandler(this._onRemoteStaticExecHandler.bind(this))
     this.wasms.set(moduleId, wasmModule)
     return wasmModule
+  }
+
+  _onRemoteStaticExecHandler (srcModule: WasmInstance, targetModId: string, fnStr: string, args: ArrayBuffer): number {
+    const targetMod = this.loadModule(targetModId)
+    const [className, methodName] = fnStr.split('_')
+
+    const obj = findExportedObject(targetMod.abi, className, 'could not find object')
+    const method = findObjectMethod(obj, methodName, 'could not find method')
+
+
+    const argReader = new ArgReader(args)
+    const rawArgs: any[] = method.args.map((n: FieldNode) => {
+      return readType(argReader, n.type)
+    })
+
+    const targetArgs = method.args.map((fn: FieldNode, i: number) => {
+      return lowerValue(targetMod, fn.type, rawArgs[i])
+    })
+
+
+    return targetMod.staticCall(className, methodName, targetArgs)
   }
 
   _onLocalAuthCheck(jigPtr: number, instance: WasmInstance, check: AuthCheck): boolean {
@@ -151,7 +181,7 @@ class TxExecution {
 
   _onCreate (moduleId: string, className: string, args: any[]): JigRef {
     this.loadModule(moduleId)
-    return this.instantiate(moduleId, className, args, new NoLock())
+    return this.instantiate('', moduleId, className, args, new NoLock())
   }
 
   _onRemoteLock (childOrigin: string, type: LockType, extraArg: ArrayBuffer): void {
@@ -254,6 +284,12 @@ class TxExecution {
     return jigRef
   }
 
+  loadJigIntoVariable(varName: string, location: string, readOnly: boolean, force: boolean): JigRef {
+    const jigRef = this.loadJig(location, readOnly, force)
+    this.setVar(varName, jigRef)
+    return jigRef
+  }
+
   _hidrateLock (frozenLock: any): Lock {
     if (frozenLock.type === 'UserLock') {
       return new UserLock(frozenLock.data.pubkey)
@@ -264,18 +300,27 @@ class TxExecution {
     }
   }
 
-  lockJig (masterListIndex: number, lock: Lock) {
-    const jigRef = this.getJigRef(masterListIndex)
+  lockJigByIndex (index: number, lock: Lock) {
+    const jigRef = this.getJigRef(index)
     if (!jigRef.lock.acceptsExecution(this)) {
       throw new ExecutionError(`no permission to remove lock from jig ${jigRef.origin}`)
     }
     jigRef.close(lock)
   }
 
-  instantiate (moduleId: string, className: string, args: any[], initialLock: Lock): JigRef {
+  lockJigByVarName(varName: string, lock: Lock) {
+    const jigRef = this.getJigRefByVarName(varName)
+    if (!jigRef.lock.acceptsExecution(this)) {
+      throw new ExecutionError(`no permission to remove lock from jig ${jigRef.origin}`)
+    }
+    jigRef.close(lock)
+  }
+
+  instantiate(varName: string, moduleId: string, className: string, args: any[], initialLock: Lock): JigRef {
     const module = this.loadModule(moduleId)
     const newOrigin = this.newOrigin()
     const jigRef = new JigRef(new Internref(className, -1), className, module, newOrigin, initialLock)
+    this.setVar(varName, jigRef)
     this.addNewJigRef(jigRef)
     this.stack.push(newOrigin)
     jigRef.ref = module.createNew(className, args)
@@ -283,7 +328,7 @@ class TxExecution {
     return jigRef
   }
 
-  execFunction (moduleId: string, functionName: string, args: any[]) {
+  execFunction (varName: string, moduleId: string, functionName: string, args: any[]) {
     const module = this.loadModule(moduleId)
     const [className, methodName] = functionName.split('_')
     const abiNode = findExportedObject(module.abi, className, 'should exist')
@@ -299,6 +344,7 @@ class TxExecution {
       const retPtr = module.staticCall(className, methodName, args)
       jigRef.ref = new Internref(moduleId, retPtr)
       this.stack.pop()
+      this.setVar(varName, jigRef)
       return jigRef.ref
     } else {
       const retPtr = module.staticCall(className, 'constructor', args)
@@ -312,6 +358,18 @@ class TxExecution {
 
   stackTop () {
     return this.stack[this.stack.length - 1]
+  }
+
+  getJigRefByVarName(varName: string): JigRef {
+    const ret = this.variables.get(varName)
+    if (!ret) {
+      throw new Error(`unknown variable: ${varName}`)
+    }
+    return ret
+  }
+
+  private setVar(varName: string, jigRef: JigRef) {
+    this.variables.set(varName, jigRef)
   }
 }
 

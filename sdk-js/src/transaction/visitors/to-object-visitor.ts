@@ -21,11 +21,11 @@ export class ToObjectVisitor implements TxVisitor {
     }
   }
 
-  visitCall(masterListIndex: number, methodName: string): void {
+  visitCall(varName: string, methodName: string): void {
     this.instructions.push({
       type: 'call',
       props: {
-        masterListIndex,
+        varName,
         methodName,
         args: this.args
       }
@@ -37,10 +37,11 @@ export class ToObjectVisitor implements TxVisitor {
     this.args.push({ type: 'jig', index: masterListIndex })
   }
 
-  visitLoad(location: string, readonly: boolean, forceLocation: boolean): void {
+  visitLoad(varName: string, location: string, readonly: boolean, forceLocation: boolean): void {
     this.instructions.push({
       type: 'load',
       props: {
+        varName,
         location,
         readonly,
         force: forceLocation
@@ -48,20 +49,21 @@ export class ToObjectVisitor implements TxVisitor {
     })
   }
 
-  visitLockInstruction(masterListIndex: number, pubKey: PubKey): void {
+  visitLockInstruction(varName: string, pubkey: PubKey): void {
     this.instructions.push({
       type: 'lock',
       props: {
-        masterListIndex,
-        pubKey: pubKey.toHex()
+        varName,
+        pubKey: pubkey.toHex()
       }
     })
   }
 
-  visitNew(moduleId: string, className: string): void {
+  visitNew(varName:string, moduleId:string, className:string): void {
     this.instructions.push({
       type: 'new',
       props: {
+        varName,
         moduleId,
         className,
         args: this.args
@@ -82,12 +84,12 @@ export class ToObjectVisitor implements TxVisitor {
     this.signatures.push({ pubKey: sig.pubKey.toHex(), hexSig: sig.rawSigHex() })
   }
 
-  visitExec(moduleId: string, functionName: string): void {
+  visitExec(varName: string, moduleId: string, methodName: string): void {
     this.instructions.push({
       type: 'exec',
       props: {
+        varName,
         moduleId,
-        functionName,
         args: this.args
       }
     })

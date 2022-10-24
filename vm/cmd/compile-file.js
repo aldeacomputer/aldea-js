@@ -10,10 +10,11 @@ export async function compileFile (file) {
   const fileBuf = fs.readFileSync(file)
   try {
     const result = await compile(fileBuf.toString())
+    console.log('result', `${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.json')}`)
     fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.wasm')}`, result.output.wasm)
     fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.wat')}`, result.output.wat)
     fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.cbor')}`, result.output.abi)
-    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.json')}`, JSON.stringify(abiToJson(abiFromCbor(result.output.abi.buffer))))
+    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.json')}`, abiToJson(abiFromCbor(result.output.abi.buffer)))
     console.log(`compiled ${relativePath} ok.`)
   } catch (e) {
     console.warn(`error compiling ${relativePath}: ${e.message}`)

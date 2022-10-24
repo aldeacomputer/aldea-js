@@ -6,7 +6,11 @@ export class Flock {
   }
 
   grow (): void {
-    this.size ++;
+    this.size++
+  }
+
+  growWithMath (): void {
+    this.size = BasicMath.inc(this.size);
   }
 
   growMany (amount: u32): void {
@@ -28,7 +32,7 @@ export class Flock {
 }
 
 // @ts-ignore
-@imported('./basic-math.wasm')
+@imported('aldea/basic-math.wasm')
 declare class BasicMath {
   static inc (n: u32): u32;
 }

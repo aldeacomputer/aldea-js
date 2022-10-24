@@ -3,11 +3,13 @@ import {TxVisitor} from "../tx-visitor.js";
 import {Argument} from "../arguments/argument.js";
 
 export class NewInstruction implements Instruction {
+  private varName: string
   private moduleId: string;
   private className: string;
   private args: Argument[];
 
-  constructor (moduleId: string, className: string, args: Argument[]) {
+  constructor (varName: string, moduleId: string, className: string, args: Argument[]) {
+    this.varName = varName
     this.moduleId = moduleId
     this.className = className
     this.args = args
@@ -15,6 +17,6 @@ export class NewInstruction implements Instruction {
 
   accept(visitor: TxVisitor): void {
     this.args.forEach(arg => arg.accept(visitor))
-    visitor.visitNew(this.moduleId, this.className)
+    visitor.visitNew(this.varName, this.moduleId, this.className)
   }
 }

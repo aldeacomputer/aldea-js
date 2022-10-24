@@ -87,7 +87,7 @@ export class Transaction {
       const props = inst.props
       switch (inst.type) {
         case 'new':
-          tx.add(new NewInstruction(props.moduleId, props.className, parseArgs(props.args)))
+          tx.add(new NewInstruction(props.varName, props.moduleId, props.className, parseArgs(props.args)))
           break
         case 'call':
           tx.add(new CallInstruction(props.masterListIndex, props.methodName, parseArgs(props.args)))
@@ -96,7 +96,7 @@ export class Transaction {
           tx.add(new LockInstruction(props.masterListIndex, PubKey.fromHex(props.pubKey)))
           break
         case 'load':
-          tx.add(new LoadInstruction(props.location, props.force))
+          tx.add(new LoadInstruction(props.varName, props.location, props.force))
           break
         default:
           throw new Error(`unknown instruction: ${inst.type}`)

@@ -6,6 +6,6 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 glob(`${__dirname}../assembly/aldea/**/*.ts`, {}, async (err, fileList) => {
   for (const file of fileList) {
-    compileFile(file).catch(console.error)
+    await compileFile(file).catch(console.error)
   }
 })

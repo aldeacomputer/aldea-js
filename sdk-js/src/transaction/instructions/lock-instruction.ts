@@ -3,15 +3,15 @@ import {PubKey} from "../../pubkey.js";
 import {TxVisitor} from "../tx-visitor.js";
 
 export class LockInstruction implements Instruction {
-  private masterListIndex: number;
+  private varName: string;
   private pubkey: PubKey;
 
-  constructor (masterListIndex: number, pubkey: PubKey) {
-    this.masterListIndex = masterListIndex
+  constructor (varName: string, pubkey: PubKey) {
+    this.varName = varName
     this.pubkey = pubkey
   }
 
   accept(visitor: TxVisitor): void {
-    visitor.visitLockInstruction(this.masterListIndex, this.pubkey)
+    visitor.visitLockInstruction(this.varName, this.pubkey)
   }
 }

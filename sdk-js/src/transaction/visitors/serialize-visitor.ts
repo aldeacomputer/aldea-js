@@ -15,8 +15,8 @@ export class SerializeVisitor implements TxVisitor {
     return this.lines.join('\n')
   }
 
-  visitCall(masterListIndex: number, methodName: string): void {
-    this.lines.push(`CALL #${masterListIndex} ${methodName} ${this.args.join(' ')}`)
+  visitCall(varName: string, methodName: string): void {
+    this.lines.push(`CALL #${varName} ${methodName} ${this.args.join(' ')}`)
     this.args = []
   }
 
@@ -24,16 +24,16 @@ export class SerializeVisitor implements TxVisitor {
     this.args.push(`#${masterListIndex}`)
   }
 
-  visitLoad(location: string, readonly: boolean, forceLocation: boolean): void {
-    this.lines.push(`LOAD ${location} ${readonly} ${forceLocation.toString()}`)
+  visitLoad(varName: string, location: string, readonly: boolean, forceLocation: boolean): void {
+    this.lines.push(`LOAD ${varName} ${location} ${readonly} ${forceLocation.toString()}`)
   }
 
-  visitLockInstruction(masterListIndex: number, pubkey: PubKey): void {
-    this.lines.push(`LOCK #${masterListIndex} ${pubkey.toHex()}`)
+  visitLockInstruction(varName: string, pubkey: PubKey): void {
+    this.lines.push(`LOCK $${varName} ${pubkey.toHex()}`)
   }
 
-  visitNew(moduleId: string, className: string): void {
-    this.lines.push(`NEW ${moduleId} ${className} ${this.args.join(' ')}`)
+  visitNew(varName:string, moduleId:string, className:string): void {
+    this.lines.push(`NEW ${varName} ${moduleId} ${className} ${this.args.join(' ')}`)
     this.args = []
   }
 
@@ -49,8 +49,8 @@ export class SerializeVisitor implements TxVisitor {
     // noop
   }
 
-  visitExec(moduleId: string, methodName: string): void {
-    this.lines.push(`EXEC ${moduleId} ${methodName} ${this.args.join(' ')}`)
+  visitExec(varName: string, moduleId: string, methodName: string): void {
+    this.lines.push(`EXEC ${varName} ${moduleId} ${this.args.join(' ')}`)
     this.args = []
   }
 

@@ -4,19 +4,19 @@ import {TxVisitor} from "../tx-visitor.js";
 
 
 export class CallInstruction implements Instruction {
-  masterListIndex: number
+  varName: string
   methodName: string
   args: Array<Argument>
 
-  constructor (masterListIndex: number, methodName: string, args: Array<Argument>) {
-    this.masterListIndex = masterListIndex
+  constructor (varName: string, methodName: string, args: Array<Argument>) {
+    this.varName = varName
     this.methodName = methodName
     this.args = args
   }
 
-  accept(visitor: TxVisitor): void {
+  accept (visitor: TxVisitor): void {
     this.args.forEach(arg => arg.accept(visitor))
-    visitor.visitCall(this.masterListIndex, this.methodName)
+    visitor.visitCall(this.varName, this.methodName)
   }
 }
 

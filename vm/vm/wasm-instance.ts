@@ -77,6 +77,7 @@ type LocalCallStartHandler = (jigPtr: number, wasmInstance: WasmInstance) => voi
 type LocalCallEndtHandler = () => void
 type AuthCheckHandler = (targetOrigin: string, check: AuthCheck) => boolean
 type LocalAuthCheckHandler = (jigPtr: number, module: WasmInstance, check: AuthCheck) => boolean
+type RemoteStaticExecHandler = (srcModule: WasmInstance, targetModId: string, className: string, args: ArrayBuffer) => number
 
 
 const utxoAbiNode = {
@@ -159,6 +160,7 @@ export class WasmInstance {
   private localCallEndtHandler: LocalCallEndtHandler;
   private authCheckHandler: AuthCheckHandler;
   private localAuthCheckHandler: LocalAuthCheckHandler;
+  private remoteStaticExecHandler: RemoteStaticExecHandler;
   private module: WebAssembly.Module;
   private instance: WebAssembly.Instance;
   abi: Abi;
@@ -180,6 +182,8 @@ export class WasmInstance {
     this.localCallEndtHandler = () => { throw new Error('handler not defined') }
     this.authCheckHandler = () => { throw new Error('handler not defined') }
     this.localAuthCheckHandler = () => { throw new Error('handler not defined') }
+    this.remoteStaticExecHandler = () => { throw new Error('handler not defined')}
+
     const imports: any = {
       env: {
         memory: wasmMemory,
@@ -227,8 +231,20 @@ export class WasmInstance {
           const methodResult = this.methodHandler(Buffer.from(targetOriginArrBuf).toString(), method, args)
           return lowerValue(this, methodResult.node, methodResult.value)
         },
-        vm_remote_call_s: () => {
-          throw new Error('not implemented yet')
+        vm_remote_call_s: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
+          const moduleId = liftString(this, originPtr)
+          const fnStr = liftString(this, fnNamePtr)
+          const argBuf = liftBuffer(this, argsPtr)
+
+          // const [className, methodName] = fnStr.split('_')
+          // const obj = findImportedObject(this.abi, className, 'could not find object')
+          // const method = findObjectMethod(obj, methodName, 'could not find method')
+          // const argReader = new ArgReader(argBuf)
+          // const args = method.args.map((n: FieldNode) => {
+          //   return readType(argReader, n.type)
+          // })
+
+          return this.remoteStaticExecHandler(this,  Buffer.from(moduleId).toString(), fnStr, argBuf)
         },
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number): number => {
           const rmtRefBuf = liftBuffer(this, targetOriginPtr)
@@ -318,6 +334,10 @@ export class WasmInstance {
 
   onLocalAuthCheck (fn: LocalAuthCheckHandler) {
     this.localAuthCheckHandler = fn
+  }
+
+  onRemoteStaticExecHandler (fn: RemoteStaticExecHandler) {
+    this.remoteStaticExecHandler = fn
   }
 
   setUp () {}
