@@ -6,16 +6,19 @@ import {
   ClassDeclaration,
   DecoratorNode,
   FieldDeclaration,
+  FunctionDeclaration,
   MethodDeclaration,
   NamedTypeNode,
   ParameterNode,
+  TypeDeclaration,
 } from 'assemblyscript'
 
 import {
   ObjectNode,
   FieldNode,
   MethodNode,
-  TypeNode
+  TypeNode,
+  FunctionNode
 } from '../abi/types.js'
 
 /**
@@ -24,13 +27,23 @@ import {
 export interface ObjectWrap extends ObjectNode {
   node: ClassDeclaration;
   decorators: DecoratorWrap[];
+  fields: FieldWrap[];
+  methods: MethodWrap[];
+}
+
+/**
+ * Function Node wrapping around Function Declaration.
+ */
+export interface FunctionWrap extends FunctionNode {
+  node: FunctionDeclaration;
+  decorators: DecoratorWrap[];
 }
 
 /**
  * Field Node wrapping around Field Declaration or Parameter Node.
  */
 export interface FieldWrap extends FieldNode {
-  node: FieldDeclaration | ParameterNode;
+  node: FieldDeclaration | ParameterNode | TypeDeclaration;
 }
 
 /**

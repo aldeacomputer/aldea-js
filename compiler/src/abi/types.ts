@@ -5,6 +5,7 @@ export interface Abi {
   version: number;
   rtids: RuntimeIds;
   objects: ObjectNode[];
+  functions: FunctionNode[];
 }
 
 /**
@@ -23,6 +24,15 @@ export interface ObjectNode {
   extends: string | null;
   fields: FieldNode[];
   methods: MethodNode[];
+}
+
+/**
+ * Function Node interface
+ */
+export interface FunctionNode {
+  name: string;
+  args: FieldNode[];
+  rtype: TypeNode;
 }
 
 /**
@@ -82,12 +92,17 @@ export enum MethodKind {
 /**
  * ABI CBOR type
  */
-export type AbiCbor = [number, RuntimeIds, ObjectCbor[]]
+export type AbiCbor = [number, RuntimeIds, ObjectCbor[], FunctionCbor[]]
 
 /**
  * Object CBOR type
  */
 export type ObjectCbor = [number, string, string | null, FieldCbor[], MethodCbor[]]
+
+/**
+ * Function CBOR type
+ */
+export type FunctionCbor = [string, FieldCbor[], TypeCbor]
 
 /**
  * Field CBOR type

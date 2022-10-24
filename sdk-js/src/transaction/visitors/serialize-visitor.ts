@@ -1,6 +1,6 @@
-import {TxVisitor} from "../transaction/tx-visitor.js";
-import {PubKey} from "../pubkey.js";
-import {Signature} from "../signature.js";
+import {TxVisitor} from "../tx-visitor.js";
+import {PubKey} from "../../pubkey.js";
+import {Signature} from "../../signature.js";
 
 export class SerializeVisitor implements TxVisitor {
   lines: string[];
@@ -24,12 +24,8 @@ export class SerializeVisitor implements TxVisitor {
     this.args.push(`#${masterListIndex}`)
   }
 
-  visitLiteralArg(value: any): void {
-    this.args.push(`"${value.toString()}"`)
-  }
-
-  visitLoad(location: string, forceLocation: boolean): void {
-    this.lines.push(`LOAD ${location} ${forceLocation.toString()}`)
+  visitLoad(location: string, readonly: boolean, forceLocation: boolean): void {
+    this.lines.push(`LOAD ${location} ${readonly} ${forceLocation.toString()}`)
   }
 
   visitLockInstruction(masterListIndex: number, pubkey: PubKey): void {
@@ -53,4 +49,12 @@ export class SerializeVisitor implements TxVisitor {
     // noop
   }
 
+  visitExec(moduleId: string, methodName: string): void {
+    this.lines.push(`EXEC ${moduleId} ${methodName} ${this.args.join(' ')}`)
+    this.args = []
+  }
+
+  visitBufferArg (buff: Uint8Array): void {
+    this.args.push(`0x${Buffer.from(buff).toString('hex')}`)
+  }
 }

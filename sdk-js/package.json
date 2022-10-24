@@ -6,24 +6,24 @@
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "types": "./dist/index.ts.d"
+      "require": "./dist/aldea.bundle.cjs",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./*": {
       "import": "./dist/*.js",
-      "types": "./dist/*.ts.d"
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
     }
   },
+  "main": "./dist/index.js",
   "browser": "./dist/aldea.bundle.min.js",
   "unpkg": "./dist/aldea.bundle.min.js",
-  "files": [
-    "dist/**/*",
-    "src/**/*"
-  ],
   "scripts": {
     "build": "run-s clean build:ts build:es",
     "build:ts": "tsc",
     "build:es": "node esbuild.js",
-    "clean": "rimraf dist/*",
+    "clean": "rimraf dist/* || true",
     "test": "yarn build:ts && ava"
   },
   "packageManager": "yarn@3.2.3",

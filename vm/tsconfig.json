@@ -104,12 +104,6 @@
     "./vm/**/*.ts"
   ],
   "exclude": [
-    "./lib",
-    "./build",
-    "./cmd",
-    "./playground",
-    "./test",
-    "./node_modules",
     "./tsc"
   ]
 }

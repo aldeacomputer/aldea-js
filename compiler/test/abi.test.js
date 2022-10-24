@@ -45,7 +45,8 @@ const abi = {
       args: [],
       rtype: { name: 'void', args: [] },
     }]
-  }]
+  }],
+  functions: []
 }
 
 test('not a real test', t => {

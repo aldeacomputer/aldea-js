@@ -17,10 +17,13 @@ import {
   SourceKind,
   Program,
   Class,
+  TypeDeclaration,
+  FunctionDeclaration,
 } from 'assemblyscript'
 
 import {
   ObjectWrap,
+  FunctionWrap,
   DecoratorWrap,
   FieldWrap,
   MethodWrap,
@@ -33,8 +36,11 @@ import {
   isExported,
   isPrivate,
   isProtected,
-  isStatic
+  isStatic,
 } from './filters.js'
+
+import { Validator } from './validator.js'
+import { normalizeTypeName } from '../abi.js';
 
 import {
   Abi,
@@ -42,8 +48,8 @@ import {
   FieldKind,
   MethodKind,
   ObjectKind,
+  TypeNode,
 } from '../abi/types.js'
-import { normalizeTypeName } from '../abi.js';
 
 /**
  * Transform Context class.
@@ -59,12 +65,17 @@ export class TransformCtx {
   sources: Source[]; 
   entry: Source;
   objects: ObjectWrap[];
+  functions: FunctionWrap[];
+  validator: Validator;
+  cache: SimpleCache = new SimpleCache();
 
   constructor(parser: Parser) {
     this.parser = parser
     this.sources = collectUserSources(parser.sources)
     this.entry = findUserEntry(this.sources)
-    this.objects = collectObjectNodes(this.entry) // todo - analyse all sources!
+    this.objects = collectObjectNodes(this.entry)     // todo - analyse all sources!
+    this.functions = collectFunctionNodes(this.entry) // todo - analyse all sources!
+    this.validator = new Validator(this)
     this.validate()
   }
 
@@ -72,20 +83,63 @@ export class TransformCtx {
     return {
       version: 1,
       rtids: this.mapManagedClassRtIds(),
-      objects: this.objects
+      objects: this.exposedObjects,
+      functions: this.exportedFunctions
     }
   }
 
+  // Objects explicitly exported from the module
+  get exportedObjects(): ObjectWrap[] {
+    return this.cache.get<ObjectWrap[]>('exportedObj', () => {
+      return this.objects.filter(obj => obj.kind === ObjectKind.EXPORTED)
+    })
+  }
+
+  // Objects explicitly exported from the module
+  get exportedFunctions(): FunctionWrap[] {
+    return this.cache.get<FunctionWrap[]>('exportedFn', () => {
+      return this.functions.filter(obj => isExported(obj.node.flags))
+    })
+  }
+
+  // Objects exposed by the module (exported, or as args or return values)
+  get exposedObjects(): ObjectWrap[] {
+    return this.cache.get<ObjectWrap[]>('exposedObj', () => {
+      const objects: ObjectWrap[] = []
+
+      const applyObject = (obj: ObjectWrap): void => {
+        if (objects.includes(obj)) return
+        objects.push(obj)
+        obj.fields.forEach(n => applyType(n.type))
+        obj.methods.forEach(applyFunction)
+      }
+
+      const applyFunction = (fn: FunctionWrap | MethodWrap): void => {
+        fn.args.forEach(n => applyType(n.type))
+        if (fn.rtype) applyType(fn.rtype)
+      }
+
+      const applyType = (type: TypeNode): void => {
+        const obj = this.objects.find(obj => obj.name === type.name)
+        if (obj) { applyObject(obj) }
+      }
+
+      this.exportedObjects.forEach(applyObject)
+      this.exportedFunctions.forEach(applyFunction)
+      return objects
+    })
+  }
+
   get plainObjects(): ObjectWrap[] {
-    return this.objects.filter(obj => obj.kind === ObjectKind.PLAIN)
+    return this.cache.get<ObjectWrap[]>('plainObj', () => {
+      return this.objects.filter(obj => obj.kind === ObjectKind.PLAIN)
+    })
   }
 
   get importedObjects(): ObjectWrap[] {
-    return this.objects.filter(obj => obj.kind === ObjectKind.IMPORTED)
-  }
-
-  get exportedObjects(): ObjectWrap[] {
-    return this.objects.filter(obj => obj.kind === ObjectKind.EXPORTED)
+    return this.cache.get<ObjectWrap[]>('importedObj', () => {
+      return this.objects.filter(obj => obj.kind === ObjectKind.IMPORTED)
+    })
   }
 
   parse(code: string, path: string): Source {
@@ -94,50 +148,48 @@ export class TransformCtx {
     return parser.sources[0]
   }
 
-  validate(): boolean {
-    /**
-     * TODO
-     * 
-     * - ensure all object fields are supported types
-     *   - check against whitelist
-     *   - throw if map/set with coming soon warning
-     *   - throw if imported/exported jig with coming soon warning
-     * 
-     * - ensure all object methods
-     *   - valid names (no underscore prefix)
-     *   - valid arguments
-     *     - check against whitelitelist
-     *     - throw if map/set with coming soon warning
-     *   - valid return types
-     *     - check against whitelitelist
-     *     - throw if map/set with coming soon warning
-     */
-    return true
+  validate() {
+    if (!this.exportedObjects.length && !this.exportedFunctions.length) {
+      throw new Error('must export at least one object or function')
+    }
+    this.validator.validate()
   }
 
   private mapManagedClassRtIds(): RuntimeIds {
     if (!this.program) return {}
 
-    const whitelist = this.objects
+    const functionMap = (n: FunctionWrap | MethodWrap) => {
+      return n.args
+        .map(a => normalizeTypeName(a.type))
+        .concat(normalizeTypeName(n.rtype))
+    }
+
+    const whitelist = this.exposedObjects
       .flatMap(obj => {
         return obj.fields
           .map(n => normalizeTypeName(n.type))
-          .concat(obj.methods.flatMap(n => {
-            return n.args
-              .map(a => normalizeTypeName(a.type))
-              .concat(normalizeTypeName(n.rtype))
-          }))
+          .concat(obj.methods.flatMap(functionMap))
       })
-      .filter((v, i, a) => !!v && a.indexOf(v) === i)
+      .concat(this.exportedFunctions.flatMap(functionMap))
       .concat('LockState', 'UtxoState')
+      .filter((v, i, a) => !!v && a.indexOf(v) === i)
 
     return [...this.program.managedClasses].reduce((obj: RuntimeIds, [id, klass]) => {
       const name = normalizeClassName(klass)
-      if (whitelist.includes(name)) {
-        obj[name] = id
-      }
+      if (whitelist.includes(name)) { obj[name] = id }
       return obj
     }, {})
+  }
+}
+
+/**
+ * Mega simple cache class to improve performance of TransformCtx getters.
+ */
+class SimpleCache {
+  data: {[key: string]: any} = {};
+
+  get<T>(key: string, callback: () => T) {
+    return this.data[key] ||= callback()
   }
 }
 
@@ -160,13 +212,20 @@ function collectObjectNodes(source: Source): ObjectWrap[] {
   return source.statements
     .filter(n => n.kind === NodeKind.CLASSDECLARATION)
     .map(n => mapObjectNode(n as ClassDeclaration))
-    .filter(n => n.kind > -1)
+}
+
+// todo
+function collectFunctionNodes(source: Source): FunctionWrap[] {
+  return source.statements
+    .filter(n => n.kind === NodeKind.FUNCTIONDECLARATION)
+    .map(n => mapFunctionNode(n as FunctionDeclaration))
 }
 
 // Collects Field Nodes from the given list of nodes
 function collectFieldNodes(nodes: DeclarationStatement[]): FieldWrap[] {
   return nodes
     .filter(n => n.kind === NodeKind.FIELDDECLARATION)
+    .filter(n => !isStatic(n.flags))
     .map(n => mapFieldNode(n as FieldDeclaration))
 }
 
@@ -203,11 +262,23 @@ function mapObjectNode(node: ClassDeclaration): ObjectWrap {
   }
 }
 
+// Maps the given AST node to a Function Node
+function mapFunctionNode(node: FunctionDeclaration): FunctionWrap {
+  const decorators = collectDecoratorNodes(node.decorators || [])
+
+  return {
+    node,
+    name: node.name.text,
+    args: node.signature.parameters.map(n => mapFieldNode(n as ParameterNode)),
+    rtype: mapTypeNode(node.signature.returnType as NamedTypeNode),
+    decorators
+  }
+}
+
 // Maps the given AST node to a Field Node
-function mapFieldNode(node: FieldDeclaration | ParameterNode): FieldWrap {
+function mapFieldNode(node: FieldDeclaration | ParameterNode | TypeDeclaration): FieldWrap {
   let kind
-  const isParam = "parameterKind" in node
-  if (!isParam) {
+  if (node.kind === NodeKind.FIELDDECLARATION) {
     kind = isPrivate(node.flags) ?
       FieldKind.PRIVATE :
       (isProtected(node.flags) ? FieldKind.PROTECTED : FieldKind.PUBLIC);

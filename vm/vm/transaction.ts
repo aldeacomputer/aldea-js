@@ -1,3 +1,1 @@
-import { Transaction } from '@aldea/sdk-js';
-
-export { Transaction }
+export { Transaction } from '@aldea/sdk-js'

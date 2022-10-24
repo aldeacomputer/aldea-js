@@ -1,23 +1,11 @@
 import glob from 'glob';
 import { fileURLToPath } from "url"
-import { exec } from "child_process";
-
+import { compileFile } from "./compile-file.js"
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-function run(cmd) {
-  return new Promise((resolve, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) return reject(error)
-      if (stderr) return reject(stderr)
-      resolve(stdout)
-    })
-  })
-}
 
 glob(`${__dirname}../assembly/aldea/**/*.ts`, {}, async (err, fileList) => {
   for (const file of fileList) {
-    const relativePath = file.replace(/.*\/aldea\//, '')
-    const stdout = await run(`yarn aldea compile ${file} -o ${__dirname}../build/aldea/${relativePath.replace('.ts', '.wasm')}`)
-    console.log(stdout.toString())
+    compileFile(file).catch(console.error)
   }
 })

@@ -1,5 +1,4 @@
 import {
-  ASTBuilder,
   ClassDeclaration,
   CommonFlags,
   Parser,
@@ -50,10 +49,6 @@ export function afterParse(parser: Parser): void {
     // Prefix class name with underscore and remove the export flag
     obj.node.flags = obj.node.flags & ~CommonFlags.EXPORT
   })
-
-  console.log('»»» TRANSFORMED «««')
-  console.log('*******************')
-  console.log(ASTBuilder.build($ctx.entry))
 }
 
 /**

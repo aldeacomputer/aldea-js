@@ -4,11 +4,6 @@ import {Lock} from "./locks/lock.js";
 import {Internref} from "./memory.js";
 import {TxExecution} from "./tx-execution.js";
 
-
-// export type JigPointer = {
-//   value: number
-// }
-
 export class JigRef {
   ref: Internref;
   className: string;
@@ -23,20 +18,6 @@ export class JigRef {
     this.origin = origin
     this.lock = lock
   }
-
-  // getPropValue (propName: any): any {
-  //   const [expName, fieldName] = propStr.split('.')
-  //   const obj = findExportedObject(this.abi, expName, `unknown export: ${expName}`)
-  //   const field = findObjectField(obj, fieldName, `unknown field: ${fieldName}`)
-  //
-  //   const offsets = getObjectMemLayout(obj)
-  //   const { offset, align } = offsets[field.name]
-  //   const TypedArray = getTypedArrayConstructor(field.type)
-  //   const val = new TypedArray(this.memory.buffer)[ref.ptr + offset >>> align]
-  //   return liftValue(this, field.type, val)
-  //
-  //   // propStr: string, ref: Internref
-  // }
 
   sendMessage (methodName: string, args: any[] , context: TxExecution): MethodResult {
     if (!this.lock.acceptsExecution(context)) {
