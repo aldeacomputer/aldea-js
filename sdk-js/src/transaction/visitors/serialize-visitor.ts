@@ -65,4 +65,8 @@ export class SerializeVisitor implements TxVisitor {
   visitVariableContent(varName: string): void {
     this.args.push(`$${varName}`)
   }
+
+  acceptAssign(varName: string, masterListIndex: number): void {
+    this.lines.push(`ASSIGN ${varName} ${masterListIndex}`)
+  }
 }

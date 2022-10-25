@@ -8,36 +8,43 @@ import {
   StringArg,
   PrivKey,
   NumberArg,
-  Signature, VariableContent
+  Signature, VariableContent,
+  AssignInstruction
 } from '../dist/index.js'
 
 // test.before(t => {})
 
-test.only('serialize for empy tx returns empty string', t => {
+test('serialize for empy tx returns empty string', t => {
   const tx = new Transaction()
   t.true(tx.serialize() === '')
 })
 
-test.only('serialize return right string for only a load line', t => {
+test('serializes correctly an assign instruction', t => {
+  const tx = new Transaction()
+    .add(new AssignInstruction('someVar', 101))
+  t.is(tx.serialize(), 'ASSIGN someVar 101')
+})
+
+test('serialize return right string for only a load line', t => {
   const tx = new Transaction()
     .add(new LoadInstruction('foo', 'someLocation', true, false))
   t.is(tx.serialize(), 'LOAD foo someLocation true false')
 })
 
-test.only('serialize return right string for only a new line', t => {
+test('serialize return right string for only a new line', t => {
   const tx = new Transaction()
     .add(new NewInstruction('someVar', 'somemodule', 'SomeClass', [new VariableContent('someVar'), new StringArg('foo')]))
 
   t.is(tx.serialize(), 'NEW someVar somemodule SomeClass $someVar "foo"')
 })
 
-test.only('serialize return right string for only a call instruction', t => {
+test('serialize return right string for only a call instruction', t => {
   const tx = new Transaction()
     .add(new CallInstruction('someJig', 'foo', [new VariableContent('someVar'), new StringArg('foo')]))
   t.is(tx.serialize(), 'CALL $someJig foo $someVar "foo"')
 })
 
-test.only('serialize return correct string for only a LockInstructon', t => {
+test('serialize return correct string for only a LockInstructon', t => {
   const pubkey = PrivKey.fromRandom().toPubKey()
   const tx = new Transaction()
     .add(new LockInstruction('someVar', pubkey))
@@ -45,16 +52,18 @@ test.only('serialize return correct string for only a LockInstructon', t => {
   t.is(tx.serialize(), `LOCK $someVar ${pubkey.toHex()}`)
 })
 
-test.only('serialize return corrent string for multiple instructions', t => {
+test('serialize return corrent string for multiple instructions', t => {
   const pubkey = PrivKey.fromRandom().toPubKey()
   const tx = new Transaction()
     .add(new LoadInstruction('firstVar', 'someLocation', true))
+    .add(new AssignInstruction('assignedVar', 73))
     .add(new NewInstruction('newVar', 'someModule', 'SomeClass', [new VariableContent('jig1'), new StringArg('foo')]))
     .add(new CallInstruction('someVar', 'someMethod', [new VariableContent('jig3'), new NumberArg(10)]))
     .add(new LockInstruction('otherVar', pubkey))
 
   t.is(tx.serialize(), [
     'LOAD firstVar someLocation true false',
+    'ASSIGN assignedVar 73',
     'NEW newVar someModule SomeClass $jig1 "foo"',
     'CALL $someVar someMethod $jig3 10',
     `LOCK $otherVar ${pubkey.toHex()}`
@@ -62,7 +71,7 @@ test.only('serialize return corrent string for multiple instructions', t => {
 })
 
 
-test.only('after sign is signed by a given signature', t => {
+test('after sign is signed by a given signature', t => {
   const privKey = PrivKey.fromRandom()
   const pubkey = privKey.toPubKey()
   const tx = new Transaction()
@@ -74,11 +83,12 @@ test.only('after sign is signed by a given signature', t => {
   t.true(tx.isSignedBy(pubkey))
 })
 
-test.only('toPlainObject returns a correctly serialized plain object', t => {
+test('toPlainObject returns a correctly serialized plain object', t => {
   const privKey = PrivKey.fromRandom()
   const pubkey = privKey.toPubKey()
   const tx = new Transaction()
     .add(new LoadInstruction('firstVar', 'someLocation', true))
+    .add(new AssignInstruction('assignedVar', 73))
     .add(new NewInstruction('newVar', 'someModule', 'SomeClass', [new VariableContent('jig1'), new StringArg('foo')]))
     .add(new CallInstruction('someVar', 'someMethod', [new VariableContent('jig3'), new NumberArg(10)]))
     .add(new LockInstruction('otherVar', pubkey))
@@ -87,12 +97,18 @@ test.only('toPlainObject returns a correctly serialized plain object', t => {
   tx.addSignature(signature)
 
   const serialized = tx.toPlainObject()
-  t.is(serialized.instructions.length, 4)
+  t.is(serialized.instructions.length, 5)
   t.deepEqual(serialized.instructions, [
     {
       type: 'load',
       props: {
         varName: 'firstVar', location: 'someLocation', force: false, readOnly: true
+      }
+    },
+    {
+      type: 'assign',
+      props: {
+        varName: 'assignedVar', index: 73
       }
     },
     {
@@ -130,11 +146,12 @@ test.only('toPlainObject returns a correctly serialized plain object', t => {
   ])
 })
 
-test.only('fromPlainObject generates a correct signature', t => {
+test('fromPlainObject generates a correct signature', t => {
   const privKey = PrivKey.fromRandom()
   const pubkey = privKey.toPubKey()
   const tx = new Transaction()
     .add(new LoadInstruction('firstVar', 'someLocation', true))
+    .add(new AssignInstruction('assignedVar', 73))
     .add(new NewInstruction('newVar', 'someModule', 'SomeClass', [new VariableContent('jig1'), new StringArg('foo')]))
     .add(new CallInstruction('someVar', 'someMethod', [new VariableContent('jig3'), new NumberArg(10)]))
     .add(new LockInstruction('otherVar', pubkey))
@@ -148,8 +165,7 @@ test.only('fromPlainObject generates a correct signature', t => {
 
   t.deepEqual(tx.serialize(), parsedTx.serialize())
 
-
-  t.is(parsedTx.instructions.length, 4)
+  t.is(parsedTx.instructions.length, 5)
   t.true(parsedTx.isSignedBy(pubkey))
   t.true(parsedTx.signaturesAreValid())
 })

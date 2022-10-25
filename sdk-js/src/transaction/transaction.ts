@@ -5,7 +5,13 @@ import {SerializeVisitor} from "./visitors/serialize-visitor.js";
 import {PrivKey} from "../privkey.js";
 import {PubKey} from "../pubkey.js";
 import {ToObjectVisitor} from "./visitors/to-object-visitor.js";
-import {CallInstruction, LoadInstruction, LockInstruction, NewInstruction} from "./instructions/index.js";
+import {
+  AssignInstruction,
+  CallInstruction,
+  LoadInstruction,
+  LockInstruction,
+  NewInstruction
+} from "./instructions/index.js";
 import {Argument} from "./arguments/argument.js";
 import {NumberArg, StringArg, VariableContent} from "./arguments/index.js";
 import {blake3} from "../support/hash.js";
@@ -86,6 +92,9 @@ export class Transaction {
     plainObj.instructions.forEach((inst: any) => {
       const props = inst.props
       switch (inst.type) {
+        case 'assign':
+          tx.add(new AssignInstruction(props.varName, props.index))
+          break
         case 'new':
           tx.add(new NewInstruction(props.varName, props.moduleId, props.className, parseArgs(props.args)))
           break

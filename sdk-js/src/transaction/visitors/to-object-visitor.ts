@@ -116,4 +116,14 @@ export class ToObjectVisitor implements TxVisitor {
       value: varName
     })
   }
+
+  acceptAssign(varName: string, masterListIndex: number): void {
+    this.instructions.push({
+      type: 'assign',
+      props: {
+        varName: varName,
+        index: masterListIndex
+      }
+    })
+  }
 }
