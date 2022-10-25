@@ -6,12 +6,12 @@ WORKDIR /app
 COPY . .
 
 RUN yarn install
+RUN yarn build
 
 WORKDIR /app/compiler-old
 RUN yarn tsc
 
 WORKDIR /app/vm
-RUN yarn build
 
 WORKDIR /app/node
 CMD yarn start
