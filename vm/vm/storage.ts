@@ -1,18 +1,26 @@
 import {JigState} from './jig-state.js';
 import {Transaction} from "./transaction.js";
 import {TxExecution} from "./tx-execution.js";
+import {Abi} from "@aldea/compiler/abi";
+
+export type ModuleData = {
+  mod: WebAssembly.Module,
+  abi: Abi
+}
 
 export class Storage {
   private statesPerLocation: Map<string, JigState>;
   private tips: Map<string, string>;
   private origins: Map<string, string>;
   private transactions: Map<string, Transaction>;
+  private modules: Map<string, ModuleData>
 
   constructor() {
     this.statesPerLocation = new Map()
     this.tips = new Map()
     this.origins = new Map()
     this.transactions = new Map()
+    this.modules = new Map()
   }
 
   persist(txExecution: TxExecution) {
@@ -48,5 +56,17 @@ export class Storage {
 
   getTransaction(txid: string) {
     return this.transactions.get(txid)
+  }
+
+  addModule(id: string, module: WebAssembly.Module, abi: Abi): void {
+    this.modules.set(id, { mod: module, abi })
+  }
+
+  getModule (id: string): ModuleData {
+    const module =  this.modules.get(id)
+    if (!module) {
+      throw new Error(`unknown module: ${id}`)
+    }
+    return module
   }
 }

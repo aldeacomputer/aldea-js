@@ -20,19 +20,45 @@ import {
 
 describe('execute txs', () => {
   let storage: Storage
+  let vm: VM
   const userPriv = AldeaCrypto.randomPrivateKey()
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
+  const moduleIds = new Map<string, string>()
+
+  function modIdFor (key: string): string {
+    const id = moduleIds.get(key)
+    if (!id) {
+      throw new Error(`module was not deployed: ${key}`)
+    }
+    return id
+  }
+
   beforeEach(() => {
     storage = new Storage()
+    vm = new VM(storage)
+
+    const sources = [
+      'basic-math',
+      'flock',
+      'nft',
+      'remote-control',
+      'sheep-counter',
+      'tv',
+      'weapon'
+    ]
+
+    sources.forEach(src => {
+      const id = vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
+      moduleIds.set(src, id)
+    })
+
   })
   //
   it('can create a flock', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[new NumberArg(0)]))
-      // .add(new CallInstruction(0, 'countSheep', []))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[new NumberArg(0)]))
       .add(new LockInstruction('aFlock', userPub))
 
-    const vm = new VM(storage)
     const exec = vm.execTx(tx)
 
     const parsed = exec.outputs[0].parsedState()
@@ -41,14 +67,13 @@ describe('execute txs', () => {
 
   it('can use a constructor with arguments', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aSword', 'aldea/weapon.wasm', 'Weapon' ,[
+      .add(new NewInstruction('aSword', modIdFor('weapon'), 'Weapon' ,[
         new StringArg('Sable Corvo de San Martín'),
         new NumberArg(100000)
       ]))
       // .add(new CallInstruction(0, 'countSheep', []))
       .add(new LockInstruction('aSword', userPub))
 
-    const vm = new VM(storage)
     const exec = vm.execTx(tx)
 
     const parsed = exec.outputs[0].parsedState()
@@ -58,11 +83,10 @@ describe('execute txs', () => {
 
   it('can call methods on jigs', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[ new NumberArg(0)]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[ new NumberArg(0)]))
       .add(new CallInstruction('aFlock', 'grow', []))
       .add(new LockInstruction('aFlock', userPub))
 
-    const vm = new VM(storage)
     const exec = vm.execTx(tx)
 
     const parsed = exec.outputs[0].parsedState()
@@ -71,11 +95,10 @@ describe('execute txs', () => {
 
   it('can call remote static methods inside the assembly scrypt code', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[ new NumberArg(0)]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[ new NumberArg(0)]))
       .add(new CallInstruction('aFlock', 'growWithMath', []))
       .add(new LockInstruction('aFlock', userPub))
 
-    const vm = new VM(storage)
     const exec = vm.execTx(tx)
 
     const parsed = exec.outputs[0].parsedState()
@@ -85,11 +108,10 @@ describe('execute txs', () => {
   it('can create a flock and call a method with an argument', () => {
     const amount = 15;
     const tx = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[ new NumberArg(0)]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[ new NumberArg(0)]))
       .add(new CallInstruction('aFlock', 'growMany', [new NumberArg(amount)]))
       .add(new LockInstruction('aFlock', userPub))
 
-    const vm = new VM(storage)
     const exec = vm.execTx(tx)
 
     const parsed = exec.outputs[0].parsedState()
@@ -98,10 +120,9 @@ describe('execute txs', () => {
 
   it('can create a sheep counter', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+      .add(new NewInstruction('aCounter', modIdFor('sheep-counter'), 'SheepCounter' ,[]))
       .add(new LockInstruction('aCounter', userPub))
 
-    const vm = new VM(storage)
     const exec = vm.execTx(tx)
 
     const parsed = exec.outputs[0].parsedState()
@@ -111,11 +132,10 @@ describe('execute txs', () => {
 
   it('can call methods over a sheep counter', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+      .add(new NewInstruction('aCounter', modIdFor('sheep-counter'), 'SheepCounter' ,[]))
       .add(new CallInstruction('aCounter', 'countSheep' ,[]))
       .add(new LockInstruction('aCounter', userPub))
 
-    const vm = new VM(storage)
     const exec = vm.execTx(tx)
 
     const parsed = exec.outputs[0].parsedState()
@@ -125,15 +145,14 @@ describe('execute txs', () => {
 
   it('can send a jig as a parameter', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
+      .add(new NewInstruction('aCounter', modIdFor('sheep-counter'), 'SheepCounter' ,[]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))
       .add(new CallInstruction('aFlock', 'grow', []))
       .add(new CallInstruction('aFlock', 'grow', []))
       .add(new CallInstruction('aCounter', 'countFlock' ,[new VariableContent('aFlock')]))
       .add(new LockInstruction('aCounter', userPub))
       .add(new LockInstruction('aFlock', userPub))
 
-    const vm = new VM(storage)
     const exec = vm.execTx(tx)
 
     const parsed = exec.outputs[0].parsedState()
@@ -143,8 +162,8 @@ describe('execute txs', () => {
 
   it('can use a jig in a second tx', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
+      .add(new NewInstruction('aCounter', modIdFor('sheep-counter'), 'SheepCounter' ,[]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))
       .add(new CallInstruction('aFlock', 'growMany' ,[new NumberArg(2)]))
       .add(new CallInstruction('aCounter', 'countFlock' ,[new VariableContent('aFlock')]))
       .add(new LockInstruction('aCounter', userPub))
@@ -171,9 +190,9 @@ describe('execute txs', () => {
 
   it('can create a Shepherd', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))
       .add(new CallInstruction('aFlock', 'growMany', [new NumberArg(2)]))
-      .add(new NewInstruction('aShepherd', 'aldea/sheep-counter.wasm', 'Shepherd' ,[new VariableContent('aFlock')]))
+      .add(new NewInstruction('aShepherd', modIdFor('sheep-counter'), 'Shepherd' ,[new VariableContent('aFlock')]))
       .add(new LockInstruction('aShepherd', userPub))
 
     const vm = new VM(storage)
@@ -185,12 +204,12 @@ describe('execute txs', () => {
 
   it('a shepard can replace its flock a new tx', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
-      .add(new NewInstruction('aShepherd', 'aldea/sheep-counter.wasm', 'Shepherd' ,[new VariableContent('aFlock')]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[new NumberArg(2)]))
+      .add(new NewInstruction('aShepherd', modIdFor('sheep-counter'), 'Shepherd' ,[new VariableContent('aFlock')]))
       .add(new LockInstruction('aShepherd', userPub))
 
     const tx2 = new Transaction()
-      .add(new NewInstruction('anotherFlock', 'aldea/flock.wasm', 'Flock' ,[new NumberArg(5)]))
+      .add(new NewInstruction('anotherFlock', modIdFor('flock'), 'Flock' ,[new NumberArg(5)]))
       .add(new LoadInstruction('aShepherd', locationF(tx1, 1)))
       .add(new CallInstruction('aShepherd', 'replace', [new VariableContent('anotherFlock')]))
       .add(new LockInstruction('aShepherd', userPub))
@@ -210,13 +229,13 @@ describe('execute txs', () => {
 
   it('checks the permision on nested operations', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))
       .add(new CallInstruction('aFlock', 'growMany', [new NumberArg(2)]))
-      .add(new NewInstruction('aShepherd',  'aldea/sheep-counter.wasm', 'Shepherd' ,[new VariableContent('aFlock')]))
+      .add(new NewInstruction('aShepherd',  modIdFor('sheep-counter'), 'Shepherd' ,[new VariableContent('aFlock')]))
       .add(new LockInstruction('aShepherd', userPub))
 
     const tx2 = new Transaction()
-      .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+      .add(new NewInstruction('aCounter', modIdFor('sheep-counter'), 'SheepCounter' ,[]))
       .add(new LoadInstruction('aShepherd', locationF(tx1, 1)))
       .add(new CallInstruction('aCounter', 'countShepherd', [new VariableContent('aShepherd')]))
       .add(new LockInstruction('aCounter', userPub))
@@ -236,9 +255,9 @@ describe('execute txs', () => {
 
   it('can lock to a user from a jig method', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
-      .add(new NewInstruction('anotherFlock', 'aldea/flock.wasm', 'Flock' ,[new NumberArg(3)]))
-      .add(new NewInstruction('aShepherd', 'aldea/sheep-counter.wasm', 'Shepherd' ,[new VariableContent('aFlock')]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[new NumberArg(2)]))
+      .add(new NewInstruction('anotherFlock', modIdFor('flock'), 'Flock' ,[new NumberArg(3)]))
+      .add(new NewInstruction('aShepherd', modIdFor('sheep-counter'), 'Shepherd' ,[new VariableContent('aFlock')]))
       .add(new CallInstruction('aShepherd', 'replaceAndSendTo', [new VariableContent('anotherFlock'), new StringArg(userPub.toBytes())]))
       .add(new LockInstruction('aShepherd', userPub))
 
@@ -250,9 +269,9 @@ describe('execute txs', () => {
 
   it('checks the permission on nested operations and works when invalid', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aTv', 'aldea/tv.wasm', 'TV' ,[]))
-      .add(new NewInstruction('aRemote', 'aldea/remote-control.wasm', 'RemoteControl' ,[new VariableContent('aTv')]))
-      .add(new NewInstruction('aTvUser', 'aldea/remote-control.wasm', 'TVUser' ,[new VariableContent('aRemote')]))
+      .add(new NewInstruction('aTv', modIdFor('tv'), 'TV' ,[]))
+      .add(new NewInstruction('aRemote', modIdFor('remote-control'), 'RemoteControl' ,[new VariableContent('aTv')]))
+      .add(new NewInstruction('aTvUser', modIdFor('remote-control'), 'TVUser' ,[new VariableContent('aRemote')]))
       .add(new CallInstruction('aTvUser', 'watchTvFromCouch' ,[new VariableContent('aTvUser')]))
       .add(new LockInstruction('aTvUser', userPub))
 
@@ -263,9 +282,9 @@ describe('execute txs', () => {
 
   it('checks the permision on nested operations and fails when invalid', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aTv', 'aldea/tv.wasm', 'TV' ,[]))
-      .add(new NewInstruction('aControl','aldea/remote-control.wasm', 'RemoteControl' ,[new VariableContent('aTv')]))
-      .add(new NewInstruction('aTvUser', 'aldea/remote-control.wasm', 'TVUser' ,[new VariableContent('aControl')]))
+      .add(new NewInstruction('aTv', modIdFor('tv'), 'TV' ,[]))
+      .add(new NewInstruction('aControl',modIdFor('remote-control'), 'RemoteControl' ,[new VariableContent('aTv')]))
+      .add(new NewInstruction('aTvUser', modIdFor('remote-control'), 'TVUser' ,[new VariableContent('aControl')]))
       .add(new CallInstruction('aTvUser', 'watchTvFromTheFloor' ,[new VariableContent('aTvUser')]))
       .add(new LockInstruction('aTvUser', userPub))
 
@@ -275,7 +294,7 @@ describe('execute txs', () => {
 
   it('throws error when tx not signed by the owner', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aTv', 'aldea/tv.wasm', 'TV' ,[]))
+      .add(new NewInstruction('aTv', modIdFor('tv'), 'TV' ,[]))
       .add(new LockInstruction('aTv', userPub))
 
     const tx2 = new Transaction()
@@ -290,7 +309,7 @@ describe('execute txs', () => {
 
   it('does not throw if tx was signed by the owner', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aTv', 'aldea/tv.wasm', 'TV' ,[]))
+      .add(new NewInstruction('aTv', modIdFor('tv'), 'TV' ,[]))
       .add(new LockInstruction('aTv', userPub))
 
     const tx2 = new Transaction()
@@ -308,7 +327,7 @@ describe('execute txs', () => {
 
   it('can call static methods from inside jigs', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))
       .add(new CallInstruction('aFlock', 'grow', []))
       .add(new LockInstruction('aFlock', userPub))
 
@@ -320,7 +339,7 @@ describe('execute txs', () => {
 
   it('can call static methods from top level.', () => {
     const tx1 = new Transaction()
-      .add(new ExecInstruction('aFlock' ,'aldea/flock.wasm', 'Flock_createWithSize' , [new NumberArg(10)]))
+      .add(new ExecInstruction('aFlock' ,modIdFor('flock'), 'Flock_createWithSize' , [new NumberArg(10)]))
       .add(new LockInstruction('aFlock', userPub))
 
     const vm = new VM(storage)
@@ -331,8 +350,8 @@ describe('execute txs', () => {
 
   it('authcheck allows the call when jig has no lock.', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
-      .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))
+      .add(new NewInstruction('aCounter', modIdFor('sheep-counter'), 'SheepCounter' ,[]))
       .add(new CallInstruction('aFlock', 'grow', []))
       .add(new CallInstruction('aCounter', 'secureCountFlock', [new VariableContent('aFlock')]))
       .add(new LockInstruction('aFlock', userPub))
@@ -346,13 +365,13 @@ describe('execute txs', () => {
 
   it('authcheck returns false when jig has no permission to call', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))
       .add(new CallInstruction('aFlock', 'grow', []))
       .add(new LockInstruction('aFlock', userPub))
 
     const tx2 = new Transaction()
       .add(new LoadInstruction('aFlock', locationF(tx1, 0), true))
-      .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+      .add(new NewInstruction('aCounter', modIdFor('sheep-counter'), 'SheepCounter' ,[]))
       .add(new CallInstruction('aCounter', 'secureCountFlock', [new VariableContent('aFlock')]))
       .add(new LockInstruction('aCounter', userPub))
 
@@ -366,8 +385,8 @@ describe('execute txs', () => {
 
   it('authcheck returns true when jig has permission to adopt', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aPowerUp', 'aldea/weapon.wasm', 'PowerUp' ,[new NumberArg(1)]))
-      .add(new NewInstruction('aWeapon', 'aldea/weapon.wasm', 'Weapon' ,[new StringArg('sword'), new NumberArg(0)]))
+      .add(new NewInstruction('aPowerUp', modIdFor('weapon'), 'PowerUp' ,[new NumberArg(1)]))
+      .add(new NewInstruction('aWeapon', modIdFor('weapon'), 'Weapon' ,[new StringArg('sword'), new NumberArg(0)]))
       .add(new CallInstruction('aWeapon', 'safeIncorporate', [new VariableContent('aPowerUp')]))
       .add(new LockInstruction('aWeapon', userPub))
 
@@ -380,12 +399,12 @@ describe('execute txs', () => {
 
   it('authcheck returns false when jig has no permission to adopt', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aPowerUp', 'aldea/weapon.wasm', 'PowerUp' ,[new NumberArg(1)]))
+      .add(new NewInstruction('aPowerUp', modIdFor('weapon'), 'PowerUp' ,[new NumberArg(1)]))
       .add(new LockInstruction('aPowerUp', userPub))
 
     const tx2 = new Transaction()
       .add(new LoadInstruction('aPowerUp', locationF(tx1, 0), true))
-      .add(new NewInstruction('aWeapon', 'aldea/weapon.wasm', 'Weapon' ,[new StringArg('sword'), new NumberArg(0)]))
+      .add(new NewInstruction('aWeapon', modIdFor('weapon'), 'Weapon' ,[new StringArg('sword'), new NumberArg(0)]))
       .add(new CallInstruction('aWeapon', 'safeIncorporate', [new VariableContent('aPowerUp')]))
       .add(new LockInstruction('aWeapon', userPub))
 
@@ -400,7 +419,7 @@ describe('execute txs', () => {
   it('can set auth to pubkey over self', () => {
     const anotherKey = PrivKey.fromRandom().toPubKey()
     const tx1 = new Transaction()
-      .add(new NewInstruction('aWeapon', 'aldea/weapon.wasm', 'Weapon' ,[new NumberArg(1)]))
+      .add(new NewInstruction('aWeapon', modIdFor('weapon'), 'Weapon' ,[new NumberArg(1)]))
       .add(new CallInstruction('aWeapon', 'send', [new BufferArg(anotherKey.toBytes())]))
 
     const vm = new VM(storage)
@@ -412,13 +431,13 @@ describe('execute txs', () => {
 
   it(' authcheck returns true when can adopt', () => {
     const tx1 = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))
       .add(new CallInstruction('aFlock', 'grow', []))
       .add(new LockInstruction('aFlock', userPub))
 
     const tx2 = new Transaction()
       .add(new LoadInstruction('aFlock', locationF(tx1, 0), true))
-      .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
+      .add(new NewInstruction('aCounter', modIdFor('sheep-counter'), 'SheepCounter' ,[]))
       .add(new CallInstruction('aCounter', 'secureCountFlock', [new VariableContent('aFlock')]))
       .add(new LockInstruction('aCounter', userPub))
 
@@ -432,7 +451,7 @@ describe('execute txs', () => {
 
   it('a tx can be signed', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[new NumberArg(2)]))
       .add(new CallInstruction('aFlock', 'grow' ,[]))
       .add(new LockInstruction('aFlock', userPub))
 

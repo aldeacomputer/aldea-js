@@ -5,24 +5,17 @@ import { TxExecution } from './tx-execution.js'
 import fs from "fs"
 import {Storage} from "./storage.js";
 import {Transaction} from "./transaction.js";
-import {Abi, abiFromCbor, abiFromJson} from '@aldea/compiler/abi'
+import {abiFromCbor, abiFromJson} from '@aldea/compiler/abi'
 import {compile} from '@aldea/compiler'
 import {blake3} from "@aldea/sdk-js/support/hash";
 
 const __dir = fileURLToPath(import.meta.url)
 
-type ModuleData = {
-  mod: WebAssembly.Module,
-  abi: Abi
-}
-
 export class VM {
   private storage: Storage;
-  private modules: Map<string, ModuleData>;
 
   constructor (storage: Storage) {
     this.storage = storage
-    this.modules = new Map<string, ModuleData>()
   }
 
   execTx (tx: Transaction): TxExecution {
@@ -32,19 +25,9 @@ export class VM {
     return currentExecution
   }
 
-  createWasmInstance (relativePath: string) {
-    const existingModule = this.modules.get(relativePath)
-    if (existingModule) {
-      return new WasmInstance(existingModule.mod, existingModule.abi, relativePath)
-    }
-
-    const modulePath = path.join(__dir, '../../build', relativePath)
-    const wasmBuffer = fs.readFileSync(modulePath)
-    const module = new WebAssembly.Module(wasmBuffer)
-    const abiPath = modulePath.replace('wasm', 'abi.json')
-    const abi = abiFromJson(fs.readFileSync(abiPath).toString())
-    this.modules.set(relativePath, { mod: module, abi })
-    return new WasmInstance(module, abi, relativePath)
+  createWasmInstance (moduleId: string) {
+    const existingModule = this.storage.getModule(moduleId)
+    return new WasmInstance(existingModule.mod, existingModule.abi, moduleId)
   }
 
 
@@ -54,19 +37,28 @@ export class VM {
 
   async deployCode (sourceCode: string): Promise<string> {
     const result = await compile(sourceCode)
-    const id = Buffer.from(blake3(result.output.wasm)).toString('hex')
-    this.modules.set(id, { mod: new WebAssembly.Module(result.output.wasm), abi: abiFromCbor(result.output.abi.buffer) })
+    const id = Buffer.from(blake3(Buffer.from(sourceCode))).toString('hex')
+    this.storage.addModule(
+      id,
+      new WebAssembly.Module(result.output.wasm),
+      abiFromCbor(result.output.abi.buffer)
+    )
     return id
   }
 
-  addPreCompiled (relativePath: string): string {
-    const modulePath = path.join(__dir, '../../build', relativePath)
+  addPreCompiled (compiledRelative: string, sourceRelative: string): string {
+    const modulePath = path.join(__dir, '../../build', compiledRelative)
+    const srcPath = path.join(__dir, '../../assembly', sourceRelative)
     const wasmBuffer = fs.readFileSync(modulePath)
-    const id = Buffer.from(blake3(wasmBuffer)).toString('hex')
+    const id = Buffer.from(blake3(fs.readFileSync(srcPath))).toString('hex')
     const module = new WebAssembly.Module(wasmBuffer)
     const abiPath = modulePath.replace('wasm', 'abi.json')
     const abi = abiFromJson(fs.readFileSync(abiPath).toString())
-    this.modules.set(id, { mod: module, abi })
+    this.storage.addModule(
+      id,
+      module,
+      abi
+    )
     return id
   }
 }

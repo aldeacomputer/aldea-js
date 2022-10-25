@@ -69,7 +69,7 @@ export class Shepherd {
 }
 
 // @ts-ignore
-@imported('./flock.wasm')
+@imported('6328a8bfe682ecc5a318b603fecbfc278f27e1ba729dc67659678b176aa8e188')
 declare class Flock {
   size: u32;
   legCount (): u32;

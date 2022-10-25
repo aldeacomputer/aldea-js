@@ -32,7 +32,7 @@ export class Flock {
 }
 
 // @ts-ignore
-@imported('aldea/basic-math.wasm')
+@imported('756f1c083715970d7c5d2ba79fcc442b686bcea3ea303cbb9cc9a12f48db0ba5')
 declare class BasicMath {
   static inc (n: u32): u32;
 }
