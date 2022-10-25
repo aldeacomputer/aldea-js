@@ -12,7 +12,7 @@ import {
   LockInstruction,
   NewInstruction,
   Signature,
-  JigArg,
+  VariableContent,
   NumberArg,
   StringArg,
   ExecInstruction, PrivKey, BufferArg
@@ -129,7 +129,7 @@ describe('execute txs', () => {
       .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
       .add(new CallInstruction('aFlock', 'grow', []))
       .add(new CallInstruction('aFlock', 'grow', []))
-      .add(new CallInstruction('aCounter', 'countFlock' ,[new JigArg(1)]))
+      .add(new CallInstruction('aCounter', 'countFlock' ,[new VariableContent('aFlock')]))
       .add(new LockInstruction('aCounter', userPub))
       .add(new LockInstruction('aFlock', userPub))
 
@@ -146,14 +146,14 @@ describe('execute txs', () => {
       .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
       .add(new CallInstruction('aFlock', 'growMany' ,[new NumberArg(2)]))
-      .add(new CallInstruction('aCounter', 'countFlock' ,[new JigArg(1)]))
+      .add(new CallInstruction('aCounter', 'countFlock' ,[new VariableContent('aFlock')]))
       .add(new LockInstruction('aCounter', userPub))
       .add(new LockInstruction('aFlock', userPub))
 
 
     const tx2 = new Transaction()
       .add(new LoadInstruction( 'aCounter', locationF(tx1, 0)))
-      .add(new CallInstruction('aCounter', 'countSheep' ,[new JigArg(1)]))
+      .add(new CallInstruction('aCounter', 'countSheep' ,[new VariableContent('aCounter')]))
       .add(new LockInstruction('aCounter', userPub))
 
     tx2.addSignature(Signature.from(userPriv, Buffer.from(tx2.serialize())))
@@ -173,7 +173,7 @@ describe('execute txs', () => {
     const tx1 = new Transaction()
       .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
       .add(new CallInstruction('aFlock', 'growMany', [new NumberArg(2)]))
-      .add(new NewInstruction('aShepherd', 'aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
+      .add(new NewInstruction('aShepherd', 'aldea/sheep-counter.wasm', 'Shepherd' ,[new VariableContent('aFlock')]))
       .add(new LockInstruction('aShepherd', userPub))
 
     const vm = new VM(storage)
@@ -186,13 +186,13 @@ describe('execute txs', () => {
   it('a shepard can replace its flock a new tx', () => {
     const tx1 = new Transaction()
       .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
-      .add(new NewInstruction('aShepherd', 'aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
+      .add(new NewInstruction('aShepherd', 'aldea/sheep-counter.wasm', 'Shepherd' ,[new VariableContent('aFlock')]))
       .add(new LockInstruction('aShepherd', userPub))
 
     const tx2 = new Transaction()
       .add(new NewInstruction('anotherFlock', 'aldea/flock.wasm', 'Flock' ,[new NumberArg(5)]))
       .add(new LoadInstruction('aShepherd', locationF(tx1, 1)))
-      .add(new CallInstruction('aShepherd', 'replace', [ new JigArg(0) ]))
+      .add(new CallInstruction('aShepherd', 'replace', [new VariableContent('anotherFlock')]))
       .add(new LockInstruction('aShepherd', userPub))
       .add(new LockInstruction('#2', userPub)) // Released jig
 
@@ -212,13 +212,13 @@ describe('execute txs', () => {
     const tx1 = new Transaction()
       .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
       .add(new CallInstruction('aFlock', 'growMany', [new NumberArg(2)]))
-      .add(new NewInstruction('aShepherd',  'aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
+      .add(new NewInstruction('aShepherd',  'aldea/sheep-counter.wasm', 'Shepherd' ,[new VariableContent('aFlock')]))
       .add(new LockInstruction('aShepherd', userPub))
 
     const tx2 = new Transaction()
       .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new LoadInstruction('aShepherd', locationF(tx1, 1)))
-      .add(new CallInstruction('aCounter', 'countShepherd', [ new JigArg(1) ]))
+      .add(new CallInstruction('aCounter', 'countShepherd', [new VariableContent('aShepherd')]))
       .add(new LockInstruction('aCounter', userPub))
       .add(new LockInstruction('aShepherd', userPub))
 
@@ -238,8 +238,8 @@ describe('execute txs', () => {
     const tx1 = new Transaction()
       .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
       .add(new NewInstruction('anotherFlock', 'aldea/flock.wasm', 'Flock' ,[new NumberArg(3)]))
-      .add(new NewInstruction('aShepherd', 'aldea/sheep-counter.wasm', 'Shepherd' ,[new JigArg(0)]))
-      .add(new CallInstruction('aShepherd', 'replaceAndSendTo', [new JigArg(1), new StringArg(userPub.toBytes())]))
+      .add(new NewInstruction('aShepherd', 'aldea/sheep-counter.wasm', 'Shepherd' ,[new VariableContent('aFlock')]))
+      .add(new CallInstruction('aShepherd', 'replaceAndSendTo', [new VariableContent('anotherFlock'), new StringArg(userPub.toBytes())]))
       .add(new LockInstruction('aShepherd', userPub))
 
     const vm = new VM(storage)
@@ -251,9 +251,9 @@ describe('execute txs', () => {
   it('checks the permission on nested operations and works when invalid', () => {
     const tx = new Transaction()
       .add(new NewInstruction('aTv', 'aldea/tv.wasm', 'TV' ,[]))
-      .add(new NewInstruction('aRemote', 'aldea/remote-control.wasm', 'RemoteControl' ,[new JigArg(0)]))
-      .add(new NewInstruction('aTvUser', 'aldea/remote-control.wasm', 'TVUser' ,[new JigArg(1)]))
-      .add(new CallInstruction('aTvUser', 'watchTvFromCouch' ,[new JigArg(2)]))
+      .add(new NewInstruction('aRemote', 'aldea/remote-control.wasm', 'RemoteControl' ,[new VariableContent('aTv')]))
+      .add(new NewInstruction('aTvUser', 'aldea/remote-control.wasm', 'TVUser' ,[new VariableContent('aRemote')]))
+      .add(new CallInstruction('aTvUser', 'watchTvFromCouch' ,[new VariableContent('aTvUser')]))
       .add(new LockInstruction('aTvUser', userPub))
 
     const vm = new VM(storage)
@@ -264,9 +264,9 @@ describe('execute txs', () => {
   it('checks the permision on nested operations and fails when invalid', () => {
     const tx = new Transaction()
       .add(new NewInstruction('aTv', 'aldea/tv.wasm', 'TV' ,[]))
-      .add(new NewInstruction('aControl','aldea/remote-control.wasm', 'RemoteControl' ,[new JigArg(0)]))
-      .add(new NewInstruction('aTvUser', 'aldea/remote-control.wasm', 'TVUser' ,[new JigArg(1)]))
-      .add(new CallInstruction('aTvUser', 'watchTvFromTheFloor' ,[new JigArg(2)]))
+      .add(new NewInstruction('aControl','aldea/remote-control.wasm', 'RemoteControl' ,[new VariableContent('aTv')]))
+      .add(new NewInstruction('aTvUser', 'aldea/remote-control.wasm', 'TVUser' ,[new VariableContent('aControl')]))
+      .add(new CallInstruction('aTvUser', 'watchTvFromTheFloor' ,[new VariableContent('aTvUser')]))
       .add(new LockInstruction('aTvUser', userPub))
 
     const vm = new VM(storage)
@@ -334,7 +334,7 @@ describe('execute txs', () => {
       .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[]))
       .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
       .add(new CallInstruction('aFlock', 'grow', []))
-      .add(new CallInstruction('aCounter', 'secureCountFlock', [new JigArg(0)]))
+      .add(new CallInstruction('aCounter', 'secureCountFlock', [new VariableContent('aFlock')]))
       .add(new LockInstruction('aFlock', userPub))
       .add(new LockInstruction('aCounter', userPub))
 
@@ -353,7 +353,7 @@ describe('execute txs', () => {
     const tx2 = new Transaction()
       .add(new LoadInstruction('aFlock', locationF(tx1, 0), true))
       .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
-      .add(new CallInstruction('aCounter', 'secureCountFlock', [new JigArg(0)]))
+      .add(new CallInstruction('aCounter', 'secureCountFlock', [new VariableContent('aFlock')]))
       .add(new LockInstruction('aCounter', userPub))
 
     const vm = new VM(storage)
@@ -368,7 +368,7 @@ describe('execute txs', () => {
     const tx1 = new Transaction()
       .add(new NewInstruction('aPowerUp', 'aldea/weapon.wasm', 'PowerUp' ,[new NumberArg(1)]))
       .add(new NewInstruction('aWeapon', 'aldea/weapon.wasm', 'Weapon' ,[new StringArg('sword'), new NumberArg(0)]))
-      .add(new CallInstruction('aWeapon', 'safeIncorporate', [new JigArg(0)]))
+      .add(new CallInstruction('aWeapon', 'safeIncorporate', [new VariableContent('aPowerUp')]))
       .add(new LockInstruction('aWeapon', userPub))
 
     const vm = new VM(storage)
@@ -386,7 +386,7 @@ describe('execute txs', () => {
     const tx2 = new Transaction()
       .add(new LoadInstruction('aPowerUp', locationF(tx1, 0), true))
       .add(new NewInstruction('aWeapon', 'aldea/weapon.wasm', 'Weapon' ,[new StringArg('sword'), new NumberArg(0)]))
-      .add(new CallInstruction('aWeapon', 'safeIncorporate', [new JigArg(0)]))
+      .add(new CallInstruction('aWeapon', 'safeIncorporate', [new VariableContent('aPowerUp')]))
       .add(new LockInstruction('aWeapon', userPub))
 
     const vm = new VM(storage)
@@ -419,7 +419,7 @@ describe('execute txs', () => {
     const tx2 = new Transaction()
       .add(new LoadInstruction('aFlock', locationF(tx1, 0), true))
       .add(new NewInstruction('aCounter', 'aldea/sheep-counter.wasm', 'SheepCounter' ,[]))
-      .add(new CallInstruction('aCounter', 'secureCountFlock', [new JigArg(0)]))
+      .add(new CallInstruction('aCounter', 'secureCountFlock', [new VariableContent('aFlock')]))
       .add(new LockInstruction('aCounter', userPub))
 
     const vm = new VM(storage)
@@ -433,7 +433,7 @@ describe('execute txs', () => {
   it('a tx can be signed', () => {
     const tx = new Transaction()
       .add(new NewInstruction('aFlock', 'aldea/flock.wasm', 'Flock' ,[new NumberArg(2)]))
-      .add(new CallInstruction('aFlock', 'grow' ,[new JigArg(1)]))
+      .add(new CallInstruction('aFlock', 'grow' ,[]))
       .add(new LockInstruction('aFlock', userPub))
 
     const data = Buffer.from(tx.serialize());

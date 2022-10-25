@@ -28,11 +28,6 @@ class ExecVisitor implements TxVisitor {
     this.args = []
   }
 
-  visitJigArg(masterListIndex: number): void {
-    const jigRef = this.exec.getJigRef(masterListIndex)
-    this.args.push(jigRef)
-  }
-
   visitLoad(varName: string, location: string, readonly: boolean, forceLocation: boolean): void {
     this.exec.loadJigIntoVariable(varName, location, readonly, forceLocation)
   }
@@ -70,6 +65,15 @@ class ExecVisitor implements TxVisitor {
 
   visitBufferArg (buff: Uint8Array): void {
     this.args.push(buff)
+  }
+
+  acceptAssign(varName: string, masterListIndex: number): void {
+    this.exec
+  }
+
+  visitVariableContent(varName: string): void {
+    const jigRef = this.exec.getJigRefByVarName(varName)
+    this.args.push(jigRef)
   }
 }
 
@@ -366,6 +370,14 @@ class TxExecution {
       throw new Error(`unknown variable: ${varName}`)
     }
     return ret
+  }
+
+  assignToVar (varName: string, jigIndex: number): void {
+    const jigRef = this.jigs[jigIndex]
+    if (!jigRef) {
+      throw new Error(`index out of bounds: ${jigIndex}`)
+    }
+    this.setVar(varName, jigRef)
   }
 
   private setVar(varName: string, jigRef: JigRef) {
