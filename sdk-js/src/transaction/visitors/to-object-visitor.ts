@@ -33,17 +33,17 @@ export class ToObjectVisitor implements TxVisitor {
     this.args = []
   }
 
-  visitJigArg(masterListIndex: number): void {
+  visitMasterListIndex(masterListIndex: number): void {
     this.args.push({ type: 'jig', index: masterListIndex })
   }
 
-  visitLoad(varName: string, location: string, readonly: boolean, forceLocation: boolean): void {
+  visitLoad(varName: string, location: string, readOnly: boolean, forceLocation: boolean): void {
     this.instructions.push({
       type: 'load',
       props: {
         varName,
         location,
-        readonly,
+        readOnly,
         force: forceLocation
       }
     })
@@ -100,6 +100,20 @@ export class ToObjectVisitor implements TxVisitor {
     this.args.push({
       type: 'buffer',
       value: Buffer.from(buff).toString('hex')
+    })
+  }
+
+  visitOriginArg(origin: ArrayBuffer): void {
+    this.args.push({
+      type: 'origin',
+      value: Buffer.from(origin).toString('hex')
+    })
+  }
+
+  visitVariableContent(varName: string): void {
+    this.args.push({
+      type: 'variableContent',
+      value: varName
     })
   }
 }

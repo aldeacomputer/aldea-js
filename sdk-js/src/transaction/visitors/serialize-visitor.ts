@@ -16,11 +16,11 @@ export class SerializeVisitor implements TxVisitor {
   }
 
   visitCall(varName: string, methodName: string): void {
-    this.lines.push(`CALL #${varName} ${methodName} ${this.args.join(' ')}`)
+    this.lines.push(`CALL $${varName} ${methodName} ${this.args.join(' ')}`)
     this.args = []
   }
 
-  visitJigArg(masterListIndex: number): void {
+  visitMasterListIndex(masterListIndex: number): void {
     this.args.push(`#${masterListIndex}`)
   }
 
@@ -56,5 +56,13 @@ export class SerializeVisitor implements TxVisitor {
 
   visitBufferArg (buff: Uint8Array): void {
     this.args.push(`0x${Buffer.from(buff).toString('hex')}`)
+  }
+
+  visitOriginArg(origin: ArrayBuffer): void {
+    this.args.push(`origin:${Buffer.from(origin).toString('hex')}`)
+  }
+
+  visitVariableContent(varName: string): void {
+    this.args.push(`$${varName}`)
   }
 }

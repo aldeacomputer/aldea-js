@@ -7,7 +7,7 @@ import {PubKey} from "../pubkey.js";
 import {ToObjectVisitor} from "./visitors/to-object-visitor.js";
 import {CallInstruction, LoadInstruction, LockInstruction, NewInstruction} from "./instructions/index.js";
 import {Argument} from "./arguments/argument.js";
-import {JigArg, NumberArg, StringArg} from "./arguments/index.js";
+import {NumberArg, StringArg, VariableContent} from "./arguments/index.js";
 import {blake3} from "../support/hash.js";
 
 const parseArgs = (args: any): Argument[] => {
@@ -20,8 +20,8 @@ const parseArgs = (args: any): Argument[] => {
       case 'string':
         ret.push(new StringArg(arg.value))
         break
-      case 'jig':
-        ret.push(new JigArg(arg.index))
+      case 'variableContent':
+        ret.push(new VariableContent(arg.value))
         break
       default:
         throw new Error(`unknown arg type: ${arg.type}`)
@@ -90,13 +90,13 @@ export class Transaction {
           tx.add(new NewInstruction(props.varName, props.moduleId, props.className, parseArgs(props.args)))
           break
         case 'call':
-          tx.add(new CallInstruction(props.masterListIndex, props.methodName, parseArgs(props.args)))
+          tx.add(new CallInstruction(props.varName, props.methodName, parseArgs(props.args)))
           break
         case 'lock':
-          tx.add(new LockInstruction(props.masterListIndex, PubKey.fromHex(props.pubKey)))
+          tx.add(new LockInstruction(props.varName, PubKey.fromHex(props.pubKey)))
           break
         case 'load':
-          tx.add(new LoadInstruction(props.varName, props.location, props.force))
+          tx.add(new LoadInstruction(props.varName, props.location, props.readOnly, props.force))
           break
         default:
           throw new Error(`unknown instruction: ${inst.type}`)
