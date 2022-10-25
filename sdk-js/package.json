@@ -17,6 +17,7 @@
     }
   },
   "main": "./dist/index.js",
+  "module": "./dist/aldea.bundle.min.js",
   "browser": "./dist/aldea.bundle.min.js",
   "unpkg": "./dist/aldea.bundle.min.js",
   "scripts": {

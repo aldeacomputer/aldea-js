@@ -1,11 +1,10 @@
 import express from 'express'
 import cors from 'cors'
 
-import { Storage, VM } from '@aldea/vm'
 import { TransactionJSON } from './transaction-json.js'
+import { buildVm } from "./build-vm.js"
 
-const storage = new Storage()
-const vm = new VM(storage)
+const { vm, storage } = buildVm()
 
 const app = express()
 const port = process.env.PORT || 4000
@@ -43,6 +42,7 @@ app.post('/tx', (req, res) => {
     storage.persist(execution)
     res.send({ txid: tx.id })
   } catch (e) {
+    console.error(e)
     res.status(400).send(e.message)
   }
 })
