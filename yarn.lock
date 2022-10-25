@@ -46,6 +46,7 @@ __metadata:
     "@fortawesome/fontawesome-svg-core": ^6.2.0
     "@fortawesome/free-solid-svg-icons": ^6.2.0
     "@fortawesome/react-fontawesome": ^0.2.0
+    "@scure/bip39": ^1.1.0
     crypto: ^1.0.1
     eslint: 8.23.1
     eslint-config-next: 12.3.0
@@ -54,6 +55,7 @@ __metadata:
     prismjs: ^1.29.0
     react: 18.2.0
     react-dom: 18.2.0
+    react-hot-toast: ^2.4.0
     react-spinners: ^0.13.4
     react-tabs: ^5.1.0
     react-useinterval: ^1.0.2
