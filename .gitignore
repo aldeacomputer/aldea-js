@@ -22,3 +22,6 @@ node_modules
 # Coverage data
 *.profraw
 *.profdatacd
+
+# partial config files
+tsconfig.tsbuildinfo
