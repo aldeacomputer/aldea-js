@@ -54,6 +54,14 @@ describe('deploy code', () => {
     expect(execution.outputs[0].className).to.eql('Coso')
   })
 
+  it('can deploy same module twice', async () => {
+    const vm = new VM(storage)
+    const moduleId1 = await vm.deployCode(someValidModule)
+    const moduleId2 = await vm.deployCode(someValidModule)
+
+    expect(moduleId1).to.eql(moduleId2)
+  })
+
   it('modules can be pre added from a file', async () => {
     const vm = new VM(storage)
     const moduleId = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
@@ -64,6 +72,14 @@ describe('deploy code', () => {
 
     const execution = vm.execTx(tx)
     expect(execution.outputs[0].className).to.eql('Flock')
+  })
+
+  it('some pre compiled module can be added twice', async () => {
+    const vm = new VM(storage)
+    const moduleId1 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
+    const moduleId2 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
+
+    expect(moduleId1).to.eql(moduleId2)
   })
 
   it('modules can be pre added from a file with dependencies', () => {

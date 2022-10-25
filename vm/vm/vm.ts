@@ -36,8 +36,11 @@ export class VM {
   }
 
   async deployCode (sourceCode: string): Promise<string> {
-    const result = await compile(sourceCode)
     const id = Buffer.from(blake3(Buffer.from(sourceCode))).toString('hex')
+    if (this.storage.hasModule(id)) {
+      return id
+    }
+    const result = await compile(sourceCode)
     this.storage.addModule(
       id,
       new WebAssembly.Module(result.output.wasm),
@@ -47,10 +50,14 @@ export class VM {
   }
 
   addPreCompiled (compiledRelative: string, sourceRelative: string): string {
-    const modulePath = path.join(__dir, '../../build', compiledRelative)
     const srcPath = path.join(__dir, '../../assembly', sourceRelative)
-    const wasmBuffer = fs.readFileSync(modulePath)
     const id = Buffer.from(blake3(fs.readFileSync(srcPath))).toString('hex')
+    if (this.storage.hasModule(id)) {
+      return id
+    }
+
+    const modulePath = path.join(__dir, '../../build', compiledRelative)
+    const wasmBuffer = fs.readFileSync(modulePath)
     const module = new WebAssembly.Module(wasmBuffer)
     const abiPath = modulePath.replace('wasm', 'abi.json')
     const abi = abiFromJson(fs.readFileSync(abiPath).toString())

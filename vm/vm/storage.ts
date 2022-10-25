@@ -69,4 +69,8 @@ export class Storage {
     }
     return module
   }
+
+  hasModule(id: string): boolean {
+    return this.modules.has(id);
+  }
 }
