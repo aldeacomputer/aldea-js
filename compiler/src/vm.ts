@@ -21,8 +21,14 @@ export class VM {
     const abiBuf = await fs.readFile(abiPath)
     const abi = abiFromCbor(abiBuf.buffer)
 
+    const memory = new WebAssembly.Memory({
+      initial: 1,
+      maximum: 2,
+    })
+
     const wasm = await WebAssembly.instantiate(wasmBuf, {
       env: {
+        memory,
         // ~lib/builtins/abort(~lib/string/String | null?, ~lib/string/String | null?, u32?, u32?) => void
         abort: (messagePtr: number, fileNamePtr: number, lineNumPtr: number, colNumPtr: number) => {
           const mod = this.getModule(key)

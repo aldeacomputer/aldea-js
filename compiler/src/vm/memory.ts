@@ -1,3 +1,5 @@
+import { blake3 } from '@noble/hashes/blake3'
+import { bytesToHex as toHex } from '@noble/hashes/utils'
 import { normalizeTypeName } from '../abi.js'
 import { FieldNode, ObjectKind, ObjectNode, TypeNode } from '../abi/types.js';
 import { Module, Internref, Externref } from './module.js'
@@ -34,6 +36,7 @@ export function liftValue(mod: Module, type: TypeNode | null, val: number | bigi
     case 'f64':
       return val
     case 'i64':
+      return BigInt.asIntN(64, val as bigint)
     case 'u64':
       return BigInt.asUintN(64, val as bigint)
     case 'bool':
@@ -57,6 +60,10 @@ export function liftValue(mod: Module, type: TypeNode | null, val: number | bigi
       return liftArray(mod, type, val as number >>> 0)
     case 'StaticArray':
       return liftStaticArray(mod, type, val as number >>> 0)
+    case 'Map':
+      return liftMap(mod, type, val as number)
+    case 'Set':
+      return liftSet(mod, type, val as number)
     default:
       const obj = mod.abi.objects.find(n => n.name === type.name)
       if (obj) {
@@ -172,6 +179,72 @@ export function liftImportedObject(mod: Module, type: TypeNode, ptr: number): Ex
 }
 
 /**
+ * Lifts a Map from WASM memory at the given Ptr. 
+ */
+export function liftMap(mod: Module, type: TypeNode, ptr: number): Map<any, any> {
+  const mem32 = new Uint32Array(mod.memory.buffer)
+  const start = mem32[ptr + 8 >>> 2]
+  const size  = mem32[ptr + 16 >>> 2]
+
+  const KeyTypedArray = getTypedArrayConstructor(type.args[0])
+  const kBytes = getTypeBytes(type.args[0])
+  const kAlign = kBytes > 1 ? Math.ceil(kBytes / 3) : 0
+  const kEntries = new KeyTypedArray(liftBuffer(mod, start))
+
+  const ValTypedArray = getTypedArrayConstructor(type.args[1])
+  const vBytes = getTypeBytes(type.args[1])
+  const vAlign = vBytes > 1 ? Math.ceil(vBytes / 3) : 0
+  const vEntries = new ValTypedArray(liftBuffer(mod, start))
+  
+  const krBytes = Math.max(kBytes, vBytes)
+  const trBytes = Math.max(vBytes, 4)
+  const vrBytes = kBytes === 8 && kBytes > vBytes ? trBytes : Math.max(kBytes, vBytes)
+  const entrySize = Math.max(krBytes + vrBytes, 4) + trBytes
+
+  const map = new Map()
+  for (let i = 0; i < size; i++) {
+    const keyPos = i * entrySize
+    const valPos = keyPos + krBytes
+
+    const keyPtr = kEntries[keyPos >>> kAlign]
+    const key = liftValue(mod, type.args[0], keyPtr)
+
+    const valPtr = vEntries[valPos >>> vAlign]
+    const val = liftValue(mod, type.args[1], valPtr)
+
+    map.set(key, val)
+  }
+  return map
+}
+
+/**
+ * Lifts a Set from WASM memory at the given Ptr.
+ */
+export function liftSet(mod: Module, type: TypeNode, ptr: number): Set<any> {
+  const mem32 = new Uint32Array(mod.memory.buffer)
+  const start = mem32[ptr + 8 >>> 2]
+  const size  = mem32[ptr + 16 >>> 2]
+
+  const TypedArray = getTypedArrayConstructor(type.args[0])
+  const vBytes = getTypeBytes(type.args[0])
+  const vAlign = vBytes > 1 ? Math.ceil(vBytes / 3) : 0
+  const vEntries = new TypedArray(liftBuffer(mod, start))
+
+  const vrBytes = Math.max(vBytes, 4)
+  const entrySize = vrBytes + Math.max(vrBytes, 4)
+
+  const set = new Set()
+  for (let i = 0; i < size; i++) {
+    const valPos = i * entrySize
+    const valPtr = vEntries[valPos >>> vAlign]
+    const val = liftValue(mod, type.args[0], valPtr)
+
+    set.add(val)
+  }
+  return set
+}
+
+/**
  * Lowers any supported type into WASM memory and returns the value or Ptr.
  */
 export function lowerValue(mod: Module, type: TypeNode | null, val: any): number | bigint {
@@ -188,6 +261,7 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
     case 'f64':
       return val
     case 'i64':
+      return BigInt.asIntN(64, BigInt(val))
     case 'u64':
       return BigInt.asUintN(64, BigInt(val))
     case 'bool':
@@ -211,6 +285,10 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
       return lowerArray(mod, type, val)
     case 'StaticArray':
       return lowerStaticArray(mod, type, val)
+    case 'Map':
+      return lowerMap(mod, type, val)
+    case 'Set':
+      return lowerSet(mod, type, val)
     default:
       const obj = mod.abi.objects.find(n => n.name === type.name)
       if (obj) {
@@ -358,6 +436,73 @@ export function lowerImportedObject(mod: Module, val: Externref): number {
   const ptr = mod.exports.__new(val.origin.byteLength, 0) >>> 0;
   const memU32 = new Uint32Array(mod.memory.buffer)
   memU32[ptr + 0 >>> 2] = buffer
+  return ptr
+}
+
+/**
+ * Lowers a Map into WASM memory and returns the Ptr.
+ * 
+ * This is a bit of a hack - it creates an empty Map and then repeatedly calls
+ * `__put_map_entry_SUFFIX(key, val)` to add the entries directly to the map.
+ */
+export function lowerMap(mod: Module, type: TypeNode, val: Map<any, any>): number {
+  const kBytes = getTypeBytes(type.args[0])
+  const vBytes = getTypeBytes(type.args[1])
+
+  const krBytes = Math.max(kBytes, vBytes)
+  const trBytes = Math.max(vBytes, 4)
+  const vrBytes = kBytes === 8 && kBytes > vBytes ? trBytes : Math.max(kBytes, vBytes)
+  const entrySize = Math.max(krBytes + vrBytes, 4) + trBytes
+  const ptr = lowerEmptySetOrMap(mod, type, entrySize)
+
+  const typeHash = blake3(normalizeTypeName(type), { dkLen: 4 })
+  const fnName = `__put_map_entry_${ toHex(typeHash) }`
+  val.forEach((v, k) => {
+    const key = lowerValue(mod, type.args[0], k) as number
+    const val = lowerValue(mod, type.args[1], v) as number
+    mod.exports[fnName](ptr, key, val)
+  })
+
+  return ptr
+}
+
+/**
+ * Lowers a Set into WASM memory and returns the Ptr.
+ * 
+ * This is a bit of a hack - it creates an empty Set and then repeatedly calls
+ * `__put_set_entry_SUFFIX(val)` to add the entries directly to the set.
+ */
+export function lowerSet(mod: Module, type: TypeNode, val: Set<any>): number {
+  const bytes = Math.max(getTypeBytes(type.args[0]), 4)
+  const entrySize = bytes + Math.max(bytes, 4)
+  const ptr = lowerEmptySetOrMap(mod, type, entrySize)
+
+  const typeHash = blake3(normalizeTypeName(type), { dkLen: 4 })
+  const fnName = `__put_set_entry_${ toHex(typeHash) }`
+  val.forEach(v => {
+    const entry = lowerValue(mod, type.args[0], v) as number
+    mod.exports[fnName](ptr, entry)
+  })
+
+  return ptr
+}
+
+// Creates an empty Set or Map type, returning the Ptr
+function lowerEmptySetOrMap(mod: Module, type: TypeNode, entrySize: number): number {
+  const rtid = mod.abi.rtids[normalizeTypeName(type)]
+  const initCapacity = 4
+  const buckets = mod.exports.__new(initCapacity * 4, 0)
+  const entries = mod.exports.__new(initCapacity * entrySize, 0)
+  const ptr = mod.exports.__new(24, rtid)
+
+  const memU32 = new Uint32Array(mod.memory.buffer)
+  memU32[ptr + 0 >>> 2] = buckets
+  memU32[ptr + 1 >>> 2] = initCapacity - 1
+  memU32[ptr + 2 >>> 2] = entries
+  memU32[ptr + 3 >>> 2] = initCapacity
+  memU32[ptr + 4 >>> 2] = 0
+  memU32[ptr + 5 >>> 2] = 0
+
   return ptr
 }
 

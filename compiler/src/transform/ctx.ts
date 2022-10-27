@@ -130,6 +130,26 @@ export class TransformCtx {
     })
   }
 
+  // Set of all types exposed as fields or arguments or return types
+  get exposedTypes(): Map<string, TypeNode> {
+    return this.cache.get<Map<string, TypeNode>>('exposedType', () => {
+      const map = new Map<string, TypeNode>()
+
+      const functionIter = (fn: FunctionWrap | MethodWrap) => {
+        fn.args.forEach(n => map.set(normalizeTypeName(n.type), n.type))
+        if (fn.rtype) { map.set(normalizeTypeName(fn.rtype), fn.rtype) }
+      }
+  
+      this.exposedObjects.forEach(obj => {
+        obj.fields.forEach(n => map.set(normalizeTypeName(n.type), n.type))
+        obj.methods.forEach(functionIter)
+      })
+      this.exportedFunctions.forEach(functionIter)
+      
+      return map
+    })
+  }
+
   get plainObjects(): ObjectWrap[] {
     return this.cache.get<ObjectWrap[]>('plainObj', () => {
       return this.objects.filter(obj => obj.kind === ObjectKind.PLAIN)
@@ -157,23 +177,7 @@ export class TransformCtx {
 
   private mapManagedClassRtIds(): RuntimeIds {
     if (!this.program) return {}
-
-    const functionMap = (n: FunctionWrap | MethodWrap) => {
-      return n.args
-        .map(a => normalizeTypeName(a.type))
-        .concat(normalizeTypeName(n.rtype))
-    }
-
-    const whitelist = this.exposedObjects
-      .flatMap(obj => {
-        return obj.fields
-          .map(n => normalizeTypeName(n.type))
-          .concat(obj.methods.flatMap(functionMap))
-      })
-      .concat(this.exportedFunctions.flatMap(functionMap))
-      .concat('LockState', 'UtxoState')
-      .filter((v, i, a) => !!v && a.indexOf(v) === i)
-
+    const whitelist = Array.from(this.exposedTypes.keys()).concat('LockState', 'UtxoState')
     return [...this.program.managedClasses].reduce((obj: RuntimeIds, [id, klass]) => {
       const name = normalizeClassName(klass)
       if (whitelist.includes(name)) { obj[name] = id }
@@ -336,15 +340,16 @@ function mapDecoratorNode(node: DecoratorNode): DecoratorWrap {
 
 // Normalizes class name to match normalize type name
 function normalizeClassName(klass: Class): string {
-  //const normalizeName = (n: string) => n === 'String' ? n.toLowerCase() : n
+  const normalizeName = (n: string) => n === 'String' ? n.toLowerCase() : n
   const name = klass.name.replace(/^(\w+)<.*>$/, '$1')
 
   if (klass.typeArguments) {
     const args = klass.typeArguments.map(n => {
-      return n.classReference?.name || n.toString()
+      const arg = n.classReference?.name || n.toString()
+      return normalizeName(arg)
     })
     return name + `<${ args.join(',') }>`
   } else {
-    return name
+    return normalizeName(name)
   }
 }

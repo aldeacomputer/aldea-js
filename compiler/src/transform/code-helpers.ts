@@ -1,6 +1,8 @@
+import { blake3 } from '@noble/hashes/blake3'
+import { bytesToHex as toHex } from '@noble/hashes/utils'
 import { FieldWrap, MethodWrap, ObjectWrap } from './nodes.js'
 import { normalizeTypeName } from '../abi.js'
-import { MethodKind } from '../abi/types.js'
+import { MethodKind, TypeNode } from '../abi/types.js'
 import { getTypeBytes } from '../vm/memory.js'
 
 /**
@@ -135,4 +137,39 @@ export function writeArgWriterEncodeMethod(field: FieldWrap, i: number): string 
     default:
       return `writeU32(changetype<usize>(a${i}) as u32)`
   }
+}
+
+/**
+ * Writes exported method for putting a value into a set.
+ * 
+ * These methods are a hack used to lower complex objects into memory.
+ */
+export function writeSetPutter(type: TypeNode): string {
+  const setType = normalizeTypeName(type)
+  const valType = normalizeTypeName(type.args[0])
+  const hash = toHex(blake3(setType, { dkLen: 4 }))
+
+  return `
+  export function __put_set_entry_${hash}(set: ${setType}, val: ${valType}): void {
+    set.add(val)
+  }
+  `.trim()
+}
+
+/**
+ * Writes exported method for putting a key and value into a map.
+ * 
+ * These methods are a hack used to lower complex objects into memory.
+ */
+export function writeMapPutter(type: TypeNode): string {
+  const mapType = normalizeTypeName(type)
+  const keyType = normalizeTypeName(type.args[0])
+  const valType = normalizeTypeName(type.args[1])
+  const hash = toHex(blake3(mapType, { dkLen: 4 }))
+
+  return `
+  export function __put_map_entry_${hash}(map: ${mapType}, key: ${keyType}, val: ${valType}): void {
+    map.set(key, val)
+  }
+  `.trim()
 }

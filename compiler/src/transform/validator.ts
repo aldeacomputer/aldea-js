@@ -92,12 +92,6 @@ export class Validator {
   }
 
   validate(): void {
-    /**
-     * TODO - extra validations
-     * - at least one export!
-     * - globals that are literal types should be allowed!
-     */
-
     this.ctx.sources.forEach(src => {
       this.validateSourceStatements(src)
     })

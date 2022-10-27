@@ -17,6 +17,8 @@ import {
   writeRemoteProxyClass,
   writeRemoteProxyGetter,
   writeRemoteProxyMethod,
+  writeMapPutter,
+  writeSetPutter,
 } from './transform/code-helpers.js'
 
 
@@ -34,8 +36,6 @@ export function useCtx(): TransformCtx { return $ctx }
 export function afterParse(parser: Parser): void {
   $ctx = new TransformCtx(parser)
 
-  injectJigNamesToAuth($ctx)
-
   $ctx.importedObjects.forEach(obj => {
     createProxyClass(obj, $ctx)
     // Remove user node
@@ -46,9 +46,12 @@ export function afterParse(parser: Parser): void {
   $ctx.exportedObjects.forEach(obj => {
     createProxyMethods(obj, $ctx)
     exportClassMethods(obj, $ctx)
-    // Prefix class name with underscore and remove the export flag
+    // Remove the export flag
     obj.node.flags = obj.node.flags & ~CommonFlags.EXPORT
   })
+
+  injectJigNamesToAuth($ctx)
+  exportComplexSetters($ctx)
 }
 
 /**
@@ -92,7 +95,10 @@ function exportClassMethods(obj: ObjectWrap, ctx: TransformCtx): void {
 }
 
 /**
- * TODO
+ * Create proxy method for each class instance method.
+ * 
+ * - prefix original method with underscore
+ * - add proxy method that wraps the original method, letting vm know of stack
  */
 function createProxyMethods(obj: ObjectWrap, ctx: TransformCtx): void {
   const methodCodes = (obj.methods as MethodWrap[])
@@ -140,4 +146,21 @@ function createProxyClass(obj: ObjectWrap, ctx: TransformCtx): void {
 
   const src = ctx.parse(code, ctx.entry.normalizedPath)
   ctx.entry.statements.push(...src.statements)
+}
+
+/**
+ * Create internal putter methods for any complex types.
+ */
+function exportComplexSetters(ctx: TransformCtx): void {
+  const codes: string[] = []
+
+  ctx.exposedTypes.forEach(type => {
+    if (type.name === 'Map') { codes.push(writeMapPutter(type)) }
+    if (type.name === 'Set') { codes.push(writeSetPutter(type)) }
+  })
+
+  if (codes.length) {
+    const src = ctx.parse(codes.join('\n'), ctx.entry.normalizedPath)
+    ctx.entry.statements.push(...src.statements)
+  }
 }
