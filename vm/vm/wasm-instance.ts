@@ -236,16 +236,9 @@ export class WasmInstance {
           const fnStr = liftString(this, fnNamePtr)
           const argBuf = liftBuffer(this, argsPtr)
 
-          // const [className, methodName] = fnStr.split('_')
-          // const obj = findImportedObject(this.abi, className, 'could not find object')
-          // const method = findObjectMethod(obj, methodName, 'could not find method')
-          // const argReader = new ArgReader(argBuf)
-          // const args = method.args.map((n: FieldNode) => {
-          //   return readType(argReader, n.type)
-          // })
-
           return this.remoteStaticExecHandler(this,  Buffer.from(moduleId).toString(), fnStr, argBuf)
         },
+
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number): number => {
           const rmtRefBuf = liftBuffer(this, targetOriginPtr)
           const propStr = liftString(this, propNamePtr)

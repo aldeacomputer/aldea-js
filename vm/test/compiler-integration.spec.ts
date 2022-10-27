@@ -15,8 +15,9 @@ import {
   VariableContent,
   NumberArg,
   StringArg,
-  ExecInstruction, PrivKey, BufferArg
+  ExecInstruction, PrivKey, BufferArg, AssignInstruction
 } from '@aldea/sdk-js'
+import {ExecutionError, PermissionError} from "../vm/errors.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -44,7 +45,8 @@ describe('execute txs', () => {
       'remote-control',
       'sheep-counter',
       'tv',
-      'weapon'
+      'weapon',
+      'forever-counter'
     ]
 
     sources.forEach(src => {
@@ -213,7 +215,8 @@ describe('execute txs', () => {
       .add(new LoadInstruction('aShepherd', locationF(tx1, 1)))
       .add(new CallInstruction('aShepherd', 'replace', [new VariableContent('anotherFlock')]))
       .add(new LockInstruction('aShepherd', userPub))
-      .add(new LockInstruction('#2', userPub)) // Released jig
+      .add(new AssignInstruction('aFlock', 2))
+      .add(new LockInstruction('aFlock', userPub)) // Released jig
 
     tx2.addSignature(Signature.from(userPriv, Buffer.from(tx2.serialize())))
 
@@ -447,6 +450,84 @@ describe('execute txs', () => {
     const exec2 = vm.execTx(tx2)
     const state = exec2.outputs[1].parsedState()
     expect(state[0]).to.eql(0)
+  })
+
+  it('can lock to public', () => {
+    const tx = new Transaction()
+      .add(new NewInstruction('aCounter', modIdFor('forever-counter'), 'ForeverCounter', []))
+
+    const exec1 = vm.execTx(tx)
+    expect(exec1.outputs[0].serializedLock).to.eql({ type: 'PublicLock' })
+  })
+
+  it('can make calls to locked to public jigs', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aCounter', modIdFor('forever-counter'), 'ForeverCounter', []))
+
+    const tx2 = new Transaction()
+      .add(new LoadInstruction('aCounter', locationF(tx1, 0)))
+      .add(new CallInstruction('aCounter', 'inc', []))
+
+    const exec1 = vm.execTx(tx1)
+    storage.persist(exec1)
+    const exec2 = vm.execTx(tx2)
+    expect(exec2.outputs[0].parsedState()[0]).to.eql(1)
+  })
+
+  it('cannot lock public jigs to a user', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aCounter', modIdFor('forever-counter'), 'ForeverCounter', []))
+
+    const tx2 = new Transaction()
+      .add(new LoadInstruction('aCounter', locationF(tx1, 0)))
+      .add(new LockInstruction('aCounter', userPub))
+
+    const exec1 = vm.execTx(tx1)
+    storage.persist(exec1)
+    expect(() => vm.execTx(tx2)).to.throw(PermissionError, `no permission to remove lock from jig ${exec1.outputs[0].origin}`)
+  })
+
+  it('cannot lock public jigs to a user', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aCounter', modIdFor('forever-counter'), 'ForeverCounter', []))
+
+    const tx2 = new Transaction()
+      .add(new LoadInstruction('aCounter', locationF(tx1, 0)))
+      .add(new LockInstruction('aCounter', userPub))
+
+    const exec1 = vm.execTx(tx1)
+    storage.persist(exec1)
+    expect(() => vm.execTx(tx2)).to.throw(PermissionError, `no permission to remove lock from jig ${exec1.outputs[0].origin}`)
+  })
+
+  it('cannot lock a non self jig to public', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aCounter', modIdFor('forever-counter'), 'NormalCounter', []))
+      .add(new NewInstruction('publicMaker', modIdFor('forever-counter'), 'MakePublic', []))
+      .add(new CallInstruction('publicMaker', 'makeCounterPublic', [new VariableContent('aCounter')]))
+      .add(new LockInstruction('publicMaker', userPub))
+
+    expect(() => vm.execTx(tx1)).to.throw( ExecutionError,'cannot make another jig public')
+  })
+
+  it('cannot lock an external non self jig to public', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock', []))
+      .add(new NewInstruction('publicMaker', modIdFor('forever-counter'), 'MakePublic', []))
+      .add(new CallInstruction('publicMaker', 'makeFlockPublic', [new VariableContent('aFlock')]))
+      .add(new LockInstruction('publicMaker', userPub))
+
+    expect(() => vm.execTx(tx1)).to.throw( ExecutionError,'cannot make another jig public')
+  })
+
+  it('cannot lock an external non self jig to public', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock', []))
+      .add(new NewInstruction('publicMaker', modIdFor('forever-counter'), 'MakePublic', []))
+      .add(new CallInstruction('publicMaker', 'makeFlockPublic', [new VariableContent('aFlock')]))
+      .add(new LockInstruction('publicMaker', userPub))
+
+    expect(() => vm.execTx(tx1)).to.throw( ExecutionError,'cannot make another jig public')
   })
 
   it('a tx can be signed', () => {

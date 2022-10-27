@@ -29,4 +29,8 @@ export class UserLock implements Lock {
   acceptsExecution(context: TxExecution): boolean {
     return context.tx.isSignedBy(this.pubkey);
   }
+
+  canBeChangedBy(context: TxExecution): boolean {
+    return this.acceptsExecution(context);
+  }
 }

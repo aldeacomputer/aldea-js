@@ -22,4 +22,8 @@ export class JigLock implements Lock {
   acceptsExecution(context: TxExecution): boolean {
     return context.stackTop() === this.origin;
   }
+
+  canBeChangedBy(context: TxExecution): boolean {
+    return this.acceptsExecution(context);
+  }
 }

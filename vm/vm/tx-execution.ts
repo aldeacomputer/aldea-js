@@ -13,6 +13,7 @@ import {Internref, lowerValue} from "./memory.js";
 import {FieldNode, findExportedObject, findObjectMethod, MethodNode, ObjectKind} from '@aldea/compiler/abi'
 import {PubKey, Signature, TxVisitor} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
+import {PublicLock} from "./locks/public-lock.js";
 
 class ExecVisitor implements TxVisitor {
   exec: TxExecution
@@ -33,12 +34,7 @@ class ExecVisitor implements TxVisitor {
   }
 
   visitLockInstruction(varName:string, pubkey:PubKey): void {
-    if (varName.startsWith('#')) {
-      const index = Number(varName.replace('#', ''))
-      this.exec.lockJigByIndex(index, new UserLock(pubkey))
-    } else {
-      this.exec.lockJigByVarName(varName, new UserLock(pubkey))
-    }
+    this.exec.lockJigByVarName(varName, new UserLock(pubkey))
   }
 
   visitNew(varName:string, moduleId:string, className:string): void {
@@ -68,7 +64,7 @@ class ExecVisitor implements TxVisitor {
   }
 
   acceptAssign(varName: string, masterListIndex: number): void {
-    this.exec
+    this.exec.assignToVar(varName, masterListIndex)
   }
 
   visitVariableContent(varName: string): void {
@@ -160,7 +156,7 @@ class TxExecution {
   }
 
   _onLocalLock(jigPtr: number, instance: WasmInstance, type: LockType, extraArg: ArrayBuffer): void {
-    const childJigRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance)
+    const childJigRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance) || this.jigs.find(j => j.module === instance && j.ref.ptr === -1)
     if (!childJigRef) {throw new Error('should exists')}
     this._onRemoteLock(childJigRef.origin, type, extraArg)
     // childJigRef.changeLock(new JigLock(this.stack[this.stack.length - 1]))
@@ -200,6 +196,11 @@ class TxExecution {
       childJigRef.changeLock(new NoLock())
     } else if (type === LockType.PUBKEY) {
       childJigRef.changeLock(new UserLock(PubKey.fromBytes(new Uint8Array(extraArg))))
+    } else if (type === LockType.ANYONE) {
+      if (this.stackTop() !== childJigRef.origin) {
+        throw new ExecutionError('cannot make another jig public')
+      }
+      childJigRef.changeLock(new PublicLock())
     } else {
       throw new Error('not implemented yet')
     }
@@ -299,6 +300,8 @@ class TxExecution {
       return new UserLock(frozenLock.data.pubkey)
     } else if (frozenLock.type === 'JigLock') {
       return new JigLock(frozenLock.data.origin)
+    } else if (frozenLock.type === 'PublicLock') {
+      return new PublicLock()
     } else {
       throw new Error('unknown lock type')
     }
@@ -314,8 +317,8 @@ class TxExecution {
 
   lockJigByVarName(varName: string, lock: Lock) {
     const jigRef = this.getJigRefByVarName(varName)
-    if (!jigRef.lock.acceptsExecution(this)) {
-      throw new ExecutionError(`no permission to remove lock from jig ${jigRef.origin}`)
+    if (!jigRef.lock.canBeChangedBy(this)) {
+      throw new PermissionError(`no permission to remove lock from jig ${jigRef.origin}`)
     }
     jigRef.close(lock)
   }

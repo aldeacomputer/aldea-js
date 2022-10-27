@@ -16,4 +16,8 @@ export class NoLock implements Lock {
   acceptsExecution(_context: TxExecution): boolean {
     return true;
   }
+
+  canBeChangedBy(_context: TxExecution): boolean {
+    return true
+  }
 }
