@@ -108,24 +108,24 @@ class TxExecution {
     })
   }
 
-  loadModule (moduleId: string) {
+  loadModule (moduleId: string): WasmInstance {
     const existing = this.getWasmInstance(moduleId)
     if (existing) { return existing }
-    const wasmModule = this.vm.createWasmInstance(moduleId)
-    wasmModule.onMethodCall(this._onMethodCall.bind(this))
-    wasmModule.onGetProp(this._onGetProp.bind(this))
-    wasmModule.onCreate(this._onCreate.bind(this))
-    wasmModule.onRemoteLockHandler(this._onRemoteLock.bind(this))
-    wasmModule.onRelease(this._onRelease.bind(this))
-    wasmModule.onFindUtxo(this._onFindUtxo.bind(this))
-    wasmModule.onLocalLock(this._onLocalLock.bind(this))
-    wasmModule.onLocalCallStart(this._onLocalCallStart.bind(this))
-    wasmModule.onLocalCallEnd(this._onLocalCallEnd.bind(this))
-    wasmModule.onAuthCheck(this._onAuthCheck.bind(this))
-    wasmModule.onLocalAuthCheck(this._onLocalAuthCheck.bind(this))
-    wasmModule.onRemoteStaticExecHandler(this._onRemoteStaticExecHandler.bind(this))
-    this.wasms.set(moduleId, wasmModule)
-    return wasmModule
+    const wasmInstance = this.vm.createWasmInstance(moduleId)
+    wasmInstance.onMethodCall(this._onMethodCall.bind(this))
+    wasmInstance.onGetProp(this._onGetProp.bind(this))
+    wasmInstance.onCreate(this._onCreate.bind(this))
+    wasmInstance.onRemoteLockHandler(this._onRemoteLock.bind(this))
+    wasmInstance.onRelease(this._onRelease.bind(this))
+    wasmInstance.onFindUtxo(this._onFindUtxo.bind(this))
+    wasmInstance.onLocalLock(this._onLocalLock.bind(this))
+    wasmInstance.onLocalCallStart(this._onLocalCallStart.bind(this))
+    wasmInstance.onLocalCallEnd(this._onLocalCallEnd.bind(this))
+    wasmInstance.onAuthCheck(this._onAuthCheck.bind(this))
+    wasmInstance.onLocalAuthCheck(this._onLocalAuthCheck.bind(this))
+    wasmInstance.onRemoteStaticExecHandler(this._onRemoteStaticExecHandler.bind(this))
+    this.wasms.set(moduleId, wasmInstance)
+    return wasmInstance
   }
 
   _onRemoteStaticExecHandler (srcModule: WasmInstance, targetModId: string, fnStr: string, args: ArrayBuffer): number {

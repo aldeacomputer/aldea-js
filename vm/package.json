@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha",
+    "test": "ts-mocha test/**/*.spec.ts",
     "build": "tsc && yarn compile",
     "compile": "node cmd/compile-all.js",
     "dev": "node cmd/watch.js",

@@ -25,7 +25,7 @@ export class VM {
     return currentExecution
   }
 
-  createWasmInstance (moduleId: string) {
+  createWasmInstance (moduleId: string): WasmInstance {
     const existingModule = this.storage.getModule(moduleId)
     return new WasmInstance(existingModule.mod, existingModule.abi, moduleId)
   }
