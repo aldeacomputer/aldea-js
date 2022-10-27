@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "build": "tsc",
+    "build": "tsc && yarn compile",
     "compile": "node cmd/compile-all.js",
     "dev": "node cmd/watch.js",
-    "fileId":"./cmd/calculate-module-id.js"
+    "fileId": "./cmd/calculate-module-id.js"
   },
   "exports": {
     ".": {
