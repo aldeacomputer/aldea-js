@@ -17,7 +17,7 @@ import {
 import { ObjectKind } from '../abi.js'
 import { TransformCtx } from './ctx.js'
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
-import { ObjectWrap, FieldWrap, TypeWrap } from './nodes.js'
+import { ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap } from './nodes.js'
 import { filterAST, isConst, isStatic } from './filters.js'
 
 // Allowed top-level statements - everything else is an error!
@@ -73,10 +73,10 @@ const whitelist = {
     'string',
     'ArrayBuffer',
     'Float32Array', 'Float64Array',
-    'Int8Array', 'Int16Array', 'Int32Array', 'BigInt64Array',
-    'Uint8Array', 'Uint16Array', 'Uint32Array', 'BigUint64Array',
+    'Int8Array', 'Int16Array', 'Int32Array', 'Int64Array',
+    'Uint8Array', 'Uint16Array', 'Uint32Array', 'Uint64Array',
     'Array', 'StaticArray',
-    // 'Map', 'Set'
+    'Map', 'Set'
   ]
 }
 
@@ -103,6 +103,11 @@ export class Validator {
     this.ctx.exposedObjects.forEach(obj => {
       this.validateFieldTypes(obj)
       this.validateMethodTypes(obj)
+    })
+
+    this.ctx.exportedFunctions.forEach(fn => {
+      this.validateArgTypes(fn)
+      this.validateReturnType(fn)
     })
 
     filterAST(this.ctx.entry, (node: Node) => {
@@ -197,35 +202,43 @@ export class Validator {
   }
 
   private validateMethodTypes(obj: ObjectWrap): void {
-    obj.methods.forEach(m => {
-      m.args.forEach(n => {
-        // Ensures all exposed argument types are allowed
-        if (
-          !whitelist.types.includes(n.type.name) &&
-          !this.ctx.exposedObjects.map(n => n.name).includes(n.type.name)
-        ) {
-          this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-            DiagnosticCategory.ERROR,
-            AldeaDiagnosticCode.Invalid_method_type,
-            [n.type.name, m.name],
-            (<FieldWrap>n).node.range
-          ))
-        }
-      })
-      // Ensures all exposed return types are allowed
+    obj.methods.forEach(fn => {
+      this.validateArgTypes(fn)
+      this.validateReturnType(fn)
+    })
+  }
+
+  private validateArgTypes(fn: FunctionWrap | MethodWrap): void {
+    fn.args.forEach(n => {
+      // Ensures all exposed argument types are allowed
       if (
-        m.rtype && m.rtype.name && m.rtype.name !== 'void' &&
-        !whitelist.types.includes(m.rtype.name) &&
-        !this.ctx.exposedObjects.map(n => n.name).includes(m.rtype.name)
+        !whitelist.types.includes(n.type.name) &&
+        !this.ctx.exposedObjects.map(n => n.name).includes(n.type.name)
       ) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
           DiagnosticCategory.ERROR,
           AldeaDiagnosticCode.Invalid_method_type,
-          [m.rtype.name, m.name],
-          (<TypeWrap>m.rtype).node.range
+          [n.type.name, fn.name],
+          (<FieldWrap>n).node.range
         ))
       }
     })
+  }
+
+  private validateReturnType(fn: FunctionWrap | MethodWrap): void {
+    // Ensures all exposed return types are allowed
+    if (
+      fn.rtype && fn.rtype.name && fn.rtype.name !== 'void' &&
+      !whitelist.types.includes(fn.rtype.name) &&
+      !this.ctx.exposedObjects.map(n => n.name).includes(fn.rtype.name)
+    ) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.ERROR,
+        AldeaDiagnosticCode.Invalid_method_type,
+        [fn.rtype.name, fn.name],
+        (<TypeWrap>fn.rtype).node.range
+      ))
+    }
   }
 
   private validateIdentifierNode(node: IdentifierExpression): void {
