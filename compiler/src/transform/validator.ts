@@ -1,5 +1,7 @@
 import {
   CallExpression,
+  DecoratorKind,
+  DecoratorNode,
   DiagnosticCategory,
   Expression,
   IdentifierExpression,
@@ -18,7 +20,7 @@ import { ObjectKind } from '../abi.js'
 import { TransformCtx } from './ctx.js'
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
 import { ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap } from './nodes.js'
-import { filterAST, isConst, isStatic } from './filters.js'
+import { filterAST, isConst, isGetter, isReadonly, isSetter, isStatic } from './filters.js'
 
 // Allowed top-level statements - everything else is an error!
 const allowedSrcStatements = [
@@ -127,6 +129,9 @@ export class Validator {
         case NodeKind.VARIABLEDECLARATION:
           this.validateVariableDeclarationNode(node as VariableDeclaration)
           break
+        case NodeKind.DECORATOR:
+          this.validateDecoratorNode(node as DecoratorNode)
+          break
       }
     })
   }
@@ -168,7 +173,29 @@ export class Validator {
           n.range
         ))
       }
-      // Ensure no instance methods begin with underscore
+      // Ensure no readonly methods
+      if (n.kind === NodeKind.METHODDECLARATION && isReadonly(n.flags)) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.ERROR,
+          AldeaDiagnosticCode.Invalid_class_member,
+          ['Readonly methods'],
+          n.range
+        ))
+      }
+      // Ensure no getter/setter methods on jigs
+      if (
+        obj.kind === ObjectKind.EXPORTED &&
+        n.kind === NodeKind.METHODDECLARATION &&
+        (isGetter(n.flags) || isSetter(n.flags))
+      ) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.ERROR,
+          AldeaDiagnosticCode.Invalid_jig_member,
+          ['Getter and setter methods'],
+          n.range
+        ))
+      }
+      // Ensure no instance methods begin with underscore on jigs
       if (
         obj.kind === ObjectKind.EXPORTED &&
         n.kind === NodeKind.METHODDECLARATION &&
@@ -176,8 +203,8 @@ export class Validator {
       ) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
           DiagnosticCategory.ERROR,
-          AldeaDiagnosticCode.Invalid_method_name,
-          [],
+          AldeaDiagnosticCode.Invalid_jig_member,
+          ['Underscore-prefixed method names'],
           n.range
         ))
       }
@@ -321,6 +348,17 @@ export class Validator {
         DiagnosticCategory.ERROR,
         AldeaDiagnosticCode.Illegal_assignment,
         [(<IdentifierExpression>node.initializer).text],
+        node.range
+      ))
+    }
+  }
+
+  private validateDecoratorNode(node: DecoratorNode): void {
+    if (node.decoratorKind > DecoratorKind.CUSTOM) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.ERROR,
+        AldeaDiagnosticCode.Illegal_decorator,
+        [],
         node.range
       ))
     }

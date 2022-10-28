@@ -95,6 +95,27 @@ export function isExported(flags: number): boolean {
 }
 
 /**
+ * Returns true if the node is a getter method.
+ */
+export function isGetter(flags: number): boolean {
+  return (flags & CommonFlags.GET) === CommonFlags.GET
+}
+
+/**
+ * Returns true if the node is a readonly method.
+ */
+export function isReadonly(flags: number): boolean {
+  return (flags & CommonFlags.READONLY) === CommonFlags.READONLY
+}
+
+/**
+ * Returns true if the node is a getter method.
+ */
+export function isSetter(flags: number): boolean {
+  return (flags & CommonFlags.SET) === CommonFlags.SET
+}
+
+/**
  * Returns true if the node has a private modifier.
  */
 export function isPrivate(flags: number): boolean {
