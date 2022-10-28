@@ -355,7 +355,7 @@ export class WasmInstance {
 
   setUp () {}
 
-  staticCall (className: string, methodName: string, args: any[]): number {
+  staticCall (className: string, methodName: string, args: any[]): MethodResult {
     const fnName = `${className}_${methodName}`
     const abiObj = findExportedObject(this.abi, className, `unknown export: ${className}`)
     const method = findObjectMethod(abiObj, methodName, `unknown method: ${methodName}`)
@@ -365,7 +365,14 @@ export class WasmInstance {
     })
 
     const fn = this.instance.exports[fnName] as Function;
-    return fn(...ptrs)
+    const retPtr = fn(...ptrs)
+    const retValue = liftValue(this, method.rtype, retPtr)
+
+    return {
+      node: method.rtype,
+      value: retValue,
+      mod: this
+    }
   }
 
   createNew (className: string, args: any[]): Internref {

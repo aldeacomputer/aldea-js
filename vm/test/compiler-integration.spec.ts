@@ -351,6 +351,17 @@ describe('execute txs', () => {
     expect(state[0]).to.eql(10)
   })
 
+  it('can call static functions from top level.', () => {
+    const tx1 = new Transaction()
+      .add(new ExecInstruction('aCounter' ,modIdFor('sheep-counter'), 'buildSomeSheepCounter' , [new NumberArg(10)]))
+      .add(new LockInstruction('aCounter', userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    const state = exec1.outputs[0].parsedState()
+    expect(state[0]).to.eql(0)
+  })
+
   it('authcheck allows the call when jig has no lock.', () => {
     const tx1 = new Transaction()
       .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))

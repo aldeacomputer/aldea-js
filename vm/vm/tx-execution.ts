@@ -10,7 +10,7 @@ import {VM} from "./vm.js";
 import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Internref, lowerValue} from "./memory.js";
-import {FieldNode, findExportedObject, findObjectMethod, MethodNode, ObjectKind} from '@aldea/compiler/abi'
+import {FieldNode, findExportedObject, findObjectMethod, MethodNode, ObjectKind, findExportedFunction} from '@aldea/compiler/abi'
 import {PubKey, Signature, TxVisitor} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
@@ -259,10 +259,6 @@ class TxExecution {
     return jigRef
   }
 
-  addInputJig (jigRef: JigRef) {
-    return this.addNewJigRef(jigRef)
-  }
-
   addNewJigRef (jigRef: JigRef) {
     this.jigs.push(jigRef)
     return jigRef
@@ -338,8 +334,10 @@ class TxExecution {
   execFunction (varName: string, moduleId: string, functionName: string, args: any[]) {
     const module = this.loadModule(moduleId)
     const [className, methodName] = functionName.split('_')
-    const abiNode = findExportedObject(module.abi, className, 'should exist')
-    const methodNode = findObjectMethod(abiNode, methodName, 'should exist')
+    const fnNode = findExportedFunction(module.abi, functionName)
+    const methodNode = fnNode
+      ? fnNode
+      : findObjectMethod(findExportedObject(module.abi, className, 'should exist'), methodName, 'should exist')
     if(!methodNode.rtype) { throw Error('should exist')}
     const rTypeNode = findExportedObject(module.abi, methodNode.rtype.name, 'should exist')
     if (rTypeNode.kind === ObjectKind.EXPORTED) {
