@@ -1,6 +1,7 @@
 import {
   Abi,
   FieldNode,
+  FunctionNode,
   MethodNode,
   ObjectKind,
   ObjectNode
@@ -70,6 +71,15 @@ export function findObjectMethod(obj: ObjectNode, name: string): MethodNode | vo
 export function findObjectMethod(obj: ObjectNode, name: string, error: string): MethodNode;
 export function findObjectMethod(obj: ObjectNode, name: string, error?: string): MethodNode | void {
   return obj.methods.find(obj => obj.name === name) || maybeThrow(error)
+}
+
+/**
+ * Finds and returns an Exported Function by its name from the given ABI.
+ */
+export function findExportedFunction(abi: Abi, name: string): FunctionNode | void;
+export function findExportedFunction(abi: Abi, name: string, error: string): FunctionNode;
+export function findExportedFunction(abi: Abi, name: string, error?: string): FunctionNode | void {
+  return abi.functions.find(fn => fn.name === name) || maybeThrow(error)
 }
 
 // Throws an error if a string is given

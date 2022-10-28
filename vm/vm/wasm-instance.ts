@@ -3,6 +3,7 @@ import {JigRef} from "./jig-ref.js";
 import {
   Abi,
   FieldNode,
+  findExportedFunction,
   findExportedObject,
   findImportedObject,
   findObjectField,
@@ -57,6 +58,15 @@ export enum AuthCheck {
   LOCK
 }
 
+/**
+ * TODO - Miguel to check
+ * Expose the exports as need to access externall from memory functions
+ * (for putting vals into stes/maps)
+ */
+export interface WasmExports extends WebAssembly.Exports {
+  [key: string]: (...args: number[]) => number | void;
+}
+
 function __encodeArgs (args: any[]): ArrayBuffer {
   const seq = Sequence.from(args)
   return CBOR.encode(seq)
@@ -78,6 +88,7 @@ type LocalCallEndtHandler = () => void
 type AuthCheckHandler = (targetOrigin: string, check: AuthCheck) => boolean
 type LocalAuthCheckHandler = (jigPtr: number, module: WasmInstance, check: AuthCheck) => boolean
 type RemoteStaticExecHandler = (srcModule: WasmInstance, targetModId: string, className: string, args: ArrayBuffer) => number
+
 
 
 const utxoAbiNode = {
@@ -214,7 +225,7 @@ export class WasmInstance {
         vm_local_call_end: () => {
           this.localCallEndtHandler()
         },
-        vm_remote_call_i: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number): number => {
+        vm_remote_call_i: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
           const targetOriginArrBuf = liftBuffer(this, targetOriginPtr)
           const fnStr = liftString(this, fnNamePtr)
           const argBuf = liftBuffer(this, argsPtr)
@@ -239,7 +250,7 @@ export class WasmInstance {
           return this.remoteStaticExecHandler(this,  Buffer.from(moduleId).toString(), fnStr, argBuf)
         },
 
-        vm_remote_prop: (targetOriginPtr: number, propNamePtr: number): number => {
+        vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
           const rmtRefBuf = liftBuffer(this, targetOriginPtr)
           const propStr = liftString(this, propNamePtr)
           const propName = propStr.split('.')[1]
@@ -283,6 +294,15 @@ export class WasmInstance {
     const start = this.instance.exports._start as Function;
     start()
     this.memory = wasmMemory
+  }
+
+  /**
+   * TODO - Miguel to check
+   * Expose the exports as need to access externall from memory functions
+   * (for putting vals into stes/maps)
+   */
+  get exports(): WasmExports {
+    return this.instance.exports as WasmExports
   }
 
   onGetProp (fn: GetPropHandler): void{
@@ -344,7 +364,6 @@ export class WasmInstance {
       return lowerValue(this, argNode.type, args[i])
     })
 
-
     const fn = this.instance.exports[fnName] as Function;
     return fn(...ptrs)
   }
@@ -399,6 +418,29 @@ export class WasmInstance {
       node: field.type
     }
     // return liftValue(this, field.type, val)
+  }
+
+  /**
+   * TODO - Miguel to check
+   * The abi now exports plain functions - check this method is OK
+   * The static call above should probably look like this too, no?
+   */
+  functionCall (fnName: string, args: any[] = []): MethodResult {
+    const abiFn = findExportedFunction(this.abi, fnName, `unknown export: ${fnName}`)
+
+    const ptrs = abiFn.args.map((argNode, i) => {
+      return lowerValue(this, argNode.type, args[i])
+    })
+
+    const fn = this.instance.exports[fnName] as Function;
+    const ptr = fn(...ptrs)
+    const result = liftValue(this, abiFn.rtype, ptr)
+
+    return {
+      mod: this,
+      value: result,
+      node: abiFn.rtype
+    }
   }
 
   __new (a: number, b: number): number {
