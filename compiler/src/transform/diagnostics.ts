@@ -21,6 +21,7 @@ export enum AldeaDiagnosticCode {
   Illegal_property = 407,
   Illegal_assignment = 408,
   Illegal_decorator = 409,
+  Private_member = 420
 }
 
 /**
@@ -38,6 +39,8 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
     case 407: return 'Illegal access. The `{0}` property is restricted.'
     case 408: return 'Illegal assignment. `{0}` cannot be reassigned.'
     case 409: return 'Illegal decorator. AssemblyScript decorators are not allowed.'
+
+    case 420: return 'Private and protected members are only partially enforeced by Aldea. See https://xxxxx'
 
     default:  return 'Unrecognized error code.'
   }

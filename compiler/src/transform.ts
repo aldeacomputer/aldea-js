@@ -1,10 +1,8 @@
 import {
-  ASTBuilder,
   BlockStatement,
   CallExpression,
   ClassDeclaration,
   CommonFlags,
-  Expression,
   ExpressionStatement,
   NodeKind,
   Parser,
@@ -15,6 +13,7 @@ import {
 import { FieldKind, MethodKind, MethodNode } from './abi/types.js'
 import { TransformCtx } from './transform/ctx.js'
 import { FieldWrap, MethodWrap, ObjectWrap } from './transform/nodes.js'
+import { isPrivate, isProtected } from './transform/filters.js'
 
 import {
   writeConstructor,
@@ -95,6 +94,7 @@ function injectJigNamesToAuth(ctx: TransformCtx): void {
  */
 function exportClassMethods(obj: ObjectWrap, ctx: TransformCtx): void {
   const codes = (obj.methods as MethodWrap[])
+    .filter(n => !isPrivate(n.node.flags) && !isProtected(n.node.flags))
     .reduce((acc: string[], n: MethodWrap): string[] => {
       acc.push(writeExportedMethod(n, obj))
       return acc
@@ -118,7 +118,7 @@ function exportClassMethods(obj: ObjectWrap, ctx: TransformCtx): void {
 /**
  * Adds a VM hook to the object's constructor
  * 
- * - Inserts it at beginning or 1 after super call to existign constructor
+ * - Inserts it at end of defined constructor
  * - Or creates a default constructor if one not defined
  */
 function addConstructorHook(obj: ObjectWrap, ctx: TransformCtx): void {
@@ -126,13 +126,7 @@ function addConstructorHook(obj: ObjectWrap, ctx: TransformCtx): void {
   if (method) {
     const code = writeConstructorHook(obj)
     const src = ctx.parse(code, ctx.entry.normalizedPath)
-    // Try to find the super index
-    const superIdx = (<BlockStatement>method.node.body).statements.findIndex(n => {
-      return n.kind === NodeKind.EXPRESSION &&
-        (n as ExpressionStatement).expression.kind === NodeKind.CALL &&
-        ((n as ExpressionStatement).expression as CallExpression).expression.kind == NodeKind.SUPER
-    })
-    ;(<BlockStatement>method.node.body).statements.splice(superIdx + 1, 0, ...src.statements)
+    ;(<BlockStatement>method.node.body).statements.push(...src.statements)
   } else {
     const code = writeLocalProxyClass(obj, [
       writeConstructor(obj)

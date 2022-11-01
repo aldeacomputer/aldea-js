@@ -1,5 +1,6 @@
 import { blake3 } from '@noble/hashes/blake3'
 import { bytesToHex as toHex } from '@noble/hashes/utils'
+import { isPrivate, isProtected } from './filters.js'
 import { FieldWrap, MethodWrap, ObjectWrap } from './nodes.js'
 import { normalizeTypeName } from '../abi.js'
 import { MethodKind, TypeNode } from '../abi/types.js'
@@ -65,10 +66,13 @@ export function writeLocalProxyClass(obj: ObjectWrap, members: string[]): string
  * and `vm_local_call_end`.
  */
  export function writeLocalProxyMethod(method: MethodWrap, obj: ObjectWrap): string {
+  const access = isPrivate(method.node.flags) ? 'private ' : (
+    isProtected(method.node.flags) ? 'protected ' : ''
+  )
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
   const returns = method.rtype?.name && method.rtype?.name !== 'void'
   return `
-  ${method.name}(${args.join(', ')}): ${normalizeTypeName(method.rtype)} {
+  ${access}${method.name}(${args.join(', ')}): ${normalizeTypeName(method.rtype)} {
     vm_local_call_start<${obj.name}>(this, '${obj.name}$${method.name}')
     ${returns ? 'const res = ' : ''}this._${method.name}(${ method.args.map((_f, i) => `a${i}`).join(', ') })
     vm_local_call_end()

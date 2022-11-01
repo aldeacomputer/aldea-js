@@ -20,7 +20,7 @@ import { ObjectKind } from '../abi.js'
 import { TransformCtx } from './ctx.js'
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
 import { ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap } from './nodes.js'
-import { filterAST, isConst, isGetter, isReadonly, isSetter, isStatic } from './filters.js'
+import { filterAST, isConst, isGetter, isPrivate, isProtected, isReadonly, isSetter, isStatic } from './filters.js'
 
 // Allowed top-level statements - everything else is an error!
 const allowedSrcStatements = [
@@ -205,6 +205,18 @@ export class Validator {
           DiagnosticCategory.ERROR,
           AldeaDiagnosticCode.Invalid_jig_member,
           ['Underscore-prefixed method names'],
+          n.range
+        ))
+      }
+      // Warn about private or protected members
+      if (
+        obj.kind === ObjectKind.EXPORTED &&
+        (isPrivate(n.flags) || isProtected(n.flags))
+      ) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.WARNING,
+          AldeaDiagnosticCode.Private_member,
+          [],
           n.range
         ))
       }

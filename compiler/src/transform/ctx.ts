@@ -83,7 +83,10 @@ export class TransformCtx {
     return {
       version: 1,
       rtids: this.mapManagedClassRtIds(),
-      objects: this.exposedObjects,
+      objects: this.exposedObjects.map(obj => {
+        obj.methods = obj.methods.filter(n => !isPrivate(n.node.flags) && !isProtected(n.node.flags))
+        return obj
+      }),
       functions: this.exportedFunctions
     }
   }
@@ -219,7 +222,7 @@ function collectObjectNodes(source: Source): ObjectWrap[] {
     .map(n => mapObjectNode(n as ClassDeclaration))
 }
 
-// todo
+// Collects Function Nodes from the give list of sources
 function collectFunctionNodes(source: Source): FunctionWrap[] {
   return source.statements
     .filter(n => n.kind === NodeKind.FUNCTIONDECLARATION)
@@ -238,7 +241,6 @@ function collectFieldNodes(nodes: DeclarationStatement[]): FieldWrap[] {
 function collectMethodNodes(nodes: DeclarationStatement[]): MethodWrap[] {
   return nodes
     .filter(n => n.kind === NodeKind.METHODDECLARATION)
-    .filter(n => !isPrivate(n.flags) && !isProtected(n.flags))
     .map(n => mapMethodNode(n as MethodDeclaration))
 }
 
