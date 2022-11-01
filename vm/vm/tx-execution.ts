@@ -10,7 +10,13 @@ import {VM} from "./vm.js";
 import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
-import {findExportedFunction, findExportedObject, findObjectMethod, MethodNode, ObjectKind} from '@aldea/compiler/abi'
+import {
+  FieldNode,
+  findExportedFunction,
+  findExportedObject,
+  findObjectMethod,
+  ObjectKind
+} from '@aldea/compiler/abi'
 import {PubKey, Signature, TxVisitor} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
@@ -120,7 +126,7 @@ class TxExecution {
     const existing = this.wasms.get(moduleId)
     if (existing) { return existing }
     const wasmInstance = this.vm.createWasmInstance(moduleId)
-    wasmInstance.onMethodCall(this._onMethodCall.bind(this))
+    wasmInstance.onMethodCall(this._onRemoteInstanceCall.bind(this))
     wasmInstance.onGetProp(this._onGetProp.bind(this))
     wasmInstance.onCreate(this._onCreate.bind(this))
     wasmInstance.onRemoteLockHandler(this._onRemoteLock.bind(this))
@@ -134,6 +140,43 @@ class TxExecution {
     wasmInstance.onRemoteStaticExecHandler(this._onRemoteStaticExecHandler.bind(this))
     this.wasms.set(moduleId, wasmInstance)
     return wasmInstance
+  }
+
+  _onLocalAuthCheck(jigPtr: number, instance: WasmInstance, check: AuthCheck): boolean {
+    const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance) || this.jigs.find(j => j.ref.ptr === -1 && j.module === instance)
+    if (!jig) {throw new Error('should exists')}
+    return this._onAuthCheck(jig.origin, check)
+  }
+
+  _onLocalLock(jigPtr: number, instance: WasmInstance, type: LockType, extraArg: ArrayBuffer): void {
+    const childJigRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance) || this.jigs.find(j => j.module === instance && j.ref.ptr === -1)
+    if (!childJigRef) {throw new Error('should exists')}
+    this._onRemoteLock(childJigRef.origin, type, extraArg)
+  }
+
+  _onRemoteInstanceCall (callerInstance: WasmInstance, origin: string, className: string,  methodName: string, argBuff: ArrayBuffer): MethodResult {
+    let jig = this.jigs.find(j => j.origin === origin) as JigRef
+    if (!jig) {
+      jig = this.loadJig(origin, false,false)
+    }
+
+    const obj = findExportedObject(jig.module.abi, className, 'could not find object')
+    const method = findObjectMethod(obj, methodName, 'could not find method')
+
+    const argReader = new ArgReader(argBuff)
+    const args = method.args.map((n: FieldNode) => {
+      const ptr = readType(argReader, n.type)
+      const value = liftValue(callerInstance, n.type, ptr)
+      if (value instanceof Externref) {
+        return this.getJigRefByOrigin(Buffer.from(value.origin).toString())
+      } else {
+        return value
+      }
+    })
+
+
+
+    return jig.sendMessage(methodName, args, this)
   }
 
   _onRemoteStaticExecHandler (srcModule: WasmInstance, targetModId: string, fnStr: string, argBuffer: ArrayBuffer): MethodResult {
@@ -157,28 +200,6 @@ class TxExecution {
     })
 
     return targetMod.staticCall(className, methodName, argValues)
-  }
-
-  _onLocalAuthCheck(jigPtr: number, instance: WasmInstance, check: AuthCheck): boolean {
-    const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance) || this.jigs.find(j => j.ref.ptr === -1 && j.module === instance)
-    if (!jig) {throw new Error('should exists')}
-    return this._onAuthCheck(jig.origin, check)
-  }
-
-  _onLocalLock(jigPtr: number, instance: WasmInstance, type: LockType, extraArg: ArrayBuffer): void {
-    const childJigRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance) || this.jigs.find(j => j.module === instance && j.ref.ptr === -1)
-    if (!childJigRef) {throw new Error('should exists')}
-    this._onRemoteLock(childJigRef.origin, type, extraArg)
-    // childJigRef.changeLock(new JigLock(this.stack[this.stack.length - 1]))
-  }
-
-  _onMethodCall (origin: string, methodNode: MethodNode, args: any[]): MethodResult {
-    let jig = this.jigs.find(j => j.origin === origin) as JigRef
-    if (!jig) {
-      jig = this.loadJig(origin, false,false)
-    }
-
-    return jig.sendMessage(methodNode.name, args, this)
   }
 
   _onGetProp (origin: string, propName: string): Prop {
