@@ -51,9 +51,9 @@ const IMPORTED_JIGS: string[] = []
 function isExported<T>(jig: T): bool {
   return EXPORTED_JIGS.includes(nameof(jig))
 }
-// function isImported<T>(jig: T): bool {
-//   return IMPORTED_JIGS.includes(nameof(jig))
-// }
+function isImported<T>(jig: T): bool {
+  return IMPORTED_JIGS.includes(nameof(jig))
+}
 
 /**
  * Auth API

@@ -122,6 +122,7 @@ export class TransformCtx {
       const applyType = (type: TypeNode): void => {
         const obj = this.objects.find(obj => obj.name === type.name)
         if (obj) { applyObject(obj) }
+        type.args.forEach(applyType)
       }
 
       this.exportedObjects.forEach(applyObject)
