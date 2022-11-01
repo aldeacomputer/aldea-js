@@ -2,6 +2,9 @@ export { Auth, AuthCheck, LockType, LockState, UtxoState } from './aldea/auth'
 export { ArgWriter } from './aldea/arg-writer'
 
 // @ts-ignore
+@external("vm", "vm_constructor")
+export declare function vm_constructor<T>(jig: T, name: string): void;
+// @ts-ignore
 @external("vm", "vm_local_call_start")
 export declare function vm_local_call_start<T>(jig: T, fn: string): void;
 // @ts-ignore

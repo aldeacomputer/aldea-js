@@ -30,6 +30,25 @@ export function writeExportedMethod(method: MethodWrap, obj: ObjectWrap): string
 }
 
 /**
+ * Writes a default constructor class with VM hook.
+ */
+export function writeConstructor(obj: ObjectWrap): string {
+  return `
+  constructor() {
+    ${ obj.extends ? 'super()' : '' }
+    ${ writeConstructorHook(obj) }
+  }
+  `.trim()
+}
+
+/**
+ * Writes a VM constructor hook method call.
+ */
+export function writeConstructorHook(obj: ObjectWrap): string {
+  return `vm_constructor<${obj.name}>(this, '${obj.name}')`
+}
+
+/**
  * Writes a placeholder proxy class wrapper for the specific Class, around the
  * given member strings.
  */

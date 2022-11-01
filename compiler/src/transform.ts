@@ -1,16 +1,24 @@
 import {
+  ASTBuilder,
+  BlockStatement,
+  CallExpression,
   ClassDeclaration,
   CommonFlags,
+  Expression,
+  ExpressionStatement,
+  NodeKind,
   Parser,
   Program,
   Statement,
 } from 'assemblyscript'
 
-import { FieldKind, MethodKind } from './abi/types.js'
+import { FieldKind, MethodKind, MethodNode } from './abi/types.js'
 import { TransformCtx } from './transform/ctx.js'
 import { FieldWrap, MethodWrap, ObjectWrap } from './transform/nodes.js'
 
 import {
+  writeConstructor,
+  writeConstructorHook,
   writeExportedMethod,
   writeLocalProxyClass,
   writeLocalProxyMethod,
@@ -44,6 +52,7 @@ export function afterParse(parser: Parser): void {
   })
 
   $ctx.exportedObjects.forEach(obj => {
+    addConstructorHook(obj, $ctx)
     createProxyMethods(obj, $ctx)
     exportClassMethods(obj, $ctx)
     // Remove the export flag
@@ -82,6 +91,7 @@ function injectJigNamesToAuth(ctx: TransformCtx): void {
  * Transform exported object.
  * 
  * - Writes exported method for each public method of the object.
+ * - Adds a constructor if one not defined on objject.
  */
 function exportClassMethods(obj: ObjectWrap, ctx: TransformCtx): void {
   const codes = (obj.methods as MethodWrap[])
@@ -89,9 +99,48 @@ function exportClassMethods(obj: ObjectWrap, ctx: TransformCtx): void {
       acc.push(writeExportedMethod(n, obj))
       return acc
     }, [])
+  
+  // If no constructor is defined then add a default
+  if (obj.methods.every(n => n.kind !== MethodKind.CONSTRUCTOR)) {
+    const n: MethodNode = {
+      kind: MethodKind.CONSTRUCTOR,
+      name: 'constructor',
+      args: [],
+      rtype: null
+    }
+    codes.unshift(writeExportedMethod(n as MethodWrap, obj))
+  }
 
   const src = ctx.parse(codes.join('\n'), ctx.entry.normalizedPath)
   ctx.entry.statements.push(...src.statements)
+}
+
+/**
+ * Adds a VM hook to the object's constructor
+ * 
+ * - Inserts it at beginning or 1 after super call to existign constructor
+ * - Or creates a default constructor if one not defined
+ */
+function addConstructorHook(obj: ObjectWrap, ctx: TransformCtx): void {
+  const method = obj.methods.find(n => n.kind === MethodKind.CONSTRUCTOR)
+  if (method) {
+    const code = writeConstructorHook(obj)
+    const src = ctx.parse(code, ctx.entry.normalizedPath)
+    // Try to find the super index
+    const superIdx = (<BlockStatement>method.node.body).statements.findIndex(n => {
+      return n.kind === NodeKind.EXPRESSION &&
+        (n as ExpressionStatement).expression.kind === NodeKind.CALL &&
+        ((n as ExpressionStatement).expression as CallExpression).expression.kind == NodeKind.SUPER
+    })
+    ;(<BlockStatement>method.node.body).statements.splice(superIdx + 1, 0, ...src.statements)
+  } else {
+    const code = writeLocalProxyClass(obj, [
+      writeConstructor(obj)
+    ])
+    const src = ctx.parse(code, ctx.entry.normalizedPath)
+    const members = (src.statements[0] as ClassDeclaration).members
+    obj.node.members.push(...members)
+  }
 }
 
 /**
