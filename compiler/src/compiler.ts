@@ -64,10 +64,10 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     console.log('»»» TRANSFORMED «««')
     console.log('*******************')
     console.log(ASTBuilder.build(ctx.entry))
+    console.log(stderr.toString())
     console.log("Compilation success: ")
     console.log(stats.toString())
     console.log(stdout.toString())
-    console.log(stderr.toString())
   } else {
     console.log("Compilation failed: " + error.message)
     console.log(stderr.toString())
