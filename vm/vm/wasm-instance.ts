@@ -2,30 +2,28 @@ import {CBOR, Sequence} from 'cbor-redux'
 import {JigRef} from "./jig-ref.js";
 import {
   Abi,
-  FieldNode,
+  FieldKind,
   findExportedFunction,
   findExportedObject,
-  findImportedObject,
   findObjectField,
   findObjectMethod,
-  MethodNode,
-  TypeNode,
-  FieldKind,
-  ObjectKind, findPlainObject
+  findPlainObject,
+  ObjectKind,
+  TypeNode
 } from "@aldea/compiler/abi";
 import {
   getObjectMemLayout,
   getTypedArrayConstructor,
   Internref,
   liftBuffer,
-  liftInternref, liftObject,
+  liftInternref,
+  liftObject,
   liftString,
   liftValue,
   lowerInternref,
   lowerObject,
   lowerValue,
 } from "./memory.js";
-import {ArgReader, readType} from "./arg-reader.js";
 
 // enum AuthCheck {
 //   CALL,     // 0 - can the caller call a method?
@@ -76,7 +74,8 @@ function __decodeArgs (data: ArrayBuffer): any[] {
   return CBOR.decode(data, null, {mode: "sequence"}).data
 }
 
-type MethodHandler = (origin: string, methodNode: MethodNode, args: any[]) => MethodResult
+type RemoteCallHandler = (callerInstance: WasmInstance, targetOrigin: string, className: string, methodName: string, argBuff: ArrayBuffer) => MethodResult
+type RemoteStaticExecHandler = (srcModule: WasmInstance, targetModId: string, fnNane: string, argBuf: ArrayBuffer) => MethodResult
 type GetPropHandler = (origin: string, propName: string) => Prop
 type CreateHandler = (moduleId: string, className: string, args: any[]) => JigRef
 type RemoteLockHandler = (childOrigin: string, type: LockType, extraArg: ArrayBuffer) => void
@@ -87,7 +86,6 @@ type LocalCallStartHandler = (jigPtr: number, wasmInstance: WasmInstance) => voi
 type LocalCallEndtHandler = () => void
 type AuthCheckHandler = (targetOrigin: string, check: AuthCheck) => boolean
 type LocalAuthCheckHandler = (jigPtr: number, module: WasmInstance, check: AuthCheck) => boolean
-type RemoteStaticExecHandler = (srcModule: WasmInstance, targetModId: string, className: string, args: ArrayBuffer) => number
 
 
 
@@ -160,7 +158,7 @@ const lockStateAbiNode = {
 export class WasmInstance {
   id: string;
   memory: WebAssembly.Memory;
-  private methodHandler: MethodHandler;
+  private remoteCallHandler: RemoteCallHandler;
   private getPropHandler: GetPropHandler;
   private createHandler: CreateHandler;
   private remoteLockHandler: RemoteLockHandler;
@@ -182,7 +180,7 @@ export class WasmInstance {
     abi.objects.push(utxoAbiNode)
     abi.objects.push(lockStateAbiNode)
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
-    this.methodHandler = () => { throw new Error('handler not defined')}
+    this.remoteCallHandler = () => { throw new Error('handler not defined')}
     this.getPropHandler = () => { throw new Error('handler not defined')}
     this.createHandler = () => { throw new Error('handler not defined')}
     this.remoteLockHandler = () => { throw new Error('handler not defined')}
@@ -231,15 +229,10 @@ export class WasmInstance {
           const argBuf = liftBuffer(this, argsPtr)
 
           const [className, methodName] = fnStr.split('$')
-          const obj = findImportedObject(this.abi, className, 'could not find object')
-          const method = findObjectMethod(obj, methodName, 'could not find method')
 
-          const argReader = new ArgReader(argBuf)
-          const args = method.args.map((n: FieldNode) => {
-            return readType(argReader, n.type)
-          })
+          // const [] = fnStr.split('$')
 
-          const methodResult = this.methodHandler(Buffer.from(targetOriginArrBuf).toString(), method, args)
+          const methodResult = this.remoteCallHandler(this, Buffer.from(targetOriginArrBuf).toString(), className, methodName, argBuf)
           return lowerValue(this, methodResult.node, methodResult.value)
         },
         vm_remote_call_s: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
@@ -247,7 +240,8 @@ export class WasmInstance {
           const fnStr = liftString(this, fnNamePtr)
           const argBuf = liftBuffer(this, argsPtr)
 
-          return this.remoteStaticExecHandler(this,  Buffer.from(moduleId).toString(), fnStr, argBuf)
+          const result = this.remoteStaticExecHandler(this, Buffer.from(moduleId).toString(), fnStr, argBuf)
+          return lowerValue(this, result.node, result.value)
         },
 
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
@@ -309,8 +303,8 @@ export class WasmInstance {
     this.getPropHandler = fn
   }
 
-  onMethodCall (fn: MethodHandler) {
-    this.methodHandler = fn
+  onMethodCall (fn: RemoteCallHandler) {
+    this.remoteCallHandler = fn
   }
 
   onCreate (fn: CreateHandler) {
@@ -353,9 +347,7 @@ export class WasmInstance {
     this.remoteStaticExecHandler = fn
   }
 
-  setUp () {}
-
-  staticCall (className: string, methodName: string, args: any[]): number {
+  staticCall (className: string, methodName: string, args: any[]): MethodResult {
     const fnName = `${className}_${methodName}`
     const abiObj = findExportedObject(this.abi, className, `unknown export: ${className}`)
     const method = findObjectMethod(abiObj, methodName, `unknown method: ${methodName}`)
@@ -365,13 +357,21 @@ export class WasmInstance {
     })
 
     const fn = this.instance.exports[fnName] as Function;
-    return fn(...ptrs)
+    const retPtr = fn(...ptrs)
+    const retValue = methodName === 'constructor'
+      ? new Internref(className, retPtr)
+      : liftValue(this, method.rtype, retPtr)
+
+    return {
+      node: method.rtype,
+      value: retValue,
+      mod: this
+    }
   }
 
   createNew (className: string, args: any[]): Internref {
-    const ptr = this.staticCall(className, 'constructor', args)
-    const abiNode = findExportedObject(this.abi, className, 'should be present')
-    return liftInternref(this, abiNode, ptr)
+    const result = this.staticCall(className, 'constructor', args)
+    return result.value
   }
 
   hidrate (className: string, frozenState: ArrayBuffer): Internref {

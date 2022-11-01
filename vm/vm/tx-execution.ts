@@ -9,8 +9,14 @@ import {Transaction} from "./transaction.js";
 import {VM} from "./vm.js";
 import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
-import {Internref, lowerValue} from "./memory.js";
-import {FieldNode, findExportedObject, findObjectMethod, MethodNode, ObjectKind} from '@aldea/compiler/abi'
+import {Externref, Internref, liftValue} from "./memory.js";
+import {
+  FieldNode,
+  findExportedFunction,
+  findExportedObject,
+  findObjectMethod,
+  ObjectKind
+} from '@aldea/compiler/abi'
 import {PubKey, Signature, TxVisitor} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
@@ -55,7 +61,15 @@ class ExecVisitor implements TxVisitor {
   }
 
   visitExec(varName: string, moduleId: string, functionName: string): void {
-    this.exec.execFunction(varName, moduleId, functionName, this.args)
+    const wasm = this.exec.loadModule(moduleId)
+    const fnNode = findExportedFunction(wasm.abi, functionName)
+
+    if (fnNode) {
+      this.exec.execFunction(varName, moduleId, functionName, this.args)
+    } else {
+      const [className, methodName] = functionName.split('_')
+      this.exec.execStaticMethod(varName, moduleId, className, methodName, this.args)
+    }
     this.args = []
   }
 
@@ -109,10 +123,10 @@ class TxExecution {
   }
 
   loadModule (moduleId: string): WasmInstance {
-    const existing = this.getWasmInstance(moduleId)
+    const existing = this.wasms.get(moduleId)
     if (existing) { return existing }
     const wasmInstance = this.vm.createWasmInstance(moduleId)
-    wasmInstance.onMethodCall(this._onMethodCall.bind(this))
+    wasmInstance.onMethodCall(this._onRemoteInstanceCall.bind(this))
     wasmInstance.onGetProp(this._onGetProp.bind(this))
     wasmInstance.onCreate(this._onCreate.bind(this))
     wasmInstance.onRemoteLockHandler(this._onRemoteLock.bind(this))
@@ -128,27 +142,6 @@ class TxExecution {
     return wasmInstance
   }
 
-  _onRemoteStaticExecHandler (srcModule: WasmInstance, targetModId: string, fnStr: string, args: ArrayBuffer): number {
-    const targetMod = this.loadModule(targetModId)
-    const [className, methodName] = fnStr.split('_')
-
-    const obj = findExportedObject(targetMod.abi, className, 'could not find object')
-    const method = findObjectMethod(obj, methodName, 'could not find method')
-
-
-    const argReader = new ArgReader(args)
-    const rawArgs: any[] = method.args.map((n: FieldNode) => {
-      return readType(argReader, n.type)
-    })
-
-    const targetArgs = method.args.map((fn: FieldNode, i: number) => {
-      return lowerValue(targetMod, fn.type, rawArgs[i])
-    })
-
-
-    return targetMod.staticCall(className, methodName, targetArgs)
-  }
-
   _onLocalAuthCheck(jigPtr: number, instance: WasmInstance, check: AuthCheck): boolean {
     const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance) || this.jigs.find(j => j.ref.ptr === -1 && j.module === instance)
     if (!jig) {throw new Error('should exists')}
@@ -159,16 +152,54 @@ class TxExecution {
     const childJigRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance) || this.jigs.find(j => j.module === instance && j.ref.ptr === -1)
     if (!childJigRef) {throw new Error('should exists')}
     this._onRemoteLock(childJigRef.origin, type, extraArg)
-    // childJigRef.changeLock(new JigLock(this.stack[this.stack.length - 1]))
   }
 
-  _onMethodCall (origin: string, methodNode: MethodNode, args: any[]): MethodResult {
+  _onRemoteInstanceCall (callerInstance: WasmInstance, origin: string, className: string,  methodName: string, argBuff: ArrayBuffer): MethodResult {
     let jig = this.jigs.find(j => j.origin === origin) as JigRef
     if (!jig) {
       jig = this.loadJig(origin, false,false)
     }
 
-    return jig.sendMessage(methodNode.name, args, this)
+    const obj = findExportedObject(jig.module.abi, className, 'could not find object')
+    const method = findObjectMethod(obj, methodName, 'could not find method')
+
+    const argReader = new ArgReader(argBuff)
+    const args = method.args.map((n: FieldNode) => {
+      const ptr = readType(argReader, n.type)
+      const value = liftValue(callerInstance, n.type, ptr)
+      if (value instanceof Externref) {
+        return this.getJigRefByOrigin(Buffer.from(value.origin).toString())
+      } else {
+        return value
+      }
+    })
+
+
+
+    return jig.sendMessage(methodName, args, this)
+  }
+
+  _onRemoteStaticExecHandler (srcModule: WasmInstance, targetModId: string, fnStr: string, argBuffer: ArrayBuffer): MethodResult {
+    const targetMod = this.loadModule(targetModId)
+
+    const [className, methodName] = fnStr.split('_')
+
+    const obj = findExportedObject(targetMod.abi, className, 'could not find object')
+    const method = findObjectMethod(obj, methodName, 'could not find method')
+
+    const argReader = new ArgReader(argBuffer)
+    const argValues = method.args.map((arg) => {
+      const pointer = readType(argReader, arg.type)
+      return liftValue(srcModule, arg.type, pointer)
+    }).map((value: any) => {
+      if (value instanceof Externref) {
+        return this.getJigRefByOrigin(Buffer.from(value.origin).toString())
+      } else {
+        return value
+      }
+    })
+
+    return targetMod.staticCall(className, methodName, argValues)
   }
 
   _onGetProp (origin: string, propName: string): Prop {
@@ -243,10 +274,6 @@ class TxExecution {
     return jigRef
   }
 
-  getWasmInstance (moduleName: string) {
-    return this.wasms.get(moduleName)
-  }
-
   getJigRef (index: number) {
     return this.jigs[index]
   }
@@ -257,10 +284,6 @@ class TxExecution {
       throw new Error('does not exists')
     }
     return jigRef
-  }
-
-  addInputJig (jigRef: JigRef) {
-    return this.addNewJigRef(jigRef)
   }
 
   addNewJigRef (jigRef: JigRef) {
@@ -335,27 +358,55 @@ class TxExecution {
     return jigRef
   }
 
-  execFunction (varName: string, moduleId: string, functionName: string, args: any[]) {
+  execStaticMethod (varName: string, moduleId: string, className: string, methodName: string, args: any[]) {
     const module = this.loadModule(moduleId)
-    const [className, methodName] = functionName.split('_')
-    const abiNode = findExportedObject(module.abi, className, 'should exist')
-    const methodNode = findObjectMethod(abiNode, methodName, 'should exist')
-    if(!methodNode.rtype) { throw Error('should exist')}
-    const rTypeNode = findExportedObject(module.abi, methodNode.rtype.name, 'should exist')
-    if (rTypeNode.kind === ObjectKind.EXPORTED) {
+    const methodNode = findObjectMethod(
+      findExportedObject(module.abi, className, 'should exist'),
+      methodName,
+      'should exist'
+    )
+    if (!methodNode.rtype) {
+      module.staticCall(className, methodName, args)
+      return null
+    }
+
+    const rTypeNode = findExportedObject(module.abi, methodNode.rtype.name)
+    if (!rTypeNode || rTypeNode.kind !== ObjectKind.EXPORTED) {
+      const result = module.staticCall(className, methodName, args)
+      return new Internref(className, result.value)
+    }  else {
       const module = this.loadModule(moduleId)
       const newOrigin = this.newOrigin()
       const jigRef = new JigRef(new Internref(className, -1), className, module, newOrigin, new NoLock())
       this.addNewJigRef(jigRef)
       this.stack.push(newOrigin)
-      const retPtr = module.staticCall(className, methodName, args)
-      jigRef.ref = new Internref(moduleId, retPtr)
+      const result = module.staticCall(className, methodName, args)
+      jigRef.ref = result.value
+      this.stack.pop()
+      this.setVar(varName, jigRef)
+      return jigRef.ref
+    }
+  }
+
+  execFunction (varName: string, moduleId: string, functionName: string, args: any[]) {
+    const module = this.loadModule(moduleId)
+    const fnNode = findExportedFunction(module.abi, functionName, 'should exist')
+    const rtypeClassName = fnNode.rtype.name;
+    const rTypeNode = findExportedObject(module.abi, rtypeClassName, 'should exist')
+    if (rTypeNode.kind === ObjectKind.EXPORTED) {
+      const module = this.loadModule(moduleId)
+      const newOrigin = this.newOrigin()
+      const jigRef = new JigRef(new Internref(rtypeClassName, -1), rtypeClassName, module, newOrigin, new NoLock())
+      this.addNewJigRef(jigRef)
+      this.stack.push(newOrigin)
+      const result = module.functionCall(functionName, args)
+      jigRef.ref = result.value
       this.stack.pop()
       this.setVar(varName, jigRef)
       return jigRef.ref
     } else {
-      const retPtr = module.staticCall(className, 'constructor', args)
-      return new Internref(moduleId, retPtr)
+      const result = module.functionCall(functionName, args)
+      return new Internref(moduleId, result.value)
     }
   }
 

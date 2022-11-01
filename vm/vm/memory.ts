@@ -269,7 +269,7 @@ export function liftSet(mod: Module, type: TypeNode, ptr: number): Set<any> {
 /**
  * Lowers any supported type into WASM memory and returns the value or Ptr.
  */
-export function lowerValue(mod: Module, type: TypeNode | null, val: any): number | bigint {
+export function lowerValue(mod: Module, type: TypeNode | null, val: any): number {
   if (!type || type.name === 'void' || val === null) return 0;
 
   switch(type.name) {
@@ -282,10 +282,10 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
     case 'f32':
     case 'f64':
       return val
-    case 'i64':
-      return BigInt.asIntN(64, BigInt(val))
-    case 'u64':
-      return BigInt.asUintN(64, BigInt(val))
+    // case 'i64':
+    //   return BigInt.asIntN(64, BigInt(val))
+    // case 'u64':
+    //   return BigInt.asUintN(64, BigInt(val))
     case 'bool':
       return val ? 1 : 0
     case 'string':
@@ -487,7 +487,7 @@ export function lowerMap(mod: Module, type: TypeNode, val: Map<any, any>): numbe
   val.forEach((v, k) => {
     const key = lowerValue(mod, type.args[0], k) as number
     const val = lowerValue(mod, type.args[1], v) as number
-    const fn = mod.exports[fnName](ptr, key, val)
+    mod.exports[fnName](ptr, key, val)
   })
 
   return ptr

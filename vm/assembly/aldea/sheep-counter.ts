@@ -66,13 +66,40 @@ export class Shepherd {
   sheepCount (): u32 {
     return this.flock.size
   }
+
+  growFlockUsingInternalTools (): void {
+    InternalFlockOperations.growFlock(this.flock)
+  }
+
+  growFlockUsingExternalTools (): void {
+    ExternalFlockOperations.growFlock(this.flock)
+  }
+}
+
+export class ExternalFlockOperations {
+  static growFlock (aFlock: Flock): void {
+    aFlock.grow()
+  }
+}
+
+
+export function buildSomeSheepCounter (): SheepCounter {
+  return new SheepCounter()
+}
+
+
+// @ts-ignore
+@imported('6e3553a6bea33cc88435ccc256a3aae3a736b10097b13f4f9f6d068fdf890043')
+declare class Flock {
+  constructor();
+  size: u32;
+  legCount (): u32;
+  grow (): void;
 }
 
 // @ts-ignore
-@imported('6328a8bfe682ecc5a318b603fecbfc278f27e1ba729dc67659678b176aa8e188')
-declare class Flock {
-  size: u32;
-  legCount (): u32;
+@imported('6e3553a6bea33cc88435ccc256a3aae3a736b10097b13f4f9f6d068fdf890043')
+declare class InternalFlockOperations {
+  static growFlock (aFlock: Flock): void
 }
-
 

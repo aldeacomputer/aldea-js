@@ -70,7 +70,22 @@ test('serialize return corrent string for multiple instructions', t => {
   ].join('\n'))
 })
 
+`
+LOAD $newVar 0xSomeLocation
+CALL $newVar someMethod 10 "holu"
+// LOCK $newVar 0x01230321
+// LOCK $otherVar 0x01230321
 
+LOAD firstVar someLocation true false
+ASSIGN assignedVar 73
+
+
+
+---
+SIGN pubKey1 rawSig1
+SIGN pubKey2 rawSig2
+SIGN pubKey3 rawSig3
+`
 test('after sign is signed by a given signature', t => {
   const privKey = PrivKey.fromRandom()
   const pubkey = privKey.toPubKey()

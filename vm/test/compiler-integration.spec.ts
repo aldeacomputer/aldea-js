@@ -53,7 +53,6 @@ describe('execute txs', () => {
       const id = vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
       moduleIds.set(src, id)
     })
-
   })
   //
   it('can create a flock', () => {
@@ -183,7 +182,6 @@ describe('execute txs', () => {
     const exec1 = vm.execTx(tx1)
     storage.persist(exec1)
     const exec2 = vm.execTx(tx2)
-
 
     const parsed = exec2.outputs[0].parsedState()
     expect(parsed[0]).to.eql(3)
@@ -340,6 +338,44 @@ describe('execute txs', () => {
     expect(state[0]).to.eql(1)
   })
 
+  it('can call static methods from inside jigs sending other jig as parameters', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))
+      .add(new NewInstruction('aShepherd', modIdFor('sheep-counter'), 'Shepherd', [new VariableContent('aFlock')]))
+      .add(new CallInstruction('aShepherd', 'growFlockUsingInternalTools', []))
+      .add(new LockInstruction('aShepherd', userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    const state = exec1.outputs[0].parsedState()
+    expect(state[0]).to.eql(1)
+  })
+
+  it('can call static methods from inside jigs sending other jig as parameters (2)', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))
+      .add(new NewInstruction('aShepherd', modIdFor('sheep-counter'), 'Shepherd', [new VariableContent('aFlock')]))
+      .add(new CallInstruction('aShepherd', 'growFlockUsingExternalTools', []))
+      .add(new LockInstruction('aShepherd', userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    const state = exec1.outputs[0].parsedState()
+    expect(state[0]).to.eql(1)
+  })
+
+  it('can call static methods from inside module sending other jig as parameters', () => {
+    const tx1 = new Transaction()
+      .add(new NewInstruction('aFlock', modIdFor('flock'), 'Flock' ,[]))
+      .add(new ExecInstruction('someVar', modIdFor('flock'), 'InternalFlockOperations_growFlock' , [new VariableContent('aFlock')]))
+      .add(new LockInstruction('aFlock', userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    const state = exec1.outputs[0].parsedState()
+    expect(state[0]).to.eql(1)
+  })
+
   it('can call static methods from top level.', () => {
     const tx1 = new Transaction()
       .add(new ExecInstruction('aFlock' ,modIdFor('flock'), 'Flock_createWithSize' , [new NumberArg(10)]))
@@ -349,6 +385,17 @@ describe('execute txs', () => {
     const exec1 = vm.execTx(tx1)
     const state = exec1.outputs[0].parsedState()
     expect(state[0]).to.eql(10)
+  })
+
+  it('can call static functions from top level.', () => {
+    const tx1 = new Transaction()
+      .add(new ExecInstruction('aCounter' ,modIdFor('sheep-counter'), 'buildSomeSheepCounter' , [new NumberArg(10)]))
+      .add(new LockInstruction('aCounter', userPub))
+
+    const vm = new VM(storage)
+    const exec1 = vm.execTx(tx1)
+    const state = exec1.outputs[0].parsedState()
+    expect(state[0]).to.eql(0)
   })
 
   it('authcheck allows the call when jig has no lock.', () => {
