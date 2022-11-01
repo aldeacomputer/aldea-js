@@ -9,7 +9,6 @@ RUN yarn install
 RUN yarn build
 RUN yarn workspace @aldea/vm compile
 
-WORKDIR /app/compiler-old
 RUN yarn tsc
 
 WORKDIR /app/vm
