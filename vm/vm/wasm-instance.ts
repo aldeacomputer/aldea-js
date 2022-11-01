@@ -2,23 +2,25 @@ import {CBOR, Sequence} from 'cbor-redux'
 import {JigRef} from "./jig-ref.js";
 import {
   Abi,
+  FieldKind,
   FieldNode,
   findExportedFunction,
   findExportedObject,
   findImportedObject,
   findObjectField,
   findObjectMethod,
+  findPlainObject,
   MethodNode,
-  TypeNode,
-  FieldKind,
-  ObjectKind, findPlainObject
+  ObjectKind,
+  TypeNode
 } from "@aldea/compiler/abi";
 import {
   getObjectMemLayout,
   getTypedArrayConstructor,
   Internref,
   liftBuffer,
-  liftInternref, liftObject,
+  liftInternref,
+  liftObject,
   liftString,
   liftValue,
   lowerInternref,
@@ -87,7 +89,7 @@ type LocalCallStartHandler = (jigPtr: number, wasmInstance: WasmInstance) => voi
 type LocalCallEndtHandler = () => void
 type AuthCheckHandler = (targetOrigin: string, check: AuthCheck) => boolean
 type LocalAuthCheckHandler = (jigPtr: number, module: WasmInstance, check: AuthCheck) => boolean
-type RemoteStaticExecHandler = (srcModule: WasmInstance, targetModId: string, className: string, args: ArrayBuffer) => number
+type RemoteStaticExecHandler = (srcModule: WasmInstance, targetModId: string, fnNane: string, argBuf: ArrayBuffer) => MethodResult
 
 
 
@@ -247,7 +249,8 @@ export class WasmInstance {
           const fnStr = liftString(this, fnNamePtr)
           const argBuf = liftBuffer(this, argsPtr)
 
-          return this.remoteStaticExecHandler(this,  Buffer.from(moduleId).toString(), fnStr, argBuf)
+          const result = this.remoteStaticExecHandler(this, Buffer.from(moduleId).toString(), fnStr, argBuf)
+          return lowerValue(this, result.node, result.value)
         },
 
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
@@ -366,7 +369,9 @@ export class WasmInstance {
 
     const fn = this.instance.exports[fnName] as Function;
     const retPtr = fn(...ptrs)
-    const retValue = liftValue(this, method.rtype, retPtr)
+    const retValue = methodName === 'constructor'
+      ? new Internref(className, retPtr)
+      : liftValue(this, method.rtype, retPtr)
 
     return {
       node: method.rtype,
@@ -376,9 +381,8 @@ export class WasmInstance {
   }
 
   createNew (className: string, args: any[]): Internref {
-    const ptr = this.staticCall(className, 'constructor', args)
-    const abiNode = findExportedObject(this.abi, className, 'should be present')
-    return liftInternref(this, abiNode, ptr)
+    const result = this.staticCall(className, 'constructor', args)
+    return result.value
   }
 
   hidrate (className: string, frozenState: ArrayBuffer): Internref {

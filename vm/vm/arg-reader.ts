@@ -78,10 +78,12 @@ export class ArgReader {
   }
 }
 
+export type WasmPointer = number | bigint
+
 /**
  * Reads and returns a value of the specified type from the given ArgReader.
  */
-export function readType(reader: ArgReader, type: TypeNode): number | bigint {
+export function readType(reader: ArgReader, type: TypeNode): WasmPointer {
   switch (type.name) {
     case 'f32': return reader.readF32()
     case 'f64': return reader.readF64()
