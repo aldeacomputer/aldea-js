@@ -21,9 +21,9 @@ export class JigRef {
 
   sendMessage (methodName: string, args: any[] , context: TxExecution): MethodResult {
     if (!this.lock.acceptsExecution(context)) {
-      throw new PermissionError(`jig ${this.origin} does not accept messages from ${context.stackTop()}`)
+      throw new PermissionError(`jig ${this.origin} does not accept message "${methodName}" from ${context.stackTop()}`)
     }
-    return this.module.instanceCall(this, this.className, methodName, args)
+    return context.callInstanceMethod(this, methodName, args)
   }
 
   get originBuf (): Buffer {

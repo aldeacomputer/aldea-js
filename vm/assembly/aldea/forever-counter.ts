@@ -3,6 +3,9 @@ export class ForeverCounter {
 
   constructor() {
     this.count = 0
+  }
+
+  init (): void {
     Auth.lockToAnyone<ForeverCounter>(this)
   }
 

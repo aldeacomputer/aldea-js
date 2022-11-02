@@ -502,6 +502,7 @@ describe('execute txs', () => {
   it('can lock to public', () => {
     const tx = new Transaction()
       .add(new NewInstruction('aCounter', modIdFor('forever-counter'), 'ForeverCounter', []))
+      .add(new CallInstruction('aCounter', 'init',  []))
 
     const exec1 = vm.execTx(tx)
     expect(exec1.outputs[0].serializedLock).to.eql({ type: 'PublicLock' })
@@ -510,6 +511,7 @@ describe('execute txs', () => {
   it('can make calls to locked to public jigs', () => {
     const tx1 = new Transaction()
       .add(new NewInstruction('aCounter', modIdFor('forever-counter'), 'ForeverCounter', []))
+      .add(new CallInstruction('aCounter', 'init',  []))
 
     const tx2 = new Transaction()
       .add(new LoadInstruction('aCounter', locationF(tx1, 0)))
@@ -524,19 +526,7 @@ describe('execute txs', () => {
   it('cannot lock public jigs to a user', () => {
     const tx1 = new Transaction()
       .add(new NewInstruction('aCounter', modIdFor('forever-counter'), 'ForeverCounter', []))
-
-    const tx2 = new Transaction()
-      .add(new LoadInstruction('aCounter', locationF(tx1, 0)))
-      .add(new LockInstruction('aCounter', userPub))
-
-    const exec1 = vm.execTx(tx1)
-    storage.persist(exec1)
-    expect(() => vm.execTx(tx2)).to.throw(PermissionError, `no permission to remove lock from jig ${exec1.outputs[0].origin}`)
-  })
-
-  it('cannot lock public jigs to a user', () => {
-    const tx1 = new Transaction()
-      .add(new NewInstruction('aCounter', modIdFor('forever-counter'), 'ForeverCounter', []))
+      .add(new CallInstruction('aCounter', 'init',  []))
 
     const tx2 = new Transaction()
       .add(new LoadInstruction('aCounter', locationF(tx1, 0)))

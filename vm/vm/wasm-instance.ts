@@ -74,6 +74,7 @@ function __decodeArgs (data: ArrayBuffer): any[] {
   return CBOR.decode(data, null, {mode: "sequence"}).data
 }
 
+type ConstructorHandler = (source: WasmInstance, jigPtr: number, className: string) => void
 type RemoteCallHandler = (callerInstance: WasmInstance, targetOrigin: string, className: string, methodName: string, argBuff: ArrayBuffer) => MethodResult
 type RemoteStaticExecHandler = (srcModule: WasmInstance, targetModId: string, fnNane: string, argBuf: ArrayBuffer) => MethodResult
 type GetPropHandler = (origin: string, propName: string) => Prop
@@ -158,6 +159,7 @@ const lockStateAbiNode = {
 export class WasmInstance {
   id: string;
   memory: WebAssembly.Memory;
+  private constructorHandler: ConstructorHandler;
   private remoteCallHandler: RemoteCallHandler;
   private getPropHandler: GetPropHandler;
   private createHandler: CreateHandler;
@@ -180,6 +182,7 @@ export class WasmInstance {
     abi.objects.push(utxoAbiNode)
     abi.objects.push(lockStateAbiNode)
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
+    this.constructorHandler = () => { throw new Error('handler not defined')}
     this.remoteCallHandler = () => { throw new Error('handler not defined')}
     this.getPropHandler = () => { throw new Error('handler not defined')}
     this.createHandler = () => { throw new Error('handler not defined')}
@@ -207,6 +210,10 @@ export class WasmInstance {
         }
       },
       vm: {
+        vm_constructor: (jigPtr: number, classNamePtr: number): void => {
+          const className = liftString(this, classNamePtr)
+          this.constructorHandler(this, jigPtr, className)
+        },
         vm_local_call_start: (jigPtr: number, _fnNamePtr: number): void => {
           this.localCallStartHandler(jigPtr, this)
         },
@@ -299,6 +306,10 @@ export class WasmInstance {
     return this.instance.exports as WasmExports
   }
 
+  onConstructor (fn: ConstructorHandler): void {
+    this.constructorHandler = fn
+  }
+
   onGetProp (fn: GetPropHandler): void{
     this.getPropHandler = fn
   }
@@ -367,11 +378,6 @@ export class WasmInstance {
       value: retValue,
       mod: this
     }
-  }
-
-  createNew (className: string, args: any[]): Internref {
-    const result = this.staticCall(className, 'constructor', args)
-    return result.value
   }
 
   hidrate (className: string, frozenState: ArrayBuffer): Internref {
