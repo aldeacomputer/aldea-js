@@ -220,6 +220,7 @@ function collectObjectNodes(source: Source): ObjectWrap[] {
   return source.statements
     .filter(n => n.kind === NodeKind.CLASSDECLARATION)
     .map(n => mapObjectNode(n as ClassDeclaration))
+    .filter(n => n.kind > -1)
 }
 
 // Collects Function Nodes from the give list of sources

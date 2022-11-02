@@ -28,6 +28,16 @@ function classMbrWithDepCode(code) {
   `.trim()
 }
 
+// template for adding class members with sidekick object
+function classMbrWithSidekickCode(code) {
+  return `
+  class A { foo: u8 = 1; }
+  export class Test {
+    ${code}
+  }
+  `.trim()
+}
+
 // template for adding arbitrary code to function
 function methodStmtCode(code) {
   return `
@@ -103,6 +113,24 @@ test('throws if class has instance method beginning with underscore', async t =>
   t.regex(e.stderr.toString(), /_a\(\): void {}/)
 })
 
+test('throws if class has readonly method', async t => {
+  const e = await t.throwsAsync(() => compile(classMbrCode(`readonly a(): u8 { return 1 }`)))
+  t.regex(e.stderr.toString(), /AS401/)
+  t.regex(e.stderr.toString(), /readonly a\(\)/)
+})
+
+test('throws if class has getter method', async t => {
+  const e = await t.throwsAsync(() => compile(classMbrCode(`get a(): u8 { return 1 }`)))
+  t.regex(e.stderr.toString(), /AS402/)
+  t.regex(e.stderr.toString(), /get a\(\)/)
+})
+
+test('throws if class has setter method', async t => {
+  const e = await t.throwsAsync(() => compile(classMbrCode(`a: u8; set aa(val: u8) { this.a = val }`)))
+  t.regex(e.stderr.toString(), /AS402/)
+  t.regex(e.stderr.toString(), /set aa\(val: u8\)/)
+})
+
 test('compiles if class is valid', async t => {
   const code = classMbrCode(`
   foo: u32 = 0;
@@ -111,11 +139,10 @@ test('compiles if class is valid', async t => {
   await t.notThrowsAsync(() => compile(code))
 })
 
-test.skip('throws if class field is unsupported type', async t => {
-  // TODO update to use type which is sidekick class
-  const e = await t.throwsAsync(() => compile(classMbrCode('a: Map<string, string> = new Map<string, string>();')))
+test('throws if class field is unsupported type', async t => {
+  const e = await t.throwsAsync(() => compile(classMbrWithSidekickCode('a: A = new A();')))
   t.regex(e.stderr.toString(), /AS403/)
-  t.regex(e.stderr.toString(), /a: Map<string, string> = new Map<string, string>\(\);/)
+  t.regex(e.stderr.toString(), /a: A = new A\(\);/)
 })
 
 test('compiles if class field is falid type', async t => {
@@ -129,18 +156,16 @@ test('compiles if class field is plain object', async t => {
   await t.notThrowsAsync(() => compile(classMbrWithDepCode('a: A = { foo: 1 }')))
 })
 
-test.skip('throws if class method arg is unsupported type', async t => {
-  // TODO update to use type which is sidekick class
-  const e = await t.throwsAsync(() => compile(classMbrCode('foo(a: Map<string, string>): void {}')))
+test('throws if class method arg is unsupported type', async t => {
+  const e = await t.throwsAsync(() => compile(classMbrWithSidekickCode('foo(a: A): void {}')))
   t.regex(e.stderr.toString(), /AS404/)
-  t.regex(e.stderr.toString(), /foo\(a: Map<string, string>\): void {}/)
+  t.regex(e.stderr.toString(), /foo\(a: A\): void {}/)
 })
 
-test.skip('throws if class method return is unsupported type', async t => {
-  // TODO update to use type which is sidekick class
-  const e = await t.throwsAsync(() => compile(classMbrCode('foo(): Map<string, string> { return new Map<string, string>() }')))
+test('throws if class method return is unsupported type', async t => {
+  const e = await t.throwsAsync(() => compile(classMbrWithSidekickCode('foo(): A { return new A() }')))
   t.regex(e.stderr.toString(), /AS404/)
-  t.regex(e.stderr.toString(), /foo\(\): Map<string, string>/)
+  t.regex(e.stderr.toString(), /foo\(\): A/)
 })
 
 test('compiles if class method args and return types are supported', async t => {
@@ -211,4 +236,10 @@ test('throws if reassigns a restricted namespace', async t => {
   const e = await t.throwsAsync(() => compile(methodStmtCode('const x = Math')))
   t.regex(e.stderr.toString(), /AS408/)
   t.regex(e.stderr.toString(), /const x = Math/)
+})
+
+test('throws if assemblyscript decorator is used', async t => {
+  const e = await t.throwsAsync(() => compile(stmtCode('@inline function foo(): u8 { return 1 }')))
+  t.regex(e.stderr.toString(), /AS409/)
+  t.regex(e.stderr.toString(), /@inline function foo\(\): u8/)
 })

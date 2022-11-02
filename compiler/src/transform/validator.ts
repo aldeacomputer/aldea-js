@@ -1,5 +1,6 @@
 import {
   CallExpression,
+  ClassDeclaration,
   DecoratorKind,
   DecoratorNode,
   DiagnosticCategory,
@@ -99,7 +100,7 @@ export class Validator {
     })
 
     this.ctx.objects.forEach(obj => {
-      this.validateClassMembers(obj)
+      this.validateObjectMembers(obj)
     })
 
     this.ctx.exposedObjects.forEach(obj => {
@@ -125,6 +126,9 @@ export class Validator {
           break
         case NodeKind.PROPERTYACCESS:
           this.validatePropertyAccessNode(node as PropertyAccessExpression)
+          break
+        case NodeKind.CLASSDECLARATION:
+          this.validateClassDeclarationNode(node as ClassDeclaration)
           break
         case NodeKind.VARIABLEDECLARATION:
           this.validateVariableDeclarationNode(node as VariableDeclaration)
@@ -162,26 +166,8 @@ export class Validator {
     })
   }
 
-  private validateClassMembers(obj: ObjectWrap): void {
+  private validateObjectMembers(obj: ObjectWrap): void {
     obj.node.members.forEach(n => {
-      // Ensure no static properties
-      if (n.kind === NodeKind.FIELDDECLARATION && isStatic(n.flags)) {
-        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
-          AldeaDiagnosticCode.Invalid_class_member,
-          ['Static properties'],
-          n.range
-        ))
-      }
-      // Ensure no readonly methods
-      if (n.kind === NodeKind.METHODDECLARATION && isReadonly(n.flags)) {
-        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
-          AldeaDiagnosticCode.Invalid_class_member,
-          ['Readonly methods'],
-          n.range
-        ))
-      }
       // Ensure no getter/setter methods on jigs
       if (
         obj.kind === ObjectKind.EXPORTED &&
@@ -344,6 +330,29 @@ export class Validator {
         node.range
       ))
     }
+  }
+
+  private validateClassDeclarationNode(node: ClassDeclaration): void {
+    node.members.forEach(n => {
+      // Ensure no static properties
+      if (n.kind === NodeKind.FIELDDECLARATION && isStatic(n.flags)) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.ERROR,
+          AldeaDiagnosticCode.Invalid_class_member,
+          ['Static properties'],
+          n.range
+        ))
+      }
+      // Ensure no readonly methods
+      if (n.kind === NodeKind.METHODDECLARATION && isReadonly(n.flags)) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.ERROR,
+          AldeaDiagnosticCode.Invalid_class_member,
+          ['Readonly methods'],
+          n.range
+        ))
+      }
+    })
   }
 
   private validateVariableDeclarationNode(node: VariableDeclaration): void {
