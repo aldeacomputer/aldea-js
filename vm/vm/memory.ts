@@ -282,10 +282,12 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
     case 'f32':
     case 'f64':
       return val
-    // case 'i64':
-    //   return BigInt.asIntN(64, BigInt(val))
-    // case 'u64':
-    //   return BigInt.asUintN(64, BigInt(val))
+    case 'i64':
+      // @ts-ignore
+      return BigInt.asIntN(64, BigInt(val))
+    case 'u64':
+      // @ts-ignore
+      return BigInt.asUintN(64, BigInt(val))
     case 'bool':
       return val ? 1 : 0
     case 'string':

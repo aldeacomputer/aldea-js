@@ -108,6 +108,98 @@ describe('reading basic types from memory', () => {
   })
 })
 
+describe('writing basic types to memory', () => {
+  it('writes number as i8', async () => {
+    const wasm = await compileToWasm('export function test(a: i8): bool { return a == -42 }')
+    const res = wasm.functionCall('test', [-42])
+    assert.isTrue(res.value)
+  })
+
+  it('writes number as i16', async () => {
+    const wasm = await compileToWasm('export function test(a: i16): bool { return a == -42 }')
+    const res = wasm.functionCall('test', [-42])
+    assert.isTrue(res.value)
+  })
+
+  it('writes number as i32', async () => {
+    const wasm = await compileToWasm('export function test(a: i32): bool { return a == -42 }')
+    const res = wasm.functionCall('test', [-42])
+    assert.isTrue(res.value)
+  })
+
+  it('writes number as i64', async () => {
+    const wasm = await compileToWasm('export function test(a: i64): bool { return a == -42 }')
+    const res = wasm.functionCall('test', [-42])
+    assert.isTrue(res.value)
+  })
+
+  it('writes bigint as i64', async () => {
+    const wasm = await compileToWasm('export function test(a: i64): bool { return a == -42 }')
+    const res = wasm.functionCall('test', [-42n])
+    assert.isTrue(res.value)
+  })
+
+  it('writes number as u8', async () => {
+    const wasm = await compileToWasm('export function test(a: u8): bool { return a == 42 }')
+    const res = wasm.functionCall('test', [42])
+    assert.isTrue(res.value)
+  })
+
+  it('writes number as u16', async () => {
+    const wasm = await compileToWasm('export function test(a: u16): bool { return a == 42 }')
+    const res = wasm.functionCall('test', [42])
+    assert.isTrue(res.value)
+  })
+
+  it('writes number as u32', async () => {
+    const wasm = await compileToWasm('export function test(a: u32): bool { return a == 42 }')
+    const res = wasm.functionCall('test', [42])
+    assert.isTrue(res.value)
+  })
+
+  it('writes number as u64', async () => {
+    const wasm = await compileToWasm('export function test(a: u64): bool { return a == 42 }')
+    const res = wasm.functionCall('test', [42])
+    assert.isTrue(res.value)
+  })
+
+  it('writes bigint as u64', async () => {
+    const wasm = await compileToWasm('export function test(a: u64): bool { return a == 42 }')
+    const res = wasm.functionCall('test', [42n])
+    assert.isTrue(res.value)
+  })
+
+  it('writes number as f32', async () => {
+    const wasm = await compileToWasm('export function test(a: f32): bool { return a == 42.12345 }')
+    const res = wasm.functionCall('test', [42.12345])
+    assert.isTrue(res.value)
+  })
+
+  it('writes number as f64', async () => {
+    const wasm = await compileToWasm('export function test(a: f64): bool { return a == 42.12345 }')
+    const res = wasm.functionCall('test', [42.12345])
+    assert.isTrue(res.value)
+  })
+
+  it('writes boolean', async () => {
+    const wasm = await compileToWasm('export function test(a: bool): bool { return a == true }')
+    const res = wasm.functionCall('test', [true])
+    assert.isTrue(res.value)
+  })
+
+  it('writes string', async () => {
+    const wasm = await compileToWasm('export function test(a: string): bool { return a == "hello world!" }')
+    const res = wasm.functionCall('test', ['hello world!'])
+    assert.isTrue(res.value)
+  })
+
+  it('writes ArrayBuffer', async () => {
+    const wasm = await compileToWasm('export function test(a: ArrayBuffer): bool { return a.byteLength == 5 }')
+    const res = wasm.functionCall('test', [new ArrayBuffer(5)])
+    assert.isTrue(res.value)
+  })
+})
+
 describe('reading complex types from memory', () => {
   describe('typed arrays', () => {
     function bufCode(t: string, vals: any[] = [11, 22, 33]): string {
