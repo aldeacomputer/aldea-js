@@ -558,3 +558,248 @@ describe('reading complex types from memory', () => {
     })
   })
 })
+
+describe('writing complex types to memory', () => {
+  describe('typed arrays', () => {
+    it('writes Int8Array', async () => {
+      const wasm = await compileToWasm('export function test(a: Int8Array): bool { return a.length == 3 && a.byteLength == 3 }')
+      const res = wasm.functionCall('test', [new Int8Array([11, 22, 33])])
+      assert.isTrue(res.value)
+    })
+  
+    it('writes Int16Array', async () => {
+      const wasm = await compileToWasm('export function test(a: Int16Array): bool { return a.length == 3 && a.byteLength == 6 }')
+      const res = wasm.functionCall('test', [new Int16Array([11, 22, 33])])
+      assert.isTrue(res.value)
+    })
+  
+    it('writes Int32Array', async () => {
+      const wasm = await compileToWasm('export function test(a: Int32Array): bool { return a.length == 3 && a.byteLength == 12 }')
+      const res = wasm.functionCall('test', [new Int32Array([11, 22, 33])])
+      assert.isTrue(res.value)
+    })
+  
+    it('writes Int64Array', async () => {
+      const wasm = await compileToWasm('export function test(a: Int64Array): bool { return a.length == 3 && a.byteLength == 24 }')
+      const res = wasm.functionCall('test', [new BigInt64Array([11n, 22n, 33n])])
+      assert.isTrue(res.value)
+    })
+  
+    it('writes Uint8Array', async () => {
+      const wasm = await compileToWasm('export function test(a: Uint8Array): bool { return a.length == 3 && a.byteLength == 3 }')
+      const res = wasm.functionCall('test', [new Uint8Array([11, 22, 33])])
+      assert.isTrue(res.value)
+    })
+  
+    it('writes Uint16Array', async () => {
+      const wasm = await compileToWasm('export function test(a: Uint16Array): bool { return a.length == 3 && a.byteLength == 6 }')
+      const res = wasm.functionCall('test', [new Uint16Array([11, 22, 33])])
+      assert.isTrue(res.value)
+    })
+  
+    it('writes Uint32Array', async () => {
+      const wasm = await compileToWasm('export function test(a: Uint32Array): bool { return a.length == 3 && a.byteLength == 12 }')
+      const res = wasm.functionCall('test', [new Uint32Array([11, 22, 33])])
+      assert.isTrue(res.value)
+    })
+  
+    it('writes Uint64Array', async () => {
+      const wasm = await compileToWasm('export function test(a: Uint64Array): bool { return a.length == 3 && a.byteLength == 24 }')
+      const res = wasm.functionCall('test', [new BigUint64Array([11n, 22n, 33n])])
+      assert.isTrue(res.value)
+    })
+  
+    it('writes Float32Array', async () => {
+      const wasm = await compileToWasm('export function test(a: Float32Array): bool { return a.length == 3 && a.byteLength == 12 }')
+      const res = wasm.functionCall('test', [new Float32Array([11.1, 22.2, 33.3])])
+      assert.isTrue(res.value)
+    })
+  
+    it('writes Float64Array', async () => {
+      const wasm = await compileToWasm('export function test(a: Float64Array): bool { return a.length == 3 && a.byteLength == 24 }')
+      const res = wasm.functionCall('test', [new Float64Array([11.1, 22.2, 33.3])])
+      assert.isTrue(res.value)
+    })
+  })
+
+  describe('arrays and static arrays', () => {
+    it('writes array with u8 values', async () => {
+      const wasm = await compileToWasm('export function test(a: u8[]): bool { return a.length == 3 }')
+      const res = wasm.functionCall('test', [[11, 22, 33]])
+      assert.isTrue(res.value)
+    })
+
+    it('writes array with u16 values', async () => {
+      const wasm = await compileToWasm('export function test(a: u16[]): bool { return a.length == 3 }')
+      const res = wasm.functionCall('test', [[11, 22, 33]])
+      assert.isTrue(res.value)
+    })
+
+    it('writes array with u32 values', async () => {
+      const wasm = await compileToWasm('export function test(a: u32[]): bool { return a.length == 3 }')
+      const res = wasm.functionCall('test', [[11, 22, 33]])
+      assert.isTrue(res.value)
+    })
+
+    it('writes array with u64 values', async () => {
+      const wasm = await compileToWasm('export function test(a: u64[]): bool { return a.length == 3 }')
+      const res = wasm.functionCall('test', [[11, 22, 33]])
+      assert.isTrue(res.value)
+    })
+
+    it('writes array with string values', async () => {
+      const wasm = await compileToWasm('export function test(a: string[]): bool { return a.length == 3 }')
+      const res = wasm.functionCall('test', [['aaa', 'bbb', 'ccc']])
+      assert.isTrue(res.value)
+    })
+
+    it('writes static array with string values', async () => {
+      const wasm = await compileToWasm('export function test(a: StaticArray<string>): bool { return a.length == 3 }')
+      const res = wasm.functionCall('test', [['aaa', 'bbb', 'ccc']])
+      assert.isTrue(res.value)
+    })
+  })
+
+  describe('maps with combos of types', () => {
+    it('writes map with u8 keys and u8 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u8, u8>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u8 keys and u16 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u8, u16>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u8 keys and u32 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u8, u32>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u8 keys and u64 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u8, u64>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u16 keys and u8 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u16, u8>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u16 keys and u16 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u16, u16>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u16 keys and u32 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u16, u32>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u16 keys and u64 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u16, u64>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u32 keys and u8 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u32, u8>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u32 keys and u16 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u32, u16>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u32 keys and u32 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u32, u32>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u32 keys and u64 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u32, u64>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u64 keys and u8 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u64, u8>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u64 keys and u16 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u64, u16>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u64 keys and u32 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u64, u32>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes map with u64 keys and u64 values', async () => {
+      const wasm = await compileToWasm('export function test(a: Map<u64, u64>): bool { return a.get(1) == 11 && a.get(2) == 22 && a.get(3) == 33 }')
+      const res = wasm.functionCall('test', [new Map([[1, 11], [2, 22], [3, 33]])])
+      assert.isTrue(res.value)
+    })
+  })
+
+  describe('sets with different types', () => {
+    it('writes set with u8 entries', async () => {
+      const wasm = await compileToWasm('export function test(a: Set<u8>): bool { return a.has(11) && a.has(22) && a.has(33) }')
+      const res = wasm.functionCall('test', [new Set([11, 22, 33])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes set with u16 entries', async () => {
+      const wasm = await compileToWasm('export function test(a: Set<u16>): bool { return a.has(11) && a.has(22) && a.has(33) }')
+      const res = wasm.functionCall('test', [new Set([11, 22, 33])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes set with u32 entries', async () => {
+      const wasm = await compileToWasm('export function test(a: Set<u32>): bool { return a.has(11) && a.has(22) && a.has(33) }')
+      const res = wasm.functionCall('test', [new Set([11, 22, 33])])
+      assert.isTrue(res.value)
+    })
+
+    it('writes set with u64 entries', async () => {
+      const wasm = await compileToWasm('export function test(a: Set<u64>): bool { return a.has(11) && a.has(22) && a.has(33) }')
+      const res = wasm.functionCall('test', [new Set([11, 22, 33])])
+      assert.isTrue(res.value)
+    })
+  })
+
+  describe('objects', () => {
+    it('writes plain objects', async() => {
+      const code = `
+      declare class Test {
+        name: string;
+        age: u8;
+      }
+
+      export function test(a: Test): bool {
+        return a.name == 'Fred' && a.age == 42
+      }
+      `.trim()
+
+      const wasm = await compileToWasm(code)
+      const res = wasm.functionCall('test', [{ name: 'Fred', age: 42 }])
+      assert.isTrue(res.value)
+    })
+  })
+})

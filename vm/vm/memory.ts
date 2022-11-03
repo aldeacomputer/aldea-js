@@ -48,6 +48,8 @@ export function liftValue(mod: Module, type: TypeNode | null, val: number | bigi
   if (type === null || type.name === 'void') return;
 
   switch(type.name) {
+    case 'isize':
+    case 'usize':
     case 'i8':
     case 'i16':
     case 'i32':
@@ -273,6 +275,8 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
   if (!type || type.name === 'void' || val === null) return 0;
 
   switch(type.name) {
+    case 'isize':
+    case 'usize':
     case 'i8':
     case 'i16':
     case 'i32':
@@ -364,10 +368,7 @@ export function lowerArray(mod: Module, type: TypeNode, val: Array<any>): number
   const TypedArray = getTypedArrayConstructor(type.args[0])
 
   const length = val.length
-
-  const size = val.length << align;
-
-  const buffer = mod.__pin(mod.__new(size, 0)) >>> 0
+  const buffer = mod.__pin(mod.__new(length << align, 0)) >>> 0
   const header = mod.__new(16, rtid) >>> 0
   const memU32 = new Uint32Array(mod.memory.buffer)
   memU32[header + 0 >>> 2] = buffer;
@@ -417,11 +418,11 @@ export function lowerStaticArray(mod: Module, type: TypeNode, val: Array<any>): 
  */
 export function lowerTypedArray(mod: Module, type: TypeNode, val: ArrayLike<number> & ArrayLike<bigint>): number {
   const rtid = mod.abi.rtids[normalizeTypeName(type)]
-  const elBytes = getTypeBytes(type)
+  const elBytes = getElementBytes(type)
   const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
 
-  const size = val.length << align;
-  const buffer = mod.__pin(mod.__new(size, 0)) >>> 0
+  const length = val.length
+  const buffer = mod.__pin(mod.__new(length << align, 0)) >>> 0
   const header = mod.__new(12, rtid) >>> 0
   const memU32 = new Uint32Array(mod.memory.buffer)
   memU32[header + 0 >>> 2] = buffer
@@ -582,6 +583,27 @@ export function getTypeBytes(type: TypeNode): number {
       return 8
     default:
       return 4
+  }
+}
+
+/**
+ * Returns the number of element bytes for the given type.
+ */
+export function getElementBytes(type: TypeNode): number {
+  switch(type.name) {
+    case 'Int16Array':
+    case 'Uint16Array':
+      return 2;
+    case 'Int32Array':
+    case 'Uint32Array':
+    case 'Float32Array':
+      return 4;
+    case 'Int64Array':
+    case 'Uint64Array':
+    case 'Float64Array':
+      return 8;
+    default:
+      return 1
   }
 }
 
