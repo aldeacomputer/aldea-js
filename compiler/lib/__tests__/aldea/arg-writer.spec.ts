@@ -1,4 +1,4 @@
-import { toHex } from '../support'
+import { toHex } from '../../aldea/bytes'
 import { ArgWriter } from '../../aldea/arg-writer'
 
 describe("ArgWriter", () => {
