@@ -34,7 +34,7 @@ export class Lock {
   type: LockType = LockType.NONE;
   data: ArrayBuffer = new ArrayBuffer(0);
 
-  constructor(jig: Jig, state?: LockState) {
+  constructor(jig: Jig, state: LockState | null = null) {
     this._jig = jig
     if (state) {
       this.type = state.type

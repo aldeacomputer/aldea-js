@@ -75,15 +75,15 @@ export function afterInitialize(program: Program): void {
  * Injects code that pushes exported and imported jig names to the Auth module.
  */
 function injectJigNamesToAuth(ctx: TransformCtx): void {
-  const auth = ctx.parser.sources.find(s => s.normalizedPath === '~lib/aldea/auth.ts')
-  if (auth) {
-    const exportedCode = ctx.exportedObjects.map(obj => `EXPORTED_JIGS.push('${obj.name}')`).join('\n')
-    const importedCode = ctx.importedObjects.map(obj => `IMPORTED_JIGS.push('${obj.name}')`).join('\n')
-    const src = ctx.parse(`${exportedCode}\n${importedCode}`, auth.normalizedPath)
-    auth.statements.push(...src.statements)
-  } else {
-    throw new Error('could not find auth api source')
-  }
+  //const auth = ctx.parser.sources.find(s => s.normalizedPath === '~lib/aldea/auth.ts')
+  //if (auth) {
+  //  const exportedCode = ctx.exportedObjects.map(obj => `EXPORTED_JIGS.push('${obj.name}')`).join('\n')
+  //  const importedCode = ctx.importedObjects.map(obj => `IMPORTED_JIGS.push('${obj.name}')`).join('\n')
+  //  const src = ctx.parse(`${exportedCode}\n${importedCode}`, auth.normalizedPath)
+  //  auth.statements.push(...src.statements)
+  //} else {
+  //  throw new Error('could not find auth api source')
+  //}
 }
 
 /**

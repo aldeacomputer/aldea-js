@@ -30,7 +30,7 @@ export class Output {
     this.motos = state.motos
   }
 
-  destroy() {
+  destroy(): void {
     this._jig.$lock.to(LockType.DESTROYED)
   }
 }

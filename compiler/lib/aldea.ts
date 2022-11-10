@@ -1,4 +1,6 @@
-export { Auth, AuthCheck, LockType, LockState, UtxoState } from './aldea/auth'
+//export { Auth, AuthCheck, LockType, LockState, UtxoState } from './aldea/auth'
+export { Jig, RemoteJig } from './aldea/jig'
+export { LockType } from './aldea/lock'
 export { ArgWriter } from './aldea/arg-writer'
 
 // @ts-ignore
