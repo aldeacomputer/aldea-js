@@ -29,6 +29,9 @@ const allowedSrcStatements = [
   NodeKind.ENUMDECLARATION,
   NodeKind.FUNCTIONDECLARATION,
   NodeKind.VARIABLE,
+
+  // TODO - needs much improvement
+  NodeKind.IMPORT
 ]
 
 // Collection of blacklisted names

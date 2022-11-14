@@ -1,10 +1,7 @@
 import fs from 'fs/promises'
 import { abiFromCbor } from './abi.js'
-import { findImportedObject, findObjectMethod } from './abi/query.js'
-import { FieldNode } from './abi/types.js'
-import { Module, Internref } from './vm/module.js'
-import { liftBuffer, liftInternref, liftString, liftValue, lowerValue } from './vm/memory.js'
-import { ArgReader, readType } from './vm/arg-reader.js'
+import { Module } from './vm/module.js'
+import { liftBuffer, liftString } from './vm/memory.js'
 
 /**
  * A simple mans' Vm module.
@@ -36,6 +33,7 @@ export class VM {
           const fileName = liftString(mod, fileNamePtr >>> 0)
           const lineNumber = lineNumPtr >>> 0
           const columnNumber = colNumPtr >>> 0
+          console.log('msgPtr', messagePtr)
           throw new Error(`${message} in ${fileName}:${lineNumber}:${columnNumber}`)
         },
         'console.log': (messagePtr: number) => {
@@ -45,12 +43,27 @@ export class VM {
         }
       },
       vm: {
-        vm_local_authcheck: () => true,
-        vm_local_lock: () => {},
-        vm_local_state: () => {},
-        vm_remote_authcheck: () => true,
-        vm_remote_lock: () => {},
-        vm_remote_state: () => {},
+        nlog: (num: number) => {
+          console.log('nlog', num)
+        },
+        vm_constructor: () => { console.log('vm', 'vm_constructor') },
+        vm_local_authcheck: () => {
+          console.log('vm', 'vm_local_authcheck')
+          return true
+        },
+        vm_local_lock: (jig: number, type: number, args: number) => {
+          console.log('vm', 'vm_local_lock')
+          const mod = this.getModule(key)
+          const pkh = liftBuffer(mod, args >>> 0)
+          console.log(type, pkh)
+        },
+        vm_local_state: () => { console.log('vm', 'vm_local_state') },
+        vm_remote_authcheck: () => {
+          console.log('vm', 'vm_remote_authcheck')
+          return true
+        },
+        vm_remote_lock: () => { console.log('vm', 'vm_remote_lock') },
+        vm_remote_state: () => { console.log('vm', 'vm_remote_state') },
 
         vm_local_call_start: (jigPtr: number, fnPtr: number) => {
           const mod = this.getModule(key)

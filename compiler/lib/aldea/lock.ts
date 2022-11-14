@@ -1,33 +1,38 @@
-import { Jig, RemoteJig } from "./jig";
-
-// @ts-ignore
-@external("vm", "vm_local_lock")
-declare function vm_local_lock<T>(jig: T, type: LockType, args: ArrayBuffer): void;
-// @ts-ignore
-@external("vm", "vm_remote_lock")
-declare function vm_remote_lock(origin: ArrayBuffer, type: LockType, args: ArrayBuffer): void;
+import { vm_local_lock, vm_remote_lock } from './imports'
+import { fromBech32m } from './bytes'
+import { Jig, RemoteJig } from './jig'
 
 /**
- * TODO
+ * Lock Types
+ * 
+ * - Destroyed  - can't be called; can't be locked; (can be loaded?)
+ * - None       - can't be called; anyone can lock; (default type)
+ * - PubkeyHash - requires sig to call; requires sig to lock;
+ * - Parent     - caller must be parent; new lock must be set by parent;
+ * - Anyone     - anyone can call; can't be locked; (must be set in own constructor)
  */
 export enum LockType {
-  DESTROYED = -1,   // -1 - destroyed
-  NONE,             // 0 - default, vm allows anyone to lock, but prevents function calls
-  PUBKEY_HASH,      // 1 - vm requires valid signature to call function or change lock
-  PARENT,           // 2 - vm requires parent is caller to call function or change lock
-  ANYONE,           // 3 - can only be set in constructor, vm allows anyone to call function, but prevents lock change
+  DESTROYED = -1,
+  NONE,
+  PUBKEY_HASH,
+  PARENT,
+  ANYONE,
 }
 
 /**
- * TODO
+ * Lock State struct
+ * 
+ * Data is either pubkey hash, origin, or empty bufer, depending on lock type.
  */
 export declare class LockState {
   type: LockType;
-  data: ArrayBuffer; // data is either pubkey, origin or empty buf
+  data: ArrayBuffer;
 }
 
 /**
- * TODO
+ * Lock API
+ * 
+ * Never instantiated directly - only accessed via jig, eg: `jig.$lock`.
  */
 export class Lock {
   private _jig: Jig;
@@ -44,7 +49,8 @@ export class Lock {
 
   to(type: LockType, data: ArrayBuffer = new ArrayBuffer(0)): void {
     if (this._jig instanceof RemoteJig) {
-      vm_remote_lock(this._jig.origin, type, data)
+      const rjig = this._jig as RemoteJig
+      vm_remote_lock(rjig.origin, type, data)
     } else {
       vm_local_lock(this._jig, type, data)
     }
@@ -52,9 +58,10 @@ export class Lock {
     this.type = type
     this.data = data
   }
-
+  
   toAddress(address: string): void {
-    // TODO
+    const pubkeyHash = fromBech32m(address)
+    return this.toPubkeyHash(pubkeyHash)
   }
 
   toPubkeyHash(pubkeyHash: ArrayBuffer): void {

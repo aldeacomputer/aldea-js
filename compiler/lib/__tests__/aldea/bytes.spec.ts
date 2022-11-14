@@ -1,4 +1,4 @@
-import { Bytes } from "../../aldea/bytes"
+import { Bytes, fromBech32m, toHex } from "../../aldea/bytes"
 
 function dataArray(data: u8[]): Uint8Array {
   return data.reduce((buf, n, i) => {
@@ -101,6 +101,14 @@ describe("Bytes decoding", () => {
     expect(Bytes.fromBech32m('test1vehk7csqjqa7u').toString()).toBe('foob')
     expect(Bytes.fromBech32m('test1vehk7cnpsf6waq').toString()).toBe('fooba')
     expect(Bytes.fromBech32m('test1vehk7cnpwg58qqtk').toString()).toBe('foobar')
+  })
+
+  test("decodes bech32m address to pubkeyHash", () => {
+    const addr = 'addr17xgmlq360qnrjwa3qcr6arhlw4853ysm0qa3rd'
+    const buf = fromBech32m(addr)
+    log(buf.byteLength)
+    log(toHex(buf))
+    expect(buf.byteLength).toBe(20)
   })
 
   test("decodes valid bech2 test vectors", () => {

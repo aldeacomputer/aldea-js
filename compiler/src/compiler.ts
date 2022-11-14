@@ -14,9 +14,9 @@ const baseOpts = [
   '--debug', // delete eventually
   '-Ospeed',
   '--runtime', 'stub',
-  '--exportRuntime',
   '--enable', 'simd',
   '--importMemory',
+  '--exportRuntime',
   '--exportStart',
   '--lib', './'+relative(process.cwd(), join(baseDir, 'lib')),
   '--transform', './'+relative(process.cwd(), join(baseDir, 'dist/transform.js'))

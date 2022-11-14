@@ -1,14 +1,10 @@
+import { vm_local_state, vm_remote_state } from './imports'
 import { Jig, RemoteJig } from './jig'
 import { LockState, LockType } from './lock'
 
-// @ts-ignore
-@external("vm", "vm_local_state")
-declare function vm_local_state<T>(jig: T): OutputState;
-// @ts-ignore
-@external("vm", "vm_remote_state")
-declare function vm_remote_state(origin: ArrayBuffer): OutputState;
-
-
+/**
+ * Output State struct
+ */
 export declare class OutputState {
   origin: string;
   location: string;
@@ -16,7 +12,11 @@ export declare class OutputState {
   lock: LockState;
 }
 
-
+/**
+ * Output API
+ * 
+ * Never instantiated directly - only accessed via jig, eg: `jig.$output`.
+ */
 export class Output {
   private _jig: Jig;
   origin: string;
@@ -35,10 +35,13 @@ export class Output {
   }
 }
 
-
+/**
+ * Fetches the output state from the VM for the given local or remote Jig.
+ */
 export function getOutputState(jig: Jig): OutputState {
   if (jig instanceof RemoteJig) {
-    return vm_remote_state(jig.origin)
+    const rjig = jig as RemoteJig
+    return vm_remote_state(rjig.origin)
   } else {
     return vm_local_state(jig)
   }

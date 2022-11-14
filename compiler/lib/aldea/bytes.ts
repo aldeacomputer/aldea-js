@@ -4,11 +4,15 @@
  * A wrapper around an ArrayBuffer that provides convinience helpers for
  * converting to and from common encoding formats.
  */
-@global export class Bytes {
+export class Bytes {
   buffer: ArrayBuffer;
 
   constructor(buf: ArrayBuffer) {
     this.buffer = buf
+  }
+
+  static fromBuffer(buf: ArrayBuffer): Bytes {
+    return new Bytes(buf)
   }
 
   static fromBase16(str: string): Bytes {
@@ -23,12 +27,12 @@
     return new Bytes(fromBase64url(str, padding))
   }
 
-  static fromBech32(str: string): Bytes {
-    return new Bytes(fromBech32(str))
+  static fromBech32(str: string, prefix: string | null = null): Bytes {
+    return new Bytes(fromBech32(str, prefix))
   }
 
-  static fromBech32m(str: string): Bytes {
-    return new Bytes(fromBech32m(str))
+  static fromBech32m(str: string, prefix: string | null = null): Bytes {
+    return new Bytes(fromBech32m(str, prefix))
   }
 
   static fromHex(str: string): Bytes {
@@ -92,15 +96,15 @@ export function fromBase64url(str: string, padding: bool = false): ArrayBuffer {
 /**
  * Decodes the Bech32 encoded string into a Buffer.
  */
-export function fromBech32(str: string): ArrayBuffer {
-  return decodeBech32(str, 1)
+export function fromBech32(str: string, prefix: string | null = null): ArrayBuffer {
+  return decodeBech32(str, prefix, 1)
 }
 
 /**
  * Decodes the Base32m encoded string into a Buffer.
  */
-export function fromBech32m(str: string): ArrayBuffer {
-  return decodeBech32(str, 0x2bc830a3)
+export function fromBech32m(str: string, prefix: string | null = null): ArrayBuffer {
+  return decodeBech32(str, prefix, 0x2bc830a3)
 }
 
 /**
@@ -178,7 +182,8 @@ const BECH32: string = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l'
 
 // Encodes the given digitis into a string using the specified alphabet
 function encodeAlphabet(digits: u8[], alphabet: string): string[] {
-  const chars: string[] = []
+  //const chars: string[] = []
+  const chars: string[] = new Array(digits.length)
   for (let i = 0; i < digits.length; i++) {
     const digit: i32 = digits[i]
     if (digit < 0 || digit >= alphabet.length) {
@@ -191,7 +196,8 @@ function encodeAlphabet(digits: u8[], alphabet: string): string[] {
 
 // Decodes the given input chars into digits using the specified alphabet
 function decodeAlphabet(input: string[], alphabet: string): u8[] {
-  const digits: u8[] = []
+  //const digits: u8[] = []
+  const digits: u8[] = new Array(input.length)
   for (let i = 0; i < input.length; i++) {
     const char = input[i]
     const idx = alphabet.indexOf(char) as u8
@@ -259,7 +265,7 @@ function encodeBech32(buffer: ArrayBuffer, prefix: string, encodingConst: u32): 
 }
 
 // Decodes the given bech32/bech32m string into a buffer
-function decodeBech32(input: string, encodingConst: u32): ArrayBuffer {
+function decodeBech32(input: string, prefixCheck: string | null, encodingConst: u32): ArrayBuffer {
   if (input.length < 8 || input.length > 90) {
     throw new Error(`bech32: invalid string length: ${input.length}. expected (8..90)`);
   }
@@ -278,6 +284,9 @@ function decodeBech32(input: string, encodingConst: u32): ArrayBuffer {
   const _words = lowered.slice(sepIdx + 1)
   if (_words.length < 6) {
     throw new Error('bech32: string must be at least 6 characters long')
+  }
+  if (prefixCheck && prefixCheck !== prefix) {
+    throw new Error(`bech32: invalid prefix ${prefix}: expected ${prefixCheck}`)
   }
 
   const words = decodeAlphabet(_words.split(''), BECH32).slice(0, -6)
@@ -354,7 +363,8 @@ function decodePadding(input: string[], bits: u8, chr: string = '='): string[] {
 function encodeRadix2(buffer: ArrayBuffer, bits: u8, revPadding: bool = false): u8[] {
   radix2Validate(bits)
   const bytes = Uint8Array.wrap(buffer)
-  const data: u32[] = []
+  //const data: u32[] = []
+  const data: u32[] = new Array(bytes.length)
   for (let i = 0; i < bytes.length; i++) { data[i] = bytes[i] }
   return radix2Convert(data, 8, bits, !revPadding)
 }
@@ -383,7 +393,7 @@ function radix2Convert(data: u32[], from: u8, to: u8, padding: bool): u8[] {
   let carry: u32 = 0
   let pos: u8 = 0 // bitwise position in current element
   const mask: u32 = 2 ** to - 1
-  const res: u8[] = [];
+  const res: u8[] = []
 
   for (let i = 0; i < data.length; i++) {
     const n: u32 = data[i]

@@ -1,34 +1,33 @@
 import { Lock } from './lock'
 import { getOutputState, Output } from './output'
 
+const LOCK_CACHE = new Map<Jig, Lock>()
+const OUTPUT_CACHE = new Map<Jig, Output>()
+
+// Fetches state from the VM and caches the result
+function cacheState(jig: Jig): void {
+  const state = getOutputState(jig)
+  LOCK_CACHE.set(jig, new Lock(jig, state.lock))
+  OUTPUT_CACHE.set(jig, new Output(jig, state))
+}
+
 /**
- * TODO
+ * Base Jig class
  */
 export class Jig {
-  private _lock: Lock = new Lock(this);
-  private _output: Output | null = null;
-
   get $lock(): Lock {
-    if (!this._lock) {
-      const state = getOutputState(this)
-      this._lock = new Lock(this, state.lock)
-    }
-
-    return this._lock
+    if (!LOCK_CACHE.has(this)) { cacheState(this) }
+    return LOCK_CACHE.get(this)
   }
 
   get $output(): Output {
-    if (!this._output) {
-      const state = getOutputState(this)
-      this._output = new Output(this, state)
-    }
-
-    return this._output
+    if (!OUTPUT_CACHE.has(this)) { cacheState(this) }
+    return OUTPUT_CACHE.get(this)
   }
 }
 
 /**
- * TODO
+ * Remote Jig class - never extended from directly
  */
 export class RemoteJig extends Jig {
   origin: ArrayBuffer = new ArrayBuffer(0);
