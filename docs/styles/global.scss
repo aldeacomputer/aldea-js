@@ -1,0 +1,168 @@
+:root {
+  --primary-color: black;
+  --dark-accent-color: #3a190c;
+  --aldea-accent-color: #2C789A;
+  --secondary-color: white;
+  --code-background-color: #212121;
+  --secondary-code-background-color: #f1f1f1;
+  --secondary-code-background-text-color: #e8e8e8;
+  --tertiary-code-background-text-color: #6d8dcb;
+  --code-background-text-color: #383838;
+  --border-color: #505050;
+  --background-color: #F6EEE1;
+  --lighter-background-color: #FDF8F0;
+  --darker-background-color: #e0d8cd;
+  --card-background-color: var(--lighter-background-color);
+  --nav-background-color: transparent;
+  //--background-color: white;
+  --color-accent: #7699DAFF;
+  --secondary-color-accent: #ede1cc;
+  --tertiary-color-accent: #a894ff;
+  --fourth-color-accent: #C4462D;
+  --color-code-comments: #b2b2b2;
+  --code-color-accent: #b4ceff;
+  --color-paragraph: grey;
+  --container-radius: 5px;
+  --color-input-background: silver;
+  --color-background-transparent-75: #1c1c1c;
+  --run-identifier-container-width: 100%;
+  --low-visibility-text-color: silver;
+  --active-tab-color: black;
+  --right-panel-content-width: 100%;
+  --color-background-font: rgb(187, 175, 157);
+}
+
+html, body {
+  background-color: var(--background-color) !important;
+  font-family: "Red Hat Display", sans-serif;
+  font-size: 18px;
+}
+
+a {
+  color: var(--aldea-accent-color);
+
+  &:hover {
+    //filter: brightness(120%);
+  }
+}
+
+nav {
+  background-color: var(--nav-background-color) !important;
+  //box-shadow: 2px 2px 6px #727272, -1px -1px 3px #dddddd !important;
+  box-shadow: none !important;
+  color: var(--primary-color);
+  display: flex !important;
+  align-items: baseline;
+  border: none;
+
+  img {
+    width: fit-content !important;
+    //margin-left: -1em !important;
+  }
+
+}
+
+.docsSubtitle {
+  margin-top: .5em;
+  margin-left: .5em;
+  //margin-left: -1em;
+  font-family: 'Ubuntu Mono', monospace;
+}
+
+.sidebar {
+  background-color: var(--background-color) !important;
+  border: none;
+
+  a, button{
+    color: var(--primary-color);
+    border-radius: var(--container-radius);
+
+    &:hover {
+      background-color: var(--lighter-background-color);
+    }
+  }
+
+  li.active>a {
+    background-color: var(--darker-background-color);
+    color: var(--primary-color);
+  }
+}
+
+input {
+  border-radius: var(--container-radius) !important;
+  border: 2px solid var(--border-color) !important;
+  background-color: var(--lighter-background-color);
+}
+
+input::placeholder {
+  color: var(--color-paragraph) !important;
+}
+
+.language-markdown {
+    margin: 2em 0 !important;
+    padding: 1em !important;
+    overflow: hidden;
+    overflow-x: scroll;
+    border: none !important;
+    background-color: var(--lighter-background-color);
+    background-position: center; /* Center the image */
+    background-repeat: no-repeat; /* Do not repeat the image */
+    background-size: 50%; /* Resize the background image to cover the entire container */
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    width: 100%;
+
+    code {
+      margin: 0!important;
+      padding: 0!important;
+      color: var(--code-background-color) !important;
+      border: none !important;
+      box-shadow: none !important;
+      font-size: 1em !important;
+    }
+}
+
+h1, h2, h3, h4, h5, h6, div{
+  border-color: var(--darker-background-color);
+}
+
+table tr:nth-child(2n) {
+}
+
+p {
+  code {
+    background-color: var(--darker-background-color) !important;
+    color: var(--primary-color) !important;
+    font-family: 'Roboto Mono', monospace;
+    font-weight: bold;
+  }
+
+}
+
+blockquote, table, th, td {
+  border-color: var(--color-paragraph) !important;
+}
+
+::-webkit-scrollbar {
+  height: 0.5em;
+  width: 0.5em;
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-paragraph);
+  -webkit-border-radius: 1ex;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.highlightContainer {
+  border: 1px solid var(--darker-background-color);
+  padding: 2em;
+  border-radius: var(--container-radius);
+  margin-top: 1em;
+  width: 120%;
+}
