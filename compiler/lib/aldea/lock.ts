@@ -60,7 +60,7 @@ export class Lock {
   }
   
   toAddress(address: string): void {
-    const pubkeyHash = fromBech32m(address)
+    const pubkeyHash = fromBech32m(address, 'aldea:')
     return this.toPubkeyHash(pubkeyHash)
   }
 
