@@ -29,6 +29,6 @@ export class Jig {
 /**
  * Remote Jig class - never extended from directly
  */
-export class RemoteJig extends Jig {
-  origin: ArrayBuffer = new ArrayBuffer(0);
+export declare class RemoteJig extends Jig {
+  origin: ArrayBuffer;
 }

@@ -1,10 +1,7 @@
 import {
   BlockStatement,
-  CallExpression,
   ClassDeclaration,
   CommonFlags,
-  ExpressionStatement,
-  NodeKind,
   Parser,
   Program,
   Statement,
@@ -43,13 +40,6 @@ export function useCtx(): TransformCtx { return $ctx }
 export function afterParse(parser: Parser): void {
   $ctx = new TransformCtx(parser)
 
-  $ctx.importedObjects.forEach(obj => {
-    createProxyClass(obj, $ctx)
-    // Remove user node
-    const idx = $ctx.entry.statements.indexOf(obj.node as Statement)
-    if (idx > -1) { $ctx.entry.statements.splice(idx, 1) }
-  })
-
   $ctx.exportedObjects.forEach(obj => {
     addConstructorHook(obj, $ctx)
     createProxyMethods(obj, $ctx)
@@ -58,7 +48,13 @@ export function afterParse(parser: Parser): void {
     obj.node.flags = obj.node.flags & ~CommonFlags.EXPORT
   })
 
-  injectJigNamesToAuth($ctx)
+  $ctx.importedObjects.forEach(obj => {
+    createProxyClass(obj, $ctx)
+    // Remove user node
+    const idx = $ctx.entry.statements.indexOf(obj.node as Statement)
+    if (idx > -1) { $ctx.entry.statements.splice(idx, 1) }
+  })
+
   exportComplexSetters($ctx)
 }
 
@@ -69,21 +65,6 @@ export function afterParse(parser: Parser): void {
  */
 export function afterInitialize(program: Program): void {
   $ctx.program = program
-}
-
-/**
- * Injects code that pushes exported and imported jig names to the Auth module.
- */
-function injectJigNamesToAuth(ctx: TransformCtx): void {
-  //const auth = ctx.parser.sources.find(s => s.normalizedPath === '~lib/aldea/auth.ts')
-  //if (auth) {
-  //  const exportedCode = ctx.exportedObjects.map(obj => `EXPORTED_JIGS.push('${obj.name}')`).join('\n')
-  //  const importedCode = ctx.importedObjects.map(obj => `IMPORTED_JIGS.push('${obj.name}')`).join('\n')
-  //  const src = ctx.parse(`${exportedCode}\n${importedCode}`, auth.normalizedPath)
-  //  auth.statements.push(...src.statements)
-  //} else {
-  //  throw new Error('could not find auth api source')
-  //}
 }
 
 /**

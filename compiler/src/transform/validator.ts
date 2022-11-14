@@ -103,11 +103,8 @@ export class Validator {
     })
 
     this.ctx.objects.forEach(obj => {
+      this.validateJigInheritance(obj, this.ctx)
       this.validateObjectMembers(obj)
-    })
-
-    this.ctx.exportedObjects.forEach(obj => {
-      this.validateExportedObject(obj, this.ctx)
     })
 
     this.ctx.exposedObjects.forEach(obj => {
@@ -216,23 +213,25 @@ export class Validator {
     })
   }
 
-  private validateExportedObject(obj: ObjectWrap, ctx: TransformCtx): void {
-    const parentChain: string[] = []
-    let parent: ObjectWrap | undefined = obj
-    while (parent?.extends) {
-      parentChain.push(parent.extends)
-      parent = ctx.objects.find(o => o.name === parent?.extends)
-    }
+  private validateJigInheritance(obj: ObjectWrap, ctx: TransformCtx): void {
+    if (obj.kind === ObjectKind.EXPORTED || obj.kind === ObjectKind.IMPORTED) {
+      const parentChain: string[] = []
+      let parent: ObjectWrap | undefined = obj
+      while (parent?.extends) {
+        parentChain.push(parent.extends)
+        parent = ctx.objects.find(o => o.name === parent?.extends)
+      }
 
-    // Ensure exported object inherits from Jig
-    const grandParent = parentChain[parentChain.length-1]
-    if (!['Jig', 'ParentJig'].includes(grandParent)) {
-      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
-        AldeaDiagnosticCode.Invalid_jig_class,
-        [obj.name],
-        obj.node.range
-      ))
+      // Ensure exported object inherits from Jig
+      const grandParent = parentChain[parentChain.length-1]
+      if (!['Jig', 'ParentJig'].includes(grandParent)) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.ERROR,
+          AldeaDiagnosticCode.Invalid_jig_class,
+          [obj.name],
+          obj.node.range
+        ))
+      }
     }
   }
 

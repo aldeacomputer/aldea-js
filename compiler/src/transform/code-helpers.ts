@@ -87,8 +87,7 @@ export function writeLocalProxyClass(obj: ObjectWrap, members: string[]): string
  */
 export function writeRemoteProxyClass(obj: ObjectWrap, members: string[]): string {
   return `
-  class ${obj.name} {
-    origin: ArrayBuffer;
+  class ${obj.name} extends RemoteJig {
     ${ members.join('\n') }
   }
   `.trim()
