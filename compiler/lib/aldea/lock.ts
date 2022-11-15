@@ -8,14 +8,14 @@ import { Jig, RemoteJig } from './jig'
  * - Destroyed  - can't be called; can't be locked; (can be loaded?)
  * - None       - can't be called; anyone can lock; (default type)
  * - PubkeyHash - requires sig to call; requires sig to lock;
- * - Parent     - caller must be parent; new lock must be set by parent;
+ * - Caller     - caller must be parent; new lock must be set by parent;
  * - Anyone     - anyone can call; can't be locked; (must be set in own constructor)
  */
 export enum LockType {
   DESTROYED = -1,
   NONE,
   PUBKEY_HASH,
-  PARENT,
+  CALLER,
   ANYONE,
 }
 
@@ -72,8 +72,8 @@ export class Lock {
     this.to(LockType.PUBKEY_HASH, pubkeyHash)
   }
 
-  toParent(): void {
-    this.to(LockType.PARENT)
+  toCaller(): void {
+    this.to(LockType.CALLER)
   }
 
   toAnyone(): void {
