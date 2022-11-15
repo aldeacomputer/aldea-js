@@ -1,5 +1,4 @@
 node_modules
-rust-bench
 
 .yarn/*
 !.yarn/patches
