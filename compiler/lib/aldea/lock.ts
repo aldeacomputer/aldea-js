@@ -79,4 +79,8 @@ export class Lock {
   toAnyone(): void {
     this.to(LockType.ANYONE)
   }
+
+  unlock (): void {
+    this.to(LockType.NONE)
+  }
 }

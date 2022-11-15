@@ -124,6 +124,7 @@ declare module 'aldea/lock' {
 	    toPubkeyHash(pubkeyHash: ArrayBuffer): void;
 	    toCaller(): void;
 	    toAnyone(): void;
+	    unlock(): void;
 	}
 
 }
@@ -151,6 +152,7 @@ declare module 'aldea/output' {
 	    motos: u64;
 	    constructor(jig: Jig, state: OutputState);
 	    destroy(): void;
+	    canCall(jig: Jig): boolean;
 	}
 	/**
 	 * Fetches the output state from the VM for the given local or remote Jig.

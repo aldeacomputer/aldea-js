@@ -1,8 +1,9 @@
-export class SheepCounter {
+export class SheepCounter extends Jig {
   sheepCount: u32;
   legCount: u32;
 
   constructor() {
+    super();
     this.sheepCount = 0;
     this.legCount = 0;
   }
@@ -26,27 +27,27 @@ export class SheepCounter {
   }
 
   secureCountFlock (flock: Flock): u32 {
-    const canCall = Auth.authcheck(flock, AuthCheck.CALL)
-    if (canCall) {
+    if (flock.$output.canCall(this)) {
       return this.countFlock(flock)
     }
     return this.sheepCount
   }
 }
 
-export class Shepherd {
+export class Shepherd extends Jig {
   flock: Flock;
 
   constructor (aFlock: Flock) {
+    super()
     this.flock = aFlock
-    Auth.lockToParent<Flock, Shepherd>(aFlock, this)
+    aFlock.$lock.toCaller()
   }
 
   replace (anotherFlock: Flock): Flock {
     if (this.flock.legCount() <= anotherFlock.legCount()) {
       const oldFlock = this.flock
-      Auth.lockToParent<Flock, Shepherd>(anotherFlock, this)
-      Auth.lockToNone(oldFlock)
+      anotherFlock.$lock.toCaller()
+      oldFlock.$lock.unlock()
       this.flock = anotherFlock
       return oldFlock
     } else {
@@ -56,7 +57,7 @@ export class Shepherd {
 
   replaceAndSendTo (anotherFlock: Flock, newOwner: ArrayBuffer): void {
     const oldFlock = this.replace(anotherFlock)
-    Auth.lockToPubkey(oldFlock, newOwner)
+    oldFlock.$lock.toPubkeyHash(newOwner)
   }
 
   legCount (): u32 {
@@ -76,7 +77,7 @@ export class Shepherd {
   }
 }
 
-export class ExternalFlockOperations {
+export class ExternalFlockOperations extends Jig  {
   static growFlock (aFlock: Flock): void {
     aFlock.grow()
   }
@@ -90,7 +91,7 @@ export function buildSomeSheepCounter (): SheepCounter {
 
 // @ts-ignore
 @imported('6e3553a6bea33cc88435ccc256a3aae3a736b10097b13f4f9f6d068fdf890043')
-declare class Flock {
+declare class Flock extends Jig {
   constructor();
   size: u32;
   legCount (): u32;
@@ -99,7 +100,7 @@ declare class Flock {
 
 // @ts-ignore
 @imported('6e3553a6bea33cc88435ccc256a3aae3a736b10097b13f4f9f6d068fdf890043')
-declare class InternalFlockOperations {
+declare class InternalFlockOperations extends Jig {
   static growFlock (aFlock: Flock): void
 }
 

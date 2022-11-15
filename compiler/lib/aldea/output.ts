@@ -1,6 +1,6 @@
-import { vm_local_state, vm_remote_state } from './imports'
-import { Jig, RemoteJig } from './jig'
-import { LockState, LockType } from './lock'
+import {vm_local_state, vm_remote_state} from './imports'
+import {Jig, RemoteJig} from './jig'
+import {LockState, LockType} from './lock'
 
 /**
  * Output State struct
@@ -32,6 +32,22 @@ export class Output {
 
   destroy(): void {
     this._jig.$lock.to(LockType.DESTROYED)
+  }
+
+  canCall (jig: Jig): boolean {
+    const selfState = getOutputState(this._jig)
+    if (selfState.lock.type === LockType.ANYONE || selfState.lock.type === LockType.PUBKEY_HASH) {
+      return true
+    } else if (selfState.lock.type === LockType.CALLER) {
+      const otherState = getOutputState(jig)
+      return otherState.origin === selfState.lock.data.toString()
+    } else {
+      return false
+    }
+  }
+
+  canLock(jig: Jig): boolean {
+    return this.canCall(jig)
   }
 }
 
