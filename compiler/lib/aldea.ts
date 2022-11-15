@@ -5,7 +5,7 @@ export {
   vm_remote_call_i,
   vm_remote_call_s,
   vm_remote_prop,
-} from './aldea/imports.js'
+} from './aldea/imports'
 
-export { Jig, RemoteJig } from './aldea/jig.js'
-export { ArgWriter } from './aldea/arg-writer.js'
+export { Jig, RemoteJig } from './aldea/jig'
+export { ArgWriter } from './aldea/arg-writer'
