@@ -15,7 +15,7 @@ export default function Nextra({ Component, pageProps }) {
 
   return <>
     <Head>
-      <title> Aldea Docs</title>
+      <title>Aldea Docs</title>
     </Head>
     <Component {...pageProps} />
   </>
