@@ -5,22 +5,6 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@aldea/compiler-old@workspace:compiler-old":
-  version: 0.0.0-use.local
-  resolution: "@aldea/compiler-old@workspace:compiler-old"
-  dependencies:
-    "@as-pect/cli": ^7.0.8
-    "@assemblyscript/loader": ^0.21.3
-    "@types/node": ^18.7.17
-    "@types/yargs": ^17.0.12
-    assemblyscript: ^0.21.3
-    typescript: ^4.8.3
-    yargs: ^17.5.1
-  bin:
-    aldea: bin/aldea.js
-  languageName: unknown
-  linkType: soft
-
 "@aldea/compiler@0.0.1, @aldea/compiler@workspace:^, @aldea/compiler@workspace:compiler":
   version: 0.0.0-use.local
   resolution: "@aldea/compiler@workspace:compiler"
@@ -277,7 +261,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@assemblyscript/loader@npm:^0.21.3, @assemblyscript/loader@npm:^0.21.4":
+"@assemblyscript/loader@npm:^0.21.4":
   version: 0.21.6
   resolution: "@assemblyscript/loader@npm:0.21.6"
   checksum: ebab01e212bf74da92298077f35ac93e79e7255eb6a8ef07c3f55057c0dc0b247d60590c8773e87087781a80d2779aedfcbca21dc646c26e590a320985960eb7
@@ -1267,7 +1251,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^18.7.17, @types/node@npm:^18.7.19":
+"@types/node@npm:*, @types/node@npm:^18.7.19":
   version: 18.11.2
   resolution: "@types/node@npm:18.11.2"
   checksum: 0ff5c90fb9ab653e018b858479aea4d2f763b07b31f9502383d408936f525ca37cac82ea27774a0dd0356ff9badba2792a6a3fff94f79fd7c82ee2a892c43ed5
@@ -1308,22 +1292,6 @@ __metadata:
   version: 3.0.0
   resolution: "@types/warning@npm:3.0.0"
   checksum: 120dcf90600d583c68a60872200061eab9318ae15ea898581f8e9a6dc71b7941095dd81d8324e36d2a6006e5e12b6fc1cf8eda00cc514ee12bb39a912cc4e040
-  languageName: node
-  linkType: hard
-
-"@types/yargs-parser@npm:*":
-  version: 21.0.0
-  resolution: "@types/yargs-parser@npm:21.0.0"
-  checksum: b2f4c8d12ac18a567440379909127cf2cec393daffb73f246d0a25df36ea983b93b7e9e824251f959e9f928cbc7c1aab6728d0a0ff15d6145f66cec2be67d9a2
-  languageName: node
-  linkType: hard
-
-"@types/yargs@npm:^17.0.12":
-  version: 17.0.13
-  resolution: "@types/yargs@npm:17.0.13"
-  dependencies:
-    "@types/yargs-parser": "*"
-  checksum: 0ab269abc2da2223cf0a8c16d578850fbe327d40fb85724b5c3f9f6cf38d03656ef699518c05d4df3bc337339ec6d0aad7df01682a9dca4783ad1ccc7336cf12
   languageName: node
   linkType: hard
 
