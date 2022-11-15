@@ -18,8 +18,8 @@ declare interface UtxoState {
 }
 
 declare enum AuthCheck {
-   CALL,
-   LOCK
+  CALL,
+  LOCK
 }
 
 declare namespace Auth {
@@ -31,4 +31,33 @@ declare namespace Auth {
   export function getUtxoState(jig: any): UtxoState;
   export function getLockState(jig: any): LockState;
   export function getLockType(jig: any): LockType;
+}
+
+declare interface Lock {
+  type: LockType;
+  data: ArrayBuffer;
+
+  can(type: AuthCheck): bool;
+  canCall(): bool;
+  canLock(): bool;
+
+  lockTo(type: LockType, data: ArrayBuffer): void;
+  toAddress(address: string): void;
+  toUser(pubkeyHash: ArrayBuffer): void;
+  toParent(): void;
+  toAnyone(): void;
+  unlock(): void;
+}
+
+declare interface TxOutput {
+  origin: string;
+  location: string;
+  motos: u64;
+
+  destroy(): void;
+}
+
+declare class Jig {
+  $lock: Lock
+  $output: TxOutput
 }
