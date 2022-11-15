@@ -90,14 +90,14 @@ declare module 'aldea/lock' {
 	 * - Destroyed  - can't be called; can't be locked; (can be loaded?)
 	 * - None       - can't be called; anyone can lock; (default type)
 	 * - PubkeyHash - requires sig to call; requires sig to lock;
-	 * - Parent     - caller must be parent; new lock must be set by parent;
+	 * - Caller     - caller must be parent; new lock must be set by parent;
 	 * - Anyone     - anyone can call; can't be locked; (must be set in own constructor)
 	 */
 	export enum LockType {
 	    DESTROYED = -1,
 	    NONE = 0,
 	    PUBKEY_HASH = 1,
-	    PARENT = 2,
+	    CALLER = 2,
 	    ANYONE = 3
 	}
 	/**
@@ -122,7 +122,7 @@ declare module 'aldea/lock' {
 	    to(type: LockType, data?: ArrayBuffer): void;
 	    toAddress(address: string): void;
 	    toPubkeyHash(pubkeyHash: ArrayBuffer): void;
-	    toParent(): void;
+	    toCaller(): void;
 	    toAnyone(): void;
 	}
 
