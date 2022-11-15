@@ -25,13 +25,11 @@ import { filterAST, isConst, isGetter, isPrivate, isProtected, isReadonly, isSet
 
 // Allowed top-level statements - everything else is an error!
 const allowedSrcStatements = [
+  NodeKind.IMPORT,
+  NodeKind.VARIABLE,
   NodeKind.CLASSDECLARATION,
   NodeKind.ENUMDECLARATION,
   NodeKind.FUNCTIONDECLARATION,
-  NodeKind.VARIABLE,
-
-  // TODO - needs much improvement
-  NodeKind.IMPORT
 ]
 
 // Collection of blacklisted names
@@ -117,30 +115,32 @@ export class Validator {
       this.validateReturnType(fn)
     })
 
-    filterAST(this.ctx.entry, (node: Node) => {
-      switch (node.kind) {
-        case NodeKind.IDENTIFIER:
-          this.validateIdentifierNode(node as IdentifierExpression)
-          break
-        case NodeKind.CALL:
-          this.validateCallNode(node as CallExpression)
-          break
-        case NodeKind.NEW:
-          this.validateNewExpressionNode(node as NewExpression)
-          break
-        case NodeKind.PROPERTYACCESS:
-          this.validatePropertyAccessNode(node as PropertyAccessExpression)
-          break
-        case NodeKind.CLASSDECLARATION:
-          this.validateClassDeclarationNode(node as ClassDeclaration)
-          break
-        case NodeKind.VARIABLEDECLARATION:
-          this.validateVariableDeclarationNode(node as VariableDeclaration)
-          break
-        case NodeKind.DECORATOR:
-          this.validateDecoratorNode(node as DecoratorNode)
-          break
-      }
+    this.ctx.sources.forEach(src => {
+      filterAST(src, (node: Node) => {
+        switch (node.kind) {
+          case NodeKind.IDENTIFIER:
+            this.validateIdentifierNode(node as IdentifierExpression)
+            break
+          case NodeKind.CALL:
+            this.validateCallNode(node as CallExpression)
+            break
+          case NodeKind.NEW:
+            this.validateNewExpressionNode(node as NewExpression)
+            break
+          case NodeKind.PROPERTYACCESS:
+            this.validatePropertyAccessNode(node as PropertyAccessExpression)
+            break
+          case NodeKind.CLASSDECLARATION:
+            this.validateClassDeclarationNode(node as ClassDeclaration)
+            break
+          case NodeKind.VARIABLEDECLARATION:
+            this.validateVariableDeclarationNode(node as VariableDeclaration)
+            break
+          case NodeKind.DECORATOR:
+            this.validateDecoratorNode(node as DecoratorNode)
+            break
+        }
+      })
     })
   }
 
@@ -215,20 +215,22 @@ export class Validator {
 
   private validateJigInheritance(obj: ObjectWrap, ctx: TransformCtx): void {
     if (obj.kind === ObjectKind.EXPORTED || obj.kind === ObjectKind.IMPORTED) {
-      const parentChain: string[] = []
-      let parent: ObjectWrap | undefined = obj
-      while (parent?.extends) {
-        parentChain.push(parent.extends)
-        parent = ctx.objects.find(o => o.name === parent?.extends)
-      }
-
-      // Ensure exported object inherits from Jig
-      const grandParent = parentChain[parentChain.length-1]
-      if (!['Jig', 'ParentJig'].includes(grandParent)) {
+      // Ensure imported or exported object inherits from Jig
+      if (!isJig(obj, ctx)) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
           DiagnosticCategory.ERROR,
           AldeaDiagnosticCode.Invalid_jig_class,
-          [obj.name],
+          [obj.name, 'must'],
+          obj.node.range
+        ))
+      }
+    } else {
+      // Ensure plain or sidekick classes do not inherit from Jig
+      if (isJig(obj, ctx)) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.ERROR,
+          AldeaDiagnosticCode.Invalid_jig_class,
+          [obj.name, 'must not'],
           obj.node.range
         ))
       }
@@ -432,4 +434,13 @@ function isAllowedLiteralOther(node: Expression | null): Boolean {
     NodeKind.FALSE,
     NodeKind.NULL
   ].includes(node.kind)
+}
+
+// Returns the greatest ancestor of the given object
+function isJig(obj: ObjectWrap, ctx: TransformCtx): boolean {
+  let parent: string | null | undefined = obj.extends
+  while (parent) {
+    parent = ctx.objects.find(o => o.name === parent)?.extends
+  }
+  return !!parent && ['Jig', 'ParentJig'].includes(parent)
 }

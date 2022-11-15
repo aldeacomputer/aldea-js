@@ -51,8 +51,9 @@ export function afterParse(parser: Parser): void {
   $ctx.importedObjects.forEach(obj => {
     createProxyClass(obj, $ctx)
     // Remove user node
-    const idx = $ctx.entry.statements.indexOf(obj.node as Statement)
-    if (idx > -1) { $ctx.entry.statements.splice(idx, 1) }
+    const source = obj.node.range.source
+    const idx = source.statements.indexOf(obj.node as Statement)
+    if (idx > -1) { source.statements.splice(idx, 1) }
   })
 
   exportComplexSetters($ctx)
@@ -92,8 +93,9 @@ function exportClassMethods(obj: ObjectWrap, ctx: TransformCtx): void {
     codes.unshift(writeExportedMethod(n as MethodWrap, obj))
   }
 
-  const src = ctx.parse(codes.join('\n'), ctx.entry.normalizedPath)
-  ctx.entry.statements.push(...src.statements)
+  const source = obj.node.range.source
+  const src = ctx.parse(codes.join('\n'), source.normalizedPath)
+  source.statements.push(...src.statements)
 }
 
 /**
@@ -103,16 +105,17 @@ function exportClassMethods(obj: ObjectWrap, ctx: TransformCtx): void {
  * - Or creates a default constructor if one not defined
  */
 function addConstructorHook(obj: ObjectWrap, ctx: TransformCtx): void {
+  const source = obj.node.range.source
   const method = obj.methods.find(n => n.kind === MethodKind.CONSTRUCTOR)
   if (method) {
     const code = writeConstructorHook(obj)
-    const src = ctx.parse(code, ctx.entry.normalizedPath)
+    const src = ctx.parse(code, source.normalizedPath)
     ;(<BlockStatement>method.node.body).statements.push(...src.statements)
   } else {
     const code = writeLocalProxyClass(obj, [
       writeConstructor(obj)
     ])
-    const src = ctx.parse(code, ctx.entry.normalizedPath)
+    const src = ctx.parse(code, source.normalizedPath)
     const members = (src.statements[0] as ClassDeclaration).members
     obj.node.members.push(...members)
   }
@@ -137,7 +140,7 @@ function createProxyMethods(obj: ObjectWrap, ctx: TransformCtx): void {
     methodCodes.join('\n')
   ])
 
-  const src = ctx.parse(code, ctx.entry.normalizedPath)
+  const src = ctx.parse(code, obj.node.range.source.normalizedPath)
   const members = (src.statements[0] as ClassDeclaration).members
   obj.node.members.push(...members)
 }
@@ -168,8 +171,9 @@ function createProxyClass(obj: ObjectWrap, ctx: TransformCtx): void {
     methodCodes.join('\n')
   ])
 
-  const src = ctx.parse(code, ctx.entry.normalizedPath)
-  ctx.entry.statements.push(...src.statements)
+  const source = obj.node.range.source
+  const src = ctx.parse(code, source.normalizedPath)
+  source.statements.push(...src.statements)
 }
 
 /**

@@ -30,6 +30,7 @@ export interface ObjectNode {
  * Function Node interface
  */
 export interface FunctionNode {
+  kind: ObjectKind;
   name: string;
   args: FieldNode[];
   rtype: TypeNode;
@@ -69,6 +70,7 @@ export enum ObjectKind {
   PLAIN,
   EXPORTED,
   IMPORTED,
+  SIDEKICK,
 }
 
 /**
@@ -102,7 +104,7 @@ export type ObjectCbor = [number, string, string | null, FieldCbor[], MethodCbor
 /**
  * Function CBOR type
  */
-export type FunctionCbor = [string, FieldCbor[], TypeCbor]
+export type FunctionCbor = [number, string, FieldCbor[], TypeCbor]
 
 /**
  * Field CBOR type

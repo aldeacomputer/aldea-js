@@ -31,7 +31,7 @@ export enum AldeaDiagnosticCode {
 export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
   switch(code) {
     case 400: return 'Invalid statement. Only classes, functions, enums and literal constants can be declared at the top level.'
-    case 401: return 'Invalid class. {0} must inherit from `Jig`.'
+    case 401: return 'Invalid class. {0} {1} inherit from `Jig`.'
     case 402: return 'Invalid member. {0} are not allowed on classes.'
     case 403: return 'Invalid member. {0} are not allowed on jigs.'
     case 404: return 'Invalid type. `{0}` type cannot be serialized on `{1}` class.'
