@@ -1,4 +1,4 @@
-import {useEffect} from 'react'
+import {useEffect, useState} from 'react'
 import Prism from 'prismjs'
 import 'prismjs/plugins/line-numbers/prism-line-numbers.js'
 import 'prismjs/plugins/line-numbers/prism-line-numbers.css'
@@ -11,12 +11,6 @@ import {toast} from "react-hot-toast";
 
 // Expected codeSnippets prop structure: [{:title, :code, :lang}, ...]
 export function CodeContainer({lang, children, title}) {
-
-  const onCopy = () => {
-    console.log('lala', children)
-    navigator.clipboard.writeText(children)
-    toast.success('Copied!')
-  }
 
   useEffect(() => {
     Prism.highlightAll()
@@ -36,7 +30,6 @@ export function CodeContainer({lang, children, title}) {
     <div className={styles.container}>
       {title && <div className={styles.title}>
         <span>{title}</span>
-        <AldeaButton onClick={onCopy} variant={'background'} label={'Copy'}/>
       </div>}
       <pre className={`line-numbers ${mapLanguageToPrismPreset(lang)}`} data-start="1">
         <code className={mapLanguageToPrismPreset(lang)}>
