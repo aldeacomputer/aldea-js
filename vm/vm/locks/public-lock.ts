@@ -1,6 +1,7 @@
 // import { ExecutionError } from '../errors.js'
 import {Lock} from "./lock.js";
 import {TxExecution} from "../tx-execution.js";
+import {LockType} from "../wasm-instance.js";
 
 export class PublicLock implements Lock {
   constructor () {}
@@ -21,5 +22,9 @@ export class PublicLock implements Lock {
 
   canBeChangedBy(context: TxExecution): boolean {
     return false;
+  }
+
+  typeNumber(): number {
+    return LockType.ANYONE;
   }
 }

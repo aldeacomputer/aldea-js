@@ -127,6 +127,7 @@ class TxExecution {
     wasmInstance.onRemoteLockHandler(this._onRemoteLock.bind(this))
     wasmInstance.onRelease(this._onRelease.bind(this))
     wasmInstance.onFindUtxo(this._onFindUtxo.bind(this))
+    wasmInstance.onFindRemoteUtxoHandler(this._onFindRemoteUtxoHandler.bind(this))
     wasmInstance.onLocalLock(this._onLocalLock.bind(this))
     wasmInstance.onLocalCallStart(this._onLocalCallStart.bind(this))
     wasmInstance.onLocalCallEnd(this._onLocalCallEnd.bind(this))
@@ -135,6 +136,12 @@ class TxExecution {
     wasmInstance.onRemoteStaticExecHandler(this._onRemoteStaticExecHandler.bind(this))
     this.wasms.set(moduleId, wasmInstance)
     return wasmInstance
+  }
+
+  _onFindRemoteUtxoHandler(origin: ArrayBuffer): JigRef {
+    const jigRef = this.jigs.find(j => Buffer.from(j.originBuf).equals(Buffer.from(origin)))
+    if(!jigRef) { throw new Error('should exist')}
+    return jigRef
   }
 
   _onConstructor(source: WasmInstance, jigPtr: number, className: string): void {
@@ -221,7 +228,7 @@ class TxExecution {
     if (!childJigRef.lock.acceptsExecution(this)) {
       throw new Error('lock cannot be changed')
     }
-    if (type === LockType.PARENT) {
+    if (type === LockType.CALLER) {
       const parentJigOrigin = this.stack[this.stack.length - 1]
       childJigRef.changeLock(new JigLock(parentJigOrigin))
     } else if (type === LockType.NONE) {

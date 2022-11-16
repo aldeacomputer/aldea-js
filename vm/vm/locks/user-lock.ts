@@ -1,6 +1,7 @@
 import { Lock } from './lock.js'
 import {TxExecution} from "../tx-execution.js";
 import {PubKey} from '@aldea/sdk-js';
+import {LockType} from "../wasm-instance.js";
 
 export class UserLock implements Lock {
   private pubkey: PubKey;
@@ -32,5 +33,9 @@ export class UserLock implements Lock {
 
   canBeChangedBy(context: TxExecution): boolean {
     return this.acceptsExecution(context);
+  }
+
+  typeNumber(): number {
+    return LockType.PUBKEY;
   }
 }

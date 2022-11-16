@@ -31,9 +31,10 @@ import {
 // }
 
 export enum LockType {
+  DELETED = -1,
   NONE,     // 0 - default, vm allows anyone to lock, but prevents function calls
   PUBKEY,   // 1 - vm requires valid signature to call function or change lock
-  PARENT,   // 2 - vm requires parent is caller to call function or change lock
+  CALLER,   // 2 - vm requires parent is caller to call function or change lock
   ANYONE,   // 3 - can only be set in constructor, vm allows anyone to call function, but prevents lock change
 }
 
@@ -82,6 +83,7 @@ type CreateHandler = (moduleId: string, className: string, args: any[]) => JigRe
 type RemoteLockHandler = (childOrigin: string, type: LockType, extraArg: ArrayBuffer) => void
 type ReleaseHandler = (childOrigin: string, parentOrigin: string) => void
 type FindUtxoHandler = (jigPtr: number) => JigRef
+type FindRemoteUtxoHandler = (origin: ArrayBuffer) => JigRef
 type LocalLockHandler = (jigPtr: number, wasmInstance: WasmInstance, type: LockType, extraArg: ArrayBuffer) => void
 type LocalCallStartHandler = (jigPtr: number, wasmInstance: WasmInstance) => void
 type LocalCallEndtHandler = () => void
@@ -165,7 +167,8 @@ export class WasmInstance {
   private createHandler: CreateHandler;
   private remoteLockHandler: RemoteLockHandler;
   private releaseHandler: ReleaseHandler;
-  private findUtxoHandler: FindUtxoHandler
+  private findUtxoHandler: FindUtxoHandler;
+  private findRemoteUtxoHandler: FindRemoteUtxoHandler;
   private localLockHandler: LocalLockHandler;
   private localCallStartHandler: LocalCallStartHandler;
   private localCallEndtHandler: LocalCallEndtHandler;
@@ -195,6 +198,7 @@ export class WasmInstance {
     this.authCheckHandler = () => { throw new Error('handler not defined') }
     this.localAuthCheckHandler = () => { throw new Error('handler not defined') }
     this.remoteStaticExecHandler = () => { throw new Error('handler not defined')}
+    this.findRemoteUtxoHandler = () => { throw new Error('handler not defined')}
 
     const imports: any = {
       env: {
@@ -280,6 +284,21 @@ export class WasmInstance {
           }
           return lowerObject(this, abiNode, utxo)
         },
+        vm_remote_state: (originPtr: number): number => {
+          const originBuff = liftBuffer(this, originPtr)
+          const jigRef = this.findRemoteUtxoHandler(originBuff)
+          const utxo = {
+            origin: jigRef.origin.toString(),
+            location: jigRef, // FIXME: real location,
+            motos: 0,
+            lock: {
+              type: jigRef.lock.typeNumber(),
+              data: new ArrayBuffer(0)
+            }
+          }
+          const abiNode = findPlainObject(this.abi, 'UtxoState', 'should be present')
+          return lowerObject(this, abiNode, utxo)
+        },
         vm_remote_lock: (originPtr: number, type: LockType, argsPtr: number) => {
           const argBuf = liftBuffer(this, argsPtr)
           const origin = liftBuffer(this, originPtr)
@@ -356,6 +375,10 @@ export class WasmInstance {
 
   onRemoteStaticExecHandler (fn: RemoteStaticExecHandler) {
     this.remoteStaticExecHandler = fn
+  }
+
+  onFindRemoteUtxoHandler (fn: FindRemoteUtxoHandler) {
+    this.findRemoteUtxoHandler = fn
   }
 
   staticCall (className: string, methodName: string, args: any[]): MethodResult {

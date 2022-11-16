@@ -1,5 +1,6 @@
 import {Lock} from "./lock.js";
 import {TxExecution} from "../tx-execution.js";
+import {LockType} from "../wasm-instance.js";
 
 export class JigLock implements Lock {
   private origin: string;
@@ -25,5 +26,9 @@ export class JigLock implements Lock {
 
   canBeChangedBy(context: TxExecution): boolean {
     return this.acceptsExecution(context);
+  }
+
+  typeNumber(): number {
+    return LockType.CALLER;
   }
 }
