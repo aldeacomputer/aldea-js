@@ -17,7 +17,9 @@ import {
   StringArg,
   ExecInstruction, PrivKey, BufferArg, AssignInstruction, Location
 } from '@aldea/sdk-js'
-import {PermissionError} from "../vm/errors.js";
+import {ExecutionError, PermissionError} from "../vm/errors.js";
+import {TxExecution} from "../vm/tx-execution.js";
+import {UserLock} from "../vm/locks/user-lock.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -69,14 +71,10 @@ describe('execute txs', () => {
 
   it('can use a constructor with arguments', () => {
     const tx = new Transaction()
-      .add(new NewInstruction('aSword', modIdFor('weapon'), 'Weapon' ,[
-        new StringArg('Sable Corvo de San Martín'),
-        new NumberArg(100000)
-      ]))
-      // .add(new CallInstruction(0, 'countSheep', []))
-      .add(new LockInstruction('aSword', userAddr))
-
-    const exec = vm.execTx(tx)
+    const exec = new TxExecution(tx, vm)
+    exec.instantiate('aSword', modIdFor('weapon'), 'Weapon', ['Sable Corvo de San Martín', 100000])
+    exec.lockJigByVarName('aSword', new UserLock(userAddr))
+    exec.finalize()
 
     const parsed = exec.outputs[0].parsedState()
     expect(parsed[0]).to.eql('Sable Corvo de San Martín')
