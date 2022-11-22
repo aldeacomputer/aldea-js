@@ -36,7 +36,9 @@ export class Output {
 
   canCall (jig: Jig): boolean {
     const selfState = getOutputState(this._jig)
-    if (selfState.lock.type === LockType.ANYONE || selfState.lock.type === LockType.PUBKEY_HASH) {
+    if (selfState.lock.type === LockType.NONE) {
+      return true
+    } else if (selfState.lock.type === LockType.ANYONE || selfState.lock.type === LockType.PUBKEY_HASH) {
       return true
     } else if (selfState.lock.type === LockType.CALLER) {
       const otherState = getOutputState(jig)

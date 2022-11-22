@@ -1,6 +1,7 @@
 import {TxVisitor} from "../tx-visitor.js";
 import {PubKey} from "../../pubkey.js";
 import {Signature} from "../../signature.js";
+import {Location} from "../location.js";
 
 export class ToObjectVisitor implements TxVisitor {
   instructions: any[]
@@ -37,12 +38,12 @@ export class ToObjectVisitor implements TxVisitor {
     this.args.push({ type: 'jig', index: masterListIndex })
   }
 
-  visitLoad(varName: string, location: string, readOnly: boolean, forceLocation: boolean): void {
+  visitLoad(varName: string, location: Location, readOnly: boolean, forceLocation: boolean): void {
     this.instructions.push({
       type: 'load',
       props: {
         varName,
-        location,
+        location: location.toString(),
         readOnly,
         force: forceLocation
       }

@@ -16,15 +16,13 @@ export class Internref {
 
 export class Externref {
   name: string;
-  origin: ArrayBuffer;
+  originBuf: ArrayBuffer;
 
   constructor(name: string, origin: ArrayBuffer) {
     this.name = name
-    this.origin = origin
+    this.originBuf = origin
   }
 }
-
-
 
 /**
  * Union type for any typed array
@@ -461,11 +459,12 @@ export function lowerObject(mod: Module, obj: ObjectNode, vals: any[] | any): nu
  * Lowers an imported object (setting the origin ArrayBuffer) into WASM memory
  * and returns the Ptr.
  */
-export function lowerImportedObject(mod: Module, val: Externref): number {
-  const buffer = lowerBuffer(mod, Buffer.from(val.origin))
-  const ptr = mod.__new(val.origin.byteLength, 0);
+export function lowerImportedObject(mod: Module, val: JigRef): number {
+  const buf = Buffer.from(val.originBuf);
+  const bufferPtr = lowerBuffer(mod, buf)
+  const ptr = mod.__new(val.originBuf.byteLength, mod.abi.rtids[val.name]);
   const memU32 = new Uint32Array(mod.memory.buffer)
-  memU32[ptr >>> 2] = buffer
+  memU32[ptr >>> 2] = bufferPtr
   return ptr
 }
 

@@ -24,6 +24,7 @@ import {
   lowerObject,
   lowerValue,
 } from "./memory.js";
+import {Location} from "@aldea/sdk-js";
 
 // enum AuthCheck {
 //   CALL,     // 0 - can the caller call a method?
@@ -76,18 +77,18 @@ function __decodeArgs (data: ArrayBuffer): any[] {
 }
 
 type ConstructorHandler = (source: WasmInstance, jigPtr: number, className: string) => void
-type RemoteCallHandler = (callerInstance: WasmInstance, targetOrigin: string, className: string, methodName: string, argBuff: ArrayBuffer) => MethodResult
+type RemoteCallHandler = (callerInstance: WasmInstance, targetOrigin: Location, className: string, methodName: string, argBuff: ArrayBuffer) => MethodResult
 type RemoteStaticExecHandler = (srcModule: WasmInstance, targetModId: string, fnNane: string, argBuf: ArrayBuffer) => MethodResult
-type GetPropHandler = (origin: string, propName: string) => Prop
+type GetPropHandler = (origin: Location, propName: string) => Prop
 type CreateHandler = (moduleId: string, className: string, args: any[]) => JigRef
-type RemoteLockHandler = (childOrigin: string, type: LockType, extraArg: ArrayBuffer) => void
+type RemoteLockHandler = (childOrigin: Location, type: LockType, extraArg: ArrayBuffer) => void
 type ReleaseHandler = (childOrigin: string, parentOrigin: string) => void
-type FindUtxoHandler = (jigPtr: number) => JigRef
+type FindUtxoHandler = (wasm: WasmInstance,jigPtr: number) => JigRef
 type FindRemoteUtxoHandler = (origin: ArrayBuffer) => JigRef
 type LocalLockHandler = (jigPtr: number, wasmInstance: WasmInstance, type: LockType, extraArg: ArrayBuffer) => void
 type LocalCallStartHandler = (jigPtr: number, wasmInstance: WasmInstance) => void
 type LocalCallEndtHandler = () => void
-type AuthCheckHandler = (targetOrigin: string, check: AuthCheck) => boolean
+type AuthCheckHandler = (targetOrigin: Location, check: AuthCheck) => boolean
 type LocalAuthCheckHandler = (jigPtr: number, module: WasmInstance, check: AuthCheck) => boolean
 
 
@@ -219,17 +220,12 @@ export class WasmInstance {
           this.constructorHandler(this, jigPtr, className)
         },
         vm_local_call_start: (jigPtr: number, _fnNamePtr: number): void => {
+          const fnName = liftString(this, _fnNamePtr)
           this.localCallStartHandler(jigPtr, this)
         },
         vm_remote_authcheck: (originPtr: number, check: AuthCheck) => {
           const origin = liftBuffer(this, originPtr)
-          return this.authCheckHandler(Buffer.from(origin).toString(), check)
-          // if (check === AuthCheck.CALL) {
-          //   const origin = liftBuffer(this, originPtr)
-          //   return
-          // } else {
-          //   throw new Error('not implemented yet')
-          // }
+          return this.authCheckHandler(Location.fromBuffer(origin), check)
         },
         vm_local_call_end: () => {
           this.localCallEndtHandler()
@@ -243,7 +239,7 @@ export class WasmInstance {
 
           // const [] = fnStr.split('$')
 
-          const methodResult = this.remoteCallHandler(this, Buffer.from(targetOriginArrBuf).toString(), className, methodName, argBuf)
+          const methodResult = this.remoteCallHandler(this, Location.fromBuffer(targetOriginArrBuf), className, methodName, argBuf)
           return lowerValue(this, methodResult.node, methodResult.value)
         },
         vm_remote_call_s: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
@@ -256,11 +252,11 @@ export class WasmInstance {
         },
 
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
-          const rmtRefBuf = liftBuffer(this, targetOriginPtr)
+          const targetOrigBuf = liftBuffer(this, targetOriginPtr)
           const propStr = liftString(this, propNamePtr)
           const propName = propStr.split('.')[1]
 
-          const prop = this.getPropHandler(Buffer.from(rmtRefBuf).toString(), propName)
+          const prop = this.getPropHandler(Location.fromBuffer(targetOrigBuf), propName)
           return lowerValue(prop.mod, prop.node, prop.value)
         },
         vm_local_authcheck: (targetJigPtr: number, check: AuthCheck) => {
@@ -271,7 +267,7 @@ export class WasmInstance {
           this.localLockHandler(targetJigRefPtr, this, type, argBuf)
         },
         vm_local_state: (jigPtr: number): number => {
-          const jigRef = this.findUtxoHandler(jigPtr)
+          const jigRef = this.findUtxoHandler(this, jigPtr)
           const abiNode = findPlainObject(this.abi, 'UtxoState', 'should be present')
           const utxo = {
             origin: jigRef.origin.toString(),
@@ -301,8 +297,8 @@ export class WasmInstance {
         },
         vm_remote_lock: (originPtr: number, type: LockType, argsPtr: number) => {
           const argBuf = liftBuffer(this, argsPtr)
-          const origin = liftBuffer(this, originPtr)
-          this.remoteLockHandler(Buffer.from(origin).toString(), type, argBuf)
+          const originBuf = liftBuffer(this, originPtr)
+          this.remoteLockHandler(Location.fromBuffer(originBuf), type, argBuf)
         },
         vm_print: (msgPtr: number ) => {
           console.log(msgPtr)

@@ -40,7 +40,7 @@ export class Shepherd extends Jig {
   constructor (aFlock: Flock) {
     super()
     this.flock = aFlock
-    aFlock.$lock.toCaller()
+    this.flock.$lock.toCaller()
   }
 
   replace (anotherFlock: Flock): Flock {

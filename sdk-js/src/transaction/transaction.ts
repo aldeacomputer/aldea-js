@@ -15,6 +15,7 @@ import {
 import {Argument} from "./arguments/argument.js";
 import {NumberArg, StringArg, VariableContent} from "./arguments/index.js";
 import {blake3} from "../support/hash.js";
+import {Buffer} from "buffer";
 
 const parseArgs = (args: any): Argument[] => {
   const ret = new Array<Argument>()
@@ -117,11 +118,11 @@ export class Transaction {
     return tx
   }
 
-  hash (): Buffer {
-    return Buffer.from(blake3(Buffer.from(this.serialize())))
+  hash (): ArrayBuffer {
+    return new Uint8Array(Buffer.from(blake3(Buffer.from(this.serialize())))).buffer
   }
 
   get id (): string {
-    return this.hash().toString('hex')
+    return Buffer.from(this.hash()).toString('hex')
   }
 }
