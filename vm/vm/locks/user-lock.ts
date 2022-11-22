@@ -1,14 +1,14 @@
 import { Lock } from './lock.js'
 import {TxExecution} from "../tx-execution.js";
-import {PubKey} from '@aldea/sdk-js';
+import {Address} from '@aldea/sdk-js';
 import {LockType} from "../wasm-instance.js";
 
 export class UserLock implements Lock {
-  private pubkey: PubKey;
+  private addr: Address;
   private _isOpen: boolean;
 
-  constructor (pubkey: PubKey) {
-    this.pubkey = pubkey
+  constructor (pubkey: Address) {
+    this.addr = pubkey
     this._isOpen = false
   }
 
@@ -23,12 +23,12 @@ export class UserLock implements Lock {
   serialize (): any {
     return {
       type: 'UserLock',
-      data: { pubkey: this.pubkey }
+      data: { pubkey: this.addr }
     }
   }
 
   acceptsExecution(context: TxExecution): boolean {
-    return context.tx.isSignedBy(this.pubkey);
+    return context.tx.isSignedBy(this.addr);
   }
 
   canBeChangedBy(context: TxExecution): boolean {

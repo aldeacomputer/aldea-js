@@ -152,8 +152,6 @@ declare module 'aldea/output' {
 	    motos: u64;
 	    constructor(jig: Jig, state: OutputState);
 	    destroy(): void;
-	    canCall(jig: Jig): boolean;
-	    canLock(jig: Jig): boolean;
 	}
 	/**
 	 * Fetches the output state from the VM for the given local or remote Jig.

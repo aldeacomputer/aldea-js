@@ -1,3 +1,5 @@
+import { canCall } from 'aldea/auth'
+
 export class SheepCounter extends Jig {
   sheepCount: u32;
   legCount: u32;
@@ -27,7 +29,7 @@ export class SheepCounter extends Jig {
   }
 
   secureCountFlock (flock: Flock): u32 {
-    if (flock.$output.canCall(this)) {
+    if (canCall(flock)) {
       return this.countFlock(flock)
     }
     return this.sheepCount

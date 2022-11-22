@@ -1,6 +1,6 @@
-import {PubKey} from "../pubkey.js";
 import {Signature} from "../signature.js";
 import {Location} from "./location.js";
+import {Address} from "../address.js";
 
 export interface TxVisitor {
   // instructtions
@@ -8,7 +8,7 @@ export interface TxVisitor {
   visitCall(varName: string, methodName: string): void;
   visitExec(varName: string, moduleId: string, methodName: string): void;
   visitLoad(varName: string, location: Location, readonly: boolean, forceLocation: boolean): void;
-  visitLockInstruction(varName: string, pubkey: PubKey): void;
+  visitLockInstruction(varName: string, addr: Address): void;
 
   visitNew(varName: string, moduleId: string, className: string): void;
   // arguments

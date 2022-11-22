@@ -15,7 +15,7 @@ import {
 import {Argument} from "./arguments/argument.js";
 import {NumberArg, StringArg, VariableContent} from "./arguments/index.js";
 import {blake3} from "../support/hash.js";
-import {Buffer} from "buffer";
+import {Address} from "../address.js";
 
 const parseArgs = (args: any): Argument[] => {
   const ret = new Array<Argument>()
@@ -73,8 +73,8 @@ export class Transaction {
     return this
   }
 
-  isSignedBy(pubKey: PubKey) {
-    return this.signatures.some(s => s.pubKey.equals(pubKey))
+  isSignedBy(pubKey: Address) {
+    return this.signatures.some(s => s.pubKey.toAddress().equals(pubKey))
   }
 
   signaturesAreValid (): boolean {
@@ -103,7 +103,7 @@ export class Transaction {
           tx.add(new CallInstruction(props.varName, props.methodName, parseArgs(props.args)))
           break
         case 'lock':
-          tx.add(new LockInstruction(props.varName, PubKey.fromHex(props.pubKey)))
+          tx.add(new LockInstruction(props.varName, Address.fromString(props.address)))
           break
         case 'load':
           tx.add(new LoadInstruction(props.varName, props.location, props.readOnly, props.force))

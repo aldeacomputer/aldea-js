@@ -1,3 +1,5 @@
+import { canLock } from 'aldea/auth'
+
 export class PowerUp extends Jig {
   power: u32;
 
@@ -31,7 +33,7 @@ export class Weapon extends Jig {
   }
 
   safeIncorporate(powerUp: PowerUp): void {
-    if (powerUp.$output.canLock(this)) {
+    if (canLock(powerUp)) {
       this.incorporate(powerUp)
     }
   }

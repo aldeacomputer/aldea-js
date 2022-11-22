@@ -10,7 +10,7 @@ import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-inst
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
 import {FieldNode, findExportedFunction, findExportedObject, findObjectMethod, ObjectKind} from '@aldea/compiler/abi'
-import {PubKey, Signature, TxVisitor, Location} from '@aldea/sdk-js';
+import {Signature, TxVisitor, Location, Address} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 
@@ -32,8 +32,8 @@ class ExecVisitor implements TxVisitor {
     this.exec.loadJigIntoVariable(varName, location, readonly, forceLocation)
   }
 
-  visitLockInstruction(varName:string, pubkey:PubKey): void {
-    this.exec.lockJigByVarName(varName, new UserLock(pubkey))
+  visitLockInstruction(varName:string, addr: Address): void {
+    this.exec.lockJigByVarName(varName, new UserLock(addr))
   }
 
   visitNew(varName:string, moduleId:string, className:string): void {
@@ -239,7 +239,7 @@ class TxExecution {
     } else if (type === LockType.NONE) {
       childJigRef.changeLock(new NoLock())
     } else if (type === LockType.PUBKEY) {
-      childJigRef.changeLock(new UserLock(PubKey.fromBytes(new Uint8Array(extraArg))))
+      childJigRef.changeLock(new UserLock(new Address(new Uint8Array(extraArg))))
     } else if (type === LockType.ANYONE) {
       if (!this.stackTop().equals(childJigRef.origin)) {
         throw new ExecutionError('cannot make another jig public')
