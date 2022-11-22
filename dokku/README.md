@@ -8,6 +8,7 @@ root@aldea-zero-1:~$ dokku apps:list
 demos
 explorer
 node
+rustdocs
 ```
 
 On the server, each of these has been configured to use a specific dockerfile in this directory:
