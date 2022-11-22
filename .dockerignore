@@ -1,5 +1,4 @@
 node_modules
-rust-bench
 
 .yarn/*
 !.yarn/patches
@@ -7,3 +6,6 @@ rust-bench
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+#rust files
+rust-bench

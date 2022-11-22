@@ -5,8 +5,8 @@
   "workspaces": [
     "lib/assemblyscript",
     "compiler",
-    "compiler-old",
     "demos-webapp",
+    "docs",
     "example1",
     "explorer",
     "node",

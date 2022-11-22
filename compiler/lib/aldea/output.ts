@@ -1,6 +1,6 @@
-import { vm_local_state, vm_remote_state } from './imports'
-import { Jig, RemoteJig } from './jig'
-import { LockState, LockType } from './lock'
+import {vm_local_state, vm_remote_state} from './imports'
+import {Jig, RemoteJig} from './jig'
+import {LockState, LockType} from './lock'
 
 /**
  * Output State struct

@@ -1,17 +1,22 @@
 import { PermissionError } from './errors.js'
 import {MethodResult, WasmInstance} from './wasm-instance.js';
 import {Lock} from "./locks/lock.js";
-import {Internref} from "./memory.js";
+import {Externref, Internref} from "./memory.js";
 import {TxExecution} from "./tx-execution.js";
-
-export class JigRef {
+import {Location} from "@aldea/sdk-js";
+// implements Externref
+export class JigRef  {
   ref: Internref;
   className: string;
   module: WasmInstance;
-  origin: string;
+  origin: Location;
   lock: Lock;
 
-  constructor (ref: Internref, className: string, module: WasmInstance, origin: string, lock: Lock) {
+  get name (): string {
+    return this.className
+  }
+
+  constructor (ref: Internref, className: string, module: WasmInstance, origin: Location, lock: Lock) {
     this.ref = ref
     this.className = className
     this.module = module
@@ -26,8 +31,8 @@ export class JigRef {
     return context.callInstanceMethod(this, methodName, args)
   }
 
-  get originBuf (): Buffer {
-    return Buffer.from(this.origin)
+  get originBuf (): ArrayBuffer {
+    return this.origin.toBuffer()
   }
 
   changeLock (newLock: Lock) {

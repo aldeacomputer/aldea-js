@@ -124,6 +124,7 @@ declare module 'aldea/lock' {
 	    toPubkeyHash(pubkeyHash: ArrayBuffer): void;
 	    toCaller(): void;
 	    toAnyone(): void;
+	    unlock(): void;
 	}
 
 }

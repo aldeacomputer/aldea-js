@@ -1,8 +1,9 @@
 declare enum LockType {
-  NONE,     // 0 - default, vm allows anyone to lock, but prevents function calls
-  PUBKEY,   // 1 - vm requires valid signature to call function or change lock
-  PARENT,   // 2 - vm requires parent is caller to call function or change lock
-  ANYONE,   // 3 - can only be set in constructor, vm allows anyone to call function, but prevents lock change
+  DESTROYED = -1,
+  NONE,
+  PUBKEY_HASH,
+  CALLER,
+  ANYONE,
 }
 
 declare interface LockState {
@@ -18,17 +19,35 @@ declare interface UtxoState {
 }
 
 declare enum AuthCheck {
-   CALL,
-   LOCK
+  CALL,
+  LOCK
 }
 
-declare namespace Auth {
-  export function lockToNone(jig: any): void;
-  export function lockToPubkey<T>(jig: T, pubkey: ArrayBuffer): void;
-  export function lockToParent<T1, T2>(jig: T1, parent: T2): void;
-  export function lockToAnyone<T>(jig: T): void;
-  export function authcheck(jig: any, check: AuthCheck): bool;
-  export function getUtxoState(jig: any): UtxoState;
-  export function getLockState(jig: any): LockState;
-  export function getLockType(jig: any): LockType;
+declare interface Lock {
+  type: LockType;
+  data: ArrayBuffer;
+
+  can(type: AuthCheck): bool;
+
+  lockTo(type: LockType, data: ArrayBuffer): void;
+  toAddress(address: string): void;
+  toPubkeyHash(pubkeyHash: ArrayBuffer): void;
+  toCaller(): void;
+  toAnyone(): void;
+  unlock(): void;
+}
+
+declare interface TxOutput {
+  origin: string;
+  location: string;
+  motos: u64;
+
+  destroy(): void;
+  canCall(jig: Jig): boolean;
+  canLock(jig: Jig): boolean;
+}
+
+declare class Jig {
+  $lock: Lock
+  $output: TxOutput
 }

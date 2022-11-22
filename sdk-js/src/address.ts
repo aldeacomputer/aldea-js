@@ -46,6 +46,10 @@ export class Address {
   toString(): string {
     return bech32m.encode(this.hash, PREFIX)
   }
+
+  equals (another: Address): boolean {
+    return Buffer.from(this.hash).equals(Buffer.from(another.hash))
+  }
 }
 
 /**

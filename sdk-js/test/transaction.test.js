@@ -45,68 +45,53 @@ test('serialize return right string for only a call instruction', t => {
 })
 
 test('serialize return correct string for only a LockInstructon', t => {
-  const pubkey = PrivKey.fromRandom().toPubKey()
+  const addr = PrivKey.fromRandom().toPubKey().toAddress()
   const tx = new Transaction()
-    .add(new LockInstruction('someVar', pubkey))
+    .add(new LockInstruction('someVar', addr))
 
-  t.is(tx.serialize(), `LOCK $someVar ${pubkey.toHex()}`)
+  t.is(tx.serialize(), `LOCK $someVar ${addr.toString()}`)
 })
 
 test('serialize return corrent string for multiple instructions', t => {
-  const pubkey = PrivKey.fromRandom().toPubKey()
+  const addr = PrivKey.fromRandom().toPubKey().toAddress()
   const tx = new Transaction()
     .add(new LoadInstruction('firstVar', 'someLocation', true))
     .add(new AssignInstruction('assignedVar', 73))
     .add(new NewInstruction('newVar', 'someModule', 'SomeClass', [new VariableContent('jig1'), new StringArg('foo')]))
     .add(new CallInstruction('someVar', 'someMethod', [new VariableContent('jig3'), new NumberArg(10)]))
-    .add(new LockInstruction('otherVar', pubkey))
+    .add(new LockInstruction('otherVar', addr))
 
   t.is(tx.serialize(), [
     'LOAD firstVar someLocation true false',
     'ASSIGN assignedVar 73',
     'NEW newVar someModule SomeClass $jig1 "foo"',
     'CALL $someVar someMethod $jig3 10',
-    `LOCK $otherVar ${pubkey.toHex()}`
+    `LOCK $otherVar ${addr.toString()}`
   ].join('\n'))
 })
 
-`
-LOAD $newVar 0xSomeLocation
-CALL $newVar someMethod 10 "holu"
-// LOCK $newVar 0x01230321
-// LOCK $otherVar 0x01230321
-
-LOAD firstVar someLocation true false
-ASSIGN assignedVar 73
-
-
-
----
-SIGN pubKey1 rawSig1
-SIGN pubKey2 rawSig2
-SIGN pubKey3 rawSig3
-`
 test('after sign is signed by a given signature', t => {
   const privKey = PrivKey.fromRandom()
-  const pubkey = privKey.toPubKey()
+  const addr = privKey.toPubKey().toAddress()
   const tx = new Transaction()
     .add(new LoadInstruction('someVar', 'somelocation', true))
-    .add(new LockInstruction('someVar', pubkey))
+    .add(new LockInstruction('someVar', addr))
 
   const signature = Signature.from(privKey, Buffer.from(tx.serialize()))
   tx.addSignature(signature)
-  t.true(tx.isSignedBy(pubkey))
+  t.true(tx.isSignedBy(addr))
 })
 
 test('toPlainObject returns a correctly serialized plain object', t => {
   const privKey = PrivKey.fromRandom()
-  const pubkey = privKey.toPubKey()
+  const pubKey = privKey.toPubKey()
+  const addr = pubKey.toAddress()
   const tx = new Transaction()
     .add(new LoadInstruction('firstVar', 'someLocation', true))
     .add(new AssignInstruction('assignedVar', 73))
     .add(new NewInstruction('newVar', 'someModule', 'SomeClass', [new VariableContent('jig1'), new StringArg('foo')]))
     .add(new CallInstruction('someVar', 'someMethod', [new VariableContent('jig3'), new NumberArg(10)]))
-    .add(new LockInstruction('otherVar', pubkey))
+    .add(new LockInstruction('otherVar', addr))
 
   const signature = Signature.from(privKey, Buffer.from(tx.serialize()))
   tx.addSignature(signature)
@@ -147,7 +132,7 @@ test('toPlainObject returns a correctly serialized plain object', t => {
       type: 'lock',
       props: {
         varName: 'otherVar',
-        pubKey: pubkey.toHex()
+        address: addr.toString()
       }
     }
   ])
@@ -155,7 +140,7 @@ test('toPlainObject returns a correctly serialized plain object', t => {
 
   t.deepEqual(serialized.signatures, [
     {
-      pubKey: pubkey.toHex(),
+      pubKey: pubKey.toHex(),
       hexSig: signature.rawSigHex()
     }
   ])
@@ -163,13 +148,13 @@ test('toPlainObject returns a correctly serialized plain object', t => {
 
 test('fromPlainObject generates a correct signature', t => {
   const privKey = PrivKey.fromRandom()
-  const pubkey = privKey.toPubKey()
+  const addr = privKey.toPubKey().toAddress()
   const tx = new Transaction()
     .add(new LoadInstruction('firstVar', 'someLocation', true))
     .add(new AssignInstruction('assignedVar', 73))
     .add(new NewInstruction('newVar', 'someModule', 'SomeClass', [new VariableContent('jig1'), new StringArg('foo')]))
     .add(new CallInstruction('someVar', 'someMethod', [new VariableContent('jig3'), new NumberArg(10)]))
-    .add(new LockInstruction('otherVar', pubkey))
+    .add(new LockInstruction('otherVar', addr))
 
 
   const signature = Signature.from(privKey, Buffer.from(tx.serialize()))
@@ -181,6 +166,6 @@ test('fromPlainObject generates a correct signature', t => {
   t.deepEqual(tx.serialize(), parsedTx.serialize())
 
   t.is(parsedTx.instructions.length, 5)
-  t.true(parsedTx.isSignedBy(pubkey))
+  t.true(parsedTx.isSignedBy(addr))
   t.true(parsedTx.signaturesAreValid())
 })

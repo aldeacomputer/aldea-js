@@ -7,4 +7,6 @@ export interface Lock {
   acceptsExecution(context: TxExecution): boolean;
 
   canBeChangedBy(context: TxExecution): boolean;
+
+  typeNumber(): number;
 }
