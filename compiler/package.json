@@ -11,6 +11,7 @@
     "./abi": "./dist/abi.js"
   },
   "main": "./dist/compiler.js",
+  "types": "./dist/compiler.d.ts",
   "scripts": {
     "build": "tsc && yarn build:dts",
     "build:dts": "node scripts/build-dts.js",

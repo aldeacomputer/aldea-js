@@ -20,6 +20,7 @@
   "module": "./dist/aldea.bundle.mjs",
   "browser": "./dist/aldea.bundle.min.js",
   "unpkg": "./dist/aldea.bundle.min.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist/aldea.bundle.cjs",
     "dist/aldea.bundle.mjs",
