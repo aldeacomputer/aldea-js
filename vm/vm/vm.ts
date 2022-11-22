@@ -8,6 +8,7 @@ import {Transaction} from "./transaction.js";
 import {abiFromCbor, abiFromJson} from '@aldea/compiler/abi'
 import {compile} from '@aldea/compiler'
 import {blake3} from "@aldea/sdk-js/support/hash";
+import {Location} from "@aldea/sdk-js";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -31,7 +32,7 @@ export class VM {
   }
 
 
-  findJigState (location: string) {
+  findJigState (location: Location) {
     return this.storage.getJigState(location)
   }
 

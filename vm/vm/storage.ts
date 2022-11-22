@@ -2,6 +2,7 @@ import {JigState} from './jig-state.js';
 import {Transaction} from "./transaction.js";
 import {TxExecution} from "./tx-execution.js";
 import {Abi} from "@aldea/compiler/abi";
+import {Location} from "@aldea/sdk-js";
 
 export type ModuleData = {
   mod: WebAssembly.Module,
@@ -29,13 +30,13 @@ export class Storage {
   }
 
   addJig(jigState: JigState) {
-    this.statesPerLocation.set(jigState.location, jigState)
-    this.tips.set(jigState.origin, jigState.location)
-    this.origins.set(jigState.location, jigState.origin)
+    this.statesPerLocation.set(jigState.location.toString(), jigState)
+    this.tips.set(jigState.origin.toString(), jigState.location.toString())
+    this.origins.set(jigState.location.toString(), jigState.origin.toString())
   }
 
-  getJigState(location: string): JigState {
-    const origin = this.origins.get(location)
+  getJigState(location: Location): JigState {
+    const origin = this.origins.get(location.toString())
     if (!origin) throw new Error('not found')
     const latestLocation = this.tips.get(origin)
     if (!latestLocation) throw new Error('not found')

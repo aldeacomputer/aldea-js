@@ -1,5 +1,6 @@
-export class BasicMath {
+export class BasicMath extends Jig {
   constructor() {
+    super()
     throw new Error('no concrete math over here')
   }
 

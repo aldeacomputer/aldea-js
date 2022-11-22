@@ -1,6 +1,7 @@
-export class TV {
+export class TV extends Jig {
   powerOn: bool;
   constructor() {
+    super()
     this.powerOn = false
   }
 

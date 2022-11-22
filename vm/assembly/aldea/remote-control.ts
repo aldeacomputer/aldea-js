@@ -1,9 +1,10 @@
-export class TVUser {
+export class TVUser extends Jig {
   remote: RemoteControl
 
   constructor (remote: RemoteControl) {
+    super()
     this.remote = remote
-    Auth.lockToParent<RemoteControl, TVUser>(remote, this)
+    remote.$lock.toCaller()
   }
 
   watchTvFromCouch (): void {
@@ -15,11 +16,12 @@ export class TVUser {
   }
 }
 
-export class RemoteControl {
+export class RemoteControl extends Jig {
   tv: TV;
   constructor(tv: TV) {
+    super()
     this.tv = tv
-    Auth.lockToParent<TV, RemoteControl>(tv, this)
+    tv.$lock.toCaller()
   }
 
   pressPowerButton (): void {
@@ -33,7 +35,7 @@ export class RemoteControl {
 
 // @ts-ignore
 @imported("./tv.ts")
-declare class TV {
+declare class TV extends Jig {
   powerOn: bool;
   turnOn (): void;
   turnOff (): void;
