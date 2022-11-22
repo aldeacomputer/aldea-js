@@ -1,10 +1,7 @@
 import fs from 'fs/promises'
 import { abiFromCbor } from './abi.js'
-import { findImportedObject, findObjectMethod } from './abi/query.js'
-import { FieldNode } from './abi/types.js'
 import { Module, Internref } from './vm/module.js'
-import { liftBuffer, liftInternref, liftString, liftValue, lowerValue } from './vm/memory.js'
-import { ArgReader, readType } from './vm/arg-reader.js'
+import { liftBuffer, liftString, lowerValue } from './vm/memory.js'
 
 /**
  * A simple mans' Vm module.
@@ -36,6 +33,7 @@ export class VM {
           const fileName = liftString(mod, fileNamePtr >>> 0)
           const lineNumber = lineNumPtr >>> 0
           const columnNumber = colNumPtr >>> 0
+          console.log('msgPtr', messagePtr)
           throw new Error(`${message} in ${fileName}:${lineNumber}:${columnNumber}`)
         },
         'console.log': (messagePtr: number) => {
@@ -45,26 +43,55 @@ export class VM {
         }
       },
       vm: {
-        vm_local_authcheck: () => true,
-        vm_local_lock: () => {},
-        vm_local_state: () => {},
-        vm_remote_authcheck: () => true,
-        vm_remote_lock: () => {},
-        vm_remote_state: () => {},
+        nlog: (num: number) => {
+          console.log('nlog', num)
+        },
+        vm_constructor: () => { console.log('vm', 'vm_constructor') },
+        vm_local_authcheck: () => {
+          console.log('vm', 'vm_local_authcheck')
+          return true
+        },
+        vm_local_lock: (jig: number, type: number, args: number) => {
+          console.log('vm', 'vm_local_lock')
+          const mod = this.getModule(key)
+          const pkh = liftBuffer(mod, args >>> 0)
+          console.log(type, pkh)
+        },
+        vm_local_state: () => { console.log('vm', 'vm_local_state') },
+        vm_remote_authcheck: () => {
+          console.log('vm', 'vm_remote_authcheck')
+          return true
+        },
+        vm_remote_lock: () => { console.log('vm', 'vm_remote_lock') },
+        vm_remote_state: () => { console.log('vm', 'vm_remote_state') },
 
         vm_local_call_start: (jigPtr: number, fnPtr: number) => {
           const mod = this.getModule(key)
           const fn = liftString(mod, fnPtr)
-          console.log('VM', 'local', `${jigPtr} => ${fn}`)
+          console.log('vm', 'vm_local_call_start', `${jigPtr} => ${fn}`)
         },
 
         vm_local_call_end: () => {
-          console.log('VM', 'end')
+          console.log('vm', 'vm_local_call_end')
         },
 
         vm_remote_call_i: () => {},
         vm_remote_call_s: () => {},
-        vm_remote_prop: () => {},
+        vm_remote_prop: (originPtr: number, propPtr: number) => {
+          const mod = this.getModule(key)
+          const origin = liftBuffer(mod, originPtr)
+          const prop = liftString(mod, propPtr)
+          
+          const view = new DataView(origin)
+          const className = prop.split('.')[0]
+          const ptr = new Internref(className, view.getUint32(0))
+          
+          const rmtMod = this.getModule('token')
+          const val = rmtMod.getProp(prop, ptr)
+          console.log('vm', 'vm_remote_prop', prop)
+
+          return lowerValue(mod, { name: 'string', args: [] }, val)
+        },
 
 //        // vm_call<T>(string, ArrayBuffer, string, ArrayBuffer): T
 //        vm_call: (rmtOriginPtr: number, rmtRefPtr: number, fnStrPtr: number, argBufPtr: number) => {

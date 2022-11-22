@@ -14,9 +14,9 @@ const baseOpts = [
   '--debug', // delete eventually
   '-Ospeed',
   '--runtime', 'stub',
-  '--exportRuntime',
   '--enable', 'simd',
   '--importMemory',
+  '--exportRuntime',
   '--exportStart',
   '--lib', './'+relative(process.cwd(), join(baseDir, 'lib')),
   '--transform', './'+relative(process.cwd(), join(baseDir, 'dist/transform.js'))
@@ -88,6 +88,9 @@ export async function compile(src: string | {[key: string]: string}): Promise<Co
 
   const { error, stdout, stderr, stats } = await asc.main(argv, {
     readFile(filename, basedir) {
+      // todo - this is a hack to not read the generated .d.ts files
+      // they must be put in a non root location in the lib path
+      if (/\.d\.ts$/.test(filename)) return ''
       if (input[filename]) return input[filename]
       try {
         return fs.readFileSync(join(basedir, filename), 'utf8')

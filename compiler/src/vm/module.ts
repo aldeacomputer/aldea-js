@@ -6,6 +6,7 @@ import {
 } from "../abi/types.js"
 
 import {
+  findExportedFunction,
   findExportedObject,
   findObjectField,
   findObjectMethod,
@@ -81,6 +82,19 @@ export class Module {
     this.abi = abi
     this.exports = wasm.exports as ExportsWithRuntime
     this.memory = wasm.exports.memory as WebAssembly.Memory
+  }
+
+  callFunction(fn: string, args: any[] = []): any {
+    const func = findExportedFunction(this.abi, fn, 'function not found')
+    // @ts-ignore
+    const ptrs = []
+    func.args.forEach((a, i) => {
+      ptrs.push(lowerValue(this, a.type, args[i]))
+    })
+
+    // @ts-ignore
+    const result = this.exports[fn](...ptrs) as number
+    return liftValue(this, func.rtype, result)
   }
 
   callMethod(methodStr: string, args: any[] = []): any {

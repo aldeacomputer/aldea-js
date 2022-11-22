@@ -17,6 +17,7 @@ export * as bip39 from './support/mnemonic.js'
 export * as ed25519 from './support/ed25519.js'
 
 export * from './transaction/transaction.js'
+export * from './transaction/location.js'
 export * from './transaction/instructions/index.js'
 export * from './transaction/arguments/index.js'
 export * from './transaction/tx-visitor.js'

@@ -29,6 +29,9 @@ const allowedSrcStatements = [
   NodeKind.ENUMDECLARATION,
   NodeKind.FUNCTIONDECLARATION,
   NodeKind.VARIABLE,
+
+  // TODO - needs much improvement
+  NodeKind.IMPORT
 ]
 
 // Collection of blacklisted names
@@ -100,6 +103,7 @@ export class Validator {
     })
 
     this.ctx.objects.forEach(obj => {
+      this.validateJigInheritance(obj, this.ctx)
       this.validateObjectMembers(obj)
     })
 
@@ -207,6 +211,28 @@ export class Validator {
         ))
       }
     })
+  }
+
+  private validateJigInheritance(obj: ObjectWrap, ctx: TransformCtx): void {
+    if (obj.kind === ObjectKind.EXPORTED || obj.kind === ObjectKind.IMPORTED) {
+      const parentChain: string[] = []
+      let parent: ObjectWrap | undefined = obj
+      while (parent?.extends) {
+        parentChain.push(parent.extends)
+        parent = ctx.objects.find(o => o.name === parent?.extends)
+      }
+
+      // Ensure exported object inherits from Jig
+      const grandParent = parentChain[parentChain.length-1]
+      if (!['Jig', 'ParentJig'].includes(grandParent)) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.ERROR,
+          AldeaDiagnosticCode.Invalid_jig_class,
+          [obj.name],
+          obj.node.range
+        ))
+      }
+    }
   }
 
   private validateFieldTypes(obj: ObjectWrap): void {

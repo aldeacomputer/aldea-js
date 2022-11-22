@@ -1,6 +1,9 @@
 {
-  "extends": "assemblyscript/std/assembly.json",
+  "extends": "../assembly.json",
   "include": [
     "./**/*.ts"
+  ],
+  "exclude": [
+    "./global.d.ts"
   ]
 }

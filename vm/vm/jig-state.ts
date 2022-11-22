@@ -1,18 +1,19 @@
 import { CBOR } from "cbor-redux"
 import {FieldNode, findExportedObject} from "@aldea/compiler/abi";
 import {WasmInstance} from "./wasm-instance.js";
+import {Location} from "@aldea/sdk-js";
 
 const parse = (data: ArrayBuffer) => CBOR.decode(data, null, { mode: "sequence" })
 
 export class JigState {
-  origin: string;
-  location: string;
+  origin: Location;
+  location: Location;
   className: string;
   stateBuf: ArrayBuffer;
   moduleId: string;
   serializedLock: any;
 
-  constructor (origin: string, location: string, className: string, stateBuf: ArrayBuffer, moduleId: string, lock: any) {
+  constructor (origin: Location, location: Location, className: string, stateBuf: ArrayBuffer, moduleId: string, lock: any) {
     this.origin = origin
     this.location = location
     this.className = className

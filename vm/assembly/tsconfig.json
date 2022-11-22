@@ -1,7 +1,6 @@
 {
-  "extends": "assemblyscript/std/assembly.json",
+  "extends": "@aldea/compiler/assembly.json",
   "include": [
-    "./**/*.ts",
-    "../node_modules/assemblyscript/std/assembly/rt/index.d.ts"
+    "./**/*.ts"
   ]
 }
