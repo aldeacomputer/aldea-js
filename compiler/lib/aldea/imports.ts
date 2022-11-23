@@ -1,4 +1,5 @@
 import { AuthCheck } from './auth'
+import { Jig } from './jig'
 import { LockType } from './lock'
 import { OutputState } from './output'
 
@@ -7,10 +8,10 @@ import { OutputState } from './output'
 
 // @ts-ignore
 @external("vm", "vm_constructor")
-export declare function vm_constructor<T>(jig: T, name: string): void;
+export declare function vm_constructor(jig: Jig, name: string): void;
 // @ts-ignore
 @external("vm", "vm_local_call_start")
-export declare function vm_local_call_start<T>(jig: T, fn: string): void;
+export declare function vm_local_call_start(jig: Jig, fn: string): void;
 // @ts-ignore
 @external("vm", "vm_local_call_end")
 export declare function vm_local_call_end(): void;
@@ -33,10 +34,10 @@ export declare function vm_remote_prop<T>(origin: ArrayBuffer, prop: string): T;
 
 // @ts-ignore
 @external("vm", "vm_local_authcheck")
-export declare function vm_local_authcheck<T>(jig: T, check: AuthCheck): bool;
+export declare function vm_local_authcheck(jig: Jig, check: AuthCheck): bool;
 // @ts-ignore
 @external("vm", "vm_local_lock")
-export declare function vm_local_lock<T>(jig: T, type: LockType, args: ArrayBuffer): void;
+export declare function vm_local_lock(jig: Jig, type: LockType, args: ArrayBuffer): void;
 // @ts-ignore
 @external("vm", "vm_remote_authcheck")
 export declare function vm_remote_authcheck(origin: ArrayBuffer, check: AuthCheck): bool;
@@ -49,7 +50,7 @@ export declare function vm_remote_lock(origin: ArrayBuffer, type: LockType, args
 
 // @ts-ignore
 @external("vm", "vm_local_state")
-export declare function vm_local_state<T>(jig: T): OutputState;
+export declare function vm_local_state(jig: Jig): OutputState;
 // @ts-ignore
 @external("vm", "vm_remote_state")
 export declare function vm_remote_state(origin: ArrayBuffer): OutputState;

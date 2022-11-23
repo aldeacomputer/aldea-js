@@ -113,8 +113,9 @@ function objectToJson(node: ObjectNode): ObjectNode {
 }
 
 // Casts the CBOR array to a Function Node interface.
-function functionFromCbor([name, args, rtype]: FunctionCbor): FunctionNode {
+function functionFromCbor([kind, name, args, rtype]: FunctionCbor): FunctionNode {
   return {
+    kind,
     name,
     args: args.map(fieldFromCbor),
     rtype: typeFromCbor(rtype)
@@ -124,6 +125,7 @@ function functionFromCbor([name, args, rtype]: FunctionCbor): FunctionNode {
 // Casts the Function Node interface to a CBOR array.
 function functionToCbor(node: FunctionNode): FunctionCbor {
   return [
+    node.kind,
     node.name,
     node.args.map(fieldToCbor),
     typeToCbor(node.rtype)
@@ -133,6 +135,7 @@ function functionToCbor(node: FunctionNode): FunctionCbor {
 // Casts the Function Node interface to a JSON object.
 function functionToJson(node: FunctionNode): FunctionNode {
   return {
+    kind: node.kind,
     name: node.name,
     args: node.args.map(fieldToJson),
     rtype: typeToJson(node.rtype)

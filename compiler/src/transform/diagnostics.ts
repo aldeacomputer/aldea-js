@@ -9,20 +9,24 @@ import {
 
 /**
  * Aldea disagnostic error codes.
+ * 
+ * - Illegal means not allowed
+ * - Invalid means wrong, but there is a right alternative
  */
 export enum AldeaDiagnosticCode {
   Invalid_source_statement = 400,
-  Invalid_jig_class = 401,
-  Invalid_class_member = 402,
-  Invalid_jig_member = 403,
-  Invalid_field_type = 404,
-  Invalid_method_type = 405,
-  Invalid_identifier = 406,
-  Illegal_global = 407,
-  Illegal_property = 408,
-  Illegal_assignment = 409,
-  Illegal_decorator = 410,
-  Private_member = 420
+  Invalid_export,
+  Invalid_jig_class,
+  Invalid_class_member,
+  Invalid_jig_member,
+  Invalid_field_type,
+  Invalid_method_type,
+  Invalid_decorator,
+  Illegal_identifier = 410,
+  Illegal_access_global,
+  Illegal_access_property,
+  Illegal_assignment,
+  Private_member = 420,
 }
 
 /**
@@ -30,21 +34,37 @@ export enum AldeaDiagnosticCode {
  */
 export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
   switch(code) {
-    case 400: return 'Invalid statement. Only classes, functions, enums and literal constants can be declared at the top level.'
-    case 401: return 'Invalid class. {0} must inherit from `Jig`.'
-    case 402: return 'Invalid member. {0} are not allowed on classes.'
-    case 403: return 'Invalid member. {0} are not allowed on jigs.'
-    case 404: return 'Invalid type. `{0}` type cannot be serialized on `{1}` class.'
-    case 405: return 'Invalid type. `{0}` type cannot be be passed to/from `{1}` method.'
-    case 406: return 'Invalid identifier. Double underscore-prefixed identifiers cannot be used.'
-    case 407: return 'Illegal access. The `{0}` global is restricted.'
-    case 408: return 'Illegal access. The `{0}` property is restricted.'
-    case 409: return 'Illegal assignment. `{0}` cannot be reassigned.'
-    case 410: return 'Illegal decorator. AssemblyScript decorators are not allowed.'
+    case AldeaDiagnosticCode.Invalid_source_statement:
+      return 'Illegal statement. Only classes, functions, enums and literal constants can be declared.'
+    case AldeaDiagnosticCode.Invalid_export:
+      return 'Invalid export. Imported objects and functions must not be exported from the entry.'
+    case AldeaDiagnosticCode.Invalid_jig_class:
+      return 'Invalid class. {0} {1} inherit from `Jig`.'
+    case AldeaDiagnosticCode.Invalid_class_member:
+      return 'Invalid member. {0} are not allowed on classes.'
+    case AldeaDiagnosticCode.Invalid_jig_member:
+      return 'Invalid member. {0} are not allowed on jigs.'
+    case AldeaDiagnosticCode.Invalid_field_type:
+      return 'Invalid type. `{0}` type cannot be serialized on `{1}` class.'
+    case AldeaDiagnosticCode.Invalid_method_type:
+      return 'Invalid type. `{0}` type cannot be be passed to/from `{1}` method.'
+    case AldeaDiagnosticCode.Invalid_decorator:
+      return 'Invalid decorator. AssemblyScript decorators are not allowed.'
 
-    case 420: return 'Private and protected members are only partially enforeced by Aldea. See https://xxxxx'
+    case AldeaDiagnosticCode.Illegal_identifier:
+      return 'Illegal identifier. Double underscore-prefixed identifiers cannot be used.'
+    case AldeaDiagnosticCode.Illegal_access_global:
+      return 'Illegal access. The `{0}` global is restricted.'
+    case AldeaDiagnosticCode.Illegal_access_property:
+      return 'Illegal access. The `{0}` property is restricted.'
+    case AldeaDiagnosticCode.Illegal_assignment:
+      return 'Illegal assignment. `{0}` cannot be reassigned.'
+    
 
-    default:  return 'Unrecognized error code.'
+    case AldeaDiagnosticCode.Private_member:
+      return 'Private and protected members are only partially enforeced by Aldea. See https://xxxxx' // todo
+
+    default: return 'Unrecognized error code.'
   }
 }
 

@@ -1,6 +1,6 @@
 import { blake3 } from '@noble/hashes/blake3'
 import { bytesToHex as toHex } from '@noble/hashes/utils'
-import { isPrivate, isProtected } from './filters.js'
+import { isExported, isPrivate, isProtected } from './filters.js'
 import { FieldWrap, MethodWrap, ObjectWrap } from './nodes.js'
 import { normalizeTypeName } from '../abi.js'
 import { MethodKind, TypeNode } from '../abi/types.js'
@@ -46,7 +46,7 @@ export function writeConstructor(obj: ObjectWrap): string {
  * Writes a VM constructor hook method call.
  */
 export function writeConstructorHook(obj: ObjectWrap): string {
-  return `vm_constructor<${obj.name}>(this, '${obj.name}')`
+  return `vm_constructor(this, '${obj.name}')`
 }
 
 /**
@@ -73,7 +73,7 @@ export function writeLocalProxyClass(obj: ObjectWrap, members: string[]): string
   const returns = method.rtype?.name && method.rtype?.name !== 'void'
   return `
   ${access}${method.name}(${args.join(', ')}): ${normalizeTypeName(method.rtype)} {
-    vm_local_call_start<${obj.name}>(this, '${obj.name}$${method.name}')
+    vm_local_call_start(this, '${obj.name}$${method.name}')
     ${returns ? 'const res = ' : ''}this._${method.name}(${ method.args.map((_f, i) => `a${i}`).join(', ') })
     vm_local_call_end()
     ${returns ? 'return res' : ''}
@@ -86,8 +86,9 @@ export function writeLocalProxyClass(obj: ObjectWrap, members: string[]): string
  * strings.
  */
 export function writeRemoteProxyClass(obj: ObjectWrap, members: string[]): string {
+  const prefix = isExported(obj.node.flags) ? 'export ' : ''
   return `
-  class ${obj.name} extends RemoteJig {
+  ${prefix}class ${obj.name} extends RemoteJig {
     ${ members.join('\n') }
   }
   `.trim()

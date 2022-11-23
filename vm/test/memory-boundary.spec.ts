@@ -540,7 +540,7 @@ describe('reading complex types from memory', () => {
     
     it('reads exported objects (jigs)', async() => {
       const code = `
-      export class Test {
+      export class Test extends Jig {
         name: string = 'Fred';
         age: u8 = 42;
       }
@@ -551,6 +551,7 @@ describe('reading complex types from memory', () => {
       `.trim()
   
       const wasm = await compileToWasm(code)
+      wasm.onConstructor(() => {}) // empty handler to make this work.
       const res = wasm.functionCall('test', [])
       assert.instanceOf(res.value, Internref)
       assert.equal(res.value.name, 'Test')

@@ -73,8 +73,8 @@ export class TransformCtx {
     this.parser = parser
     this.sources = collectUserSources(parser.sources)
     this.entry = findUserEntry(this.sources)
-    this.objects = collectObjectNodes(this.entry)     // todo - analyse all sources!
-    this.functions = collectFunctionNodes(this.entry) // todo - analyse all sources!
+    this.objects = collectObjectNodes(this.sources)
+    this.functions = collectFunctionNodes(this.sources)
     this.validator = new Validator(this)
     this.validate()
   }
@@ -111,10 +111,11 @@ export class TransformCtx {
       const objects: ObjectWrap[] = []
 
       const applyObject = (obj: ObjectWrap): void => {
-        if (objects.includes(obj)) return
-        objects.push(obj)
-        obj.fields.forEach(n => applyType(n.type))
-        obj.methods.forEach(applyFunction)
+        if (obj.kind < ObjectKind.SIDEKICK && !objects.includes(obj)) {
+          objects.push(obj)
+          obj.fields.forEach(n => applyType(n.type))
+          obj.methods.forEach(applyFunction)
+        }
       }
 
       const applyFunction = (fn: FunctionWrap | MethodWrap): void => {
@@ -216,16 +217,15 @@ function findUserEntry(sources: Source[]): Source {
 }
 
 // Collects Object Nodes from the given list of sources
-function collectObjectNodes(source: Source): ObjectWrap[] {
-  return source.statements
+function collectObjectNodes(sources: Source[]): ObjectWrap[] {
+  return sources.flatMap(s => s.statements)
     .filter(n => n.kind === NodeKind.CLASSDECLARATION)
     .map(n => mapObjectNode(n as ClassDeclaration))
-    .filter(n => n.kind > -1)
 }
 
 // Collects Function Nodes from the give list of sources
-function collectFunctionNodes(source: Source): FunctionWrap[] {
-  return source.statements
+function collectFunctionNodes(sources: Source[]): FunctionWrap[] {
+  return sources.flatMap(s => s.statements)
     .filter(n => n.kind === NodeKind.FUNCTIONDECLARATION)
     .map(n => mapFunctionNode(n as FunctionDeclaration))
 }
@@ -257,7 +257,7 @@ function mapObjectNode(node: ClassDeclaration): ObjectWrap {
   const decorators = collectDecoratorNodes(node.decorators || [])
   const kind = isAmbient(node.flags) ?
     (decorators.some(d => d.name === 'imported') ? ObjectKind.IMPORTED : ObjectKind.PLAIN) :
-    (isExported(node.flags) ? ObjectKind.EXPORTED : -1);
+    (isExported(node.flags) && node.range.source.sourceKind === SourceKind.USER_ENTRY ? ObjectKind.EXPORTED : ObjectKind.SIDEKICK);
 
   return {
     node,
@@ -273,9 +273,13 @@ function mapObjectNode(node: ClassDeclaration): ObjectWrap {
 // Maps the given AST node to a Function Node
 function mapFunctionNode(node: FunctionDeclaration): FunctionWrap {
   const decorators = collectDecoratorNodes(node.decorators || [])
+  const kind = isAmbient(node.flags) && decorators.some(d => d.name === 'imported') ?
+  ObjectKind.IMPORTED :
+  (isExported(node.flags) && node.range.source.sourceKind === SourceKind.USER_ENTRY ? ObjectKind.EXPORTED : ObjectKind.SIDEKICK)
 
   return {
     node,
+    kind,
     name: node.name.text,
     args: node.signature.parameters.map(n => mapFieldNode(n as ParameterNode)),
     rtype: mapTypeNode(node.signature.returnType as NamedTypeNode),

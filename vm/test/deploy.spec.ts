@@ -13,9 +13,10 @@ import {
 } from '@aldea/sdk-js'
 
 const someValidModule = `
-export class Coso {
+export class Coso extends Jig {
   prop1: string;
   constructor () {
+    super()
     this.prop1 = 'foo'
   }
 }
@@ -25,6 +26,7 @@ describe('deploy code', () => {
   let storage: Storage
   const userPriv = AldeaCrypto.randomPrivateKey()
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
+  const userAddr = userPub.toAddress()
   beforeEach(() => {
     storage = new Storage()
   })
@@ -35,7 +37,7 @@ describe('deploy code', () => {
 
     const tx = new Transaction()
       .add(new NewInstruction('someVar', moduleId, 'Coso', []))
-      .add(new LockInstruction('someVar', userPub))
+      .add(new LockInstruction('someVar', userAddr))
 
     const execution = vm.execTx(tx)
     expect(execution.outputs[0].className).to.eql('Coso')
@@ -47,7 +49,7 @@ describe('deploy code', () => {
 
     const tx = new Transaction()
       .add(new NewInstruction('someVar', moduleId, 'Coso', []))
-      .add(new LockInstruction('someVar', userPub))
+      .add(new LockInstruction('someVar', userAddr))
 
     const vm2 = new VM(storage)
     const execution = vm2.execTx(tx)
@@ -68,7 +70,7 @@ describe('deploy code', () => {
 
     const tx = new Transaction()
       .add(new NewInstruction('someVar', moduleId, 'Flock', []))
-      .add(new LockInstruction('someVar', userPub))
+      .add(new LockInstruction('someVar', userAddr))
 
     const execution = vm.execTx(tx)
     expect(execution.outputs[0].className).to.eql('Flock')
@@ -90,7 +92,7 @@ describe('deploy code', () => {
     const tx = new Transaction()
       .add(new NewInstruction('someVar', flockId, 'Flock', []))
       .add(new CallInstruction('someVar', 'growWithMath', []))
-      .add(new LockInstruction('someVar', userPub))
+      .add(new LockInstruction('someVar', userAddr))
 
     const execution = vm.execTx(tx)
     let jigState = execution.outputs[0].parsedState();
@@ -107,7 +109,7 @@ describe('deploy code', () => {
     const tx = new Transaction()
       .add(new NewInstruction('someVar', flockId, 'Flock', []))
       .add(new CallInstruction('someVar', 'growWithMath', []))
-      .add(new LockInstruction('someVar', userPub))
+      .add(new LockInstruction('someVar', userAddr))
 
     const execution = anotherVm.execTx(tx)
     let jigState = execution.outputs[0].parsedState();
