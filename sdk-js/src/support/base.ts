@@ -1,4 +1,4 @@
-import { base16 as b16, base64 as b64, bech32m as b32m } from '@scure/base'
+import { hex as b16, base64 as b64, bech32m as b32m } from '@scure/base'
 
 /**
  * Base16 interface.
@@ -8,14 +8,14 @@ export const base16 = {
    * Encodes the given bytes as a hex string.
    */
   encode(data: Uint8Array): string {
-    return b16.encode(data).toLowerCase()
+    return b16.encode(data)
   },
 
   /**
    * Decodes the given hex string to bytes.
    */
   decode(str: string): Uint8Array {
-    return b16.decode(typeof str === 'string' ? str.toUpperCase() : str)
+    return b16.decode(str)
   }
 }
 

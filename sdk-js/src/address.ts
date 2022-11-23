@@ -1,4 +1,4 @@
-import { PubKey, isPubKey } from './pubkey.js';
+import { PubKey, isPubKey } from './internal.js';
 import { bech32m } from './support/base.js'
 import { blake3 } from './support/hash.js'
 
@@ -51,6 +51,6 @@ export class Address {
 /**
  * Checks the given argument is an Address.
  */
-export function isAddress(address: Address): boolean {
+export function isAddress(address: any): boolean {
   return address instanceof Address
 }

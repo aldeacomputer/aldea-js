@@ -1,5 +1,4 @@
-import { Address } from './address.js'
-import { PrivKey, isPrivKey } from './privkey.js'
+import { Address, PrivKey, isPrivKey } from './internal.js'
 import { base16 } from './support/base.js'
 import { Point, calcPoint, pointFromBytes, pointToBytes } from './support/ed25519.js'
 
@@ -92,6 +91,6 @@ export class PubKey {
 /**
  * Checks the given argument is a PubKey.
  */
-export function isPubKey(pubKey: PubKey): boolean {
+export function isPubKey(pubKey: any): boolean {
   return pubKey instanceof PubKey
 }

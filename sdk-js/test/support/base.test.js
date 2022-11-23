@@ -29,7 +29,7 @@ test('base16.decode() decodes valid hex to bytes', t => {
 })
 
 test('base16.decode() throws with invalid args', t => {
-  t.throws(() => base16.decode(), { message: /input should be string/ })
+  t.throws(() => base16.decode())
   t.throws(() => base16.decode({}))
   t.throws(() => base16.decode(123))
   t.throws(() => base16.decode('abc'))
