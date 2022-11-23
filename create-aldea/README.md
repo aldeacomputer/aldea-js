@@ -1,0 +1,3 @@
+# create-aldea
+
+Scaffold your Aldea project...

@@ -1,5 +1,8 @@
-import { PrivKey, isPrivKey } from './privkey.js'
-import { PubKey } from './pubkey.js'
+import {
+  PrivKey,
+  PubKey,
+  isPrivKey,
+} from './internal.js'
 
 /**
  * Aldea keypair
@@ -38,6 +41,6 @@ export class KeyPair {
 /**
  * Checks the given argument is an KeyPair.
  */
-export function isKeyPair(keyPair: KeyPair): boolean {
+export function isKeyPair(keyPair: any): boolean {
   return keyPair instanceof KeyPair
 }

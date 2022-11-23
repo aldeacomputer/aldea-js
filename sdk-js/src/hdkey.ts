@@ -1,5 +1,4 @@
-import { PrivKey } from './privkey.js';
-import { PubKey } from './pubkey.js';
+import { PrivKey, PubKey } from './internal.js'
 import { HDNode, seedToNode, deriveNode } from './support/ed25519.js'
 
 /**
@@ -51,6 +50,6 @@ export class HDKey {
 /**
  * Checks the given argument is an HDKey.
  */
-export function isHDKey(hdKey: HDKey): boolean {
+export function isHDKey(hdKey: any): boolean {
   return hdKey instanceof HDKey
 }

@@ -1,0 +1,6 @@
+{
+  "extends": "@aldea/compiler/assembly.json",
+  "include": [
+    "./aldea/**/*.ts"
+  ]
+}

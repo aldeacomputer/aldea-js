@@ -1,5 +1,4 @@
-import { KeyPair } from './keypair.js';
-import { PubKey } from './pubkey.js'
+import { KeyPair, PubKey } from './internal.js';
 import { base16 } from './support/base.js';
 import { randomBytes } from './support/ed25519.js'
 
@@ -77,6 +76,6 @@ export class PrivKey {
 /**
  * Checks the given argument is an PrivKey.
  */
-export function isPrivKey(privKey: PrivKey): boolean {
+export function isPrivKey(privKey: any): boolean {
   return privKey instanceof PrivKey
 }
