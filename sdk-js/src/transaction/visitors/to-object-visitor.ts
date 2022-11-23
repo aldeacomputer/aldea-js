@@ -2,6 +2,7 @@ import {TxVisitor} from "../tx-visitor.js";
 import {PubKey} from "../../pubkey.js";
 import {Signature} from "../../signature.js";
 import {Location} from "../location.js";
+import {Address} from "../../address.js";
 
 export class ToObjectVisitor implements TxVisitor {
   instructions: any[]
@@ -50,12 +51,12 @@ export class ToObjectVisitor implements TxVisitor {
     })
   }
 
-  visitLockInstruction(varName: string, pubkey: PubKey): void {
+  visitLockInstruction(varName: string, pubkey: Address): void {
     this.instructions.push({
       type: 'lock',
       props: {
         varName,
-        pubKey: pubkey.toHex()
+        address: pubkey.toString()
       }
     })
   }
