@@ -6,6 +6,7 @@
     "lib/assemblyscript",
     "compiler",
     "compiler-old",
+    "create-aldea",
     "demos-webapp",
     "example1",
     "explorer",
