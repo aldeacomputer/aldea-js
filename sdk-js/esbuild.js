@@ -15,6 +15,22 @@ esbuild.build({
   format: 'cjs',
   platform: 'node',
   target: 'node16',
+  minify: true,
+  keepNames: true,
+  plugins: [
+    makeAllPackagesExternalPlugin
+  ]
+})
+
+// This build is temporary - eventually we'll just ship typescripts built modules
+esbuild.build({
+  entryPoints: ['src/index.ts'],
+  outfile: 'dist/aldea.bundle.mjs',
+  bundle: true,
+  format: 'esm',
+  platform: 'node',
+  target: 'node16',
+  minify: true,
   keepNames: true,
   plugins: [
     makeAllPackagesExternalPlugin

@@ -1,14 +1,14 @@
 {
   "name": "@aldea/sdk-js",
-  "version": "0.0.1",
+  "version": "0.0.0-alpha.1",
   "type": "module",
   "license": "MIT",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
+      "import": "./dist/aldea.bundle.mjs",
       "require": "./dist/aldea.bundle.cjs",
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "default": "./dist/aldea.bundle.mjs"
     },
     "./*": {
       "import": "./dist/*.js",
@@ -16,10 +16,16 @@
       "default": "./dist/*.js"
     }
   },
-  "main": "./dist/index.js",
-  "module": "./dist/aldea.bundle.min.js",
+  "main": "./dist/aldea.bundle.mjs",
+  "module": "./dist/aldea.bundle.mjs",
   "browser": "./dist/aldea.bundle.min.js",
   "unpkg": "./dist/aldea.bundle.min.js",
+  "files": [
+    "dist/aldea.bundle.cjs",
+    "dist/aldea.bundle.mjs",
+    "dist/aldea.bundle.min.js",
+    "dist/aldea.bundle.min.js.map"
+  ],
   "scripts": {
     "build": "run-s clean build:ts build:es",
     "build:ts": "tsc",
