@@ -9,74 +9,69 @@ import {VM} from "./vm.js";
 import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
-import {FieldNode, findExportedFunction, findExportedObject, findObjectMethod, ObjectKind} from '@aldea/compiler/abi'
-import {Signature, TxVisitor, Location, Address} from '@aldea/sdk-js';
+import {FieldNode, findExportedObject, findObjectMethod, TypeNode} from '@aldea/compiler/abi'
+import {Address, Location, Signature, TxVisitor} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 
-class ExecVisitor implements TxVisitor {
-  exec: TxExecution
-  args: any[]
-  constructor(txExecution: TxExecution) {
-    this.exec = txExecution
-    this.args = []
+abstract class StatementResult {
+  abstract get abiNode(): TypeNode;
+  abstract get value(): any;
+  abstract get wasm(): WasmInstance;
+  abstract get instance(): WasmInstance;
+  abstract asJig (): JigRef;
+}
+
+class WasmStatementResult extends StatementResult {
+  private _instance: WasmInstance;
+  constructor(instance: WasmInstance) {
+    super()
+    this._instance = instance
   }
 
-  visitCall (varName:string, methodName:string): void {
-    const target = this.exec.getJigRefByVarName(varName)
-    this.exec.callInstanceMethod(target, methodName, this.args)
-    this.args = []
+  get abiNode (): TypeNode {
+    throw new ExecutionError('statement is not a value');
   }
 
-  visitLoad (varName: string, location: Location, readonly: boolean, forceLocation: boolean): void {
-    this.exec.loadJigIntoVariable(varName, location, readonly, forceLocation)
+  asJig(): JigRef {
+    throw new ExecutionError('statement is not a jig');
   }
 
-  visitLockInstruction(varName:string, addr: Address): void {
-    this.exec.lockJigByVarName(varName, new UserLock(addr))
+  get value (): any {
+    throw new ExecutionError('statement is not a value');
   }
 
-  visitNew(varName:string, moduleId:string, className:string): void {
-    this.exec.instantiate(varName, moduleId, className, this.args)
-    this.args = []
+  get wasm(): WasmInstance {
+    throw new ExecutionError('statement is not a value');
   }
 
-  visitNumberArg(value: number): void {
-    this.args.push(value)
+  get instance(): WasmInstance {
+    return this._instance;
+  }
+}
+
+class ValueStatementResult extends StatementResult {
+  abiNode: TypeNode
+  value: any
+  wasm: WasmInstance
+
+  constructor(node: TypeNode, value: any, wasm: WasmInstance) {
+    super()
+    this.abiNode = node
+    this.value = value
+    this.wasm = wasm
   }
 
-  visitSignature(_sig: Signature): void {
-    // noop
-  }
-
-  visitStringArg(value: string): void {
-    this.args.push(value)
-  }
-
-  visitExec(varName: string, moduleId: string, functionName: string): void {
-    const wasm = this.exec.loadModule(moduleId)
-    const fnNode = findExportedFunction(wasm.abi, functionName)
-
-    if (fnNode) {
-      this.exec.execFunction(varName, moduleId, functionName, this.args)
+  asJig(): JigRef {
+    if (this.value instanceof JigRef) {
+      return this.value as JigRef
     } else {
-      const [className, methodName] = functionName.split('_')
-      this.exec.execStaticMethod(varName, moduleId, className, methodName, this.args)
+      throw new ExecutionError(`${this.abiNode.name} is not a jig`)
     }
-    this.args = []
   }
 
-  visitBufferArg (buff: Uint8Array): void {
-    this.args.push(buff)
-  }
-
-  acceptAssign(varName: string, masterListIndex: number): void {
-    this.exec.assignToVar(varName, masterListIndex)
-  }
-
-  visitVariableContent(varName: string): void {
-    const jigRef = this.exec.getJigRefByVarName(varName)
-    this.args.push(jigRef)
+  get instance(): WasmInstance {
+    throw new ExecutionError('statement is not a wasm instance');
   }
 }
 
@@ -87,16 +82,16 @@ class TxExecution {
   private wasms: Map<string, WasmInstance>;
   private stack: Location[];
   outputs: JigState[];
-  private variables: Map<string, JigRef>;
+  statementResults: StatementResult[]
 
   constructor (tx: Transaction, vm: VM) {
     this.tx = tx
     this.vm = vm
     this.jigs = []
-    this.variables = new Map()
     this.wasms = new Map()
     this.stack = []
     this.outputs = []
+    this.statementResults = []
   }
 
   finalize () {
@@ -122,7 +117,6 @@ class TxExecution {
     wasmInstance.onConstructor(this._onConstructor.bind(this))
     wasmInstance.onMethodCall(this._onRemoteInstanceCall.bind(this))
     wasmInstance.onGetProp(this._onGetProp.bind(this))
-    wasmInstance.onCreate(this._onCreate.bind(this))
     wasmInstance.onRemoteLockHandler(this._onRemoteLock.bind(this))
     wasmInstance.onRelease(this._onRelease.bind(this))
     wasmInstance.onFindUtxo(this._onFindUtxo.bind(this))
@@ -189,7 +183,7 @@ class TxExecution {
       }
     })
 
-    return jig.sendMessage(methodName, args, this)
+    return this.callInstanceMethod(jig, methodName, args)
   }
 
   _onRemoteStaticExecHandler (srcModule: WasmInstance, targetModId: string, fnStr: string, argBuffer: ArrayBuffer): MethodResult {
@@ -223,10 +217,10 @@ class TxExecution {
     return jig.module.getPropValue(jig.ref, jig.className, propName)
   }
 
-  _onCreate (moduleId: string, className: string, args: any[]): JigRef {
-    this.loadModule(moduleId)
-    return this.instantiate('', moduleId, className, args)
-  }
+  // _onCreate (moduleId: string, className: string, args: any[]): JigRef {
+  //   this.loadModule(moduleId)
+  //   return this.instantiate(moduleId, className, args)
+  // }
 
   _onRemoteLock (childOrigin: Location, type: LockType, extraArg: ArrayBuffer): void {
     const childJigRef = this.getJigRefByOrigin(childOrigin)
@@ -308,7 +302,7 @@ class TxExecution {
   }
 
   run () {
-    const execVisitor = new ExecVisitor(this)
+    // const execVisitor = new ExecVisitor(this)
     // this.txHash.accept(execVisitor)
   }
 
@@ -328,12 +322,6 @@ class TxExecution {
     return jigRef
   }
 
-  loadJigIntoVariable(varName: string, location: Location, readOnly: boolean, force: boolean): JigRef {
-    const jigRef = this.loadJig(location, readOnly, force)
-    this.setVar(varName, jigRef)
-    return jigRef
-  }
-
   _hidrateLock (frozenLock: any): Lock {
     if (frozenLock.type === 'UserLock') {
       return new UserLock(frozenLock.data.pubkey)
@@ -346,30 +334,31 @@ class TxExecution {
     }
   }
 
-  lockJigByVarName(varName: string, lock: Lock) {
-    const jigRef = this.getJigRefByVarName(varName)
-    if (!jigRef.lock.canBeChangedBy(this)) {
-      throw new PermissionError(`no permission to remove lock from jig ${jigRef.origin}`)
-    }
-    jigRef.close(lock)
-  }
-
-  instantiate(varName: string, moduleId: string, className: string, args: any[]): JigRef {
-    const module = this.loadModule(moduleId)
+  instantiate(statementIndex: number, className: string, args: any[]): number {
+    const statement = this.statementResults[statementIndex]
+    const instance = statement.instance
     this.stack.push(this.newOrigin())
-    const result = module.staticCall(className, 'constructor', args)
+    const result = instance.staticCall(className, 'constructor', args)
     this.stack.pop()
-    const jigRef = this.jigs.find(j => j.module === module && j.ref.ptr === result.value.ptr)
+    const jigRef = this.jigs.find(j => j.module === instance && j.ref.ptr === result.value.ptr)
     if (!jigRef) { throw new Error('jig should be created')}
-    this.setVar(varName, jigRef)
-    return jigRef
+
+    this.statementResults.push(new ValueStatementResult(result.node, jigRef, result.mod))
+    return this.statementResults.length - 1
   }
 
-  callInstanceMethod (instance: JigRef, methodName: string, args: any[]): MethodResult {
-    this.stack.push(instance.origin)
-    const ret = instance.module.instanceCall(instance, instance.className, methodName, args)
+  callInstanceMethod (jig: JigRef, methodName: string, args: any[]): MethodResult {
+    this.stack.push(jig.origin)
+    const ret = jig.module.instanceCall(jig, jig.className, methodName, args)
     this.stack.pop()
     return ret
+  }
+
+  callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {
+    const jigRef = this.getStatementResult(jigIndex).asJig()
+    const methodResult = this.callInstanceMethod(jigRef, methodName, args)
+    this.statementResults.push(new ValueStatementResult(methodResult.node, methodResult.value, methodResult.mod))
+    return this.statementResults.length - 1
   }
 
   execStaticMethod (varName: string, moduleId: string, className: string, methodName: string, args: any[]) {
@@ -386,41 +375,33 @@ class TxExecution {
       return null
     }
 
-    const result = module.staticCall(className, methodName, args)
-
-    const rTypeNode = findExportedObject(module.abi, methodNode.rtype.name)
-
-    if (!rTypeNode || rTypeNode.kind !== ObjectKind.EXPORTED) {
-      return
-    } else {
-      const jigRef = this.jigs.find(j => j.ref.ptr === result.value.ptr && j.module === module)
-      if (!jigRef) { throw new Error('jig ref should exist')}
-      this.setVar(varName, jigRef)
-    }
-
+    const {node, value, mod} = module.staticCall(className, methodName, args)
+    return new ValueStatementResult(
+      node,
+      value,
+      mod
+    )
   }
 
-  execFunction (varName: string, moduleId: string, functionName: string, args: any[]) {
-    const module = this.loadModule(moduleId)
-    const result = module.functionCall(functionName, args)
-    if (!result.node) {
-      return result
-    }
-    const objNode = findExportedObject(module.abi, result.node.name, 'should exist')
-    if (objNode.kind === ObjectKind.EXPORTED) {
-      const jig = this.jigs.find(j => j.module === module && j.ref.ptr === result.value.ptr)
-      if (!jig) { throw new Error('')}
-      this.setVar(varName, jig)
-      return result
-    } else if (objNode.kind === ObjectKind.IMPORTED) {
-      const jig = this.jigs.find(j => j.origin === result.value.origin)
-      if (!jig) { throw new Error('')}
-      this.setVar(varName, jig)
-      return result
-    } else {
-      return result
-    }
-  }
+  // execFunction (varName: string, moduleId: string, functionName: string, args: any[]) {
+  //   const module = this.loadModule(moduleId)
+  //   const result = module.functionCall(functionName, args)
+  //   if (!result.node) {
+  //     return result
+  //   }
+  //   const objNode = findExportedObject(module.abi, result.node.name, 'should exist')
+  //   if (objNode.kind === ObjectKind.EXPORTED) {
+  //     const jig = this.jigs.find(j => j.module === module && j.ref.ptr === result.value.ptr)
+  //     if (!jig) { throw new Error('')}
+  //     return result
+  //   } else if (objNode.kind === ObjectKind.IMPORTED) {
+  //     const jig = this.jigs.find(j => j.origin === result.value.origin)
+  //     if (!jig) { throw new Error('')}
+  //     return result
+  //   } else {
+  //     return result
+  //   }
+  // }
 
   newOrigin () {
     return new Location(this.tx.hash(), this.jigs.length)
@@ -430,24 +411,28 @@ class TxExecution {
     return this.stack[this.stack.length - 1]
   }
 
-  getJigRefByVarName(varName: string): JigRef {
-    const ret = this.variables.get(varName)
-    if (!ret) {
-      throw new Error(`unknown variable: ${varName}`)
-    }
-    return ret
+  getStatementResult (index: number): StatementResult {
+    const result = this.statementResults[index]
+    if (!result) { throw new ExecutionError(`undefined index: ${index}`)}
+    return result
   }
 
-  assignToVar (varName: string, jigIndex: number): void {
-    const jigRef = this.jigs[jigIndex]
-    if (!jigRef) {
-      throw new Error(`index out of bounds: ${jigIndex}`)
+  lockJigToUser(jigIndex: number, address: Address) {
+    const jigRef = this.getStatementResult(jigIndex).asJig()
+    if (!jigRef.lock.canBeChangedBy(this)) {
+      throw new PermissionError(`no permission to remove lock from jig ${jigRef.origin}`)
     }
-    this.setVar(varName, jigRef)
+    jigRef.close(new UserLock(address))
   }
 
-  private setVar(varName: string, jigRef: JigRef) {
-    this.variables.set(varName, jigRef)
+  importModule(modId: string): number {
+    const instance = this.loadModule(modId)
+    this.statementResults.push(new WasmStatementResult(instance))
+    return this.statementResults.length - 1
+  }
+
+  getImportedModule(moduleIndex: number): WasmInstance {
+    return this.getStatementResult(moduleIndex).instance;
   }
 }
 

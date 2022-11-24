@@ -1,10 +1,8 @@
-import { PermissionError } from './errors.js'
-import {MethodResult, WasmInstance} from './wasm-instance.js';
+import {WasmInstance} from './wasm-instance.js';
 import {Lock} from "./locks/lock.js";
-import {Externref, Internref} from "./memory.js";
-import {TxExecution} from "./tx-execution.js";
+import {Internref} from "./memory.js";
 import {Location} from "@aldea/sdk-js";
-// implements Externref
+
 export class JigRef  {
   ref: Internref;
   className: string;
@@ -24,12 +22,13 @@ export class JigRef  {
     this.lock = lock
   }
 
-  sendMessage (methodName: string, args: any[] , context: TxExecution): MethodResult {
-    if (!this.lock.acceptsExecution(context)) {
-      throw new PermissionError(`jig ${this.origin} does not accept message "${methodName}" from ${context.stackTop()}`)
-    }
-    return context.callInstanceMethod(this, methodName, args)
-  }
+  // sendMessage (methodName: string, args: any[] , context: TxExecution): MethodResult {
+  //   if (!this.lock.acceptsExecution(context)) {
+  //     throw new PermissionError(`jig ${this.origin} does not accept message "${methodName}" from ${context.stackTop()}`)
+  //   }
+  //   return {mod: null, value: null, node: null}
+  //   // return context.callInstanceMethod(this, methodName, args)
+  // }
 
   get originBuf (): ArrayBuffer {
     return this.origin.toBuffer()

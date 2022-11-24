@@ -48,7 +48,7 @@ export type Prop = {
 }
 
 export type MethodResult = {
-  node: TypeNode | null;
+  node: TypeNode;
   mod: WasmInstance;
   value: any;
 }
@@ -91,7 +91,7 @@ type LocalCallEndtHandler = () => void
 type AuthCheckHandler = (targetOrigin: Location, check: AuthCheck) => boolean
 type LocalAuthCheckHandler = (jigPtr: number, module: WasmInstance, check: AuthCheck) => boolean
 
-
+const voidNode = { name: '_void', args: [] }
 
 const utxoAbiNode = {
   kind: ObjectKind.PLAIN,
@@ -220,7 +220,7 @@ export class WasmInstance {
           this.constructorHandler(this, jigPtr, className)
         },
         vm_local_call_start: (jigPtr: number, _fnNamePtr: number): void => {
-          const fnName = liftString(this, _fnNamePtr)
+          // const fnName = liftString(this, _fnNamePtr)
           this.localCallStartHandler(jigPtr, this)
         },
         vm_remote_authcheck: (originPtr: number, check: AuthCheck) => {
@@ -393,7 +393,7 @@ export class WasmInstance {
       : liftValue(this, method.rtype, retPtr)
 
     return {
-      node: method.rtype,
+      node: method.rtype ? method.rtype : voidNode,
       value: retValue,
       mod: this
     }
@@ -424,7 +424,7 @@ export class WasmInstance {
     return {
       mod: this,
       value: result,
-      node: method.rtype
+      node: method.rtype ? method.rtype : voidNode
     }
   }
 
