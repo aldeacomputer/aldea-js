@@ -10,6 +10,7 @@ import {
   LoadByOriginInstruction,
   LoadInstruction,
   LockInstruction,
+  DeployInstruction,
   NewInstruction,
   SignInstruction,
   SignToInstruction,
@@ -88,6 +89,14 @@ export class TxBuilder {
   lock(idx: number, address: Address | Uint8Array): void {
     if (!isAddress(address)) address = new Address(<Uint8Array>address)
     this.tx.push(new LockInstruction(idx, (<Address>address).hash))
+  }
+
+  /**
+   * Pushes a DEPLOY instruction onto the Transaction. Accepts a code bundle
+   * map of filname => content.
+   */
+  deploy(code: Map<string, string>): void {
+    this.tx.push(new DeployInstruction(code))
   }
 
   /**
