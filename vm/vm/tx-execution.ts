@@ -294,10 +294,6 @@ class TxExecution {
     return jigRef
   }
 
-  getJigRef (index: number) {
-    return this.jigs[index]
-  }
-
   getJigRefByOrigin (origin: Location): JigRef {
     const jigRef = this.jigs.find(jr => jr.origin.equals(origin));
     if (!jigRef) {
@@ -313,7 +309,7 @@ class TxExecution {
 
   run () {
     const execVisitor = new ExecVisitor(this)
-    this.tx.accept(execVisitor)
+    // this.txHash.accept(execVisitor)
   }
 
   loadJig (location: Location, readOnly: boolean, force: boolean): JigRef {
