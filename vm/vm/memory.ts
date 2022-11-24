@@ -339,7 +339,7 @@ export function lowerInternref(ref: JigRef): number {
  * Lowers an ArrayBuffer into WASM memory and returns the Ptr.
  */
 export function lowerBuffer(mod: Module, val: ArrayBuffer): number {
-  const ptr = mod.__new(val.byteLength, 0) >>> 0;
+  const ptr = mod.__new(val.byteLength, 0);
   new Uint8Array(mod.memory.buffer).set(new Uint8Array(val), ptr);
   return ptr;
 }

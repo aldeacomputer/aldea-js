@@ -31,7 +31,7 @@ describe('deploy code', () => {
     storage = new Storage()
   })
 
-  it('makes the module available', async () => {
+  it.skip('makes the module available', async () => {
     const vm = new VM(storage)
     const moduleId = await vm.deployCode(someValidModule)
 
@@ -43,7 +43,7 @@ describe('deploy code', () => {
     expect(execution.outputs[0].className).to.eql('Coso')
   })
 
-  it('module persist on other vm instance', async () => {
+  it.skip('module persist on other vm instance', async () => {
     const vm = new VM(storage)
     const moduleId = await vm.deployCode(someValidModule)
 
@@ -56,7 +56,7 @@ describe('deploy code', () => {
     expect(execution.outputs[0].className).to.eql('Coso')
   })
 
-  it('can deploy same module twice', async () => {
+  it.skip('can deploy same module twice', async () => {
     const vm = new VM(storage)
     const moduleId1 = await vm.deployCode(someValidModule)
     const moduleId2 = await vm.deployCode(someValidModule)
@@ -64,7 +64,7 @@ describe('deploy code', () => {
     expect(moduleId1).to.eql(moduleId2)
   })
 
-  it('modules can be pre added from a file', async () => {
+  it.skip('modules can be pre added from a file', async () => {
     const vm = new VM(storage)
     const moduleId = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
@@ -76,7 +76,7 @@ describe('deploy code', () => {
     expect(execution.outputs[0].className).to.eql('Flock')
   })
 
-  it('some pre compiled module can be added twice', async () => {
+  it.skip('some pre compiled module can be added twice', async () => {
     const vm = new VM(storage)
     const moduleId1 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
     const moduleId2 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
@@ -84,7 +84,7 @@ describe('deploy code', () => {
     expect(moduleId1).to.eql(moduleId2)
   })
 
-  it('modules can be pre added from a file with dependencies', () => {
+  it.skip('modules can be pre added from a file with dependencies', () => {
     const vm = new VM(storage)
     vm.addPreCompiled('aldea/basic-math.wasm', 'aldea/basic-math.ts')
     const flockId = vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
@@ -99,7 +99,7 @@ describe('deploy code', () => {
     expect(jigState[0]).to.eql(1)
   })
 
-  it('after a module was deployed the next instance has the module already loaded', () => {
+  it.skip('after a module was deployed the next instance has the module already loaded', () => {
     const vm = new VM(storage)
     vm.addPreCompiled('aldea/basic-math.wasm', 'aldea/basic-math.ts')
     const flockId = vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')

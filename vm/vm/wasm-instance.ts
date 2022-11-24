@@ -299,10 +299,7 @@ export class WasmInstance {
           const argBuf = liftBuffer(this, argsPtr)
           const originBuf = liftBuffer(this, originPtr)
           this.remoteLockHandler(Location.fromBuffer(originBuf), type, argBuf)
-        },
-        vm_print: (msgPtr: number ) => {
-          console.log(msgPtr)
-        },
+        }
       }
     }
     this.module = module
