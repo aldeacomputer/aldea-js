@@ -1,3 +1,119 @@
+declare module 'aldea/lock' {
+	import { Jig } from 'aldea/jig';
+	/**
+	 * Lock Types
+	 *
+	 * - Destroyed  - can't be called; can't be locked; (can be loaded?)
+	 * - None       - can't be called; anyone can lock; (default type)
+	 * - PubkeyHash - requires sig to call; requires sig to lock;
+	 * - Caller     - caller must be parent; new lock must be set by parent;
+	 * - Anyone     - anyone can call; can't be locked; (must be set in own constructor)
+	 */
+	export enum LockType {
+	    DESTROYED = -1,
+	    NONE = 0,
+	    PUBKEY_HASH = 1,
+	    CALLER = 2,
+	    ANYONE = 3
+	}
+	/**
+	 * Lock State struct
+	 *
+	 * Data is either pubkey hash, origin, or empty bufer, depending on lock type.
+	 */
+	export class LockState {
+	    type: LockType;
+	    data: ArrayBuffer;
+	}
+	/**
+	 * Lock API
+	 *
+	 * Never instantiated directly - only accessed via jig, eg: `jig.$lock`.
+	 */
+	export class Lock {
+	    private _jig;
+	    type: LockType;
+	    data: ArrayBuffer;
+	    constructor(jig: Jig, state?: LockState | null);
+	    to(type: LockType, data?: ArrayBuffer): void;
+	    toPubkeyHash(pubkeyHash: ArrayBuffer): void;
+	    toCaller(): void;
+	    toAnyone(): void;
+	    unlock(): void;
+	}
+
+}
+declare module 'aldea/output' {
+	import { Jig } from 'aldea/jig';
+	import { LockState } from 'aldea/lock';
+	/**
+	 * Output State struct
+	 */
+	export class OutputState {
+	    origin: string;
+	    location: string;
+	    motos: u64;
+	    lock: LockState;
+	}
+	/**
+	 * Output API
+	 *
+	 * Never instantiated directly - only accessed via jig, eg: `jig.$output`.
+	 */
+	export class Output {
+	    private _jig;
+	    origin: string;
+	    location: string;
+	    motos: u64;
+	    constructor(jig: Jig, state: OutputState);
+	    destroy(): void;
+	}
+	/**
+	 * Fetches the output state from the VM for the given local or remote Jig.
+	 */
+	export function getOutputState(jig: Jig): OutputState;
+
+}
+declare module 'aldea/jig' {
+	import { Lock } from 'aldea/lock';
+	import { Output } from 'aldea/output';
+	/**
+	 * Base Jig class
+	 */
+	export class Jig {
+	    get $lock(): Lock;
+	    get $output(): Output;
+	}
+	/**
+	 * Remote Jig class - never extended from directly
+	 */
+	export class RemoteJig extends Jig {
+	    origin: ArrayBuffer;
+	}
+
+}
+declare module 'aldea/auth' {
+	import { Jig } from 'aldea/jig';
+	/**
+	 * AuthCheck type
+	 *
+	 * - call - can the caller call a method on the jig?
+	 * - lock - can the caller lock the jig?
+	 */
+	export enum AuthCheck {
+	    CALL = 0,
+	    LOCK = 1
+	}
+	/**
+	 * Check if the caller can call the given jig
+	 */
+	export function canCall(jig: Jig): bool;
+	/**
+	 * Check if the caller can lock the given jig
+	 */
+	export function canLock(jig: Jig): bool;
+
+}
 declare module 'aldea/bytes' {
 	/**
 	 * Bytes class
@@ -80,123 +196,6 @@ declare module 'aldea/bytes' {
 	 * Encodes the buffer into a UTF-16 encoded string.
 	 */
 	export function toString(buf: ArrayBuffer): string;
-
-}
-declare module 'aldea/lock' {
-	import { Jig } from 'aldea/jig';
-	/**
-	 * Lock Types
-	 *
-	 * - Destroyed  - can't be called; can't be locked; (can be loaded?)
-	 * - None       - can't be called; anyone can lock; (default type)
-	 * - PubkeyHash - requires sig to call; requires sig to lock;
-	 * - Caller     - caller must be parent; new lock must be set by parent;
-	 * - Anyone     - anyone can call; can't be locked; (must be set in own constructor)
-	 */
-	export enum LockType {
-	    DESTROYED = -1,
-	    NONE = 0,
-	    PUBKEY_HASH = 1,
-	    CALLER = 2,
-	    ANYONE = 3
-	}
-	/**
-	 * Lock State struct
-	 *
-	 * Data is either pubkey hash, origin, or empty bufer, depending on lock type.
-	 */
-	export class LockState {
-	    type: LockType;
-	    data: ArrayBuffer;
-	}
-	/**
-	 * Lock API
-	 *
-	 * Never instantiated directly - only accessed via jig, eg: `jig.$lock`.
-	 */
-	export class Lock {
-	    private _jig;
-	    type: LockType;
-	    data: ArrayBuffer;
-	    constructor(jig: Jig, state?: LockState | null);
-	    to(type: LockType, data?: ArrayBuffer): void;
-	    toAddress(address: string): void;
-	    toPubkeyHash(pubkeyHash: ArrayBuffer): void;
-	    toCaller(): void;
-	    toAnyone(): void;
-	    unlock(): void;
-	}
-
-}
-declare module 'aldea/output' {
-	import { Jig } from 'aldea/jig';
-	import { LockState } from 'aldea/lock';
-	/**
-	 * Output State struct
-	 */
-	export class OutputState {
-	    origin: string;
-	    location: string;
-	    motos: u64;
-	    lock: LockState;
-	}
-	/**
-	 * Output API
-	 *
-	 * Never instantiated directly - only accessed via jig, eg: `jig.$output`.
-	 */
-	export class Output {
-	    private _jig;
-	    origin: string;
-	    location: string;
-	    motos: u64;
-	    constructor(jig: Jig, state: OutputState);
-	    destroy(): void;
-	}
-	/**
-	 * Fetches the output state from the VM for the given local or remote Jig.
-	 */
-	export function getOutputState(jig: Jig): OutputState;
-
-}
-declare module 'aldea/jig' {
-	import { Lock } from 'aldea/lock';
-	import { Output } from 'aldea/output';
-	/**
-	 * Base Jig class
-	 */
-	export class Jig {
-	    get $lock(): Lock;
-	    get $output(): Output;
-	}
-	/**
-	 * Remote Jig class - never extended from directly
-	 */
-	export class RemoteJig extends Jig {
-	    origin: ArrayBuffer;
-	}
-
-}
-declare module 'aldea/auth' {
-	import { Jig } from 'aldea/jig';
-	/**
-	 * AuthCheck type
-	 *
-	 * - call - can the caller call a method on the jig?
-	 * - lock - can the caller lock the jig?
-	 */
-	export enum AuthCheck {
-	    CALL = 0,
-	    LOCK = 1
-	}
-	/**
-	 * Check if the caller can call the given jig
-	 */
-	export function canCall(jig: Jig): bool;
-	/**
-	 * Check if the caller can lock the given jig
-	 */
-	export function canLock(jig: Jig): bool;
 
 }
 
