@@ -224,8 +224,8 @@ class TxExecution {
 
   _onRemoteLock (childOrigin: Location, type: LockType, extraArg: ArrayBuffer): void {
     const childJigRef = this.getJigRefByOrigin(childOrigin)
-    if (!childJigRef.lock.acceptsExecution(this)) {
-      throw new Error('lock cannot be changed')
+    if (!childJigRef.lock.canBeChangedBy(this)) {
+      throw new PermissionError('lock cannot be changed')
     }
     if (type === LockType.CALLER) {
       const parentJigOrigin = this.stack[this.stack.length - 1]

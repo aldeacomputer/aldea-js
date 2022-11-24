@@ -6,6 +6,8 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
+import {Location} from "@aldea/sdk-js";
+import {ExecutionError, PermissionError} from "../vm/errors.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -109,5 +111,53 @@ describe('execute txs', () => {
     const parsed = exec.outputs[1].objectState(exec.getImportedModule(counterWasmIndex))
     expect(parsed.sheepCount).to.eql(1)
     expect(parsed.legCount).to.eql(4)
+  })
+
+  it('after locking a jig in the code the state gets updated properly', () => {
+    const flockWasmIndex = exec.importModule(modIdFor('flock'))
+    const counterWasmIndex = exec.importModule(modIdFor('sheep-counter'))
+    const flockIndex = exec.instantiate(flockWasmIndex, 'Flock', [])
+    const jig = exec.getStatementResult(flockIndex)
+    const shepherdIndex = exec.instantiate(counterWasmIndex, 'Shepherd', [jig.asJig()])
+    exec.lockJigToUser(shepherdIndex, userAddr)
+    exec.finalize()
+
+    const flockOutputIndex = 0
+    const shepherdOutputIndex = 1
+    const parsed = exec.outputs[flockOutputIndex]
+    expect(parsed.className).to.eql('Flock')
+    expect(parsed.serializedLock).to.eql( {type: 'JigLock',   data: {
+        "origin": new Location(exec.tx.hash(), shepherdOutputIndex).toString()
+      }})
+  })
+
+  it('fails if the tx is trying to lock an already locked jig', () => {
+    const flockWasmIndex = exec.importModule(modIdFor('flock'))
+    const counterWasmIndex = exec.importModule(modIdFor('sheep-counter'))
+    const flockIndex = exec.instantiate(flockWasmIndex, 'Flock', [])
+    const jig = exec.getStatementResult(flockIndex)
+
+    // this locks the flock successfully
+    const shepherdIndex = exec.instantiate(counterWasmIndex, 'Shepherd', [jig.asJig()])
+    exec.lockJigToUser(shepherdIndex, userAddr)
+    const flockOutputIndex = 0
+    // this tries to lock it again
+    expect(() => {exec.lockJigToUser(flockIndex, userAddr)}).to.throw(PermissionError,
+      `no permission to remove lock from jig ${new Location(exec.tx.hash(), flockOutputIndex).toString()}`)
+  })
+
+  it('fails when a jig tries to lock a locked jig', () => {
+    const flockWasmIndex = exec.importModule(modIdFor('flock'))
+    const counterWasmIndex = exec.importModule(modIdFor('sheep-counter'))
+    const flockIndex = exec.instantiate(flockWasmIndex, 'Flock', [])
+    const jig = exec.getStatementResult(flockIndex)
+    // this locks the flock
+    exec.lockJigToUser(flockIndex, userAddr)
+
+    const shepherdOutputIndex = 1
+
+    // this tries to lock it again
+    expect(() => {exec.instantiate(counterWasmIndex, 'Shepherd', [jig.asJig()])}).to.throw(PermissionError,
+      `lock cannot be changed`)
   })
 })
