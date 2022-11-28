@@ -7,7 +7,7 @@ import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
 import {Location} from "@aldea/sdk-js";
-import {ExecutionError, PermissionError} from "../vm/errors.js";
+import {PermissionError} from "../vm/errors.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -154,10 +154,23 @@ describe('execute txs', () => {
     // this locks the flock
     exec.lockJigToUser(flockIndex, userAddr)
 
-    const shepherdOutputIndex = 1
-
     // this tries to lock it again
     expect(() => {exec.instantiate(counterWasmIndex, 'Shepherd', [jig.asJig()])}).to.throw(PermissionError,
       `lock cannot be changed`)
   })
+
+  it('can call top level functions')
+  it('fails when a jig tries to call a method on a jig of the same class with no permissions')
+  it('fails when a jig tries to call a private method on another jig of the same module that does not own')
+  it('allow to call private methods on jigs of the same module that own')
+  it('can create jigs inside jigs')
+  it('can save numbers inside statement result')
+  it('can save strings inside statement result')
+  it('can save arrays of jigs inside statement results')
+  it('can save arrays of strings inside statement results')
+  it('can save arrays of strings inside statement results')
+
+  it('fails if an import is tried to use as a jig')
+  it('fails if a number statement result is tried to be use as a jig')
+  it('fails if a jig statement result is tried to be used as an import')
 })

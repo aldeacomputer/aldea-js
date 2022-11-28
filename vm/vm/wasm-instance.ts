@@ -25,6 +25,7 @@ import {
   lowerValue,
 } from "./memory.js";
 import {Location} from "@aldea/sdk-js";
+import {TxExecution} from "./tx-execution.js";
 
 // enum AuthCheck {
 //   CALL,     // 0 - can the caller call a method?
@@ -75,21 +76,6 @@ function __encodeArgs (args: any[]): ArrayBuffer {
 function __decodeArgs (data: ArrayBuffer): any[] {
   return CBOR.decode(data, null, {mode: "sequence"}).data
 }
-
-type ConstructorHandler = (source: WasmInstance, jigPtr: number, className: string) => void
-type RemoteCallHandler = (callerInstance: WasmInstance, targetOrigin: Location, className: string, methodName: string, argBuff: ArrayBuffer) => MethodResult
-type RemoteStaticExecHandler = (srcModule: WasmInstance, targetModId: string, fnNane: string, argBuf: ArrayBuffer) => MethodResult
-type GetPropHandler = (origin: Location, propName: string) => Prop
-type CreateHandler = (moduleId: string, className: string, args: any[]) => JigRef
-type RemoteLockHandler = (childOrigin: Location, type: LockType, extraArg: ArrayBuffer) => void
-type ReleaseHandler = (childOrigin: string, parentOrigin: string) => void
-type FindUtxoHandler = (wasm: WasmInstance,jigPtr: number) => JigRef
-type FindRemoteUtxoHandler = (origin: ArrayBuffer) => JigRef
-type LocalLockHandler = (jigPtr: number, wasmInstance: WasmInstance, type: LockType, extraArg: ArrayBuffer) => void
-type LocalCallStartHandler = (jigPtr: number, wasmInstance: WasmInstance) => void
-type LocalCallEndtHandler = () => void
-type AuthCheckHandler = (targetOrigin: Location, check: AuthCheck) => boolean
-type LocalAuthCheckHandler = (jigPtr: number, module: WasmInstance, check: AuthCheck) => boolean
 
 const voidNode = { name: '_void', args: [] }
 
@@ -162,20 +148,8 @@ const lockStateAbiNode = {
 export class WasmInstance {
   id: string;
   memory: WebAssembly.Memory;
-  private constructorHandler: ConstructorHandler;
-  private remoteCallHandler: RemoteCallHandler;
-  private getPropHandler: GetPropHandler;
-  private createHandler: CreateHandler;
-  private remoteLockHandler: RemoteLockHandler;
-  private releaseHandler: ReleaseHandler;
-  private findUtxoHandler: FindUtxoHandler;
-  private findRemoteUtxoHandler: FindRemoteUtxoHandler;
-  private localLockHandler: LocalLockHandler;
-  private localCallStartHandler: LocalCallStartHandler;
-  private localCallEndtHandler: LocalCallEndtHandler;
-  private authCheckHandler: AuthCheckHandler;
-  private localAuthCheckHandler: LocalAuthCheckHandler;
-  private remoteStaticExecHandler: RemoteStaticExecHandler;
+  private _currentExec: TxExecution | null;
+
   private module: WebAssembly.Module;
   private instance: WebAssembly.Instance;
   abi: Abi;
@@ -186,20 +160,7 @@ export class WasmInstance {
     abi.objects.push(utxoAbiNode)
     abi.objects.push(lockStateAbiNode)
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
-    this.constructorHandler = () => { throw new Error('handler not defined')}
-    this.remoteCallHandler = () => { throw new Error('handler not defined')}
-    this.getPropHandler = () => { throw new Error('handler not defined')}
-    this.createHandler = () => { throw new Error('handler not defined')}
-    this.remoteLockHandler = () => { throw new Error('handler not defined')}
-    this.releaseHandler = () => { throw new Error('handler not defined')}
-    this.findUtxoHandler = () => { throw new Error('handler not defined')}
-    this.localLockHandler = () => { throw new Error('handler not defined')}
-    this.localCallStartHandler = () => { throw new Error('handler not defined') }
-    this.localCallEndtHandler = () => { throw new Error('handler not defined') }
-    this.authCheckHandler = () => { throw new Error('handler not defined') }
-    this.localAuthCheckHandler = () => { throw new Error('handler not defined') }
-    this.remoteStaticExecHandler = () => { throw new Error('handler not defined')}
-    this.findRemoteUtxoHandler = () => { throw new Error('handler not defined')}
+    this._currentExec = null
 
     const imports: any = {
       env: {
@@ -217,18 +178,18 @@ export class WasmInstance {
       vm: {
         vm_constructor: (jigPtr: number, classNamePtr: number): void => {
           const className = liftString(this, classNamePtr)
-          this.constructorHandler(this, jigPtr, className)
+          this.currentExec.constructorHandler(this, jigPtr, className)
         },
         vm_local_call_start: (jigPtr: number, _fnNamePtr: number): void => {
           // const fnName = liftString(this, _fnNamePtr)
-          this.localCallStartHandler(jigPtr, this)
+          this.currentExec.localCallStartHandler(jigPtr, this)
         },
         vm_remote_authcheck: (originPtr: number, check: AuthCheck) => {
           const origin = liftBuffer(this, originPtr)
-          return this.authCheckHandler(Location.fromBuffer(origin), check)
+          return this.currentExec.remoteAuthCheckHandler(Location.fromBuffer(origin), check)
         },
         vm_local_call_end: () => {
-          this.localCallEndtHandler()
+          this.currentExec.localCallEndtHandler()
         },
         vm_remote_call_i: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
           const targetOriginArrBuf = liftBuffer(this, targetOriginPtr)
@@ -239,7 +200,7 @@ export class WasmInstance {
 
           // const [] = fnStr.split('$')
 
-          const methodResult = this.remoteCallHandler(this, Location.fromBuffer(targetOriginArrBuf), className, methodName, argBuf)
+          const methodResult = this.currentExec.remoteCallHandler(this, Location.fromBuffer(targetOriginArrBuf), className, methodName, argBuf)
           return lowerValue(this, methodResult.node, methodResult.value)
         },
         vm_remote_call_s: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
@@ -247,7 +208,7 @@ export class WasmInstance {
           const fnStr = liftString(this, fnNamePtr)
           const argBuf = liftBuffer(this, argsPtr)
 
-          const result = this.remoteStaticExecHandler(this, Buffer.from(moduleId).toString(), fnStr, argBuf)
+          const result = this.currentExec.remoteStaticExecHandler(this, Buffer.from(moduleId).toString(), fnStr, argBuf)
           return lowerValue(this, result.node, result.value)
         },
 
@@ -256,18 +217,18 @@ export class WasmInstance {
           const propStr = liftString(this, propNamePtr)
           const propName = propStr.split('.')[1]
 
-          const prop = this.getPropHandler(Location.fromBuffer(targetOrigBuf), propName)
+          const prop = this.currentExec.getPropHandler(Location.fromBuffer(targetOrigBuf), propName)
           return lowerValue(prop.mod, prop.node, prop.value)
         },
         vm_local_authcheck: (targetJigPtr: number, check: AuthCheck) => {
-          return this.localAuthCheckHandler(targetJigPtr, this, check)
+          return this.currentExec.localAuthCheckHandler(targetJigPtr, this, check)
         },
         vm_local_lock: (targetJigRefPtr: number, type: LockType, argsPtr: number): void => {
           const argBuf = liftBuffer(this, argsPtr)
-          this.localLockHandler(targetJigRefPtr, this, type, argBuf)
+          this.currentExec.localLockHandler(targetJigRefPtr, this, type, argBuf)
         },
         vm_local_state: (jigPtr: number): number => {
-          const jigRef = this.findUtxoHandler(this, jigPtr)
+          const jigRef = this.currentExec.findUtxoHandler(this, jigPtr)
           const abiNode = findPlainObject(this.abi, 'UtxoState', 'should be present')
           const utxo = {
             origin: jigRef.origin.toString(),
@@ -282,7 +243,7 @@ export class WasmInstance {
         },
         vm_remote_state: (originPtr: number): number => {
           const originBuff = liftBuffer(this, originPtr)
-          const jigRef = this.findRemoteUtxoHandler(originBuff)
+          const jigRef = this.currentExec.findRemoteUtxoHandler(originBuff)
           const utxo = {
             origin: jigRef.origin.toString(),
             location: jigRef, // FIXME: real location,
@@ -298,7 +259,7 @@ export class WasmInstance {
         vm_remote_lock: (originPtr: number, type: LockType, argsPtr: number) => {
           const argBuf = liftBuffer(this, argsPtr)
           const originBuf = liftBuffer(this, originPtr)
-          this.remoteLockHandler(Location.fromBuffer(originBuf), type, argBuf)
+          this.currentExec.remoteLockHandler(Location.fromBuffer(originBuf), type, argBuf)
         }
       }
     }
@@ -309,6 +270,15 @@ export class WasmInstance {
     this.memory = wasmMemory
   }
 
+  get currentExec (): TxExecution {
+    if (this._currentExec === null) { throw new Error('tx is not present')}
+    return this._currentExec
+  }
+
+  setExecution (tx: TxExecution) {
+    this._currentExec = tx
+  }
+
   /**
    * TODO - Miguel to check
    * Expose the exports as need to access externall from memory functions
@@ -316,62 +286,6 @@ export class WasmInstance {
    */
   get exports(): WasmExports {
     return this.instance.exports as WasmExports
-  }
-
-  onConstructor (fn: ConstructorHandler): void {
-    this.constructorHandler = fn
-  }
-
-  onGetProp (fn: GetPropHandler): void{
-    this.getPropHandler = fn
-  }
-
-  onMethodCall (fn: RemoteCallHandler) {
-    this.remoteCallHandler = fn
-  }
-
-  onCreate (fn: CreateHandler) {
-    this.createHandler = fn
-  }
-
-  onRemoteLockHandler (fn: RemoteLockHandler) {
-    this.remoteLockHandler = fn
-  }
-
-  onRelease (fn: ReleaseHandler) {
-    this.releaseHandler = fn
-  }
-
-  onFindUtxo(fn: FindUtxoHandler) {
-    this.findUtxoHandler = fn
-  }
-
-  onLocalLock(fn: LocalLockHandler) {
-    this.localLockHandler = fn
-  }
-
-  onLocalCallStart (fn: LocalCallStartHandler) {
-    this.localCallStartHandler = fn
-  }
-
-  onLocalCallEnd (fn: LocalCallEndtHandler) {
-    this.localCallEndtHandler = fn
-  }
-
-  onAuthCheck (fn: AuthCheckHandler) {
-    this.authCheckHandler = fn
-  }
-
-  onLocalAuthCheck (fn: LocalAuthCheckHandler) {
-    this.localAuthCheckHandler = fn
-  }
-
-  onRemoteStaticExecHandler (fn: RemoteStaticExecHandler) {
-    this.remoteStaticExecHandler = fn
-  }
-
-  onFindRemoteUtxoHandler (fn: FindRemoteUtxoHandler) {
-    this.findRemoteUtxoHandler = fn
   }
 
   staticCall (className: string, methodName: string, args: any[]): MethodResult {

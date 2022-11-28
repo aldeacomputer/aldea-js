@@ -10,7 +10,7 @@ import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-inst
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
 import {FieldNode, findExportedObject, findObjectMethod, TypeNode} from '@aldea/compiler/abi'
-import {Address, Location, Signature, TxVisitor} from '@aldea/sdk-js';
+import {Address, Location} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 
@@ -114,30 +114,18 @@ class TxExecution {
     const existing = this.wasms.get(moduleId)
     if (existing) { return existing }
     const wasmInstance = this.vm.createWasmInstance(moduleId)
-    wasmInstance.onConstructor(this._onConstructor.bind(this))
-    wasmInstance.onMethodCall(this._onRemoteInstanceCall.bind(this))
-    wasmInstance.onGetProp(this._onGetProp.bind(this))
-    wasmInstance.onRemoteLockHandler(this._onRemoteLock.bind(this))
-    wasmInstance.onRelease(this._onRelease.bind(this))
-    wasmInstance.onFindUtxo(this._onFindUtxo.bind(this))
-    wasmInstance.onFindRemoteUtxoHandler(this._onFindRemoteUtxoHandler.bind(this))
-    wasmInstance.onLocalLock(this._onLocalLock.bind(this))
-    wasmInstance.onLocalCallStart(this._onLocalCallStart.bind(this))
-    wasmInstance.onLocalCallEnd(this._onLocalCallEnd.bind(this))
-    wasmInstance.onAuthCheck(this._onAuthCheck.bind(this))
-    wasmInstance.onLocalAuthCheck(this._onLocalAuthCheck.bind(this))
-    wasmInstance.onRemoteStaticExecHandler(this._onRemoteStaticExecHandler.bind(this))
+    wasmInstance.setExecution(this)
     this.wasms.set(moduleId, wasmInstance)
     return wasmInstance
   }
 
-  _onFindRemoteUtxoHandler(origin: ArrayBuffer): JigRef {
+  findRemoteUtxoHandler (origin: ArrayBuffer): JigRef {
     const jigRef = this.jigs.find(j => Buffer.from(j.originBuf).equals(Buffer.from(origin)))
     if(!jigRef) { throw new Error('should exist')}
     return jigRef
   }
 
-  _onConstructor(source: WasmInstance, jigPtr: number, className: string): void {
+  constructorHandler(source: WasmInstance, jigPtr: number, className: string): void {
     const origin = this.newOrigin()
     const existingRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === source)
     if (existingRef) {
@@ -149,21 +137,21 @@ class TxExecution {
     this.addNewJigRef(jigRef)
   }
 
-  _onLocalAuthCheck(jigPtr: number, instance: WasmInstance, check: AuthCheck): boolean {
+  localAuthCheckHandler(jigPtr: number, instance: WasmInstance, check: AuthCheck): boolean {
     const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance) || this.jigs.find(j => j.ref.ptr === -1 && j.module === instance)
     if (!jig) {throw new Error('should exists')}
-    return this._onAuthCheck(jig.origin, check)
+    return this.remoteAuthCheckHandler(jig.origin, check)
   }
 
-  _onLocalLock(jigPtr: number, instance: WasmInstance, type: LockType, extraArg: ArrayBuffer): void {
+  localLockHandler (jigPtr: number, instance: WasmInstance, type: LockType, extraArg: ArrayBuffer): void {
     const childJigRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === instance)
     if (!childJigRef) {
       throw new Error('should exists')
     }
-    this._onRemoteLock(childJigRef.origin, type, extraArg)
+    this.remoteLockHandler(childJigRef.origin, type, extraArg)
   }
 
-  _onRemoteInstanceCall (callerInstance: WasmInstance, origin: Location, className: string,  methodName: string, argBuff: ArrayBuffer): MethodResult {
+  remoteCallHandler (callerInstance: WasmInstance, origin: Location, className: string, methodName: string, argBuff: ArrayBuffer): MethodResult {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
       jig = this.loadJig(origin, false,false)
@@ -186,7 +174,7 @@ class TxExecution {
     return this.callInstanceMethod(jig, methodName, args)
   }
 
-  _onRemoteStaticExecHandler (srcModule: WasmInstance, targetModId: string, fnStr: string, argBuffer: ArrayBuffer): MethodResult {
+  remoteStaticExecHandler (srcModule: WasmInstance, targetModId: string, fnStr: string, argBuffer: ArrayBuffer): MethodResult {
     const targetMod = this.loadModule(targetModId)
 
     const [className, methodName] = fnStr.split('_')
@@ -209,7 +197,7 @@ class TxExecution {
     return targetMod.staticCall(className, methodName, argValues)
   }
 
-  _onGetProp (origin: Location, propName: string): Prop {
+  getPropHandler (origin: Location, propName: string): Prop {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
       jig = this.loadJig(origin, false,false)
@@ -222,7 +210,7 @@ class TxExecution {
   //   return this.instantiate(moduleId, className, args)
   // }
 
-  _onRemoteLock (childOrigin: Location, type: LockType, extraArg: ArrayBuffer): void {
+  remoteLockHandler (childOrigin: Location, type: LockType, extraArg: ArrayBuffer): void {
     const childJigRef = this.getJigRefByOrigin(childOrigin)
     if (!childJigRef.lock.canBeChangedBy(this)) {
       throw new PermissionError('lock cannot be changed')
@@ -244,11 +232,7 @@ class TxExecution {
     }
   }
 
-  _onRelease(_childOrigin: string, _parentOrigin: string) {
-    throw new Error('on release not implemented')
-  }
-
-  _onLocalCallStart(jigPtr: number, wasmInstance: WasmInstance) {
+  localCallStartHandler(jigPtr: number, wasmInstance: WasmInstance) {
     const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === wasmInstance) || this.jigs.find(j => j.ref.ptr === -1 && j.module === wasmInstance)
     if (!jig) {
       throw new Error('jig should exist')
@@ -256,12 +240,12 @@ class TxExecution {
     this.stack.push(jig.origin)
   }
 
-  _onLocalCallEnd () {
+  localCallEndtHandler () {
     this.stack.pop()
   }
 
 
-  private _onAuthCheck (origin: Location, check: AuthCheck): boolean {
+  remoteAuthCheckHandler (origin: Location, check: AuthCheck): boolean {
     const jigRef = this.jigs.find(jigR => jigR.origin.equals(origin))
     if (!jigRef) {
       throw new Error('jig ref should exists')
@@ -273,7 +257,7 @@ class TxExecution {
     }
   }
 
-  private _onFindUtxo(wasm: WasmInstance, jigPtr: number): JigRef {
+  findUtxoHandler(wasm: WasmInstance, jigPtr: number): JigRef {
     const jigRef = this.jigs.find(ref => ref.module === wasm && ref.ref.ptr === jigPtr)
     if (!jigRef) {
       let origin = this.newOrigin();
@@ -382,26 +366,6 @@ class TxExecution {
       mod
     )
   }
-
-  // execFunction (varName: string, moduleId: string, functionName: string, args: any[]) {
-  //   const module = this.loadModule(moduleId)
-  //   const result = module.functionCall(functionName, args)
-  //   if (!result.node) {
-  //     return result
-  //   }
-  //   const objNode = findExportedObject(module.abi, result.node.name, 'should exist')
-  //   if (objNode.kind === ObjectKind.EXPORTED) {
-  //     const jig = this.jigs.find(j => j.module === module && j.ref.ptr === result.value.ptr)
-  //     if (!jig) { throw new Error('')}
-  //     return result
-  //   } else if (objNode.kind === ObjectKind.IMPORTED) {
-  //     const jig = this.jigs.find(j => j.origin === result.value.origin)
-  //     if (!jig) { throw new Error('')}
-  //     return result
-  //   } else {
-  //     return result
-  //   }
-  // }
 
   newOrigin () {
     return new Location(this.tx.hash(), this.jigs.length)
