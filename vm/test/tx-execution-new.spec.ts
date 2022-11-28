@@ -30,6 +30,7 @@ describe('execute txs', () => {
     vm = new VM(storage)
 
     const sources = [
+      'ant',
       'basic-math',
       'flock',
       'nft',
@@ -159,10 +160,50 @@ describe('execute txs', () => {
       `lock cannot be changed`)
   })
 
+  it('fails when a jig tries to call a method on a jig of the same class with no permissions', () => {
+    const antWasmIndex = exec.importModule(modIdFor('ant'))
+    const ant1Index = exec.instantiate(antWasmIndex, 'Ant', [])
+    const ant2Index = exec.instantiate(antWasmIndex, 'Ant', [])
+    const jig = exec.getStatementResult(ant2Index)
+    exec.callInstanceMethodByIndex(ant1Index, 'addFriend', [jig.asJig()]) // does not lock to caller
+    exec.lockJigToUser(ant1Index, userAddr)
+    exec.lockJigToUser(ant2Index, userAddr)
+
+    expect(() =>
+      exec.callInstanceMethodByIndex(ant1Index, 'forceAFriendToWork', []) // calls public method on not owned jig
+    ).to.throw(PermissionError)
+  })
+
+  it('fails when a jig tries to call a private method on another jig of the same module that does not own', () => {
+    const antWasmIndex = exec.importModule(modIdFor('ant'))
+    const ant1Index = exec.instantiate(antWasmIndex, 'Ant', [])
+    const ant2Index = exec.instantiate(antWasmIndex, 'Ant', [])
+    const jig = exec.getStatementResult(ant2Index)
+    exec.callInstanceMethodByIndex(ant1Index, 'addFriend', [jig.asJig()]) // does not lock to caller
+    exec.lockJigToUser(ant1Index, userAddr)
+    exec.lockJigToUser(ant2Index, userAddr)
+
+    expect(() =>
+      exec.callInstanceMethodByIndex(ant1Index, 'forceFriendsFamilyToWork', []) // calls private method on not owned jig
+    ).to.throw(PermissionError)
+  })
+
+  it('allow to call private methods on jigs of the same module that own', () => {
+    const antWasmIndex = exec.importModule(modIdFor('ant'))
+    const ant1Index = exec.instantiate(antWasmIndex, 'Ant', [])
+    const ant2Index = exec.instantiate(antWasmIndex, 'Ant', [])
+    const jig = exec.getStatementResult(ant2Index)
+    exec.callInstanceMethodByIndex(ant1Index, 'addChildren', [jig.asJig()])
+    exec.callInstanceMethodByIndex(ant1Index, 'buildCapacity', [jig.asJig()])
+    exec.lockJigToUser(ant1Index, userAddr)
+    exec.finalize()
+
+    const parsed = exec.outputs[0].parsedState()
+    expect(parsed[0]).to.have.length(1)
+    expect(parsed[1]).to.eql([])
+  })
+
   it('can call top level functions')
-  it('fails when a jig tries to call a method on a jig of the same class with no permissions')
-  it('fails when a jig tries to call a private method on another jig of the same module that does not own')
-  it('allow to call private methods on jigs of the same module that own')
   it('can create jigs inside jigs')
   it('can save numbers inside statement result')
   it('can save strings inside statement result')

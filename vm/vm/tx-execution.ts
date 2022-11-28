@@ -232,12 +232,20 @@ class TxExecution {
     }
   }
 
-  localCallStartHandler(jigPtr: number, wasmInstance: WasmInstance) {
-    const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === wasmInstance) || this.jigs.find(j => j.ref.ptr === -1 && j.module === wasmInstance)
-    if (!jig) {
+  localCallStartHandler(wasmInstance: WasmInstance, jigPtr: number, fnName: string) {
+    const targetJig = this.jigs.find(j => j.ref.ptr === jigPtr && j.module === wasmInstance) || this.jigs.find(j => j.ref.ptr === -1 && j.module === wasmInstance)
+    if (!targetJig) {
       throw new Error('jig should exist')
     }
-    this.stack.push(jig.origin)
+    if (!targetJig.lock.acceptsExecution(this)) {
+      const stackTop = this.stackTop()
+      if (stackTop) {
+        throw new PermissionError(`jig ${targetJig.origin.toString()} is not allowed to exec "${fnName}" called from ${this.stackTop().toString()}`)
+      } else {
+        throw new PermissionError(`jig ${targetJig.origin.toString()} is not allowed to exec "${fnName}"`)
+      }
+    }
+    this.stack.push(targetJig.origin)
   }
 
   localCallEndtHandler () {
@@ -332,10 +340,7 @@ class TxExecution {
   }
 
   callInstanceMethod (jig: JigRef, methodName: string, args: any[]): MethodResult {
-    this.stack.push(jig.origin)
-    const ret = jig.module.instanceCall(jig, jig.className, methodName, args)
-    this.stack.pop()
-    return ret
+    return jig.module.instanceCall(jig, jig.className, methodName, args)
   }
 
   callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {

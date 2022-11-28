@@ -181,8 +181,8 @@ export class WasmInstance {
           this.currentExec.constructorHandler(this, jigPtr, className)
         },
         vm_local_call_start: (jigPtr: number, _fnNamePtr: number): void => {
-          // const fnName = liftString(this, _fnNamePtr)
-          this.currentExec.localCallStartHandler(jigPtr, this)
+          const fnName = liftString(this, _fnNamePtr)
+          this.currentExec.localCallStartHandler(this, jigPtr, fnName)
         },
         vm_remote_authcheck: (originPtr: number, check: AuthCheck) => {
           const origin = liftBuffer(this, originPtr)
