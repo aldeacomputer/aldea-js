@@ -10,61 +10,85 @@ import {
   MethodDeclaration,
   NamedTypeNode,
   ParameterNode,
-  TypeDeclaration,
 } from 'assemblyscript'
 
 import {
-  ObjectNode,
+  ClassNode,
+  ExportNode,
   FieldNode,
+  ArgNode,
+  FunctionNode,
+  ImportNode,
   MethodNode,
+  ObjectNode,
   TypeNode,
-  FunctionNode
 } from '../abi/types.js'
 
 /**
- * Object Node wrapping around Class Declaration.
+ * ExportWrap - same as ABI ExportNode.
+ */
+export interface ExportWrap extends ExportNode {}
+
+/**
+ * Wraps an ImportNode around a ClassNode or FunctionNode.
+ */
+export interface ImportWrap extends ImportNode {
+  code: ClassWrap | FunctionWrap;
+}
+
+/**
+ * Wraps an ClassNode around a ClassDeclaration.
+ */
+export interface ClassWrap extends ClassNode {
+  node: ClassDeclaration;
+}
+
+/**
+ * Wraps an ObjectNode around a ClassDeclaration.
  */
 export interface ObjectWrap extends ObjectNode {
   node: ClassDeclaration;
-  decorators: DecoratorWrap[];
-  fields: FieldWrap[];
-  methods: MethodWrap[];
 }
 
 /**
- * Function Node wrapping around Function Declaration.
+ * Wraps an FunctionNode around a FunctionDeclaration.
  */
 export interface FunctionWrap extends FunctionNode {
   node: FunctionDeclaration;
-  decorators: DecoratorWrap[];
 }
 
 /**
- * Field Node wrapping around Field Declaration or Parameter Node.
- */
-export interface FieldWrap extends FieldNode {
-  node: FieldDeclaration | ParameterNode | TypeDeclaration;
-}
-
-/**
- * Method Node wrapping around Method Declaration.
+ * Wraps an MethodNode around a MethodDeclaration.
  */
 export interface MethodWrap extends MethodNode {
   node: MethodDeclaration;
-  decorators: DecoratorWrap[];
 }
 
 /**
- * Type Node wrapping around Named Type Node.
+ * Wraps an FieldNode around a FieldDeclaration.
+ */
+export interface FieldWrap extends FieldNode {
+  node: FieldDeclaration;
+}
+
+/**
+ * Wraps an ArgNode around a ParameterNode.
+ */
+ export interface ArgWrap extends ArgNode {
+  node: ParameterNode;
+}
+
+/**
+ * Wraps an TypeNode around a NamedTypeNode.
  */
 export interface TypeWrap extends TypeNode {
   node: NamedTypeNode;
 }
 
 /**
- * Decorator Node.
+ * DecoratorTag interface.
  */
-export interface DecoratorWrap {
+export interface DecoratorTag {
   node: DecoratorNode;
   name: string;
   args: string[];

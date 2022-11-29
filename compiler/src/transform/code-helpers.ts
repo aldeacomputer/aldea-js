@@ -1,7 +1,7 @@
 import { blake3 } from '@noble/hashes/blake3'
 import { bytesToHex as toHex } from '@noble/hashes/utils'
 import { isExported, isPrivate, isProtected } from './filters.js'
-import { FieldWrap, MethodWrap, ObjectWrap } from './nodes.js'
+import { ClassWrap, FieldWrap, MethodWrap, ObjectWrap } from './nodes.js'
 import { normalizeTypeName } from '../abi.js'
 import { MethodKind, TypeNode } from '../abi/types.js'
 import { getTypeBytes } from '../vm/memory.js'
@@ -12,7 +12,7 @@ import { getTypeBytes } from '../vm/memory.js'
  * 
  * For instance methods, an extra argument is added for the instance Ptr.
  */
-export function writeExportedMethod(method: MethodWrap, obj: ObjectWrap): string {
+export function writeExportedMethod(method: MethodWrap, obj: ClassWrap): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
   const separator = isInstance ? '$' : '_'
@@ -33,7 +33,7 @@ export function writeExportedMethod(method: MethodWrap, obj: ObjectWrap): string
 /**
  * Writes a default constructor class with VM hook.
  */
-export function writeConstructor(obj: ObjectWrap): string {
+export function writeConstructor(obj: ClassWrap): string {
   return `
   constructor() {
     ${ obj.extends ? 'super()' : '' }
@@ -45,7 +45,7 @@ export function writeConstructor(obj: ObjectWrap): string {
 /**
  * Writes a VM constructor hook method call.
  */
-export function writeConstructorHook(obj: ObjectWrap): string {
+export function writeConstructorHook(obj: ClassWrap): string {
   return `vm_constructor(this, '${obj.name}')`
 }
 
@@ -53,7 +53,7 @@ export function writeConstructorHook(obj: ObjectWrap): string {
  * Writes a placeholder proxy class wrapper for the specific Class, around the
  * given member strings.
  */
-export function writeLocalProxyClass(obj: ObjectWrap, members: string[]): string {
+export function writeLocalProxyClass(obj: ClassWrap, members: string[]): string {
   return `
   class ${obj.name} {
     ${ members.join('\n') }
@@ -65,7 +65,7 @@ export function writeLocalProxyClass(obj: ObjectWrap, members: string[]): string
  * Writes a local proxy method. Wraps the native call in `vm_local_call_start`
  * and `vm_local_call_end`.
  */
- export function writeLocalProxyMethod(method: MethodWrap, obj: ObjectWrap): string {
+ export function writeLocalProxyMethod(method: MethodWrap, obj: ClassWrap): string {
   const access = isPrivate(method.node.flags) ? 'private ' : (
     isProtected(method.node.flags) ? 'protected ' : ''
   )
@@ -85,7 +85,7 @@ export function writeLocalProxyClass(obj: ObjectWrap, members: string[]): string
  * Writes a proxy class wrapper for the specific Class, around the given member
  * strings.
  */
-export function writeRemoteProxyClass(obj: ObjectWrap, members: string[]): string {
+export function writeRemoteProxyClass(obj: ClassWrap, members: string[]): string {
   const prefix = isExported(obj.node.flags) ? 'export ' : ''
   return `
   ${prefix}class ${obj.name} extends RemoteJig {
@@ -97,7 +97,7 @@ export function writeRemoteProxyClass(obj: ObjectWrap, members: string[]): strin
 /**
  * Writes a getter on a proxy class. Returns the result of `vm_remote_prop`.
  */
-export function writeRemoteProxyGetter(field: FieldWrap, obj: ObjectWrap): string {
+export function writeRemoteProxyGetter(field: FieldWrap, obj: ClassWrap): string {
   return `
   get ${field.name}(): ${field.type.name} {
     return vm_remote_prop<${field.type.name}>(this.origin, '${obj.name}.${field.name}')
@@ -108,11 +108,10 @@ export function writeRemoteProxyGetter(field: FieldWrap, obj: ObjectWrap): strin
 /**
  * Writes a method on a proxy class. Returns the result of `vm_call`.
  */
-export function writeRemoteProxyMethod(method: MethodWrap, obj: ObjectWrap): string {
+export function writeRemoteProxyMethod(method: MethodWrap, obj: ObjectWrap, origin: string): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
   const isStatic = method.kind === MethodKind.STATIC
-  const origin = obj.decorators.find(n => n.name === 'imported')?.args[0]
   const args = method.args.map((f, i) => `a${i}: ${f.type.name}`)
   const rtype = isConstructor ? 'ArrayBuffer' : method.rtype?.name
   const prefix = isConstructor ? 'this.origin =' : 'return'

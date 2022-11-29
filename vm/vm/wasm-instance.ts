@@ -3,12 +3,12 @@ import {JigRef} from "./jig-ref.js";
 import {
   Abi,
   FieldKind,
-  findExportedFunction,
-  findExportedObject,
-  findObjectField,
-  findObjectMethod,
-  findPlainObject,
-  ObjectKind,
+  findClass,
+  findFunction,
+  findObject,
+  findField,
+  findMethod,
+  ObjectNode,
   TypeNode
 } from "@aldea/compiler/abi";
 import {
@@ -93,8 +93,7 @@ type LocalAuthCheckHandler = (jigPtr: number, module: WasmInstance, check: AuthC
 
 
 
-const utxoAbiNode = {
-  kind: ObjectKind.PLAIN,
+const utxoAbiNode: ObjectNode = {
   name: 'UtxoState',
   extends: null,
   fields: [
@@ -130,12 +129,10 @@ const utxoAbiNode = {
         args: []
       }
     }
-  ],
-  methods: []
+  ]
 }
 
-const lockStateAbiNode = {
-  kind: ObjectKind.PLAIN,
+const lockStateAbiNode: ObjectNode = {
   name: 'LockState',
   extends: null,
   fields: [
@@ -155,8 +152,7 @@ const lockStateAbiNode = {
         args: []
       }
     }
-  ],
-  methods: []
+  ]
 }
 
 export class WasmInstance {
@@ -268,7 +264,7 @@ export class WasmInstance {
         },
         vm_local_state: (jigPtr: number): number => {
           const jigRef = this.findUtxoHandler(this, jigPtr)
-          const abiNode = findPlainObject(this.abi, 'UtxoState', 'should be present')
+          const abiNode = findObject(this.abi, 'UtxoState', 'should be present')
           const utxo = {
             origin: jigRef.origin.toString(),
             location: 'currentlocation', // FIXME: real location,
@@ -292,7 +288,7 @@ export class WasmInstance {
               data: new ArrayBuffer(0)
             }
           }
-          const abiNode = findPlainObject(this.abi, 'UtxoState', 'should be present')
+          const abiNode = findObject(this.abi, 'UtxoState', 'should be present')
           return lowerObject(this, abiNode, utxo)
         },
         vm_remote_lock: (originPtr: number, type: LockType, argsPtr: number) => {
@@ -379,8 +375,8 @@ export class WasmInstance {
 
   staticCall (className: string, methodName: string, args: any[]): MethodResult {
     const fnName = `${className}_${methodName}`
-    const abiObj = findExportedObject(this.abi, className, `unknown export: ${className}`)
-    const method = findObjectMethod(abiObj, methodName, `unknown method: ${methodName}`)
+    const abiObj = findClass(this.abi, className, `unknown export: ${className}`)
+    const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
 
     const ptrs = method.args.map((argNode, i) => {
       return lowerValue(this, argNode.type, args[i])
@@ -401,15 +397,15 @@ export class WasmInstance {
 
   hidrate (className: string, frozenState: ArrayBuffer): Internref {
     const rawState = __decodeArgs(frozenState)
-    const objectNode = findExportedObject(this.abi, className, `unknown class ${className}`)
+    const objectNode = findClass(this.abi, className, `unknown class ${className}`)
     const pointer = lowerObject(this, objectNode, rawState)
     return liftInternref(this, objectNode, pointer)
   }
 
   instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): MethodResult {
     const fnName = `${className}$${methodName}`
-    const abiObj = findExportedObject(this.abi, className, `unknown export: ${className}`)
-    const method = findObjectMethod(abiObj, methodName, `unknown method: ${methodName}`)
+    const abiObj = findClass(this.abi, className, `unknown export: ${className}`)
+    const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
 
     const ptrs = [
       lowerInternref(ref),
@@ -429,8 +425,8 @@ export class WasmInstance {
   }
 
   getPropValue (ref: Internref, className: string, fieldName: string): Prop {
-    const objNode = findExportedObject(this.abi, className, `unknown export: ${className}`)
-    const field = findObjectField(objNode, fieldName, `unknown field: ${fieldName}`)
+    const objNode = findClass(this.abi, className, `unknown export: ${className}`)
+    const field = findField(objNode, fieldName, `unknown field: ${fieldName}`)
 
     const offsets = getObjectMemLayout(objNode)
     const { offset, align } = offsets[field.name]
@@ -451,7 +447,7 @@ export class WasmInstance {
    * The static call above should probably look like this too, no?
    */
   functionCall (fnName: string, args: any[] = []): MethodResult {
-    const abiFn = findExportedFunction(this.abi, fnName, `unknown export: ${fnName}`)
+    const abiFn = findFunction(this.abi, fnName, `unknown export: ${fnName}`)
 
     const ptrs = abiFn.args.map((argNode, i) => {
       return lowerValue(this, argNode.type, args[i])
@@ -484,7 +480,7 @@ export class WasmInstance {
   }
 
   extractState(ref: Internref, className: string): ArrayBuffer {
-    const abiObj = findExportedObject(this.abi, className, 'not found')
+    const abiObj = findClass(this.abi, className, 'not found')
     const liftedObject = liftObject(this, abiObj, ref.ptr)
 
     return __encodeArgs(

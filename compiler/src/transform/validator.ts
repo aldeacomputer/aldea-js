@@ -5,6 +5,7 @@ import {
   DecoratorNode,
   DiagnosticCategory,
   Expression,
+  FunctionDeclaration,
   IdentifierExpression,
   LiteralExpression,
   LiteralKind,
@@ -13,14 +14,15 @@ import {
   NodeKind,
   PropertyAccessExpression,
   Source,
+  SourceKind,
   VariableDeclaration,
   VariableStatement,
 } from 'assemblyscript'
 
-import { ObjectKind } from '../abi.js'
+import { CodeKind } from '../abi.js'
 import { TransformCtx } from './ctx.js'
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
-import { ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap } from './nodes.js'
+import { ClassWrap, ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap } from './nodes.js'
 import { filterAST, isConst, isExported, isGetter, isPrivate, isProtected, isReadonly, isSetter, isStatic } from './filters.js'
 
 // Allowed top-level statements - everything else is an error!
@@ -90,9 +92,48 @@ const whitelist = {
  */
 export class Validator {
   ctx: TransformCtx;
+  cache: SimpleCache = new SimpleCache();
 
   constructor(ctx: TransformCtx) {
     this.ctx = ctx
+  }
+
+  get exportedClassNodes(): ClassDeclaration[] {
+    return this.cache.get<ClassDeclaration[]>('exportedClassNodes', () => {
+      return this.ctx.exports
+        .filter(ex => ex.kind === CodeKind.CLASS)
+        .map(ex => (<ClassWrap>ex.code).node)
+    })
+  }
+
+  get exportedFunctionNodes(): FunctionDeclaration[] {
+    return this.cache.get<FunctionDeclaration[]>('exportedFunctionNodes', () => {
+      return this.ctx.exports
+        .filter(ex => ex.kind === CodeKind.FUNCTION)
+        .map(ex => (<FunctionWrap>ex.code).node)
+    })
+  }
+
+  get exposedClasses(): Array<ClassWrap | ObjectWrap> {
+    return this.cache.get<Array<ClassWrap | ObjectWrap>>('exposedClasses', () => {
+      const classes: Array<ClassWrap | ObjectWrap> = []
+      this.ctx.exports.filter(ex => ex.kind === CodeKind.CLASS).forEach(ex => {
+        classes.push(ex.code as ClassWrap)
+      })
+      this.ctx.imports.filter(im => im.kind === CodeKind.CLASS).forEach(im => {
+        classes.push(im.code as ClassWrap)
+      })
+      classes.push(...this.ctx.objects)
+      return classes
+    })
+  }
+
+  get importedClassNodes(): ClassDeclaration[] {
+    return this.cache.get<ClassDeclaration[]>('importedClassNodes', () => {
+      return this.ctx.imports
+        .filter(ex => ex.kind === CodeKind.CLASS)
+        .map(ex => (<ClassWrap>ex.code).node)
+    })
   }
 
   validate(): void {
@@ -100,24 +141,43 @@ export class Validator {
       this.validateSourceStatements(src)
     })
 
+    this.ctx.exports.forEach(ex => {
+      switch (ex.kind) {
+        case CodeKind.CLASS:
+          this.validateJigInheritance(ex.code as ClassWrap)
+          this.validateJigMembers(ex.code as ClassWrap)
+          this.validateClassTypes(ex.code as ClassWrap)
+          break
+        case CodeKind.FUNCTION:
+          this.validateArgTypes(ex.code as FunctionWrap)
+          this.validateReturnType(ex.code as FunctionWrap)
+          break
+        case CodeKind.INTERFACE:
+          break
+      }
+    })
+
+    this.ctx.imports.forEach(im => {
+      switch (im.kind) {
+        case CodeKind.CLASS:
+          // must not export from entry
+          this.validateJigInheritance(im.code as ClassWrap)
+          this.validateJigMembers(im.code as ClassWrap)
+          this.validateClassTypes(im.code as ClassWrap)
+          break
+        case CodeKind.FUNCTION:
+          // must not export from entry
+          this.validateArgTypes(im.code as FunctionWrap)
+          this.validateReturnType(im.code as FunctionWrap)
+          break
+        case CodeKind.INTERFACE:
+          break
+      }
+    })
+
     this.ctx.objects.forEach(obj => {
-      this.validateObjectExports(obj, this.ctx)
-      this.validateJigInheritance(obj, this.ctx)
-      this.validateObjectMembers(obj)
-    })
-
-    this.ctx.exposedObjects.forEach(obj => {
+      // must not export from entry
       this.validateFieldTypes(obj)
-      this.validateMethodTypes(obj)
-    })
-
-    this.ctx.functions.forEach(fn => {
-      this.validateFunctionExports(fn, this.ctx)
-    })
-
-    this.ctx.exportedFunctions.forEach(fn => {
-      this.validateArgTypes(fn)
-      this.validateReturnType(fn)
     })
 
     this.ctx.sources.forEach(src => {
@@ -138,6 +198,9 @@ export class Validator {
           case NodeKind.CLASSDECLARATION:
             this.validateClassDeclarationNode(node as ClassDeclaration)
             break
+          case NodeKind.FUNCTIONDECLARATION:
+            this.validateFunctionDeclarationNode(node as FunctionDeclaration)
+            break
           case NodeKind.VARIABLEDECLARATION:
             this.validateVariableDeclarationNode(node as VariableDeclaration)
             break
@@ -154,7 +217,7 @@ export class Validator {
       // Ensures all exposed argument types are allowed
       if (
         !whitelist.types.includes(n.type.name) &&
-        !this.ctx.exposedObjects.map(n => n.name).includes(n.type.name)
+        !this.exposedClasses.map(n => n.name).includes(n.type.name)
       ) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
           DiagnosticCategory.ERROR,
@@ -182,6 +245,34 @@ export class Validator {
   }
 
   private validateClassDeclarationNode(node: ClassDeclaration): void {
+    // Ensures sidekick and imported code is not exported from entry
+    if (
+      isExported(node.flags) &&
+      !this.exportedClassNodes.includes(node) &&
+      node.range.source.sourceKind === SourceKind.USER_ENTRY
+    ) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.ERROR,
+        AldeaDiagnosticCode.Invalid_export,
+        [],
+        node.range
+      ))
+    }
+
+    // Ensure plain or sidekick classes do not inherit from Jig
+    if (
+      !this.exportedClassNodes.includes(node) &&
+      !this.importedClassNodes.includes(node) &&
+      node.extendsType?.name.identifier.text === 'Jig'
+    ) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.ERROR,
+        AldeaDiagnosticCode.Invalid_jig_class,
+        [node.name.text, 'must not'],
+        node.range
+      ))
+    }
+
     node.members.forEach(n => {
       // Ensure no static properties
       if (n.kind === NodeKind.FIELDDECLARATION && isStatic(n.flags)) {
@@ -204,6 +295,11 @@ export class Validator {
     })
   }
 
+  private validateClassTypes(obj: ClassWrap): void {
+    this.validateFieldTypes(obj)
+    this.validateMethodTypes(obj)
+  }
+
   private validateDecoratorNode(node: DecoratorNode): void {
     if (node.decoratorKind > DecoratorKind.CUSTOM) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
@@ -215,35 +311,35 @@ export class Validator {
     }
   }
 
-  private validateFieldTypes(obj: ObjectWrap): void {
+  private validateFieldTypes(obj: ClassWrap | ObjectWrap): void {
     obj.fields.forEach(n => {
       // Ensure all field types are allowed
       if (
         !whitelist.types.includes(n.type.name) &&
-        !this.ctx.exposedObjects.map(n => n.name).includes(n.type.name)
+        !this.exposedClasses.map(n => n.name).includes(n.type.name)
       ) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
           DiagnosticCategory.ERROR,
           AldeaDiagnosticCode.Invalid_field_type,
           [n.type.name, n.name],
-          n.node.range
+          (<FieldWrap>n).node.range
         ))
       }
     })
   }
 
-  private validateFunctionExports(fn: FunctionWrap, ctx: TransformCtx): void {
-    // Ensures imported and functions are not exported from entry
+  private validateFunctionDeclarationNode(node: FunctionDeclaration): void {
+    // Ensures sidekick and imported code is not exported from entry
     if (
-        isExported(fn.node.flags) &&
-        fn.kind === ObjectKind.IMPORTED &&
-        fn.node.range.source.normalizedPath === ctx.entry.normalizedPath
+      isExported(node.flags) &&
+      !this.exportedFunctionNodes.includes(node) &&
+      node.range.source.sourceKind === SourceKind.USER_ENTRY
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.ERROR,
         AldeaDiagnosticCode.Invalid_export,
         [],
-        fn.node.range
+        node.range
       ))
     }
   }
@@ -260,34 +356,63 @@ export class Validator {
     }
   }
 
-  private validateJigInheritance(obj: ObjectWrap, ctx: TransformCtx): void {
-    if (obj.kind === ObjectKind.EXPORTED || obj.kind === ObjectKind.IMPORTED) {
-      // Ensure imported or exported object inherits from Jig
-      if (!isJig(obj, ctx)) {
-        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
-          AldeaDiagnosticCode.Invalid_jig_class,
-          [obj.name, 'must'],
-          obj.node.range
-        ))
-      }
-    } else {
-      // Ensure plain or sidekick classes do not inherit from Jig
-      if (isJig(obj, ctx)) {
-        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
-          AldeaDiagnosticCode.Invalid_jig_class,
-          [obj.name, 'must not'],
-          obj.node.range
-        ))
-      }
+  private validateJigInheritance(obj: ClassWrap): void {
+    // Ensure imported or exported object inherits from Jig
+    if (!isJig(obj, this.ctx)) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.ERROR,
+        AldeaDiagnosticCode.Invalid_jig_class,
+        [obj.name, 'must'],
+        obj.node.range
+      ))
+    
     }
   }
 
-  private validateMethodTypes(obj: ObjectWrap): void {
+  private validateJigMembers(obj: ClassWrap): void {
+    obj.node.members.forEach(n => {
+      // Ensure no getter/setter methods on jigs
+      if (
+        n.kind === NodeKind.METHODDECLARATION &&
+        (isGetter(n.flags) || isSetter(n.flags))
+      ) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.ERROR,
+          AldeaDiagnosticCode.Invalid_jig_member,
+          ['Getter and setter methods'],
+          n.range
+        ))
+      }
+      // Ensure no instance methods begin with underscore on jigs
+      if (
+        n.kind === NodeKind.METHODDECLARATION &&
+        n.name.text.startsWith('_')
+      ) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.ERROR,
+          AldeaDiagnosticCode.Invalid_jig_member,
+          ['Underscore-prefixed method names'],
+          n.range
+        ))
+      }
+      // Warn about private or protected members
+      if (
+        (isPrivate(n.flags) || isProtected(n.flags))
+      ) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.WARNING,
+          AldeaDiagnosticCode.Private_member,
+          [],
+          n.range
+        ))
+      }
+    })
+  }
+
+  private validateMethodTypes(obj: ClassWrap): void {
     obj.methods.forEach(fn => {
-      this.validateArgTypes(fn)
-      this.validateReturnType(fn)
+      this.validateArgTypes(fn as MethodWrap)
+      this.validateReturnType(fn as MethodWrap)
     })
   }
 
@@ -301,65 +426,6 @@ export class Validator {
         node.range
       ))
     }
-  }
-
-  private validateObjectExports(obj: ObjectWrap, ctx: TransformCtx): void {
-    // Ensures imported objects are not exported from entry
-    if (
-        isExported(obj.node.flags) &&
-        obj.kind === ObjectKind.IMPORTED &&
-        obj.node.range.source.normalizedPath === ctx.entry.normalizedPath
-    ) {
-      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
-        AldeaDiagnosticCode.Invalid_export,
-        [],
-        obj.node.range
-      ))
-    }
-  }
-
-  private validateObjectMembers(obj: ObjectWrap): void {
-    obj.node.members.forEach(n => {
-      // Ensure no getter/setter methods on jigs
-      if (
-        obj.kind === ObjectKind.EXPORTED &&
-        n.kind === NodeKind.METHODDECLARATION &&
-        (isGetter(n.flags) || isSetter(n.flags))
-      ) {
-        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
-          AldeaDiagnosticCode.Invalid_jig_member,
-          ['Getter and setter methods'],
-          n.range
-        ))
-      }
-      // Ensure no instance methods begin with underscore on jigs
-      if (
-        obj.kind === ObjectKind.EXPORTED &&
-        n.kind === NodeKind.METHODDECLARATION &&
-        n.name.text.startsWith('_')
-      ) {
-        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
-          AldeaDiagnosticCode.Invalid_jig_member,
-          ['Underscore-prefixed method names'],
-          n.range
-        ))
-      }
-      // Warn about private or protected members
-      if (
-        obj.kind === ObjectKind.EXPORTED &&
-        (isPrivate(n.flags) || isProtected(n.flags))
-      ) {
-        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.WARNING,
-          AldeaDiagnosticCode.Private_member,
-          [],
-          n.range
-        ))
-      }
-    })
   }
 
   private validatePropertyAccessNode(node: PropertyAccessExpression): void {
@@ -394,7 +460,7 @@ export class Validator {
     if (
       fn.rtype && fn.rtype.name && fn.rtype.name !== 'void' &&
       !whitelist.types.includes(fn.rtype.name) &&
-      !this.ctx.exposedObjects.map(n => n.name).includes(fn.rtype.name)
+      !this.exposedClasses.map(n => n.name).includes(fn.rtype.name)
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.ERROR,
@@ -451,6 +517,17 @@ export class Validator {
   }
 }
 
+/**
+ * Mega simple cache class to improve performance of TransformCtx getters.
+ */
+class SimpleCache {
+  data: {[key: string]: any} = {};
+
+  get<T>(key: string, callback: () => T) {
+    return this.data[key] ||= callback()
+  }
+}
+
 // Returns true if node kind is a safe literal
 function isAllowedLiteral(node: Expression | null): Boolean {
   if (!node) return false
@@ -482,5 +559,5 @@ function isJig(obj: ObjectWrap, ctx: TransformCtx): boolean {
     extendsFrom = parent.extends
     parent = ctx.objects.find(o => o.name === extendsFrom)
   }
-  return !!extendsFrom && ['Jig', 'ParentJig'].includes(extendsFrom)
+  return extendsFrom === 'Jig'
 }

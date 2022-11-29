@@ -9,7 +9,7 @@ import {VM} from "./vm.js";
 import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
-import {FieldNode, findExportedFunction, findExportedObject, findObjectMethod, ObjectKind} from '@aldea/compiler/abi'
+import {ArgNode, findFunction, findClass, findMethod, findImport} from '@aldea/compiler/abi'
 import {Signature, TxVisitor, Location, Address} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
@@ -55,7 +55,7 @@ class ExecVisitor implements TxVisitor {
 
   visitExec(varName: string, moduleId: string, functionName: string): void {
     const wasm = this.exec.loadModule(moduleId)
-    const fnNode = findExportedFunction(wasm.abi, functionName)
+    const fnNode = findFunction(wasm.abi, functionName)
 
     if (fnNode) {
       this.exec.execFunction(varName, moduleId, functionName, this.args)
@@ -175,11 +175,11 @@ class TxExecution {
       jig = this.loadJig(origin, false,false)
     }
 
-    const obj = findExportedObject(jig.module.abi, className, 'could not find object')
-    const method = findObjectMethod(obj, methodName, 'could not find method')
+    const obj = findClass(jig.module.abi, className, 'could not find object')
+    const method = findMethod(obj, methodName, 'could not find method')
 
     const argReader = new ArgReader(argBuff)
-    const args = method.args.map((n: FieldNode) => {
+    const args = method.args.map((n: ArgNode) => {
       const ptr = readType(argReader, n.type)
       const value = liftValue(callerInstance, n.type, ptr)
       if (value instanceof Externref) {
@@ -197,8 +197,8 @@ class TxExecution {
 
     const [className, methodName] = fnStr.split('_')
 
-    const obj = findExportedObject(targetMod.abi, className, 'could not find object')
-    const method = findObjectMethod(obj, methodName, 'could not find method')
+    const obj = findClass(targetMod.abi, className, 'could not find object')
+    const method = findMethod(obj, methodName, 'could not find method')
 
     const argReader = new ArgReader(argBuffer)
     const argValues = method.args.map((arg) => {
@@ -374,8 +374,8 @@ class TxExecution {
 
   execStaticMethod (varName: string, moduleId: string, className: string, methodName: string, args: any[]) {
     const module = this.loadModule(moduleId)
-    const objectNode = findExportedObject(module.abi, className, 'should exist');
-    const methodNode = findObjectMethod(
+    const objectNode = findClass(module.abi, className, 'should exist');
+    const methodNode = findMethod(
       objectNode,
       methodName,
       'should exist'
@@ -388,11 +388,9 @@ class TxExecution {
 
     const result = module.staticCall(className, methodName, args)
 
-    const rTypeNode = findExportedObject(module.abi, methodNode.rtype.name)
+    const rTypeNode = findClass(module.abi, methodNode.rtype.name)
 
-    if (!rTypeNode || rTypeNode.kind !== ObjectKind.EXPORTED) {
-      return
-    } else {
+    if (!!rTypeNode) {
       const jigRef = this.jigs.find(j => j.ref.ptr === result.value.ptr && j.module === module)
       if (!jigRef) { throw new Error('jig ref should exist')}
       this.setVar(varName, jigRef)
@@ -406,13 +404,16 @@ class TxExecution {
     if (!result.node) {
       return result
     }
-    const objNode = findExportedObject(module.abi, result.node.name, 'should exist')
-    if (objNode.kind === ObjectKind.EXPORTED) {
+
+    const exported = findClass(module.abi, result.node.name)
+    const imported = findImport(module.abi, result.node.name)
+
+    if (exported) {
       const jig = this.jigs.find(j => j.module === module && j.ref.ptr === result.value.ptr)
       if (!jig) { throw new Error('')}
       this.setVar(varName, jig)
       return result
-    } else if (objNode.kind === ObjectKind.IMPORTED) {
+    } else if (imported) {
       const jig = this.jigs.find(j => j.origin === result.value.origin)
       if (!jig) { throw new Error('')}
       this.setVar(varName, jig)
