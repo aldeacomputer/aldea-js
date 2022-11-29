@@ -20,17 +20,18 @@ test.serial('compiles multiple sources', async t => {
     `.trim()
   }
 
-  const res = await compile(sources)
+  const res = await compile('input.ts', sources)
   const abi = abiFromCbor(res.output.abi.buffer)
 
   t.is(abi.objects.length, 1)
   t.is(abi.objects[0].name, 'Foo')
-  t.is(abi.functions.length, 1)
-  t.is(abi.functions[0].name, 'test')
+  t.is(abi.exports.length, 1)
+  t.is(abi.exports[0].code.name, 'test')
 })
 
 test.serial('compiles multiple entries', async t => {
   const sources = {
+    'bar.ts': 'const bar = 25;',
     'foo.ts': 'export declare class Foo { name: string }',
     'input1.ts': `
       import { Foo } from './foo'
@@ -42,12 +43,12 @@ test.serial('compiles multiple entries', async t => {
     `.trim()
   }
 
-  const res = await compile(sources)
+  const res = await compile(['input2.ts', 'input1.ts'], sources)
   const abi = abiFromCbor(res.output.abi.buffer)
 
   t.is(abi.objects.length, 1)
   t.is(abi.objects[0].name, 'Foo')
-  t.is(abi.functions.length, 2)
-  t.is(abi.functions[0].name, 'test1')
-  t.is(abi.functions[1].name, 'test2')
+  t.is(abi.exports.length, 2)
+  t.is(abi.exports[0].code.name, 'test1')
+  t.is(abi.exports[1].code.name, 'test2')
 })

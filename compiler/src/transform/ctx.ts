@@ -1,6 +1,5 @@
 import {
   ClassDeclaration,
-  DeclarationStatement,
   DecoratorKind,
   DecoratorNode,
   FieldDeclaration,
@@ -17,17 +16,21 @@ import {
   SourceKind,
   Program,
   Class,
-  TypeDeclaration,
   FunctionDeclaration,
+  InterfaceDeclaration,
 } from 'assemblyscript'
 
 import {
+  ExportWrap,
+  ImportWrap,
+  ClassWrap,
   ObjectWrap,
   FunctionWrap,
-  DecoratorWrap,
-  FieldWrap,
   MethodWrap,
+  FieldWrap,
   TypeWrap,
+  DecoratorTag,
+
 } from './nodes.js'
 
 import {
@@ -44,12 +47,13 @@ import { normalizeTypeName } from '../abi.js';
 
 import {
   Abi,
-  RuntimeIds,
-  FieldKind,
+  CodeKind,
   MethodKind,
-  ObjectKind,
+  TypeIds,
   TypeNode,
 } from '../abi/types.js'
+
+type CodeDeclaration = ClassDeclaration | FunctionDeclaration | InterfaceDeclaration
 
 /**
  * Transform Context class.
@@ -62,109 +66,34 @@ import {
 export class TransformCtx {
   parser: Parser;
   program?: Program;
-  sources: Source[]; 
-  entry: Source;
+  sources: Source[];
+  entries: Source[];
+  exports: ExportWrap[];
+  imports: ImportWrap[];
   objects: ObjectWrap[];
-  functions: FunctionWrap[];
-  validator: Validator;
-  cache: SimpleCache = new SimpleCache();
+  exposedTypes: Map<string, TypeNode>;
+  validator: Validator = new Validator(this);
 
   constructor(parser: Parser) {
     this.parser = parser
     this.sources = collectUserSources(parser.sources)
-    this.entry = findUserEntry(this.sources)
-    this.objects = collectObjectNodes(this.sources)
-    this.functions = collectFunctionNodes(this.sources)
-    this.validator = new Validator(this)
+    this.entries = collectUserEntries(this.sources)
+    this.exports = collectExports(this.entries)
+    this.imports = collectImports(this.sources)
+    this.objects = collectObjects(this.sources, this.exports)
+    this.exposedTypes = collectExposedTypes(this.exports, this.objects)
+
     this.validate()
   }
 
   get abi(): Abi {
     return {
       version: 1,
-      rtids: this.mapManagedClassRtIds(),
-      objects: this.exposedObjects.map(obj => {
-        obj.methods = obj.methods.filter(n => !isPrivate(n.node.flags) && !isProtected(n.node.flags))
-        return obj
-      }),
-      functions: this.exportedFunctions
+      exports: this.exports,
+      imports: this.imports,
+      objects: this.objects,
+      typeIds: this.mapTypeIds(),
     }
-  }
-
-  // Objects explicitly exported from the module
-  get exportedObjects(): ObjectWrap[] {
-    return this.cache.get<ObjectWrap[]>('exportedObj', () => {
-      return this.objects.filter(obj => obj.kind === ObjectKind.EXPORTED)
-    })
-  }
-
-  // Objects explicitly exported from the module
-  get exportedFunctions(): FunctionWrap[] {
-    return this.cache.get<FunctionWrap[]>('exportedFn', () => {
-      return this.functions.filter(obj => isExported(obj.node.flags))
-    })
-  }
-
-  // Objects exposed by the module (exported, or as args or return values)
-  get exposedObjects(): ObjectWrap[] {
-    return this.cache.get<ObjectWrap[]>('exposedObj', () => {
-      const objects: ObjectWrap[] = []
-
-      const applyObject = (obj: ObjectWrap): void => {
-        if (obj.kind < ObjectKind.SIDEKICK && !objects.includes(obj)) {
-          objects.push(obj)
-          obj.fields.forEach(n => applyType(n.type))
-          obj.methods.forEach(applyFunction)
-        }
-      }
-
-      const applyFunction = (fn: FunctionWrap | MethodWrap): void => {
-        fn.args.forEach(n => applyType(n.type))
-        if (fn.rtype) applyType(fn.rtype)
-      }
-
-      const applyType = (type: TypeNode): void => {
-        const obj = this.objects.find(obj => obj.name === type.name)
-        if (obj) { applyObject(obj) }
-        type.args.forEach(applyType)
-      }
-
-      this.exportedObjects.forEach(applyObject)
-      this.exportedFunctions.forEach(applyFunction)
-      return objects
-    })
-  }
-
-  // Set of all types exposed as fields or arguments or return types
-  get exposedTypes(): Map<string, TypeNode> {
-    return this.cache.get<Map<string, TypeNode>>('exposedType', () => {
-      const map = new Map<string, TypeNode>()
-
-      const functionIter = (fn: FunctionWrap | MethodWrap) => {
-        fn.args.forEach(n => map.set(normalizeTypeName(n.type), n.type))
-        if (fn.rtype) { map.set(normalizeTypeName(fn.rtype), fn.rtype) }
-      }
-  
-      this.exposedObjects.forEach(obj => {
-        obj.fields.forEach(n => map.set(normalizeTypeName(n.type), n.type))
-        obj.methods.forEach(functionIter)
-      })
-      this.exportedFunctions.forEach(functionIter)
-      
-      return map
-    })
-  }
-
-  get plainObjects(): ObjectWrap[] {
-    return this.cache.get<ObjectWrap[]>('plainObj', () => {
-      return this.objects.filter(obj => obj.kind === ObjectKind.PLAIN)
-    })
-  }
-
-  get importedObjects(): ObjectWrap[] {
-    return this.cache.get<ObjectWrap[]>('importedObj', () => {
-      return this.objects.filter(obj => obj.kind === ObjectKind.IMPORTED)
-    })
   }
 
   parse(code: string, path: string): Source {
@@ -174,16 +103,17 @@ export class TransformCtx {
   }
 
   validate() {
-    if (!this.exportedObjects.length && !this.exportedFunctions.length) {
+    if (!this.exports.length) {
       throw new Error('must export at least one object or function')
     }
     this.validator.validate()
   }
 
-  private mapManagedClassRtIds(): RuntimeIds {
+  private mapTypeIds(): TypeIds {
     if (!this.program) return {}
+
     const whitelist = Array.from(this.exposedTypes.keys()).concat('LockState', 'UtxoState')
-    return [...this.program.managedClasses].reduce((obj: RuntimeIds, [id, klass]) => {
+    return [...this.program.managedClasses].reduce((obj: TypeIds, [id, klass]) => {
       const name = normalizeClassName(klass)
       if (whitelist.includes(name)) { obj[name] = id }
       return obj
@@ -191,162 +121,267 @@ export class TransformCtx {
   }
 }
 
-/**
- * Mega simple cache class to improve performance of TransformCtx getters.
- */
-class SimpleCache {
-  data: {[key: string]: any} = {};
-
-  get<T>(key: string, callback: () => T) {
-    return this.data[key] ||= callback()
-  }
+// Collects user sources from the given list of sources
+function collectUserSources(sources: Source[]): Source[] {
+  return sources
+    .filter(s => {
+      return s.sourceKind <= SourceKind.USER_ENTRY && /^(?!~lib).+/.test(s.internalPath)
+    })
+    .sort((a, b) => { // Sort by source path name
+      return a.range.source.normalizedPath.localeCompare(b.range.source.normalizedPath)
+    })
 }
 
 // Collects user sources from the given list of sources
-function collectUserSources(sources: Source[]): Source[] {
-  return sources.filter(s => {
-    return s.sourceKind <= SourceKind.USER_ENTRY && /^(?!~lib).+/.test(s.internalPath)
+function collectUserEntries(sources: Source[]): Source[] {
+  return sources.filter(s => s.sourceKind === SourceKind.USER_ENTRY)
+}
+
+// Collects exports from the given list of sources
+function collectExports(sources: Source[]): ExportWrap[] {
+  const exports: ExportWrap[] = []
+
+  sources
+    .flatMap(s => s.statements)
+    .forEach(n => {
+      if (n.kind === NodeKind.CLASSDECLARATION && isExported((<ClassDeclaration>n).flags)) {
+        exports.push(mapExport(CodeKind.CLASS, mapClass(n as ClassDeclaration)))
+      }
+  
+      if (n.kind === NodeKind.FUNCTIONDECLARATION && isExported((<FunctionDeclaration>n).flags)) {
+        exports.push(mapExport(CodeKind.FUNCTION, mapFunction(n as FunctionDeclaration)))
+      }
+      
+      // todo - interface declerations - how interfaces work TBC
+      // todo - export statements - need to resolve to actual class / function def
+      // todo - export from statements - need to resolve to actual class / function def
+    })
+
+  return exports
+}
+
+// Collects imported code from the given list of sources
+function collectImports(sources: Source[]): ImportWrap[] {
+  const imports: ImportWrap[] = []
+
+  sources
+    .flatMap(s => s.statements)
+    .filter(n => isAmbient((<CodeDeclaration>n).flags))
+    .forEach(n => {
+      const importDecorator = (<CodeDeclaration>n).decorators
+        ?.filter(d => d.decoratorKind === DecoratorKind.CUSTOM)
+        .map(d => mapDecorator(d))
+        .find(d => d.name === 'imported')
+
+      if (importDecorator && n.kind === NodeKind.CLASSDECLARATION) {
+        imports.push(mapImport(CodeKind.CLASS, mapClass(n as ClassDeclaration), importDecorator))
+      }
+  
+      if (importDecorator && n.kind === NodeKind.FUNCTIONDECLARATION) {
+        imports.push(mapImport(CodeKind.FUNCTION, mapFunction(n as FunctionDeclaration), importDecorator))
+      }
+    })
+
+  return imports
+}
+
+// Collects plain objects from the given list of sources that are exposed by
+// the given list of exports
+function collectObjects(sources: Source[], exports: ExportWrap[]): ObjectWrap[] {
+  const objectSet = new Set<ObjectWrap>()
+  const checkedNodes: ClassDeclaration[] = []
+  const possibleObjects: ObjectWrap[] = sources
+    .flatMap(s => s.statements)
+    .filter(n => n.kind === NodeKind.CLASSDECLARATION && isAmbient((<ClassDeclaration>n).flags))
+    .filter(n => {
+      const importDecorator = (<CodeDeclaration>n).decorators
+        ?.filter(d => d.decoratorKind === DecoratorKind.CUSTOM)
+        .map(d => mapDecorator(d))
+        .find(d => d.name === 'imported')
+      return !importDecorator
+    })
+    .map(n => mapObject(n as ClassDeclaration))
+
+  function applyClass(obj: ClassWrap | ObjectWrap): void {
+    if (!checkedNodes.includes(obj.node)) {
+      checkedNodes.push(obj.node)
+      obj.fields.forEach(n => applyType(n.type))
+      if ("methods" in obj) {
+        obj.methods.forEach(n => applyFunction(n as MethodWrap))
+      }
+    }
+  }
+
+  function applyFunction(fn: FunctionWrap | MethodWrap): void {
+    fn.args.forEach(n => applyType(n.type))
+    if (fn.rtype) { applyType(fn.rtype) }
+  }
+
+  function applyType(type: TypeNode): void {
+    possibleObjects.filter(obj => obj.name === type.name).forEach(obj => {
+      objectSet.add(obj)
+      applyClass(obj)
+    })
+    type.args.forEach(applyType)
+  }
+
+  exports.forEach(ex => {
+    switch(ex.kind) {
+      case CodeKind.CLASS:
+        applyClass(ex.code as ClassWrap)
+        break
+      case CodeKind.FUNCTION:
+        applyFunction(ex.code as FunctionWrap)
+        break
+      case CodeKind.INTERFACE:
+        // interafaces?
+        break
+    }
   })
+  
+  return Array.from(objectSet)
 }
 
-// Finds the user entry from the given list of sources
-function findUserEntry(sources: Source[]): Source {
-  const entry = sources.find(s => s.sourceKind === SourceKind.USER_ENTRY)
-  if (!entry) throw new Error('no user entry found')
-  return entry
+// Collects exposed types from the given lists of exports and plain objects
+function collectExposedTypes(exports: ExportWrap[], objects: ObjectWrap[]): Map<string, TypeNode> {
+  const map = new Map<string, TypeNode>()
+
+  const applyClass = (obj: ClassWrap | ObjectWrap) => {
+    obj.fields.forEach(n => map.set(normalizeTypeName(n.type), n.type))
+    if ("methods" in obj) {
+      obj.methods.forEach(n => applyFunction(n as MethodWrap))
+    }
+  }
+
+  const applyFunction = (fn: FunctionWrap | MethodWrap) => {
+    fn.args.forEach(n => map.set(normalizeTypeName(n.type), n.type))
+    if (fn.rtype) { map.set(normalizeTypeName(fn.rtype), fn.rtype) }
+  }
+
+  exports.forEach(ex => {
+    switch(ex.kind) {
+      case CodeKind.CLASS:
+        applyClass(ex.code as ClassWrap)
+        break
+      case CodeKind.FUNCTION:
+        applyFunction(ex.code as FunctionWrap)
+        break
+      case CodeKind.INTERFACE:
+        // interafaces?
+    }
+  })
+
+  objects.forEach(applyClass)
+  return map
 }
 
-// Collects Object Nodes from the given list of sources
-function collectObjectNodes(sources: Source[]): ObjectWrap[] {
-  return sources.flatMap(s => s.statements)
-    .filter(n => n.kind === NodeKind.CLASSDECLARATION)
-    .map(n => mapObjectNode(n as ClassDeclaration))
+// Maps the given parameters to an ExportNode
+function mapExport(kind: CodeKind, code: ClassWrap | FunctionWrap): ExportWrap {
+  return {
+    kind,
+    code
+  }
 }
 
-// Collects Function Nodes from the give list of sources
-function collectFunctionNodes(sources: Source[]): FunctionWrap[] {
-  return sources.flatMap(s => s.statements)
-    .filter(n => n.kind === NodeKind.FUNCTIONDECLARATION)
-    .map(n => mapFunctionNode(n as FunctionDeclaration))
+// Maps the given parameters to an ImportNode
+function mapImport(kind: CodeKind, code: ClassWrap | FunctionWrap, decorator: DecoratorTag): ImportWrap {
+  return {
+    kind,
+    origin: decorator.args[0],
+    name: code.name,
+    code,
+  }
 }
 
-// Collects Field Nodes from the given list of nodes
-function collectFieldNodes(nodes: DeclarationStatement[]): FieldWrap[] {
-  return nodes
-    .filter(n => n.kind === NodeKind.FIELDDECLARATION)
-    .filter(n => !isStatic(n.flags))
-    .map(n => mapFieldNode(n as FieldDeclaration))
+// Maps the given AST node to a ClassNode
+function mapClass(node: ClassDeclaration): ClassWrap {
+  const obj = mapObject(node) as ClassWrap
+
+  const methods = node.members.filter(n => {
+    return n.kind === NodeKind.METHODDECLARATION &&
+      !isPrivate(n.flags) &&
+      !isProtected(n.flags)
+  })
+
+  obj.methods = methods.map(n => mapMethod(n as MethodDeclaration))
+  return obj
 }
 
-// Collects Method Nodes from the given list of nodes
-function collectMethodNodes(nodes: DeclarationStatement[]): MethodWrap[] {
-  return nodes
-    .filter(n => n.kind === NodeKind.METHODDECLARATION)
-    .map(n => mapMethodNode(n as MethodDeclaration))
-}
-
-// Collects Decorator Nodes from the given list of nodes
-function collectDecoratorNodes(nodes: DecoratorNode[]): DecoratorWrap[] {
-  return nodes
-    .filter(n => n.decoratorKind === DecoratorKind.CUSTOM)
-    .map(mapDecoratorNode)
-}
-
-// Maps the given AST node to an Object Node
-function mapObjectNode(node: ClassDeclaration): ObjectWrap {
-  const decorators = collectDecoratorNodes(node.decorators || [])
-  const kind = isAmbient(node.flags) ?
-    (decorators.some(d => d.name === 'imported') ? ObjectKind.IMPORTED : ObjectKind.PLAIN) :
-    (isExported(node.flags) && node.range.source.sourceKind === SourceKind.USER_ENTRY ? ObjectKind.EXPORTED : ObjectKind.SIDEKICK);
+// Maps the given AST node to an ObjectNode
+function mapObject(node: ClassDeclaration): ObjectWrap {
+  const fields = node.members.filter(n => {
+    return n.kind === NodeKind.FIELDDECLARATION &&
+      !isStatic(n.flags) &&
+      !isPrivate(n.flags) &&
+      !isProtected(n.flags)
+  })
 
   return {
     node,
-    kind,
     name: node.name.text,
     extends: node.extendsType?.name.identifier.text || null,
-    fields: collectFieldNodes(node.members),
-    methods: collectMethodNodes(node.members),
-    decorators,
+    fields: fields.map(n => mapField(n as FieldDeclaration)),
   }
 }
 
-// Maps the given AST node to a Function Node
-function mapFunctionNode(node: FunctionDeclaration): FunctionWrap {
-  const decorators = collectDecoratorNodes(node.decorators || [])
-  const kind = isAmbient(node.flags) && decorators.some(d => d.name === 'imported') ?
-  ObjectKind.IMPORTED :
-  (isExported(node.flags) && node.range.source.sourceKind === SourceKind.USER_ENTRY ? ObjectKind.EXPORTED : ObjectKind.SIDEKICK)
+// Maps the given AST node to a FunctionNode
+function mapFunction(node: FunctionDeclaration): FunctionWrap {
+  return {
+    node,
+    name: node.name.text,
+    args: node.signature.parameters.map(n => mapField(n as ParameterNode)),
+    rtype: mapType(node.signature.returnType as NamedTypeNode),
+  }
+}
+
+// Maps the given AST node to a MethodNode
+function mapMethod(node: MethodDeclaration): MethodWrap {
+  const kind = isConstructor(node.flags) ? MethodKind.CONSTRUCTOR :
+    (isStatic(node.flags) ? MethodKind.STATIC : MethodKind.INSTANCE)
 
   return {
     node,
     kind,
     name: node.name.text,
-    args: node.signature.parameters.map(n => mapFieldNode(n as ParameterNode)),
-    rtype: mapTypeNode(node.signature.returnType as NamedTypeNode),
-    decorators
+    args: node.signature.parameters.map(n => mapField(n as ParameterNode)),
+    rtype: mapType(node.signature.returnType as NamedTypeNode),
   }
 }
 
-// Maps the given AST node to a Field Node
-function mapFieldNode(node: FieldDeclaration | ParameterNode | TypeDeclaration): FieldWrap {
-  let kind
-  if (node.kind === NodeKind.FIELDDECLARATION) {
-    kind = isPrivate(node.flags) ?
-      FieldKind.PRIVATE :
-      (isProtected(node.flags) ? FieldKind.PROTECTED : FieldKind.PUBLIC);
-  }
-
+// Maps the given AST node to a FieldNode
+function mapField(node: FieldDeclaration | ParameterNode): FieldWrap {
   return {
     node,
-    kind,
     name: node.name.text,
-    type: mapTypeNode(node.type as NamedTypeNode)
+    type: mapType(node.type as NamedTypeNode)
   }
 }
 
-// Maps the given AST node to a Method Node
-function mapMethodNode(node: MethodDeclaration): MethodWrap {
-  const decorators = collectDecoratorNodes(node.decorators || [])
-  const kind = isConstructor(node.flags) ?
-    MethodKind.CONSTRUCTOR :
-    (isStatic(node.flags) ? MethodKind.STATIC : MethodKind.INSTANCE);
-
-  return {
-    node,
-    kind,
-    name: node.name.text,
-    args: node.signature.parameters.map(n => mapFieldNode(n as ParameterNode)),
-    rtype: mapTypeNode(node.signature.returnType as NamedTypeNode),
-    decorators
-  }
-}
-
-// Maps the given AST node to a Type Node
-function mapTypeNode(node: NamedTypeNode): TypeWrap {
-  const args = (node.typeArguments || []).map(n => mapTypeNode(n as NamedTypeNode))
+// Maps the given AST node to a TypeNode
+function mapType(node: NamedTypeNode): TypeWrap {
+  const args = node.typeArguments?.map(n => mapType(n as NamedTypeNode))
 
   return {
     node,
     name: node.name.identifier.text,
-    args
+    args: args || []
   }
 }
 
-// Maps the given AST node to a Decorator Node
-function mapDecoratorNode(node: DecoratorNode): DecoratorWrap {
-  const args = (node.args || [])
-    .filter(a => a.kind === NodeKind.LITERAL)
-    .filter(a => (a as LiteralExpression).literalKind === LiteralKind.STRING)
-    .map((a): string => (a as StringLiteralExpression).value)
+// Maps the given AST node to a DecoratorTag
+function mapDecorator(node: DecoratorNode): DecoratorTag {
+  const args = node.args
+    ?.filter(a => a.kind === NodeKind.LITERAL && (<LiteralExpression>a).literalKind === LiteralKind.STRING)
+    .map(a => (<StringLiteralExpression>a).value)
 
   return {
     node,
-    name: (node.name as IdentifierExpression).text,
-    args,
+    name: (<IdentifierExpression>node.name).text,
+    args: args || [],
   }
 }
 
-// Normalizes class name to match normalize type name
+// Normalizes class name to match normalized type name
 function normalizeClassName(klass: Class): string {
   const normalizeName = (n: string) => n === 'String' ? n.toLowerCase() : n
   const name = klass.name.replace(/^(\w+)<.*>$/, '$1')
