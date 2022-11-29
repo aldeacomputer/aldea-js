@@ -198,10 +198,30 @@ declare module 'aldea/bytes' {
 	export function toString(buf: ArrayBuffer): string;
 
 }
+declare module 'aldea/coin' {
+	import { RemoteJig } from 'aldea/jig';
+	/**
+	 * Coin class
+	 *
+	 * Built in RemoteJig that proxies calls to the VM for handling.
+	 */
+	export class Coin extends RemoteJig {
+	    constructor();
+	    send(motos: u64, to: ArrayBuffer): Coin;
+	    combine(coins: Coin[]): Coin;
+	}
+
+}
 
 
 /** Base Jig class */
 declare class Jig {
   get $lock(): import('aldea/lock').Lock;
   get $output(): import('aldea/output').Output;
+}
+
+declare class Coin extends Jig {
+  origin: ArrayBuffer;
+  send(motos: u64, pubkeyHash: ArrayBuffer): Coin;
+  combine(coins: Coin[]): Coin;
 }
