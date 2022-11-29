@@ -63,7 +63,7 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     writeAbi(outPath, ctx)
     console.log('»»» TRANSFORMED «««')
     console.log('*******************')
-    console.log(ASTBuilder.build(ctx.entry))
+    ctx.entries.forEach(entry => { console.log(ASTBuilder.build(entry)) })
     console.log(stderr.toString())
     console.log("Compilation success: ")
     console.log(stats.toString())
@@ -74,14 +74,37 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
   }
 }
 
+type CodeBundle = { [key: string]: string }
+
 /**
  * Compiles the given AssemblyScript code string into a WASM binary.
  */
-export async function compile(src: string | {[key: string]: string}): Promise<CompilerResult> {
-  const input: {[key: string]: string} = typeof src === 'string' ? { 'input.ts': src } : src
+export async function compile(src: string): Promise<CompilerResult>;
+export async function compile(entry: string | string[], src: CodeBundle): Promise<CompilerResult>;
+export async function compile(entry: string | string[], src?: CodeBundle): Promise<CompilerResult> {
+  let input: CodeBundle;
+  entry = Array.isArray(entry) ? entry : [entry]
+  
+  if (typeof src === 'object') {
+    input = src
+  } else {
+    input = entry.reduce<CodeBundle>((obj, src, i, all) => {
+      const filename = all.length > 1 ? `input${i}.ts` : 'input.ts'
+      obj[filename] = src
+      return obj
+    }, {})
+    entry = Object.keys(input)
+  }
+
+  entry.forEach(e => {
+    if (!Object.keys(input).includes(e)) {
+      throw new Error(`given entry not found in source code: ${e}`)
+    }
+  })
+
   const output: Partial<CompiledOutput> = {}
 
-  const argv = Object.keys(input).concat([
+  const argv = entry.concat([
     '--outFile', 'wasm',
     '--textFile', 'wat',
   ]).concat(baseOpts)
@@ -122,17 +145,6 @@ export async function compile(src: string | {[key: string]: string}): Promise<Co
   }
 }
 
-function writeAbi(outPath: string, ctx: TransformCtx) {
-  fs.writeFileSync(
-    join(dirname(outPath), basename(outPath).replace(/\.\w+$/, '')+'.abi.cbor'),
-    Buffer.from(abiToCbor(ctx.abi))
-  )
-  fs.writeFileSync(
-    join(dirname(outPath), basename(outPath).replace(/\.\w+$/, '')+'.abi.json'),
-    abiToJson(ctx.abi, 2)
-  )
-}
-
 /**
  * Compile Error class
  */
@@ -143,4 +155,16 @@ export class CompileError extends Error {
     super(message)
     this.stderr = stderr
   }
+}
+
+// Writes the ABI to the given path
+function writeAbi(outPath: string, ctx: TransformCtx) {
+  fs.writeFileSync(
+    join(dirname(outPath), basename(outPath).replace(/\.\w+$/, '')+'.abi.cbor'),
+    Buffer.from(abiToCbor(ctx.abi))
+  )
+  fs.writeFileSync(
+    join(dirname(outPath), basename(outPath).replace(/\.\w+$/, '')+'.abi.json'),
+    abiToJson(ctx.abi, 2)
+  )
 }

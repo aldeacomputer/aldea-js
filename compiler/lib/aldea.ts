@@ -8,4 +8,5 @@ export {
 } from './aldea/imports'
 
 export { Jig, RemoteJig } from './aldea/jig'
+export { Coin } from './aldea/coin'
 export { ArgWriter } from './aldea/arg-writer'

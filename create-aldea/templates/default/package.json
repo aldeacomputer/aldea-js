@@ -4,12 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "deploy": "echo todo"
+    "deploy": "node scripts/deploy.js"
   },
   "dependencies": {
     "@aldea/sdk-js": "^0.0.0-alpha"
   },
   "devDependencies": {
-    "assemblyscript": "^0.24.1"
+    "assemblyscript": "^0.24.1",
+    "minimist": "^1.2.7"
   }
 }

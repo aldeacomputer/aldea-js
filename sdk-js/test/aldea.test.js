@@ -2,10 +2,10 @@ import test from 'ava'
 import crypto from 'crypto'
 import { Aldea, KeyPair, Address, Tx, OpCode } from '../dist/index.js'
 
-test('Builds a tx with every opcode and encodes/decodes consistently', t => {
-  const origin1 = new Uint8Array(crypto.randomBytes(32))
-  const origin2 = new Uint8Array(crypto.randomBytes(32))
-  const location = new Uint8Array(crypto.randomBytes(32))
+test('builds a tx with every opcode and encodes/decodes consistently', t => {
+  const origin1 = new Uint8Array(crypto.randomBytes(20))
+  const origin2 = new Uint8Array(crypto.randomBytes(20))
+  const location = new Uint8Array(crypto.randomBytes(20))
   const keys = KeyPair.fromRandom()
   const address = Address.fromPubKey(keys.pubKey)
 
@@ -68,4 +68,51 @@ test('Builds a tx with every opcode and encodes/decodes consistently', t => {
   t.is(tx2.instructions[9].opcode, OpCode.SIGNTO)
   t.is(tx2.instructions[9].sig.length, 64)
   t.deepEqual(tx2.instructions[9].pubkey, keys.pubKey.toBytes())
+})
+
+test('builds a deploy transaction', t => {
+  const location = new Uint8Array(crypto.randomBytes(20))
+  const keys = KeyPair.fromRandom()
+  const address = Address.fromPubKey(keys.pubKey)
+
+  const aldea = new Aldea()
+  const code = new Map()
+  code.set('foo.ts', 'export function foo(): string { return "hello world" }')
+  code.set('index.ts', `
+    import { foo } from './foo.ts'
+    export function bar(): string { return foo() }
+  `)
+
+  const tx1 = aldea.createTx(tx => {
+    tx.load(location)
+    tx.deploy(code)
+    tx.call(0, 1, [500, address.hash])
+    tx.fund(0)
+    tx.sign(keys.privKey)
+  })
+
+  // Encode and decode to new TX
+  const tx2 = Tx.fromHex(tx1.toHex())
+
+  t.is(tx2.instructions.length, 5)
+  t.is(tx2.instructions[1].opcode, OpCode.DEPLOY)
+  t.deepEqual(tx2.instructions[1].code, code)
+})
+
+test('builds a tiny tx comparison to bitcoin', t => {
+  const location = new Uint8Array(crypto.randomBytes(20))
+  const keys = KeyPair.fromRandom()
+  const address = Address.fromPubKey(keys.pubKey)
+
+  const aldea = new Aldea()
+
+  const tx1 = aldea.createTx(tx => {
+    tx.load(location)
+    tx.call(0, 1, [500, address.hash])
+    tx.fund(0)
+    tx.sign(keys.privKey)
+  })
+
+  t.is(tx1.toBytes().length, 159)
+  t.pass()
 })

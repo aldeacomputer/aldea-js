@@ -25,7 +25,7 @@ export class ImportInstruction extends Instruction {
  */
 export const ImportArgsSerializer: Serializable<ImportInstruction> = {
   read(buf: BufReader): ImportInstruction {
-    const origin = buf.readBytes(32)
+    const origin = buf.readBytes(20)
     return new ImportInstruction(origin)
   },
 

@@ -1,5 +1,4 @@
 import { vm_local_lock, vm_remote_lock } from './imports'
-import { fromBech32m } from './bytes'
 import { Jig, RemoteJig } from './jig'
 
 /**
@@ -57,11 +56,6 @@ export class Lock {
 
     this.type = type
     this.data = data
-  }
-  
-  toAddress(address: string): void {
-    const pubkeyHash = fromBech32m(address, 'aldea:')
-    return this.toPubkeyHash(pubkeyHash)
   }
 
   toPubkeyHash(pubkeyHash: ArrayBuffer): void {

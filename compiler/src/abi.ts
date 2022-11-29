@@ -1,8 +1,11 @@
 import { CBOR, Sequence } from 'cbor-redux'
+import { hex } from '@scure/base'
 
 import {
   Abi,
   AbiCbor,
+  ArgNode,
+  ArgCbor,
   ObjectCbor,
   ObjectNode,
   FieldCbor,
@@ -13,6 +16,13 @@ import {
   TypeNode,
   FunctionCbor,
   FunctionNode,
+  ExportCbor,
+  ExportNode,
+  ClassNode,
+  CodeKind,
+  ClassCbor,
+  ImportCbor,
+  ImportNode,
 } from './abi/types.js'
 
 import { validateAbi } from './abi/validations.js'
@@ -26,13 +36,20 @@ export * from './abi/validations.js'
  */
 export function abiFromCbor(cbor: ArrayBuffer): Abi {
   const seq = CBOR.decode(cbor, null, { mode: 'sequence'})
-  const [version, rtids, objects, functions] = seq.data as AbiCbor
+  const [version, exports, imports, objects, typeIds] = seq.data as AbiCbor
   
-  return {
+  const abi = {
     version,
-    rtids,
-    objects: objects.map(objectFromCbor),
-    functions: functions.map(functionFromCbor),
+    exports: exports.map(cborToExport),
+    imports: imports.map(cborToImport),
+    objects: objects.map(cborToObject),
+    typeIds,
+  }
+
+  if (validateAbi(abi)) {
+    return abi
+  } else {
+    throw new Error('invalid abi cbor data')
   }
 }
 
@@ -52,7 +69,13 @@ export function abiFromJson(json: string): Abi {
  * Serializes the given ABI interface to CBOR data.
  */
 export function abiToCbor(abi: Abi): ArrayBuffer {
-  const seq = Sequence.from([ abi.version, abi.rtids, abi.objects.map(objectToCbor), abi.functions.map(functionToCbor) ])
+  const seq = Sequence.from([
+    abi.version,
+    abi.exports.map(cborFromExport),
+    abi.imports.map(cborFromImport),
+    abi.objects.map(cborFromObject),
+    abi.typeIds,
+  ])
   return CBOR.encode(seq)
 }
 
@@ -60,12 +83,17 @@ export function abiToCbor(abi: Abi): ArrayBuffer {
  * Serializes the given ABI interface to JSON data.
  */
 export function abiToJson(abi: Abi, space: number = 0): string {
-  return JSON.stringify({
-    version: abi.version,
-    rtids: abi.rtids,
-    objects: abi.objects.map(objectToJson),
-    functions: abi.functions.map(functionToJson),
-  }, null, space)
+  const isImport = (val: any): boolean => {
+    return typeof val.kind === 'number' && typeof val.origin === 'string'
+  }
+
+  return JSON.stringify(abi, function(key, val) {
+    if (key === 'node' || (key === 'code' && isImport(this))) {
+      return undefined
+    } else {
+      return val
+    }
+  }, space)
 }
 
 /**
@@ -79,142 +107,188 @@ export function normalizeTypeName(type: TypeNode | null): string {
   return type.name + args
 }
 
-// Casts the CBOR array to an Object Node interface.
-function objectFromCbor([kind, name, ext, fields, methods]: ObjectCbor): ObjectNode {
+// Casts an ExportNode object into an array for CBOR serialization
+function cborFromExport({ kind, code }: ExportNode): ExportCbor {
+  let codeCbor: ClassCbor | FunctionCbor;
+  switch (kind) {
+    case CodeKind.CLASS:
+      codeCbor = cborFromClass(code as ClassNode)
+      break
+    case CodeKind.FUNCTION:
+      codeCbor = cborFromFunction(code as FunctionNode)
+      break
+    default:
+      // todo - interfaces?
+      throw new Error('unsupported code kind')
+  }
+
+  return [
+    kind,
+    codeCbor
+  ]
+}
+
+// Casts an ImportNode object into an array for CBOR serialization
+function cborFromImport({ kind, name, origin }: ImportNode): ImportCbor {
+  return [
+    kind,
+    name,
+    hex.decode(origin).buffer
+  ]
+}
+
+// Casts a ClassNode object into an array for CBOR serialization
+function cborFromClass({ name, extends: ext, fields, methods }: ClassNode): ClassCbor {
+  return [
+    name,
+    ext,
+    fields.map(cborFromField),
+    methods.map(cborFromMethod),
+  ]
+}
+
+// Casts an ObjectNode object into an array for CBOR serialization
+function cborFromObject({ name, extends: ext, fields }: ObjectNode): ObjectCbor {
+  return [
+    name,
+    ext,
+    fields.map(cborFromField),
+  ]
+}
+
+// Casts a FunctionNode object into an array for CBOR serialization
+function cborFromFunction({ name, args, rtype }: FunctionNode): FunctionCbor {
+  return [
+    name,
+    args.map(cborFromArg),
+    cborFromType(rtype)
+  ]
+}
+
+// Casts a MethodNode object into an array for CBOR serialization
+function cborFromMethod({ kind, name, args, rtype }: MethodNode): MethodCbor {
+  return [
+    kind,
+    name,
+    args.map(cborFromArg),
+    rtype ? cborFromType(rtype) : null,
+  ]
+}
+
+// Casts a FieldNode object into an array for CBOR serialization
+function cborFromField({ kind, name, type }: FieldNode): FieldCbor {
+  return [
+    kind,
+    name,
+    cborFromType(type)
+  ]
+}
+
+// Casts a ArgNode object into an array for CBOR serialization
+function cborFromArg({ name, type }: ArgNode): ArgCbor {
+  return [
+    name,
+    cborFromType(type)
+  ]
+}
+
+// Casts a TypeNode object into an array for CBOR serialization
+function cborFromType({ name, args }: TypeNode): TypeCbor {
+  return [
+    name,
+    args.map(cborFromType)
+  ]
+}
+
+// Casts the CBOR array to an ExportNode object.
+function cborToExport([kind, codeCbor]: ExportCbor): ExportNode {
+  let code: ClassNode | FunctionNode;
+  switch (kind) {
+    case CodeKind.CLASS:
+      code = cborToClass(codeCbor as ClassCbor)
+      break
+    case CodeKind.FUNCTION:
+      code = cborToFunction(codeCbor as FunctionCbor)
+      break
+    default:
+      // todo - interfaces?
+      throw new Error('unsupported code kind')
+  }
+
   return {
     kind,
+    code,
+  }
+}
+
+// Casts the CBOR array to an ImportNode object.
+function cborToImport([kind, name, origin]: ImportCbor): ImportNode {
+  return {
+    kind,
+    name,
+    origin: hex.encode(new Uint8Array(origin))
+  }
+}
+
+// Casts the CBOR array to a ClassNode object.
+function cborToClass([name, ext, fields, methods]: ClassCbor): ClassNode {
+  return {
     name,
     extends: ext,
-    fields: fields.map(fieldFromCbor),
-    methods: methods.map(methodFromCbor)
+    fields: fields.map(cborToField),
+    methods: methods.map(cborToMethod),
   }
 }
 
-// Casts the Object Node interface to a CBOR array.
-function objectToCbor(node: ObjectNode): ObjectCbor {
-  return [
-    node.kind,
-    node.name,
-    node.extends,
-    node.fields.map(fieldToCbor),
-    node.methods.map(methodToCbor)
-  ]
-}
-
-// Casts the Object Node interface to a JSON object.
-function objectToJson(node: ObjectNode): ObjectNode {
+// Casts the CBOR array to an ObjectNode object.
+function cborToObject([name, ext, fields]: ObjectCbor): ObjectNode {
   return {
-    kind: node.kind,
-    name: node.name,
-    extends: node.extends,
-    fields: node.fields.map(fieldToJson),
-    methods: node.methods.map(methodToJson),
+    name,
+    extends: ext,
+    fields: fields.map(cborToField),
   }
 }
 
-// Casts the CBOR array to a Function Node interface.
-function functionFromCbor([kind, name, args, rtype]: FunctionCbor): FunctionNode {
+// Casts the CBOR array to a FunctionNode object.
+function cborToFunction([name, args, rtype]: FunctionCbor): FunctionNode {
+  return {
+    name,
+    args: args.map(cborToArg),
+    rtype: cborToType(rtype),
+  }
+}
+
+// Casts the CBOR array to a MethodNode object.
+function cborToMethod([kind, name, args, rtype]: MethodCbor): MethodNode {
   return {
     kind,
     name,
-    args: args.map(fieldFromCbor),
-    rtype: typeFromCbor(rtype)
+    args: args.map(cborToArg),
+    rtype: rtype ? cborToType(rtype) : null
   }
 }
 
-// Casts the Function Node interface to a CBOR array.
-function functionToCbor(node: FunctionNode): FunctionCbor {
-  return [
-    node.kind,
-    node.name,
-    node.args.map(fieldToCbor),
-    typeToCbor(node.rtype)
-  ]
-}
-
-// Casts the Function Node interface to a JSON object.
-function functionToJson(node: FunctionNode): FunctionNode {
-  return {
-    kind: node.kind,
-    name: node.name,
-    args: node.args.map(fieldToJson),
-    rtype: typeToJson(node.rtype)
-  }
-}
-
-// Casts the CBOR array to an Field Node interface.
-function fieldFromCbor(field: FieldCbor): FieldNode {
-  if (field.length === 2) {
-    const [name, type] = field as [string, TypeCbor]
-    return { name, type: typeFromCbor(type) }
-  } else {
-    const [kind, name, type] = field as [number, string, TypeCbor]
-    return { kind, name, type: typeFromCbor(type) }
-  }
-}
-
-// Casts the Field Node interface to a CBOR array.
-function fieldToCbor(node: FieldNode): FieldCbor {
-  if (typeof node.kind === 'number') {
-    return [ node.kind, node.name, typeToCbor(node.type) ]
-  } else {
-    return [ node.name, typeToCbor(node.type) ]
-  }
-}
-
-// Casts the Field Node interface to a JSON object.
-function fieldToJson(node: FieldNode): FieldNode {
-  return {
-    kind: node.kind,
-    name: node.name,
-    type: typeToJson(node.type)
-  }
-}
-
-// Casts the CBOR array to a Method Node interface.
-function methodFromCbor([kind, name, args, rtype]: MethodCbor): MethodNode {
+// Casts the CBOR array to a FieldNode object.
+function cborToField([kind, name, type]: FieldCbor): FieldNode {
   return {
     kind,
     name,
-    args: args.map(fieldFromCbor),
-    rtype: rtype ? typeFromCbor(rtype) : null
+    type: cborToType(type),
   }
 }
 
-// Casts the Method Node interface to a CBOR array.
-function methodToCbor(node: MethodNode): MethodCbor {
-  return [
-    node.kind,
-    node.name,
-    node.args.map(fieldToCbor),
-    node.rtype ? typeToCbor(node.rtype) : null
-  ]
-}
-
-// Casts the Method Node interface to a JSON object.
-function methodToJson(node: MethodNode): MethodNode {
+// Casts the CBOR array to a FieldNode object.
+function cborToArg([name, type]: ArgCbor): ArgNode {
   return {
-    kind: node.kind,
-    name: node.name,
-    args: node.args.map(fieldToJson),
-    rtype: node.rtype ? typeToJson(node.rtype) : null
+    name,
+    type: cborToType(type),
   }
 }
 
-// Casts the CBOR array to a Type Node interface.
-function typeFromCbor([name, args]: TypeCbor): TypeNode {
-  return { name, args: args.map(typeFromCbor) }
-}
-
-// Casts the Type Node interface to a CBOR array.
-function typeToCbor(node: TypeNode): TypeCbor {
-  return [ node.name, node.args.map(typeToCbor) ]
-}
-
-// Casts the Type Node interface to a JSON object.
-function typeToJson(node: TypeNode): TypeNode {
+// Casts the CBOR array to a TypeNode object.
+function cborToType([name, args]: TypeCbor): TypeNode {
   return {
-    name: node.name,
-    args: node.args.map(typeToJson),
+    name,
+    args: args.map(cborToType),
   }
 }

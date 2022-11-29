@@ -7,9 +7,9 @@ import {
   Statement,
 } from 'assemblyscript'
 
-import { FieldKind, MethodKind, MethodNode } from './abi/types.js'
+import { CodeKind, MethodKind, MethodNode } from './abi/types.js'
 import { TransformCtx } from './transform/ctx.js'
-import { FieldWrap, MethodWrap, ObjectWrap } from './transform/nodes.js'
+import { ClassWrap, FieldWrap, MethodWrap } from './transform/nodes.js'
 import { isPrivate, isProtected } from './transform/filters.js'
 
 import {
@@ -40,20 +40,37 @@ export function useCtx(): TransformCtx { return $ctx }
 export function afterParse(parser: Parser): void {
   $ctx = new TransformCtx(parser)
 
-  $ctx.exportedObjects.forEach(obj => {
-    addConstructorHook(obj, $ctx)
-    createProxyMethods(obj, $ctx)
-    exportClassMethods(obj, $ctx)
-    // Remove the export flag
-    obj.node.flags = obj.node.flags & ~CommonFlags.EXPORT
+  $ctx.exports.forEach(ex => {
+    switch (ex.kind) {
+      case CodeKind.CLASS:
+        const code = ex.code as ClassWrap
+        addConstructorHook(code, $ctx)
+        createProxyMethods(code, $ctx)
+        exportClassMethods(code, $ctx)
+        // Remove the export flag
+        code.node.flags = code.node.flags & ~CommonFlags.EXPORT
+        break
+      case CodeKind.FUNCTION:
+        break
+      case CodeKind.INTERFACE:
+        break
+    }
   })
 
-  $ctx.importedObjects.forEach(obj => {
-    createProxyClass(obj, $ctx)
-    // Remove user node
-    const source = obj.node.range.source
-    const idx = source.statements.indexOf(obj.node as Statement)
-    if (idx > -1) { source.statements.splice(idx, 1) }
+  $ctx.imports.forEach(im => {
+    switch (im.kind) {
+      case CodeKind.CLASS:
+        createProxyClass(im.code as ClassWrap, im.origin, $ctx)
+        // Remove user node
+        const source = im.code.node.range.source
+        const idx = source.statements.indexOf(im.code.node as Statement)
+        if (idx > -1) { source.statements.splice(idx, 1) }
+        break
+      case CodeKind.FUNCTION:
+        break
+      case CodeKind.INTERFACE:
+        break
+    }
   })
 
   exportComplexSetters($ctx)
@@ -69,48 +86,19 @@ export function afterInitialize(program: Program): void {
 }
 
 /**
- * Transform exported object.
- * 
- * - Writes exported method for each public method of the object.
- * - Adds a constructor if one not defined on objject.
- */
-function exportClassMethods(obj: ObjectWrap, ctx: TransformCtx): void {
-  const codes = (obj.methods as MethodWrap[])
-    .filter(n => !isPrivate(n.node.flags) && !isProtected(n.node.flags))
-    .reduce((acc: string[], n: MethodWrap): string[] => {
-      acc.push(writeExportedMethod(n, obj))
-      return acc
-    }, [])
-  
-  // If no constructor is defined then add a default
-  if (obj.methods.every(n => n.kind !== MethodKind.CONSTRUCTOR)) {
-    const n: MethodNode = {
-      kind: MethodKind.CONSTRUCTOR,
-      name: 'constructor',
-      args: [],
-      rtype: null
-    }
-    codes.unshift(writeExportedMethod(n as MethodWrap, obj))
-  }
-
-  const source = obj.node.range.source
-  const src = ctx.parse(codes.join('\n'), source.normalizedPath)
-  source.statements.push(...src.statements)
-}
-
-/**
  * Adds a VM hook to the object's constructor
  * 
  * - Inserts it at end of defined constructor
  * - Or creates a default constructor if one not defined
  */
-function addConstructorHook(obj: ObjectWrap, ctx: TransformCtx): void {
+function addConstructorHook(obj: ClassWrap, ctx: TransformCtx): void {
   const source = obj.node.range.source
-  const method = obj.methods.find(n => n.kind === MethodKind.CONSTRUCTOR)
+  const method = obj.methods.find(n => n.kind === MethodKind.CONSTRUCTOR) as MethodWrap
   if (method) {
     const code = writeConstructorHook(obj)
     const src = ctx.parse(code, source.normalizedPath)
-    ;(<BlockStatement>method.node.body).statements.push(...src.statements)
+    const block = method.node.body as BlockStatement
+    block.statements.push(...src.statements)
   } else {
     const code = writeLocalProxyClass(obj, [
       writeConstructor(obj)
@@ -127,7 +115,7 @@ function addConstructorHook(obj: ObjectWrap, ctx: TransformCtx): void {
  * - prefix original method with underscore
  * - add proxy method that wraps the original method, letting vm know of stack
  */
-function createProxyMethods(obj: ObjectWrap, ctx: TransformCtx): void {
+function createProxyMethods(obj: ClassWrap, ctx: TransformCtx): void {
   const methodCodes = (obj.methods as MethodWrap[])
     .filter(n => n.kind === MethodKind.INSTANCE)
     .reduce((acc: string[], n: MethodWrap): string[] => {
@@ -152,9 +140,9 @@ function createProxyMethods(obj: ObjectWrap, ctx: TransformCtx): void {
  * - Adds proxy methods for each declared property and method
  * - Removes the user declared code
  */
-function createProxyClass(obj: ObjectWrap, ctx: TransformCtx): void {
+function createProxyClass(obj: ClassWrap, origin: string, ctx: TransformCtx): void {
   const fieldCodes = (obj.fields as FieldWrap[])
-    .filter(n => n.kind === FieldKind.PUBLIC)
+    .filter(n => !isPrivate(n.node.flags) && !isProtected(n.node.flags))
     .reduce((acc: string[], n: FieldWrap): string[] => {
       acc.push(writeRemoteProxyGetter(n, obj))
       return acc
@@ -162,7 +150,7 @@ function createProxyClass(obj: ObjectWrap, ctx: TransformCtx): void {
 
   const methodCodes = (obj.methods as MethodWrap[])
     .reduce((acc: string[], n: MethodWrap): string[] => {
-      acc.push(writeRemoteProxyMethod(n, obj))
+      acc.push(writeRemoteProxyMethod(n, obj, origin))
       return acc
     }, [])
 
@@ -173,6 +161,36 @@ function createProxyClass(obj: ObjectWrap, ctx: TransformCtx): void {
 
   const source = obj.node.range.source
   const src = ctx.parse(code, source.normalizedPath)
+  source.statements.push(...src.statements)
+}
+
+/**
+ * Transform exported object.
+ * 
+ * - Writes exported method for each public method of the object.
+ * - Adds a constructor if one not defined on objject.
+ */
+function exportClassMethods(obj: ClassWrap, ctx: TransformCtx): void {
+  const codes = (obj.methods as MethodWrap[])
+    .filter(n => !isPrivate(n.node.flags) && !isProtected(n.node.flags))
+    .reduce((acc: string[], n: MethodWrap): string[] => {
+      acc.push(writeExportedMethod(n, obj))
+      return acc
+    }, [])
+  
+  // If no constructor is defined then add a default
+  if (obj.methods.every(n => n.kind !== MethodKind.CONSTRUCTOR)) {
+    const n: MethodNode = {
+      kind: MethodKind.CONSTRUCTOR,
+      name: 'constructor',
+      args: [],
+      rtype: null
+    }
+    codes.unshift(writeExportedMethod(n as MethodWrap, obj))
+  }
+
+  const source = obj.node.range.source
+  const src = ctx.parse(codes.join('\n'), source.normalizedPath)
   source.statements.push(...src.statements)
 }
 
@@ -188,7 +206,7 @@ function exportComplexSetters(ctx: TransformCtx): void {
   })
 
   if (codes.length) {
-    const src = ctx.parse(codes.join('\n'), ctx.entry.normalizedPath)
-    ctx.entry.statements.push(...src.statements)
+    const src = ctx.parse(codes.join('\n'), ctx.entries[0].normalizedPath)
+    ctx.entries[0].statements.push(...src.statements)
   }
 }

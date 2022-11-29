@@ -106,8 +106,6 @@ describe("Bytes decoding", () => {
   test("decodes bech32m address to pubkeyHash", () => {
     const addr = 'addr17xgmlq360qnrjwa3qcr6arhlw4853ysm0qa3rd'
     const buf = fromBech32m(addr)
-    log(buf.byteLength)
-    log(toHex(buf))
     expect(buf.byteLength).toBe(20)
   })
 

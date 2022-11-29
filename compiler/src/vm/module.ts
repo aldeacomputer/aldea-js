@@ -6,10 +6,10 @@ import {
 } from "../abi/types.js"
 
 import {
-  findExportedFunction,
-  findExportedObject,
-  findObjectField,
-  findObjectMethod,
+  findFunction,
+  findClass,
+  findField,
+  findMethod,
 } from '../abi/query.js'
 
 import {
@@ -85,22 +85,20 @@ export class Module {
   }
 
   callFunction(fn: string, args: any[] = []): any {
-    const func = findExportedFunction(this.abi, fn, 'function not found')
-    // @ts-ignore
-    const ptrs = []
+    const func = findFunction(this.abi, fn, 'function not found')
+    const ptrs: number[] = []
     func.args.forEach((a, i) => {
-      ptrs.push(lowerValue(this, a.type, args[i]))
+      ptrs.push(lowerValue(this, a.type, args[i]) as number)
     })
-
-    // @ts-ignore
+    
     const result = this.exports[fn](...ptrs) as number
     return liftValue(this, func.rtype, result)
   }
 
   callMethod(methodStr: string, args: any[] = []): any {
     const [expName, methodName] = methodStr.split(/(?:_|\$)/)
-    const obj = findExportedObject(this.abi, expName, `unknown export: ${expName}`)
-    const method = findObjectMethod(obj, methodName, `unknown method: ${methodName}`)
+    const obj = findClass(this.abi, expName, `unknown export: ${expName}`)
+    const method = findMethod(obj, methodName, `unknown method: ${methodName}`)
     
     const ptrs = []
     if (method.kind === MethodKind.INSTANCE) {
@@ -121,8 +119,8 @@ export class Module {
 
   getProp(propStr: string, ref: Internref): any {
     const [expName, fieldName] = propStr.split('.')
-    const obj = findExportedObject(this.abi, expName, `unknown export: ${expName}`)
-    const field = findObjectField(obj, fieldName, `unknown field: ${fieldName}`)
+    const obj = findClass(this.abi, expName, `unknown export: ${expName}`)
+    const field = findField(obj, fieldName, `unknown field: ${fieldName}`)
 
     const offsets = getObjectMemLayout(obj)
     const { offset, align } = offsets[field.name]
@@ -132,7 +130,7 @@ export class Module {
   }
 
   getSchema(name: string): Schema  {
-    const obj = findExportedObject(this.abi, name, `unknown export: ${name}`)
+    const obj = findClass(this.abi, name, `unknown export: ${name}`)
     return obj.fields.reduce((s: Schema, prop) => {
       s[prop.name] = prop.type.name
       return s
@@ -140,7 +138,7 @@ export class Module {
   }
 
   getState(name: string, ref: Internref): any[] {
-    const obj = findExportedObject(this.abi, name, `unknown export: ${name}`)
+    const obj = findClass(this.abi, name, `unknown export: ${name}`)
     return obj.fields.reduce((arr: any, field) => {
       arr.push(this.getProp(`${name}.${field.name}`, ref))
       return arr
@@ -148,7 +146,7 @@ export class Module {
   }
 
   restore(name: string, data: ArrayBuffer): Internref {
-    const obj = findExportedObject(this.abi, name, `unknown export: ${name}`)
+    const obj = findClass(this.abi, name, `unknown export: ${name}`)
     const vals = CBOR.decode(data, null, { mode: 'sequence' })
     const ptr = lowerObject(this, obj, vals.data)
     return liftInternref(this, obj, ptr)
@@ -158,14 +156,4 @@ export class Module {
     const seq = Sequence.from(this.getState(name, ref))
     return CBOR.encode(seq)
   }
-
-  //cache<T>(key: string, callback: () => any, error?: string): T {
-  //  if (!this._cache.get(key)) {
-  //    this._cache.set(key, callback())
-  //  }
-  //  if (!!error && !this._cache.get(key)) {
-  //    throw new Error(error)
-  //  }
-  //  return this._cache.get(key)
-  //}
 }

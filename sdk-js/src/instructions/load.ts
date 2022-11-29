@@ -25,7 +25,7 @@ export class LoadInstruction extends Instruction {
  */
 export const LoadArgsSerializer: Serializable<LoadInstruction> = {
   read(buf: BufReader): LoadInstruction {
-    const location = buf.readBytes(32)
+    const location = buf.readBytes(20)
     return new LoadInstruction(location)
   },
 

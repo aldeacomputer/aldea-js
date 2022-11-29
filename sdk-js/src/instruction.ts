@@ -8,6 +8,7 @@ import {
   ExecInstruction, ExecArgsSerializer,
   FundInstruction, FundArgsSerializer,
   LockInstruction, LockArgsSerializer,
+  DeployInstruction, DeployArgsSerializer,
   SignInstruction, SignArgsSerializer,
   SignToInstruction, SignToArgsSerializer,
   UnknownInstruction
@@ -28,9 +29,11 @@ export enum OpCode {
   // Output
   FUND = 0xC1,
   LOCK = 0xC2,
+  // Code
+  DEPLOY = 0xD1,
   // Cryptography
-  SIGN = 0xD1,
-  SIGNTO = 0xD2,
+  SIGN = 0xE1,
+  SIGNTO = 0xE2,
 }
 
 /**
@@ -83,6 +86,8 @@ export const InstructionSerializer: Serializable<Instruction> = {
         return args.read<FundInstruction>(FundArgsSerializer)
       case OpCode.LOCK:
         return args.read<LockInstruction>(LockArgsSerializer)
+      case OpCode.DEPLOY:
+        return args.read<DeployInstruction>(DeployArgsSerializer)
       case OpCode.SIGN:
         return args.read<SignInstruction>(SignArgsSerializer)
       case OpCode.SIGNTO:
@@ -118,6 +123,9 @@ export const InstructionSerializer: Serializable<Instruction> = {
         break
       case OpCode.LOCK:
         args.write<LockInstruction>(LockArgsSerializer, inst as LockInstruction)
+        break
+      case OpCode.DEPLOY:
+        args.write<DeployInstruction>(DeployArgsSerializer, inst as DeployInstruction)
         break
       case OpCode.SIGN:
         args.write<SignInstruction>(SignArgsSerializer, inst as SignInstruction)

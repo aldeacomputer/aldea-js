@@ -1,85 +1,74 @@
 import {
   Abi,
+  ClassNode,
+  CodeKind,
   FieldNode,
   FunctionNode,
+  ObjectNode,
   MethodNode,
-  ObjectKind,
-  ObjectNode
+  ImportNode,
 } from "./types.js"
 
 /**
- * Filters and returns the Plain Objects from the given ABI.
+ * Finds an exported Class from the given ABI by it's name.
+ * An error is thrown if an error message is given and no class is found.
  */
-export function allPlainObjects(abi: Abi): ObjectNode[] {
-  return abi.objects.filter(obj => obj.kind === ObjectKind.PLAIN)
+export function findClass(abi: Abi, name: string): ClassNode | void;
+export function findClass(abi: Abi, name: string, error: string): ClassNode;
+export function findClass(abi: Abi, name: string, error?: string): ClassNode | void {
+  const exp = abi.exports.find(({ kind, code }) => kind === CodeKind.CLASS && code.name === name)
+  return exp ? exp.code as ClassNode : maybeThrow(error)
 }
 
 /**
- * Filters and returns the Exported Objects from the given ABI.
+ * Finds an exported Function from the given ABI by it's name.
+ * An error is thrown if an error message is given and no function is found.
  */
-export function allExportedObjects(abi: Abi): ObjectNode[] {
-  return abi.objects.filter(obj => obj.kind === ObjectKind.EXPORTED)
+export function findFunction(abi: Abi, name: string): FunctionNode | void;
+export function findFunction(abi: Abi, name: string, error: string): FunctionNode;
+export function findFunction(abi: Abi, name: string, error?: string): FunctionNode | void {
+  const exp = abi.exports.find(({ kind, code }) => kind === CodeKind.FUNCTION && code.name === name)
+  return exp ? exp.code as FunctionNode : maybeThrow(error)
 }
 
 /**
- * Filters and returns the Imported Objects from the given ABI.
+ * Finds an import from the given ABI by it's name.
+ * An error is thrown if an error message is given and no import is found.
  */
-export function allImportedObjects(abi: Abi): ObjectNode[] {
-  return abi.objects.filter(obj => obj.kind === ObjectKind.IMPORTED)
+export function findImport(abi: Abi, name: string): ImportNode | void;
+export function findImport(abi: Abi, name: string, error: string): ImportNode;
+export function findImport(abi: Abi, name: string, error?: string): ImportNode | void {
+  return abi.imports.find(obj => obj.name === name) || maybeThrow(error)
 }
 
 /**
- * Finds and returns a Plain Object by its name from the given ABI.
+ * Finds a plain object from the given ABI by it's name.
+ * An error is thrown if an error message is given and no object is found.
  */
- export function findPlainObject(abi: Abi, name: string): ObjectNode | void;
- export function findPlainObject(abi: Abi, name: string, error: string): ObjectNode;
- export function findPlainObject(abi: Abi, name: string, error?: string): ObjectNode | void {
-   return allPlainObjects(abi).find(obj => obj.name === name) || maybeThrow(error)
- }
-
-/**
- * Finds and returns an Exported Object by its name from the given ABI.
- */
-export function findExportedObject(abi: Abi, name: string): ObjectNode | void;
-export function findExportedObject(abi: Abi, name: string, error: string): ObjectNode;
-export function findExportedObject(abi: Abi, name: string, error?: string): ObjectNode | void {
-  return allExportedObjects(abi).find(obj => obj.name === name) || maybeThrow(error)
+export function findObject(abi: Abi, name: string): ObjectNode | void;
+export function findObject(abi: Abi, name: string, error: string): ObjectNode;
+export function findObject(abi: Abi, name: string, error?: string): ObjectNode | void {
+  return abi.objects.find(obj => obj.name === name) || maybeThrow(error)
 }
 
 /**
- * Finds and returns an Imported Object by its name from the given ABI.
+ * Finds a field from the given Class or Object by it's name.
+ * An error is thrown if an error message is given and no field is found.
  */
- export function findImportedObject(abi: Abi, name: string): ObjectNode | void;
- export function findImportedObject(abi: Abi, name: string, error: string): ObjectNode;
- export function findImportedObject(abi: Abi, name: string, error?: string): ObjectNode | void {
-   return allImportedObjects(abi).find(obj => obj.name === name) || maybeThrow(error)
- }
-
-/**
- * Finds and returns a Field by its name from the given Object.
- */
-export function findObjectField(obj: ObjectNode, name: string): FieldNode | void;
-export function findObjectField(obj: ObjectNode, name: string, error: string): FieldNode;
-export function findObjectField(obj: ObjectNode, name: string, error?: string): FieldNode | void {
+export function findField(obj: ClassNode | ObjectNode, name: string): FieldNode | void;
+export function findField(obj: ClassNode | ObjectNode, name: string, error: string): FieldNode;
+export function findField(obj: ClassNode | ObjectNode, name: string, error?: string): FieldNode | void {
   return obj.fields.find(obj => obj.name === name) || maybeThrow(error)
 }
 
 /**
- * Finds and returns a Method by its name from the given Object.
+ * Finds a method from the given Class by it's name.
+ * An error is thrown if an error message is given and no field is found.
  */
-export function findObjectMethod(obj: ObjectNode, name: string): MethodNode | void;
-export function findObjectMethod(obj: ObjectNode, name: string, error: string): MethodNode;
-export function findObjectMethod(obj: ObjectNode, name: string, error?: string): MethodNode | void {
+export function findMethod(obj: ClassNode, name: string): MethodNode | void;
+export function findMethod(obj: ClassNode, name: string, error: string): MethodNode;
+export function findMethod(obj: ClassNode, name: string, error?: string): MethodNode | void {
   return obj.methods.find(obj => obj.name === name) || maybeThrow(error)
-}
-
-/**
- * Finds and returns an Exported Function by its name from the given ABI.
- */
-export function findExportedFunction(abi: Abi, name: string): FunctionNode | void;
-export function findExportedFunction(abi: Abi, name: string, error: string): FunctionNode;
-export function findExportedFunction(abi: Abi, name: string, error?: string): FunctionNode | void {
-  return abi.functions.find(fn => fn.name === name) || maybeThrow(error)
 }
 
 // Throws an error if a string is given
