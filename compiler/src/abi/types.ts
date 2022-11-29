@@ -17,6 +17,15 @@ export enum MethodKind {
 }
 
 /**
+ * Field kind
+ */
+ export enum FieldKind {
+  PUBLIC,
+  PRIVATE,
+  PROTECTED,
+}
+
+/**
  * ABI interface
  */
 export interface Abi {
@@ -66,7 +75,7 @@ export interface ObjectNode extends Omit<ClassNode, 'methods'> {}
  */
 export interface FunctionNode {
   name: string;
-  args: FieldNode[];
+  args: ArgNode[];
   rtype: TypeNode;
 }
 
@@ -84,9 +93,17 @@ export interface MethodNode extends Omit<FunctionNode, 'rtype'> {
  * Field interface
  */
 export interface FieldNode {
+  kind: FieldKind;
   name: string;
   type: TypeNode;
 }
+
+/**
+ * Arg interface
+ * 
+ * As the Field interface, minus the kind property.
+ */
+export interface ArgNode extends Omit<FieldNode, 'kind'> { }
 
 /**
  * Type interface
@@ -111,12 +128,12 @@ export type AbiCbor = [number, ExportCbor[], ImportCbor[], ObjectCbor[], TypeIds
 /**
  * Export CBOR type
  */
-export type ExportCbor = [number, ClassCbor | FunctionCbor]
+export type ExportCbor = [CodeKind, ClassCbor | FunctionCbor]
 
 /**
  * Import CBOR type
  */
-export type ImportCbor = [number, string, ArrayBuffer]
+export type ImportCbor = [CodeKind, string, ArrayBuffer]
 
 /**
  * Class CBOR type
@@ -131,17 +148,22 @@ export type ObjectCbor = [string, string | null, FieldCbor[]]
 /**
  * Function CBOR type
  */
-export type FunctionCbor = [string, FieldCbor[], TypeCbor]
+export type FunctionCbor = [string, ArgCbor[], TypeCbor]
 
 /**
  * Method CBOR type
  */
-export type MethodCbor = [number, string, FieldCbor[], TypeCbor | null]
+export type MethodCbor = [MethodKind, string, ArgCbor[], TypeCbor | null]
 
 /**
  * Field CBOR type
  */
-export type FieldCbor = [string, TypeCbor]
+export type FieldCbor = [FieldKind, string, TypeCbor]
+
+/**
+ * Arg CBOR type
+ */
+ export type ArgCbor = [string, TypeCbor]
 
 /**
  * Type CBOR type

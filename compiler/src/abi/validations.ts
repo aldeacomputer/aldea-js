@@ -4,6 +4,7 @@ import {
   ImportNode,
   ObjectNode,
   FieldNode,
+  ArgNode,
   FunctionNode,
   MethodNode,
   TypeNode,
@@ -64,7 +65,7 @@ function validateObjectNode(obj: any): obj is ObjectNode {
 // Validates the given object implements the FunctionNode interface
 function validateFunctionNode(obj: any): obj is FunctionNode {
   return "name" in obj &&
-    Array.isArray(obj.args) && obj.args.every(validateFieldNode) &&
+    Array.isArray(obj.args) && obj.args.every(validateArgNode) &&
     "rtype" in obj && validateTypeNode(obj.rtype)
 }
 
@@ -72,12 +73,19 @@ function validateFunctionNode(obj: any): obj is FunctionNode {
 function validateMethodNode(obj: any): obj is MethodNode {
   return "kind" in obj &&
     "name" in obj &&
-    Array.isArray(obj.args) && obj.args.every(validateFieldNode) &&
+    Array.isArray(obj.args) && obj.args.every(validateArgNode) &&
     "rtype" in obj && (obj.rtype === null || validateTypeNode(obj.rtype))
 }
 
 // Validates the given object implements the FieldNode interface
 function validateFieldNode(obj: any): obj is FieldNode {
+  return "kind" in obj &&
+    "name" in obj &&
+    "type" in obj && validateTypeNode(obj.type)
+}
+
+// Validates the given object implements the FieldNode interface
+function validateArgNode(obj: any): obj is ArgNode {
   return "name" in obj &&
     "type" in obj && validateTypeNode(obj.type)
 }

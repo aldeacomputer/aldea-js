@@ -4,6 +4,8 @@ import { hex } from '@scure/base'
 import {
   Abi,
   AbiCbor,
+  ArgNode,
+  ArgCbor,
   ObjectCbor,
   ObjectNode,
   FieldCbor,
@@ -158,7 +160,7 @@ function cborFromObject({ name, extends: ext, fields }: ObjectNode): ObjectCbor 
 function cborFromFunction({ name, args, rtype }: FunctionNode): FunctionCbor {
   return [
     name,
-    args.map(cborFromField),
+    args.map(cborFromArg),
     cborFromType(rtype)
   ]
 }
@@ -168,13 +170,22 @@ function cborFromMethod({ kind, name, args, rtype }: MethodNode): MethodCbor {
   return [
     kind,
     name,
-    args.map(cborFromField),
+    args.map(cborFromArg),
     rtype ? cborFromType(rtype) : null,
   ]
 }
 
 // Casts a FieldNode object into an array for CBOR serialization
-function cborFromField({ name, type }: FieldNode): FieldCbor {
+function cborFromField({ kind, name, type }: FieldNode): FieldCbor {
+  return [
+    kind,
+    name,
+    cborFromType(type)
+  ]
+}
+
+// Casts a ArgNode object into an array for CBOR serialization
+function cborFromArg({ name, type }: ArgNode): ArgCbor {
   return [
     name,
     cborFromType(type)
@@ -242,7 +253,7 @@ function cborToObject([name, ext, fields]: ObjectCbor): ObjectNode {
 function cborToFunction([name, args, rtype]: FunctionCbor): FunctionNode {
   return {
     name,
-    args: args.map(cborToField),
+    args: args.map(cborToArg),
     rtype: cborToType(rtype),
   }
 }
@@ -252,13 +263,22 @@ function cborToMethod([kind, name, args, rtype]: MethodCbor): MethodNode {
   return {
     kind,
     name,
-    args: args.map(cborToField),
+    args: args.map(cborToArg),
     rtype: rtype ? cborToType(rtype) : null
   }
 }
 
 // Casts the CBOR array to a FieldNode object.
-function cborToField([name, type]: FieldCbor): FieldNode {
+function cborToField([kind, name, type]: FieldCbor): FieldNode {
+  return {
+    kind,
+    name,
+    type: cborToType(type),
+  }
+}
+
+// Casts the CBOR array to a FieldNode object.
+function cborToArg([name, type]: ArgCbor): ArgNode {
   return {
     name,
     type: cborToType(type),

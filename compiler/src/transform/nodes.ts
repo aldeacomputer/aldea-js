@@ -16,6 +16,7 @@ import {
   ClassNode,
   ExportNode,
   FieldNode,
+  ArgNode,
   FunctionNode,
   ImportNode,
   MethodNode,
@@ -64,10 +65,17 @@ export interface MethodWrap extends MethodNode {
 }
 
 /**
- * Wraps an FieldNode around a FieldDeclaration or ParameterNode.
+ * Wraps an FieldNode around a FieldDeclaration.
  */
 export interface FieldWrap extends FieldNode {
-  node: FieldDeclaration | ParameterNode;
+  node: FieldDeclaration;
+}
+
+/**
+ * Wraps an ArgNode around a ParameterNode.
+ */
+ export interface ArgWrap extends ArgNode {
+  node: ParameterNode;
 }
 
 /**

@@ -28,6 +28,7 @@ import {
   FunctionWrap,
   MethodWrap,
   FieldWrap,
+  ArgWrap,
   TypeWrap,
   DecoratorTag,
 
@@ -49,6 +50,7 @@ import {
   Abi,
   CodeKind,
   MethodKind,
+  FieldKind,
   TypeIds,
   TypeNode,
 } from '../abi/types.js'
@@ -310,10 +312,7 @@ function mapClass(node: ClassDeclaration): ClassWrap {
 // Maps the given AST node to an ObjectNode
 function mapObject(node: ClassDeclaration): ObjectWrap {
   const fields = node.members.filter(n => {
-    return n.kind === NodeKind.FIELDDECLARATION &&
-      !isStatic(n.flags) &&
-      !isPrivate(n.flags) &&
-      !isProtected(n.flags)
+    return n.kind === NodeKind.FIELDDECLARATION && !isStatic(n.flags)
   })
 
   return {
@@ -329,7 +328,7 @@ function mapFunction(node: FunctionDeclaration): FunctionWrap {
   return {
     node,
     name: node.name.text,
-    args: node.signature.parameters.map(n => mapField(n as ParameterNode)),
+    args: node.signature.parameters.map(n => mapArg(n as ParameterNode)),
     rtype: mapType(node.signature.returnType as NamedTypeNode),
   }
 }
@@ -343,13 +342,26 @@ function mapMethod(node: MethodDeclaration): MethodWrap {
     node,
     kind,
     name: node.name.text,
-    args: node.signature.parameters.map(n => mapField(n as ParameterNode)),
+    args: node.signature.parameters.map(n => mapArg(n as ParameterNode)),
     rtype: mapType(node.signature.returnType as NamedTypeNode),
   }
 }
 
 // Maps the given AST node to a FieldNode
-function mapField(node: FieldDeclaration | ParameterNode): FieldWrap {
+function mapField(node: FieldDeclaration): FieldWrap {
+  const kind = isPrivate(node.flags) ? FieldKind.PRIVATE :
+    (isProtected(node.flags) ? FieldKind.PROTECTED : FieldKind.PUBLIC);
+
+  return {
+    node,
+    kind,
+    name: node.name.text,
+    type: mapType(node.type as NamedTypeNode)
+  }
+}
+
+// Maps the given AST node to an ArgNode
+function mapArg(node: ParameterNode): ArgWrap {
   return {
     node,
     name: node.name.text,
