@@ -33,9 +33,11 @@ describe('deploy code', () => {
   })
 
   describe('backdoor deploy', () => {
+    const aMap = new Map<string, string>()
+    aMap.set('coso.ts', someValidModule)
     it('makes the module available', async () => {
       const vm = new VM(storage)
-      const moduleId = await vm.deployCode(someValidModule)
+      const moduleId = await vm.deployCode('coso.ts', aMap)
 
       const tx = new Transaction()
       const exec = new TxExecution(tx, vm)
@@ -49,7 +51,7 @@ describe('deploy code', () => {
 
     it('module persist on other vm instance', async () => {
       const vm = new VM(storage)
-      const moduleId = await vm.deployCode(someValidModule)
+      const moduleId = await vm.deployCode('coso.ts', aMap)
 
       const vm2 = new VM(storage)
       const tx = new Transaction()
@@ -63,8 +65,8 @@ describe('deploy code', () => {
 
     it('can deploy same module twice', async () => {
       const vm = new VM(storage)
-      const moduleId1 = await vm.deployCode(someValidModule)
-      const moduleId2 = await vm.deployCode(someValidModule)
+      const moduleId1 = await vm.deployCode('coso.ts', aMap)
+      const moduleId2 = await vm.deployCode('coso.ts', aMap)
 
       expect(moduleId1).to.eql(moduleId2)
     })
@@ -107,6 +109,59 @@ describe('deploy code', () => {
 
       let jigState = execution.outputs[0].parsedState();
       expect(jigState[0]).to.eql(1)
+    })
+  })
+
+  describe('deploy from tx execution', () => {
+    it('can use the deployed module in the same tx', async () => {
+      const vm = new VM(storage)
+
+      const tx = new Transaction()
+      const exec = new TxExecution(tx, vm)
+      const sources = new Map<string, string>()
+      sources.set('coso.ts', someValidModule)
+      const moduleIndex = await exec.deployModule('coso.ts',  sources)
+      const jigIndex = exec.instantiate(moduleIndex, 'Coso', [])
+      exec.lockJigToUser(jigIndex, userAddr)
+      exec.finalize()
+
+      expect(exec.outputs[0].className).to.eql('Coso')
+    })
+
+    it('can deploy more than 1 file', async () => {
+      const vm = new VM(storage)
+
+      const tx = new Transaction()
+      const exec = new TxExecution(tx, vm)
+      const sources = new Map<string, string>()
+      sources.set('coso.ts', someValidModule)
+      sources.set('something.ts', `
+        export class Something extends Jig {
+          constructor () { super() } 
+          foo(): string { return 'bar' }
+        }
+      `)
+      const moduleIndex = await exec.deployModule('coso.ts',  sources)
+      const jig1Index = exec.instantiate(moduleIndex, 'Coso', [])
+      const jig2Index = exec.instantiate(moduleIndex, 'Something', [])
+      exec.lockJigToUser(jig1Index, userAddr)
+      exec.lockJigToUser(jig2Index, userAddr)
+      exec.finalize()
+
+      expect(exec.outputs[0].className).to.eql('Coso')
+    })
+
+    it('adds the module on the right result index', async () => {
+      const vm = new VM(storage)
+
+      const tx = new Transaction()
+      const exec = new TxExecution(tx, vm)
+      const sources = new Map<string, string>()
+      sources.set('coso.ts', someValidModule)
+      const moduleIndex = await exec.deployModule('coso.ts',  sources)
+      const result = exec.getStatementResult(moduleIndex)
+
+      expect(result.instance.id).to.eql('4a94ec70e9f07753b7667c3daa161be5d7b06236889036a552a19bf2adc58f72')
     })
   });
 })

@@ -403,6 +403,15 @@ class TxExecution {
   getImportedModule(moduleIndex: number): WasmInstance {
     return this.getStatementResult(moduleIndex).instance;
   }
+
+  async deployModule(entryPoint: string, sources: Map<string, string>): Promise<number> {
+    const source = sources.get(entryPoint)
+    if (!source) {
+      throw new ExecutionError('entry file is not present.')
+    }
+    const moduleId = await this.vm.deployCode(entryPoint, sources)
+    return this.importModule(moduleId)
+  }
 }
 
 export { TxExecution }

@@ -36,12 +36,20 @@ export class VM {
     return this.storage.getJigState(location)
   }
 
-  async deployCode (sourceCode: string): Promise<string> {
-    const id = Buffer.from(blake3(Buffer.from(sourceCode))).toString('hex')
+  async deployCode (entryPoint: string, sources: Map<string, string>): Promise<string> {
+    const data = sources.get(entryPoint);
+    if (!data) { throw new Error()}
+    const id = Buffer.from(blake3(Buffer.from(data))).toString('hex')
     if (this.storage.hasModule(id)) {
       return id
     }
-    const result = await compile(sourceCode)
+
+    const obj: {[key: string]: string} = {}
+    for (const [key, value] of sources.entries()) {
+      obj[key] = value
+    }
+
+    const result = await compile(obj)
     this.storage.addModule(
       id,
       new WebAssembly.Module(result.output.wasm),
