@@ -11,6 +11,7 @@ import {
   NewInstruction,
   Transaction
 } from '@aldea/sdk-js'
+import {TxExecution} from "../vm/tx-execution.js";
 
 const someValidModule = `
 export class Coso extends Jig {
@@ -31,88 +32,81 @@ describe('deploy code', () => {
     storage = new Storage()
   })
 
-  it.skip('makes the module available', async () => {
-    const vm = new VM(storage)
-    const moduleId = await vm.deployCode(someValidModule)
+  describe('backdoor deploy', () => {
+    it('makes the module available', async () => {
+      const vm = new VM(storage)
+      const moduleId = await vm.deployCode(someValidModule)
 
-    const tx = new Transaction()
-      .add(new NewInstruction('someVar', moduleId, 'Coso', []))
-      .add(new LockInstruction('someVar', userAddr))
+      const tx = new Transaction()
+      const exec = new TxExecution(tx, vm)
+      const moduleIndex = exec.importModule(moduleId)
+      const jigIndex = exec.instantiate(moduleIndex, 'Coso', [])
+      exec.lockJigToUser(jigIndex, userAddr)
+      exec.finalize()
 
-    const execution = vm.execTx(tx)
-    expect(execution.outputs[0].className).to.eql('Coso')
+      expect(exec.outputs[0].className).to.eql('Coso')
+    })
+
+    it('module persist on other vm instance', async () => {
+      const vm = new VM(storage)
+      const moduleId = await vm.deployCode(someValidModule)
+
+      const vm2 = new VM(storage)
+      const tx = new Transaction()
+      const exec = new TxExecution(tx, vm2)
+      const moduleIndex = exec.importModule(moduleId)
+      const jigIndex = exec.instantiate(moduleIndex, 'Coso', [])
+      exec.lockJigToUser(jigIndex, userAddr)
+      exec.finalize()
+      expect(exec.outputs[0].className).to.eql('Coso')
+    })
+
+    it('can deploy same module twice', async () => {
+      const vm = new VM(storage)
+      const moduleId1 = await vm.deployCode(someValidModule)
+      const moduleId2 = await vm.deployCode(someValidModule)
+
+      expect(moduleId1).to.eql(moduleId2)
+    })
   })
 
-  it.skip('module persist on other vm instance', async () => {
-    const vm = new VM(storage)
-    const moduleId = await vm.deployCode(someValidModule)
+  describe('addPreCompiled', function () {
+    it('modules can be pre added from a file', async () => {
+      const vm = new VM(storage)
+      const moduleId = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
-    const tx = new Transaction()
-      .add(new NewInstruction('someVar', moduleId, 'Coso', []))
-      .add(new LockInstruction('someVar', userAddr))
+      const tx = new Transaction()
+      const exec = new TxExecution(tx, vm)
+      const moduleIndex = exec.importModule(moduleId)
+      const jigIndex = exec.instantiate(moduleIndex, 'Flock', [])
+      exec.lockJigToUser(jigIndex, userAddr)
+      exec.finalize()
+      expect(exec.outputs[0].className).to.eql('Flock')
+    })
 
-    const vm2 = new VM(storage)
-    const execution = vm2.execTx(tx)
-    expect(execution.outputs[0].className).to.eql('Coso')
-  })
+    it('some pre compiled module can be added twice', async () => {
+      const vm = new VM(storage)
+      const moduleId1 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
+      const moduleId2 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
-  it.skip('can deploy same module twice', async () => {
-    const vm = new VM(storage)
-    const moduleId1 = await vm.deployCode(someValidModule)
-    const moduleId2 = await vm.deployCode(someValidModule)
+      expect(moduleId1).to.eql(moduleId2)
+    })
 
-    expect(moduleId1).to.eql(moduleId2)
-  })
+    it('modules can be pre added from a file with dependencies', () => {
+      const vm = new VM(storage)
+      vm.addPreCompiled('aldea/basic-math.wasm', 'aldea/basic-math.ts')
+      const flockId = vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
-  it.skip('modules can be pre added from a file', async () => {
-    const vm = new VM(storage)
-    const moduleId = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
+      const tx = new Transaction()
+      const execution = new TxExecution(tx, vm)
+      const moduleIndex = execution.importModule(flockId)
+      const jigIndex = execution.instantiate(moduleIndex, 'Flock', [])
+      execution.callInstanceMethodByIndex(jigIndex, 'growWithMath', [])
+      execution.lockJigToUser(jigIndex, userAddr)
+      execution.finalize()
 
-    const tx = new Transaction()
-      .add(new NewInstruction('someVar', moduleId, 'Flock', []))
-      .add(new LockInstruction('someVar', userAddr))
-
-    const execution = vm.execTx(tx)
-    expect(execution.outputs[0].className).to.eql('Flock')
-  })
-
-  it.skip('some pre compiled module can be added twice', async () => {
-    const vm = new VM(storage)
-    const moduleId1 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
-    const moduleId2 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
-
-    expect(moduleId1).to.eql(moduleId2)
-  })
-
-  it.skip('modules can be pre added from a file with dependencies', () => {
-    const vm = new VM(storage)
-    vm.addPreCompiled('aldea/basic-math.wasm', 'aldea/basic-math.ts')
-    const flockId = vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
-
-    const tx = new Transaction()
-      .add(new NewInstruction('someVar', flockId, 'Flock', []))
-      .add(new CallInstruction('someVar', 'growWithMath', []))
-      .add(new LockInstruction('someVar', userAddr))
-
-    const execution = vm.execTx(tx)
-    let jigState = execution.outputs[0].parsedState();
-    expect(jigState[0]).to.eql(1)
-  })
-
-  it.skip('after a module was deployed the next instance has the module already loaded', () => {
-    const vm = new VM(storage)
-    vm.addPreCompiled('aldea/basic-math.wasm', 'aldea/basic-math.ts')
-    const flockId = vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
-
-    const anotherVm = new VM(storage)
-
-    const tx = new Transaction()
-      .add(new NewInstruction('someVar', flockId, 'Flock', []))
-      .add(new CallInstruction('someVar', 'growWithMath', []))
-      .add(new LockInstruction('someVar', userAddr))
-
-    const execution = anotherVm.execTx(tx)
-    let jigState = execution.outputs[0].parsedState();
-    expect(jigState[0]).to.eql(1)
-  })
+      let jigState = execution.outputs[0].parsedState();
+      expect(jigState[0]).to.eql(1)
+    })
+  });
 })
