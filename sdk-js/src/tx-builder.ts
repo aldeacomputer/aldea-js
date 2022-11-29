@@ -95,8 +95,19 @@ export class TxBuilder {
    * Pushes a DEPLOY instruction onto the Transaction. Accepts a code bundle
    * map of filname => content.
    */
-  deploy(code: Map<string, string>): void {
-    this.tx.push(new DeployInstruction(code))
+  deploy(code: Map<string, string>): void;
+  deploy(entry: string | string[], code: Map<string, string>): void;
+  deploy(entryOrCode: string | string[] | Map<string, string>, code?: Map<string, string>): void {
+    let entry: string | string[]
+    if (code instanceof Map) {
+      entry = entryOrCode as string | string[]
+    } else if (entryOrCode instanceof Map) {
+      entry = Array.from(entryOrCode.keys())
+      code = entryOrCode
+    } else {
+      throw new Error('invalid deploy params')
+    }
+    this.tx.push(new DeployInstruction(entry, code))
   }
 
   /**
