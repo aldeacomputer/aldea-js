@@ -1,8 +1,8 @@
 import { blake3 } from '@noble/hashes/blake3'
 import { bytesToHex as toHex } from '@noble/hashes/utils'
-import { normalizeTypeName, FieldNode, ObjectKind, ObjectNode, TypeNode } from '@aldea/compiler/abi'
+import { normalizeTypeName, ClassNode, FieldNode, ObjectNode, TypeNode, findClass, findImport, findObject } from '@aldea/compiler/abi'
 import { WasmInstance as Module } from './wasm-instance.js'
-import {JigRef} from "./jig-ref.js";
+import { JigRef } from "./jig-ref.js";
 
 export class Internref {
   name: string;
@@ -87,14 +87,14 @@ export function liftValue(mod: Module, type: TypeNode | null, val: number | bigi
     case 'Set':
       return liftSet(mod, type, val as number)
     default:
-      const obj = mod.abi.objects.find(n => n.name === type.name)
-      if (obj) {
-        switch (obj.kind) {
-          case ObjectKind.EXPORTED: return liftInternref(mod, obj, val as number)
-          case ObjectKind.PLAIN:    return liftObject(mod, obj, val as number)
-          case ObjectKind.IMPORTED: return liftImportedObject(mod, type, val as number)
-        }
-      }
+      const exported = findClass(mod.abi, type.name)
+      const imported = findImport(mod.abi, type.name)
+      const isobject = findObject(mod.abi, type.name)
+
+      if (exported) { return liftInternref(mod, exported, val as number) }
+      if (imported) { return liftImportedObject(mod, type, val as number) }
+      if (isobject) { return liftObject(mod, isobject, val as number) }
+
       throw new Error(`cannot lift unspported type: ${type.name}`)
   }
 }
@@ -316,14 +316,14 @@ export function lowerValue(mod: Module, type: TypeNode | null, val: any): number
     case 'Set':
       return lowerSet(mod, type, val)
     default:
-      const obj = mod.abi.objects.find(n => n.name === type.name)
-      if (obj) {
-        switch (obj.kind) {
-          case ObjectKind.EXPORTED: return lowerInternref(val)
-          case ObjectKind.PLAIN:    return lowerObject(mod, obj, val)
-          case ObjectKind.IMPORTED: return lowerImportedObject(mod, val)
-        }
-      }
+      const exported = findClass(mod.abi, type.name)
+      const imported = findImport(mod.abi, type.name)
+      const isobject = findObject(mod.abi, type.name)
+
+      if (exported) { return lowerInternref(val) }
+      if (imported) { return lowerImportedObject(mod, val) }
+      if (isobject) { return lowerObject(mod, isobject, val) }
+
       throw new Error(`cannot lower unspported type: ${type.name}`)
   }
 }
@@ -360,7 +360,7 @@ export function lowerString(mod: Module, val: string): number {
  * Lowers an Array into WASM memory and returns the Ptr.
  */
 export function lowerArray(mod: Module, type: TypeNode, val: Array<any>): number {
-  const rtid = mod.abi.rtids[normalizeTypeName(type)]
+  const rtid = mod.abi.typeIds[normalizeTypeName(type)]
   const elBytes = getTypeBytes(type.args[0])
   const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
   const TypedArray = getTypedArrayConstructor(type.args[0])
@@ -388,7 +388,7 @@ export function lowerArray(mod: Module, type: TypeNode, val: Array<any>): number
  * Lowers a StaticArray into WASM memory and returns the Ptr.
  */
 export function lowerStaticArray(mod: Module, type: TypeNode, val: Array<any>): number {
-  const rtid = mod.abi.rtids[normalizeTypeName(type)]
+  const rtid = mod.abi.typeIds[normalizeTypeName(type)]
   const elBytes = getTypeBytes(type.args[0])
   const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
   const TypedArray = getTypedArrayConstructor(type.args[0])
@@ -415,7 +415,7 @@ export function lowerStaticArray(mod: Module, type: TypeNode, val: Array<any>): 
  * Lowers a TypedArray into WASM memory and returns the Ptr.
  */
 export function lowerTypedArray(mod: Module, type: TypeNode, val: ArrayLike<number> & ArrayLike<bigint>): number {
-  const rtid = mod.abi.rtids[normalizeTypeName(type)]
+  const rtid = mod.abi.typeIds[normalizeTypeName(type)]
   const elBytes = getElementBytes(type)
   const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
 
@@ -441,7 +441,7 @@ export function lowerObject(mod: Module, obj: ObjectNode, vals: any[] | any): nu
     throw new Error(`invalid state for ${obj.name}`)
   }
 
-  const rtid = mod.abi.rtids[obj.name]
+  const rtid = mod.abi.typeIds[obj.name]
   const bytes = obj.fields.reduce((sum, n) => sum + getTypeBytes(n.type), 0)
   const ptr = mod.__new(bytes, rtid) >>> 0
   const offsets = getObjectMemLayout(obj)
@@ -462,7 +462,7 @@ export function lowerObject(mod: Module, obj: ObjectNode, vals: any[] | any): nu
 export function lowerImportedObject(mod: Module, val: JigRef): number {
   const buf = Buffer.from(val.originBuf);
   const bufferPtr = lowerBuffer(mod, buf)
-  const ptr = mod.__new(val.originBuf.byteLength, mod.abi.rtids[val.name]);
+  const ptr = mod.__new(val.originBuf.byteLength, mod.abi.typeIds[val.name]);
   const memU32 = new Uint32Array(mod.memory.buffer)
   memU32[ptr >>> 2] = bufferPtr
   return ptr
@@ -518,7 +518,7 @@ export function lowerSet(mod: Module, type: TypeNode, val: Set<any>): number {
 
 // Creates an empty Set or Map type, returning the Ptr
 function lowerEmptySetOrMap(mod: Module, type: TypeNode, entrySize: number): number {
-  const rtid = mod.abi.rtids[normalizeTypeName(type)]
+  const rtid = mod.abi.typeIds[normalizeTypeName(type)]
   const initCapacity = 4
   const buckets = mod.__new(initCapacity * 4, 0)
   const entries = mod.__new(initCapacity * entrySize, 0)

@@ -1,5 +1,5 @@
 import { CBOR } from "cbor-redux"
-import {FieldNode, findExportedObject} from "@aldea/compiler/abi";
+import {FieldNode, findClass} from "@aldea/compiler/abi";
 import {WasmInstance} from "./wasm-instance.js";
 import {Location} from "@aldea/sdk-js";
 
@@ -28,7 +28,7 @@ export class JigState {
 
   objectState (module: WasmInstance): any {
     const fields = this.parsedState()
-    const abiNode = findExportedObject(module.abi, this.className)
+    const abiNode = findClass(module.abi, this.className)
     if (!abiNode) { throw new Error('should exists') }
     return abiNode.fields.reduce((acumulated: any, current: FieldNode, index: number) => {
       acumulated[current.name] = fields[index]
