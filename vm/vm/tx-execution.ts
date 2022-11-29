@@ -9,7 +9,7 @@ import {VM} from "./vm.js";
 import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
-import {FieldNode, findExportedObject, findObjectMethod, TypeNode} from '@aldea/compiler/abi'
+import {findClass, TypeNode, findMethod, ArgNode} from '@aldea/compiler/abi'
 import {Address, Location} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
@@ -157,11 +157,11 @@ class TxExecution {
       jig = this.loadJig(origin, false,false)
     }
 
-    const obj = findExportedObject(jig.module.abi, className, 'could not find object')
-    const method = findObjectMethod(obj, methodName, 'could not find method')
+    const klassNode = findClass(jig.module.abi, className, 'could not find object')
+    const method = findMethod(klassNode, methodName, 'could not find method')
 
     const argReader = new ArgReader(argBuff)
-    const args = method.args.map((n: FieldNode) => {
+    const args = method.args.map((n: ArgNode) => {
       const ptr = readType(argReader, n.type)
       const value = liftValue(callerInstance, n.type, ptr)
       if (value instanceof Externref) {
@@ -179,8 +179,8 @@ class TxExecution {
 
     const [className, methodName] = fnStr.split('_')
 
-    const obj = findExportedObject(targetMod.abi, className, 'could not find object')
-    const method = findObjectMethod(obj, methodName, 'could not find method')
+    const obj = findClass(targetMod.abi, className, 'could not find object')
+    const method = findMethod(obj, methodName, 'could not find method')
 
     const argReader = new ArgReader(argBuffer)
     const argValues = method.args.map((arg) => {
@@ -352,8 +352,8 @@ class TxExecution {
 
   execStaticMethod (varName: string, moduleId: string, className: string, methodName: string, args: any[]) {
     const module = this.loadModule(moduleId)
-    const objectNode = findExportedObject(module.abi, className, 'should exist');
-    const methodNode = findObjectMethod(
+    const objectNode = findClass(module.abi, className, 'should exist');
+    const methodNode = findMethod(
       objectNode,
       methodName,
       'should exist'

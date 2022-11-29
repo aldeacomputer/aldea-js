@@ -49,7 +49,7 @@ export class VM {
       obj[key] = value
     }
 
-    const result = await compile(obj)
+    const result = await compile(entryPoint, obj)
     this.storage.addModule(
       id,
       new WebAssembly.Module(result.output.wasm),

@@ -6,9 +6,6 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {
-  CallInstruction,
-  LockInstruction,
-  NewInstruction,
   Transaction
 } from '@aldea/sdk-js'
 import {TxExecution} from "../vm/tx-execution.js";
@@ -34,10 +31,10 @@ describe('deploy code', () => {
 
   describe('backdoor deploy', () => {
     const aMap = new Map<string, string>()
-    aMap.set('coso.ts', someValidModule)
+    aMap.set('something.ts', someValidModule)
     it('makes the module available', async () => {
       const vm = new VM(storage)
-      const moduleId = await vm.deployCode('coso.ts', aMap)
+      const moduleId = await vm.deployCode('something.ts', aMap)
 
       const tx = new Transaction()
       const exec = new TxExecution(tx, vm)
@@ -51,7 +48,7 @@ describe('deploy code', () => {
 
     it('module persist on other vm instance', async () => {
       const vm = new VM(storage)
-      const moduleId = await vm.deployCode('coso.ts', aMap)
+      const moduleId = await vm.deployCode('something.ts', aMap)
 
       const vm2 = new VM(storage)
       const tx = new Transaction()
@@ -65,8 +62,8 @@ describe('deploy code', () => {
 
     it('can deploy same module twice', async () => {
       const vm = new VM(storage)
-      const moduleId1 = await vm.deployCode('coso.ts', aMap)
-      const moduleId2 = await vm.deployCode('coso.ts', aMap)
+      const moduleId1 = await vm.deployCode('something.ts', aMap)
+      const moduleId2 = await vm.deployCode('something.ts', aMap)
 
       expect(moduleId1).to.eql(moduleId2)
     })
@@ -119,8 +116,8 @@ describe('deploy code', () => {
       const tx = new Transaction()
       const exec = new TxExecution(tx, vm)
       const sources = new Map<string, string>()
-      sources.set('coso.ts', someValidModule)
-      const moduleIndex = await exec.deployModule('coso.ts',  sources)
+      sources.set('something.ts', someValidModule)
+      const moduleIndex = await exec.deployModule('something.ts',  sources)
       const jigIndex = exec.instantiate(moduleIndex, 'Coso', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.finalize()
@@ -128,20 +125,21 @@ describe('deploy code', () => {
       expect(exec.outputs[0].className).to.eql('Coso')
     })
 
-    it('can deploy more than 1 file', async () => {
+    it.skip('can deploy more than 1 file', async () => {
       const vm = new VM(storage)
 
       const tx = new Transaction()
       const exec = new TxExecution(tx, vm)
       const sources = new Map<string, string>()
-      sources.set('coso.ts', someValidModule)
+      sources.set('something.ts', someValidModule)
       sources.set('something.ts', `
+        export { Coso } from 'coso.ts'
         export class Something extends Jig {
           constructor () { super() } 
-          foo(): string { return 'bar' }
-        }
+          foo(): string { return 'holu' }
+        } 
       `)
-      const moduleIndex = await exec.deployModule('coso.ts',  sources)
+      const moduleIndex = await exec.deployModule('something.ts',  sources)
       const jig1Index = exec.instantiate(moduleIndex, 'Coso', [])
       const jig2Index = exec.instantiate(moduleIndex, 'Something', [])
       exec.lockJigToUser(jig1Index, userAddr)
@@ -157,8 +155,8 @@ describe('deploy code', () => {
       const tx = new Transaction()
       const exec = new TxExecution(tx, vm)
       const sources = new Map<string, string>()
-      sources.set('coso.ts', someValidModule)
-      const moduleIndex = await exec.deployModule('coso.ts',  sources)
+      sources.set('something.ts', someValidModule)
+      const moduleIndex = await exec.deployModule('something.ts',  sources)
       const result = exec.getStatementResult(moduleIndex)
 
       expect(result.instance.id).to.eql('4a94ec70e9f07753b7667c3daa161be5d7b06236889036a552a19bf2adc58f72')

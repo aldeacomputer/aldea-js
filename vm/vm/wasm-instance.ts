@@ -1,15 +1,10 @@
 import {CBOR, Sequence} from 'cbor-redux'
 import {JigRef} from "./jig-ref.js";
 import {
-  Abi,
-  FieldKind,
-  findExportedFunction,
-  findExportedObject,
-  findObjectField,
-  findObjectMethod,
-  findPlainObject,
-  ObjectKind,
-  TypeNode
+  Abi, ArgNode,
+  FieldKind, FieldNode,
+  TypeNode,
+  findClass, findField, findFunction, findMethod, findObject
 } from "@aldea/compiler/abi";
 import {
   getObjectMemLayout,
@@ -80,7 +75,6 @@ function __decodeArgs (data: ArrayBuffer): any[] {
 const voidNode = { name: '_void', args: [] }
 
 const utxoAbiNode = {
-  kind: ObjectKind.PLAIN,
   name: 'UtxoState',
   extends: null,
   fields: [
@@ -102,14 +96,6 @@ const utxoAbiNode = {
     },
     {
       kind: FieldKind.PUBLIC,
-      name: 'motos',
-      type: {
-        name: 'u32',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
       name: 'lock',
       type: {
         name: 'LockState',
@@ -121,7 +107,6 @@ const utxoAbiNode = {
 }
 
 const lockStateAbiNode = {
-  kind: ObjectKind.PLAIN,
   name: 'LockState',
   extends: null,
   fields: [
@@ -229,11 +214,10 @@ export class WasmInstance {
         },
         vm_local_state: (jigPtr: number): number => {
           const jigRef = this.currentExec.findUtxoHandler(this, jigPtr)
-          const abiNode = findPlainObject(this.abi, 'UtxoState', 'should be present')
+          const abiNode = findObject(this.abi, 'UtxoState', 'should be present')
           const utxo = {
             origin: jigRef.origin.toString(),
             location: 'currentlocation', // FIXME: real location,
-            motos: 0,
             lock: {
               type: 1,
               data: new ArrayBuffer(0)
@@ -247,13 +231,12 @@ export class WasmInstance {
           const utxo = {
             origin: jigRef.origin.toString(),
             location: jigRef, // FIXME: real location,
-            motos: 0,
             lock: {
               type: jigRef.lock.typeNumber(),
               data: new ArrayBuffer(0)
             }
           }
-          const abiNode = findPlainObject(this.abi, 'UtxoState', 'should be present')
+          const abiNode = findObject(this.abi, 'UtxoState', 'should be present')
           return lowerObject(this, abiNode, utxo)
         },
         vm_remote_lock: (originPtr: number, type: LockType, argsPtr: number) => {
@@ -271,7 +254,7 @@ export class WasmInstance {
   }
 
   get currentExec (): TxExecution {
-    if (this._currentExec === null) { throw new Error('tx is not present')}
+    if (this._currentExec === null) { throw new Error('tx execution is not present')}
     return this._currentExec
   }
 
@@ -290,10 +273,10 @@ export class WasmInstance {
 
   staticCall (className: string, methodName: string, args: any[]): MethodResult {
     const fnName = `${className}_${methodName}`
-    const abiObj = findExportedObject(this.abi, className, `unknown export: ${className}`)
-    const method = findObjectMethod(abiObj, methodName, `unknown method: ${methodName}`)
+    const abiObj = findClass(this.abi, className, `unknown class: ${className}`)
+    const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
 
-    const ptrs = method.args.map((argNode, i) => {
+    const ptrs = method.args.map((argNode: ArgNode, i: number) => {
       return lowerValue(this, argNode.type, args[i])
     })
 
@@ -312,19 +295,19 @@ export class WasmInstance {
 
   hidrate (className: string, frozenState: ArrayBuffer): Internref {
     const rawState = __decodeArgs(frozenState)
-    const objectNode = findExportedObject(this.abi, className, `unknown class ${className}`)
+    const objectNode = findClass(this.abi, className, `unknown class ${className}`)
     const pointer = lowerObject(this, objectNode, rawState)
     return liftInternref(this, objectNode, pointer)
   }
 
   instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): MethodResult {
     const fnName = `${className}$${methodName}`
-    const abiObj = findExportedObject(this.abi, className, `unknown export: ${className}`)
-    const method = findObjectMethod(abiObj, methodName, `unknown method: ${methodName}`)
+    const abiObj = findClass(this.abi, className, `unknown export: ${className}`)
+    const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
 
     const ptrs = [
       lowerInternref(ref),
-      ...method.args.map((argNode, i) => {
+      ...method.args.map((argNode: ArgNode, i: number) => {
         return lowerValue(this, argNode.type, args[i])
       })
     ]
@@ -340,8 +323,8 @@ export class WasmInstance {
   }
 
   getPropValue (ref: Internref, className: string, fieldName: string): Prop {
-    const objNode = findExportedObject(this.abi, className, `unknown export: ${className}`)
-    const field = findObjectField(objNode, fieldName, `unknown field: ${fieldName}`)
+    const objNode = findClass(this.abi, className, `unknown export: ${className}`)
+    const field = findField(objNode, fieldName, `unknown field: ${fieldName}`)
 
     const offsets = getObjectMemLayout(objNode)
     const { offset, align } = offsets[field.name]
@@ -362,9 +345,9 @@ export class WasmInstance {
    * The static call above should probably look like this too, no?
    */
   functionCall (fnName: string, args: any[] = []): MethodResult {
-    const abiFn = findExportedFunction(this.abi, fnName, `unknown export: ${fnName}`)
+    const abiFn = findFunction(this.abi, fnName, `unknown export: ${fnName}`)
 
-    const ptrs = abiFn.args.map((argNode, i) => {
+    const ptrs = abiFn.args.map((argNode: ArgNode, i: number) => {
       return lowerValue(this, argNode.type, args[i])
     })
 
@@ -395,11 +378,11 @@ export class WasmInstance {
   }
 
   extractState(ref: Internref, className: string): ArrayBuffer {
-    const abiObj = findExportedObject(this.abi, className, 'not found')
+    const abiObj = findClass(this.abi, className, 'not found')
     const liftedObject = liftObject(this, abiObj, ref.ptr)
 
     return __encodeArgs(
-      abiObj.fields.map(field => liftedObject[field.name])
+      abiObj.fields.map((field: FieldNode) => liftedObject[field.name])
     )
   }
 }
