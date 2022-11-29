@@ -1,6 +1,6 @@
 import { blake3 } from '@noble/hashes/blake3'
 import { bytesToHex as toHex } from '@noble/hashes/utils'
-import { normalizeTypeName, ClassNode, FieldNode, ObjectNode, TypeNode, findClass, findImport, findObject } from '@aldea/compiler/abi'
+import { normalizeTypeName, FieldNode, ObjectNode, TypeNode, findClass, findImport, findObject } from '@aldea/compiler/abi'
 import { WasmInstance as Module } from './wasm-instance.js'
 import { JigRef } from "./jig-ref.js";
 
@@ -366,10 +366,10 @@ export function lowerArray(mod: Module, type: TypeNode, val: Array<any>): number
   const TypedArray = getTypedArrayConstructor(type.args[0])
 
   const length = val.length
-  const buffer = mod.__pin(mod.__new(length << align, 0)) >>> 0
+  const buffer = mod.__pin(mod.__new((length << align), 0)) >>> 0
   const header = mod.__new(16, rtid) >>> 0
   const memU32 = new Uint32Array(mod.memory.buffer)
-  memU32[header + 0 >>> 2] = buffer;
+  memU32[header >>> 2] = buffer;
   memU32[header + 4 >>> 2] = buffer;
   memU32[header + 8 >>> 2] = length << align;
   memU32[header + 12 >>> 2] = length;
@@ -420,10 +420,10 @@ export function lowerTypedArray(mod: Module, type: TypeNode, val: ArrayLike<numb
   const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
 
   const length = val.length
-  const buffer = mod.__pin(mod.__new(length << align, 0)) >>> 0
+  const buffer = mod.__pin(mod.__new((length << align), 0)) >>> 0
   const header = mod.__new(12, rtid) >>> 0
   const memU32 = new Uint32Array(mod.memory.buffer)
-  memU32[header + 0 >>> 2] = buffer
+  memU32[header >>> 2] = buffer
   memU32[header + 4 >>> 2] = buffer
   memU32[header + 8 >>> 2] = length << align
   const TypedArray = getTypedArrayConstructor(type)
@@ -525,7 +525,7 @@ function lowerEmptySetOrMap(mod: Module, type: TypeNode, entrySize: number): num
   const ptr = mod.__new(24, rtid)
 
   const memU32 = new Uint32Array(mod.memory.buffer)
-  memU32[ptr + 0 >>> 2] = buckets
+  memU32[ptr >>> 2] = buckets
   memU32[ptr + 1 >>> 2] = initCapacity - 1
   memU32[ptr + 2 >>> 2] = entries
   memU32[ptr + 3 >>> 2] = initCapacity
