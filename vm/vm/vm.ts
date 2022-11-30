@@ -4,11 +4,11 @@ import { fileURLToPath } from 'url'
 import { TxExecution } from './tx-execution.js'
 import fs from "fs"
 import {Storage} from "./storage.js";
-import {Transaction} from "./transaction.js";
 import {abiFromCbor, abiFromJson} from '@aldea/compiler/abi'
 import {compile} from '@aldea/compiler'
 import {blake3} from "@aldea/sdk-js/support/hash";
-import {Location} from "@aldea/sdk-js";
+import {Location, Tx} from "@aldea/sdk-js";
+import {ExecutionError} from "./errors.js";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -19,10 +19,11 @@ export class VM {
     this.storage = storage
   }
 
-  execTx (tx: Transaction): TxExecution {
+  execTx(tx: Tx): TxExecution {
     const currentExecution = new TxExecution(tx, this)
     currentExecution.run()
     currentExecution.finalize()
+    this.storage.persist(currentExecution)
     return currentExecution
   }
 
@@ -33,7 +34,9 @@ export class VM {
 
 
   findJigState (location: Location) {
-    return this.storage.getJigState(location)
+    return this.storage.getJigState(location, () => {
+      throw new ExecutionError(`unknown jig: ${location.toString()}`)
+    })
   }
 
   async deployCode (entryPoint: string, sources: Map<string, string>): Promise<string> {

@@ -1,4 +1,3 @@
-import {Transaction} from '../vm/transaction.js'
 import {
   Storage,
   VM
@@ -6,8 +5,8 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
-import {Location} from "@aldea/sdk-js";
-import {PermissionError} from "../vm/errors.js";
+import {Location, PrivKey, Tx, TxBuilder} from "@aldea/sdk-js";
+import {ExecutionError, PermissionError} from "../vm/errors.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -49,7 +48,7 @@ describe('execute txs', () => {
 
   let exec: TxExecution
   beforeEach(() => {
-    const tx = new Transaction()
+    const tx = new Tx()
     exec = new TxExecution(tx, vm)
   })
 
@@ -128,7 +127,7 @@ describe('execute txs', () => {
     const parsed = exec.outputs[flockOutputIndex]
     expect(parsed.className).to.eql('Flock')
     expect(parsed.serializedLock).to.eql( {type: 'JigLock',   data: {
-        "origin": new Location(exec.tx.hash(), shepherdOutputIndex).toString()
+        "origin": new Location(exec.tx.hash, shepherdOutputIndex).toString()
       }})
   })
 
@@ -144,7 +143,7 @@ describe('execute txs', () => {
     const flockOutputIndex = 0
     // this tries to lock it again
     expect(() => {exec.lockJigToUser(flockIndex, userAddr)}).to.throw(PermissionError,
-      `no permission to remove lock from jig ${new Location(exec.tx.hash(), flockOutputIndex).toString()}`)
+      `no permission to remove lock from jig ${new Location(exec.tx.hash, flockOutputIndex).toString()}`)
   })
 
   it('fails when a jig tries to lock a locked jig', () => {
@@ -154,9 +153,8 @@ describe('execute txs', () => {
     const jig = exec.getStatementResult(flockIndex)
     // this locks the flock
     exec.lockJigToUser(flockIndex, userAddr)
-
     // this tries to lock it again
-    expect(() => {exec.instantiate(counterWasmIndex, 'Shepherd', [jig.asJig()])}).to.throw(PermissionError,
+    expect(() => exec.instantiate(counterWasmIndex, 'Shepherd', [jig.asJig()])).to.throw(PermissionError,
       `lock cannot be changed`)
   })
 
@@ -201,6 +199,40 @@ describe('execute txs', () => {
     const parsed = exec.outputs[0].parsedState()
     expect(parsed[0]).to.have.length(1)
     expect(parsed[1]).to.eql([])
+  })
+
+  describe('when a jig already exists', () => {
+    beforeEach(() => {
+      const importIndex = exec.importModule(modIdFor('flock'))
+      const flockIndex = exec.instantiate(importIndex, 'Flock', [])
+      exec.lockJigToUser(flockIndex, userAddr)
+      exec.finalize()
+      storage.persist(exec)
+    })
+
+    it('can load that jig', () => {
+      const otherAddress = PrivKey.fromRandom().toPubKey().toAddress()
+      const tx2 = new TxBuilder()
+        .sign(userPriv)
+        .build()
+
+      const exec2 = new TxExecution(tx2, vm)
+
+      const jigIndex = exec2.loadJig(new Location(exec.tx.hash, 0), false, false)
+      exec2.lockJigToUser(jigIndex, otherAddress)
+      exec2.finalize()
+
+      const output = exec2.outputs[0]
+      expect(output.serializedLock.data.pubkey).to.eql(otherAddress)
+    })
+  })
+
+  it('cannot load a jig that does not exists', () => {
+
+    const locationString = new Array(64).fill('0').join('')
+    expect(() =>
+      exec.loadJig(new Location(Buffer.alloc(32).fill(0).buffer, 99), false, false)
+    ).to.throw(ExecutionError, `unknown jig: ${locationString}_o99`)
   })
 
   it('can call top level functions')

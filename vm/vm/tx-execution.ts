@@ -4,15 +4,15 @@ import {ExecutionError, PermissionError} from "./errors.js"
 import {UserLock} from "./locks/user-lock.js"
 import {NoLock} from "./locks/no-lock.js"
 import {JigState} from "./jig-state.js"
-import {Transaction} from "./transaction.js";
 import {VM} from "./vm.js";
 import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
-import {findClass, TypeNode, findMethod, ArgNode} from '@aldea/compiler/abi'
-import {Address, Location} from '@aldea/sdk-js';
+import {ArgNode, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
+import {Address, Instruction, Location, Tx} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
+import {ImportInstruction, LockInstruction, NewInstruction} from "@aldea/sdk-js";
 
 abstract class StatementResult {
   abstract get abiNode(): TypeNode;
@@ -76,7 +76,7 @@ class ValueStatementResult extends StatementResult {
 }
 
 class TxExecution {
-  tx: Transaction;
+  tx: Tx;
   private vm: VM;
   private jigs: JigRef[];
   private wasms: Map<string, WasmInstance>;
@@ -84,7 +84,7 @@ class TxExecution {
   outputs: JigState[];
   statementResults: StatementResult[]
 
-  constructor (tx: Transaction, vm: VM) {
+  constructor(tx: Tx, vm: VM) {
     this.tx = tx
     this.vm = vm
     this.jigs = []
@@ -102,7 +102,7 @@ class TxExecution {
     })
 
     this.jigs.forEach((jigRef, index) => {
-      const location = new Location(this.tx.hash(), index)
+      const location = new Location(this.tx.hash, index)
       const origin = jigRef.origin || location
       const serialized = jigRef.serialize() //  module.instanceCall(jigRef.ref, jigRef.className, 'serialize')
       const jigState = new JigState(origin, location , jigRef.className, serialized, jigRef.module.id, jigRef.lock.serialize())
@@ -154,7 +154,7 @@ class TxExecution {
   remoteCallHandler (callerInstance: WasmInstance, origin: Location, className: string, methodName: string, argBuff: ArrayBuffer): MethodResult {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
-      jig = this.loadJig(origin, false,false)
+      jig = this.findJig(origin, false,false)
     }
 
     const klassNode = findClass(jig.module.abi, className, 'could not find object')
@@ -200,7 +200,7 @@ class TxExecution {
   getPropHandler (origin: Location, propName: string): Prop {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
-      jig = this.loadJig(origin, false,false)
+      jig = this.findJig(origin, false,false)
     }
     return jig.module.getPropValue(jig.ref, jig.className, propName)
   }
@@ -294,11 +294,37 @@ class TxExecution {
   }
 
   run () {
-    // const execVisitor = new ExecVisitor(this)
-    // this.txHash.accept(execVisitor)
+    this.tx.instructions.forEach((inst: Instruction) => {
+      if (inst instanceof ImportInstruction) {
+        this.importModule(Buffer.from(inst.origin).toString('hex'))
+      } else if (inst instanceof NewInstruction) {
+        const wasm = this.getStatementResult(inst.idx).instance
+        const className = wasm.abi.exports[inst.exportIdx].code.name
+        this.instantiate(inst.idx, className, inst.args)
+      } else if (inst instanceof LockInstruction) {
+        this.lockJigToUser(inst.idx, new Address(inst.pubkeyHash))
+      }
+      // switch (inst.opcode) {
+      //   case OpCode.IMPORT:
+      //     this.importModule(inst.)
+      //   case OpCode.LOAD:
+      //   case OpCode.LOADBYORIGIN:
+      //   case OpCode.NEW:
+      //   case OpCode.CALL:
+      //   case OpCode.EXEC:
+      //   case OpCode.FUND:
+      //   case OpCode.LOCK:
+      //   case OpCode.DEPLOY:
+      //   case OpCode.SIGN:
+      //   case OpCode.SIGNTO:
+      //   default:
+      //     throw new ExecutionError(`Unknown Opcode`)
+      // }
+    })
+    this.finalize()
   }
 
-  loadJig (location: Location, readOnly: boolean, force: boolean): JigRef {
+  findJig (location: Location, readOnly: boolean, force: boolean): JigRef {
     const jigState = this.vm.findJigState(location)
     if (force && location !== jigState.location) {
       throw new ExecutionError('jig already spent')
@@ -312,6 +338,16 @@ class TxExecution {
     const jigRef = new JigRef(ref, jigState.className, module, jigState.origin, lock)
     this.addNewJigRef(jigRef)
     return jigRef
+  }
+
+  loadJig (location: Location, readOnly: boolean, force: boolean): number {
+    const jigRef = this.findJig(location, readOnly, force)
+    const typeNode = {
+      name: jigRef.className,
+      args: []
+    }
+    this.statementResults.push(new ValueStatementResult(typeNode, jigRef, jigRef.module))
+    return this.statementResults.length - 1
   }
 
   _hidrateLock (frozenLock: any): Lock {
@@ -373,7 +409,7 @@ class TxExecution {
   }
 
   newOrigin () {
-    return new Location(this.tx.hash(), this.jigs.length)
+    return new Location(this.tx.hash, this.jigs.length)
   }
 
   stackTop () {

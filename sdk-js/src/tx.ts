@@ -4,6 +4,9 @@ import { BufReader } from './buf-reader.js'
 import { BufWriter } from './buf-writer.js'
 import { Instruction, InstructionSerializer, OpCode } from './instruction.js'
 import { Serializable } from './serializable.js'
+import {Address} from "./address.js";
+import {SignInstruction} from "./instructions/index.js";
+import {PubKey} from "./pubkey.js";
 
 const TX_VERSION = 1
 
@@ -55,9 +58,6 @@ export class Tx {
    * Returns a Transaction from the given hex-encoded string.
    */
   static fromHex(str: string): Tx {
-    if (typeof str !== 'string') {
-      throw Error('The first argument to `Tx.fromHex()` must be a `string`')
-    }
     const bytes = base16.decode(str)
     return Tx.fromBytes(bytes)
   }
@@ -85,6 +85,15 @@ export class Tx {
     }
 
     return blake3(buf.data)
+  }
+
+  isSignedBy (addr: Address): boolean {
+    return this.instructions
+      .filter((inst: Instruction) => inst instanceof SignInstruction)
+      .some((inst: Instruction) => {
+        const signInst = inst as SignInstruction
+        return PubKey.fromBytes(signInst.pubkey).toAddress().equals(addr)
+      })
   }
 
   /**

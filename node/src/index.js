@@ -39,7 +39,7 @@ app.post('/tx', (req, res) => {
   try {
     const tx = TransactionJSON.parse(req.body)
     const execution = vm.execTx(tx)
-    storage.persist(execution)
+      storage.persist(execution)
     res.send({ txid: tx.id })
   } catch (e) {
     console.error(e)
