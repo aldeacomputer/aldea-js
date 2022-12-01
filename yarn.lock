@@ -82,6 +82,7 @@ __metadata:
     cbor: ^8.1.0
     cors: ^2.8.5
     express: ^4.18.1
+    http-status: ^1.5.3
     standard: ^17.0.0
   languageName: unknown
   linkType: soft
@@ -5417,6 +5418,13 @@ __metadata:
     agent-base: 6
     debug: 4
   checksum: e2ee1ff1656a131953839b2a19cd1f3a52d97c25ba87bd2559af6ae87114abf60971e498021f9b73f9fd78aea8876d1fb0d4656aac8a03c6caa9fc175f22b786
+  languageName: node
+  linkType: hard
+
+"http-status@npm:^1.5.3":
+  version: 1.5.3
+  resolution: "http-status@npm:1.5.3"
+  checksum: bcb07045f790dcf184c3940b1399113381d1b895bfb7f4d7d8eacf6bd1aef5461064b8fbc4e23c7276bfe4a275a3ebedc50d80e5216b3909478fb3dc58dbbb04
   languageName: node
   linkType: hard
 

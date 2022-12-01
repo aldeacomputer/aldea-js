@@ -1,7 +1,7 @@
 import test from 'ava'
 import {
   PrivKey,
-  TxBuilder
+  TxBuilder,
 } from '../dist/index.js'
 import { base16 } from "@scure/base"
 

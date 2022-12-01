@@ -4,6 +4,7 @@ export function buildVm () {
   const storage = new Storage()
   const vm = new VM(storage)
   const sources = [
+    'ant',
     'basic-math',
     'flock',
     'nft',
@@ -14,7 +15,8 @@ export function buildVm () {
   ]
 
   sources.forEach(src => {
-    vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
+    const id = vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
+    console.log(`built ${src} with id: ${id}`)
   })
   return { vm, storage }
 }
