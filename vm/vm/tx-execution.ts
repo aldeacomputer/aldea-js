@@ -350,7 +350,7 @@ class TxExecution {
       } else if (inst instanceof instructions.SignToInstruction) {
         continue // noop
       } else if (inst instanceof instructions.DeployInstruction) {
-        await this.deployModule(inst.entry[0], inst.code)
+        await this.deployModule(inst.entry, inst.code)
       } else if (inst instanceof instructions.FundInstruction) {
         throw new ExecutionError('fund not implemented')
       } else {
@@ -486,11 +486,7 @@ class TxExecution {
     return this.getStatementResult(moduleIndex).instance;
   }
 
-  async deployModule(entryPoint: string, sources: Map<string, string>): Promise<number> {
-    const source = sources.get(entryPoint)
-    if (!source) {
-      throw new ExecutionError('entry file is not present.')
-    }
+  async deployModule(entryPoint: string[], sources: Map<string, string>): Promise<number> {
     const moduleId = await this.vm.deployCode(entryPoint, sources)
     return this.importModule(moduleId)
   }

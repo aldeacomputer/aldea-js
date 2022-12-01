@@ -1,6 +1,6 @@
 #!/bin/env node
 import fs from 'fs'
-import { blake3 } from "@aldea/sdk-js/support/hash"
+import { calculatePackageId } from "../tsc/index.js"
 
 const filePath = process.argv[2]
 
@@ -10,6 +10,9 @@ if(!filePath) {
 
 const content = fs.readFileSync(filePath)
 
-const hash = blake3(content)
+const map = new Map()
+map.set('index.ts', content.toString())
 
-console.log(Buffer.from(hash).toString('hex'))
+const id = calculatePackageId(['index.ts'], map)
+
+console.log(id)
