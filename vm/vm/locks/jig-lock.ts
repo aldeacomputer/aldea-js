@@ -22,7 +22,7 @@ export class JigLock implements Lock {
   }
 
   acceptsExecution(context: TxExecution): boolean {
-    return context.stackTop().equals(this.origin);
+    return context.stackTop() && context.stackTop().equals(this.origin);
   }
 
   canBeChangedBy(context: TxExecution): boolean {

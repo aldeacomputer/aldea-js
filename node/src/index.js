@@ -1,8 +1,11 @@
 import express from 'express'
 import cors from 'cors'
+import statuses from 'http-status'
 
-import { TransactionJSON } from './transaction-json.js'
 import { buildVm } from "./build-vm.js"
+import { HttpNotFound } from "./errors.js"
+import { Tx } from '@aldea/sdk-js'
+import asyncHandler from 'express-async-handler'
 
 const { vm, storage } = buildVm()
 
@@ -10,6 +13,7 @@ const app = express()
 const port = process.env.PORT || 4000
 
 app.use(express.json())
+app.use(express.raw())
 app.use(cors())
 
 app.get('/status', (req, res) => {
@@ -17,33 +21,44 @@ app.get('/status', (req, res) => {
 })
 
 app.get('/tx/:txid', (req, res) => {
-  const tx = storage.getTransaction(req.params.txid)
+  const txid = req.params.txid
+  const tx = storage.getTransaction(txid)
   if (tx) {
-    res.send(TransactionJSON.toJSON(tx))
+    res.set('content-type', 'application/octet-stream')
+    const buf = tx.toBytes()
+    res.send(Buffer.from(buf))
   } else {
-    res.status(404).send("Sorry can't find that!")
+    throw new HttpNotFound(`tx not found: ${txid}`, { txid })
   }
 })
 
 app.get('/state/:location', (req, res) => {
-  const state = storage.getJigState(req.params.location)
-  if (state) {
-    const wasm = vm.createWasmInstance(state.moduleId)
-    res.send(state.objectState(wasm))
-  } else {
-    res.status(404).send("Sorry can't find that!")
-  }
+  const location = req.params.location
+  const state = storage.getJigState(location, () => { throw new HttpNotFound(`state not found: ${location}`, { location })})
+  const wasm = vm.createWasmInstance(state.moduleId)
+  res.send(state.objectState(wasm))
 })
 
-app.post('/tx', (req, res) => {
-  try {
-    const tx = TransactionJSON.parse(req.body)
-    const execution = vm.execTx(tx)
-    storage.persist(execution)
-    res.send({ txid: tx.id })
-  } catch (e) {
-    console.error(e)
-    res.status(400).send(e.message)
+app.post('/tx', asyncHandler(async (req, res) => {
+  const tx = Tx.fromBytes(req.body)
+  const txResult = await vm.execTx(tx)
+  res.send({ txid: txResult.tx.id })
+}))
+
+app.use((err, req, res, _next) => {
+  if (err instanceof HttpNotFound) {
+    res.status(statuses.NOT_FOUND)
+    res.send({
+      message: err.message,
+      code: 'NOT_FOUND',
+      data: err.data
+    })
+  } else {
+    res.status(statuses.BAD_REQUEST)
+    res.send({
+      message: err.message,
+      code: 'unknown error'
+    })
   }
 })
 

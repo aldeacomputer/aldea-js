@@ -34,7 +34,7 @@ export class RemoteControl extends Jig {
 }
 
 // @ts-ignore
-@imported("./tv.ts")
+@imported("afa5017570bafcfe7d3309e81bcbdd493813edd525ca6e468ceb69a0d1fb84b0")
 declare class TV extends Jig {
   powerOn: bool;
   turnOn (): void;

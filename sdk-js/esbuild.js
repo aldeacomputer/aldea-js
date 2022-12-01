@@ -15,8 +15,9 @@ esbuild.build({
   format: 'cjs',
   platform: 'node',
   target: 'node16',
-  minify: true,
+  minify: false,
   keepNames: true,
+  sourcemap: true,
   plugins: [
     makeAllPackagesExternalPlugin
   ]
@@ -30,8 +31,9 @@ esbuild.build({
   format: 'esm',
   platform: 'node',
   target: 'node16',
-  minify: true,
+  minify: false,
   keepNames: true,
+  sourcemap: true,
   plugins: [
     makeAllPackagesExternalPlugin
   ]
@@ -45,7 +47,7 @@ esbuild.build({
   format: 'iife',
   platform: 'browser',
   target: 'es6',
-  minify: true,
+  minify: false,
   keepNames: true,
   sourcemap: true,
   plugins: [

@@ -12,7 +12,14 @@ export {
   PubKey, isPubKey,
   Tx, isTx, TxSerializer,
   TxBuilder,
-  OpCode, Instruction, InstructionSerializer
+  OpCode,
+  Instruction,
+  NewInstruction,
+  ImportInstruction,
+  LockInstruction,
+  LoadInstruction,
+  LoadByOriginInstruction,
+  CallInstruction
 } from './internal.js'
 
 // Instructions exports
@@ -26,8 +33,4 @@ export * as ed25519 from './support/ed25519.js'
 
 // Legacy exports - these will probably be removed
 export { Signature } from './signature.js'
-export * from './transaction/transaction.js'
 export * from './transaction/location.js'
-export * from './transaction/instructions/index.js'
-export * from './transaction/arguments/index.js'
-export * from './transaction/tx-visitor.js'
