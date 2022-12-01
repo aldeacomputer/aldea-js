@@ -9,6 +9,7 @@ import {compile} from '@aldea/compiler'
 import {blake3} from "@aldea/sdk-js/support/hash";
 import {Location, Tx} from "@aldea/sdk-js";
 import {ExecutionError} from "./errors.js";
+import {calculatePackageId} from "./calculate-package-id.js";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -39,10 +40,9 @@ export class VM {
     })
   }
 
-  async deployCode (entryPoint: string, sources: Map<string, string>): Promise<string> {
-    const data = sources.get(entryPoint);
-    if (!data) { throw new Error()}
-    const id = Buffer.from(blake3(Buffer.from(data))).toString('hex')
+  async deployCode (entries: string[], sources: Map<string, string>): Promise<string> {
+    const id = calculatePackageId(entries, sources)
+
     if (this.storage.hasModule(id)) {
       return id
     }
@@ -52,8 +52,8 @@ export class VM {
       obj[key] = value
     }
 
-    const result = await compile(entryPoint, obj)
-    this.storage.addModule(
+    const result = await compile(entries, obj)
+    this.storage.addPackage(
       id,
       new WebAssembly.Module(result.output.wasm),
       abiFromCbor(result.output.abi.buffer)
@@ -73,7 +73,7 @@ export class VM {
     const module = new WebAssembly.Module(wasmBuffer)
     const abiPath = modulePath.replace('wasm', 'abi.json')
     const abi = abiFromJson(fs.readFileSync(abiPath).toString())
-    this.storage.addModule(
+    this.storage.addPackage(
       id,
       module,
       abi

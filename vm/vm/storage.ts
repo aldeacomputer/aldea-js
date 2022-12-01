@@ -58,7 +58,7 @@ export class Storage {
     return this.transactions.get(txid)
   }
 
-  addModule(id: string, module: WebAssembly.Module, abi: Abi): void {
+  addPackage(id: string, module: WebAssembly.Module, abi: Abi): void {
     this.modules.set(id, { mod: module, abi })
   }
 
