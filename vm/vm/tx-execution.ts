@@ -8,11 +8,15 @@ import {VM} from "./vm.js";
 import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
-import {ArgNode, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
-import {Address, Instruction, Location, Tx} from '@aldea/sdk-js';
+import {ArgNode, findClass, findMethod, TypeNode, ClassNode, CodeKind} from '@aldea/compiler/abi'
+import {
+  Address,
+  Location,
+  Tx,
+  instructions
+} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
-import {ImportInstruction, LockInstruction, NewInstruction} from "@aldea/sdk-js";
 
 abstract class StatementResult {
   abstract get abiNode(): TypeNode;
@@ -48,6 +52,28 @@ class WasmStatementResult extends StatementResult {
   get instance(): WasmInstance {
     return this._instance;
   }
+}
+class NullStatementResult extends StatementResult {
+  get abiNode(): TypeNode {
+    throw new Error('null')
+  }
+
+  asJig(): JigRef {
+    throw new Error('null')
+  }
+
+  get instance(): WasmInstance {
+    throw new Error('null')
+  }
+
+  get value(): any {
+    throw new Error('null')
+  }
+
+  get wasm(): WasmInstance {
+    throw new Error('null')
+  }
+
 }
 
 class ValueStatementResult extends StatementResult {
@@ -293,40 +319,50 @@ class TxExecution {
     return jigRef
   }
 
-  run () {
-    this.tx.instructions.forEach((inst: Instruction) => {
-      if (inst instanceof ImportInstruction) {
+  async run (): Promise<void> {
+    for (const inst of this.tx.instructions) {
+      if (inst instanceof instructions.ImportInstruction) {
         this.importModule(Buffer.from(inst.origin).toString('hex'))
-      } else if (inst instanceof NewInstruction) {
+      } else if (inst instanceof instructions.NewInstruction) {
         const wasm = this.getStatementResult(inst.idx).instance
         const className = wasm.abi.exports[inst.exportIdx].code.name
         this.instantiate(inst.idx, className, inst.args)
-      } else if (inst instanceof LockInstruction) {
+      } else if (inst instanceof instructions.CallInstruction) {
+        const jig = this.getStatementResult(inst.idx).asJig()
+        const classNode = findClass(jig.module.abi, jig.className, 'class should be present')
+        const methodName = classNode.methods[inst.methodIdx].name
+        this.callInstanceMethodByIndex(inst.idx, methodName, inst.args)
+      } else if (inst instanceof instructions.ExecInstruction) {
+        const wasm = this.getStatementResult(inst.idx).instance
+        const exportNode = wasm.abi.exports[inst.exportIdx]
+        if (exportNode.kind !== CodeKind.CLASS) { throw new Error('not a class')}
+        const klassNode = exportNode.code as ClassNode
+        const methodNode = klassNode.methods[inst.methodIdx]
+        this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, inst.args)
+      } else if (inst instanceof instructions.LockInstruction) {
         this.lockJigToUser(inst.idx, new Address(inst.pubkeyHash))
+      } else if (inst instanceof instructions.LoadInstruction) {
+        this.loadJig(Location.fromBuffer(inst.location.buffer), false, true)
+      } else if (inst instanceof instructions.LoadByOriginInstruction) {
+        this.loadJig(Location.fromBuffer(inst.origin.buffer), false, false)
+      } else if (inst instanceof instructions.SignInstruction) {
+        continue // noop
+      } else if (inst instanceof instructions.SignToInstruction) {
+        continue // noop
+      } else if (inst instanceof instructions.DeployInstruction) {
+        await this.deployModule(inst.entry[0], inst.code)
+      } else if (inst instanceof instructions.FundInstruction) {
+        throw new ExecutionError('fund not implemented')
+      } else {
+        throw new ExecutionError(`unknown instruction: ${inst.opcode}`)
       }
-      // switch (inst.opcode) {
-      //   case OpCode.IMPORT:
-      //     this.importModule(inst.)
-      //   case OpCode.LOAD:
-      //   case OpCode.LOADBYORIGIN:
-      //   case OpCode.NEW:
-      //   case OpCode.CALL:
-      //   case OpCode.EXEC:
-      //   case OpCode.FUND:
-      //   case OpCode.LOCK:
-      //   case OpCode.DEPLOY:
-      //   case OpCode.SIGN:
-      //   case OpCode.SIGNTO:
-      //   default:
-      //     throw new ExecutionError(`Unknown Opcode`)
-      // }
-    })
+    }
     this.finalize()
   }
 
   findJig (location: Location, readOnly: boolean, force: boolean): JigRef {
     const jigState = this.vm.findJigState(location)
-    if (force && location !== jigState.location) {
+    if (force && !location.equals(jigState.location)) {
       throw new ExecutionError('jig already spent')
     }
     const module = this.loadModule(jigState.moduleId)
@@ -386,8 +422,8 @@ class TxExecution {
     return this.statementResults.length - 1
   }
 
-  execStaticMethod (varName: string, moduleId: string, className: string, methodName: string, args: any[]) {
-    const module = this.loadModule(moduleId)
+  execStaticMethod (wasm: WasmInstance, className: string, methodName: string, args: any[]): ValueStatementResult {
+    const module = wasm
     const objectNode = findClass(module.abi, className, 'should exist');
     const methodNode = findMethod(
       objectNode,
@@ -397,15 +433,25 @@ class TxExecution {
 
     if (!methodNode.rtype) {
       module.staticCall(className, methodName, args)
-      return null
+      return new NullStatementResult()
     }
 
-    const {node, value, mod} = module.staticCall(className, methodName, args)
+    let {node, value, mod} = module.staticCall(className, methodName, args)
+    if (value instanceof Internref) {
+      value = this.jigs.find(j => j.module === module && j.ref.equals(value))
+    }
     return new ValueStatementResult(
       node,
       value,
       mod
     )
+  }
+
+  execStaticMethodByIndex (moduleIndex: number, className: string, methodName: string, args: any[]): number {
+    const wasm = this.getStatementResult(moduleIndex).instance
+    const result = this.execStaticMethod(wasm, className, methodName, args)
+    this.statementResults.push(result)
+    return this.statementResults.length - 1
   }
 
   newOrigin () {
@@ -447,6 +493,10 @@ class TxExecution {
     }
     const moduleId = await this.vm.deployCode(entryPoint, sources)
     return this.importModule(moduleId)
+  }
+
+  execLength() {
+    return this.statementResults.length
   }
 }
 

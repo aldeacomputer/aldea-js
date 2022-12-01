@@ -16,7 +16,10 @@ export {
   Instruction,
   NewInstruction,
   ImportInstruction,
-  LockInstruction
+  LockInstruction,
+  LoadInstruction,
+  LoadByOriginInstruction,
+  CallInstruction
 } from './internal.js'
 
 // Instructions exports

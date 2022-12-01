@@ -41,8 +41,7 @@ export class TxBuilder {
    * Pushes a LOAD instruction onto the Transaction. Accepts the location as
    * a string or TypedArray.
    */
-  load(location: string | Uint8Array): TxBuilder {
-    if (typeof location === 'string') location = base16.decode(location)
+  load(location: Uint8Array): TxBuilder {
     this.tx.push(new LoadInstruction(location))
     return this
   }

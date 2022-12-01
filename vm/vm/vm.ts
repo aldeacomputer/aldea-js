@@ -19,9 +19,9 @@ export class VM {
     this.storage = storage
   }
 
-  execTx(tx: Tx): TxExecution {
+  async execTx(tx: Tx): Promise<TxExecution> {
     const currentExecution = new TxExecution(tx, this)
-    currentExecution.run()
+    await currentExecution.run()
     currentExecution.finalize()
     this.storage.persist(currentExecution)
     return currentExecution

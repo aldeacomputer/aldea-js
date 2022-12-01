@@ -6,7 +6,7 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {
-  Transaction
+  Tx
 } from '@aldea/sdk-js'
 import {TxExecution} from "../vm/tx-execution.js";
 
@@ -36,7 +36,7 @@ describe('deploy code', () => {
       const vm = new VM(storage)
       const moduleId = await vm.deployCode('something.ts', aMap)
 
-      const tx = new Transaction()
+      const tx = new Tx()
       const exec = new TxExecution(tx, vm)
       const moduleIndex = exec.importModule(moduleId)
       const jigIndex = exec.instantiate(moduleIndex, 'Coso', [])
@@ -51,7 +51,7 @@ describe('deploy code', () => {
       const moduleId = await vm.deployCode('something.ts', aMap)
 
       const vm2 = new VM(storage)
-      const tx = new Transaction()
+      const tx = new Tx()
       const exec = new TxExecution(tx, vm2)
       const moduleIndex = exec.importModule(moduleId)
       const jigIndex = exec.instantiate(moduleIndex, 'Coso', [])
@@ -74,7 +74,7 @@ describe('deploy code', () => {
       const vm = new VM(storage)
       const moduleId = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
-      const tx = new Transaction()
+      const tx = new Tx()
       const exec = new TxExecution(tx, vm)
       const moduleIndex = exec.importModule(moduleId)
       const jigIndex = exec.instantiate(moduleIndex, 'Flock', [])
@@ -96,7 +96,7 @@ describe('deploy code', () => {
       vm.addPreCompiled('aldea/basic-math.wasm', 'aldea/basic-math.ts')
       const flockId = vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
-      const tx = new Transaction()
+      const tx = new Tx()
       const execution = new TxExecution(tx, vm)
       const moduleIndex = execution.importModule(flockId)
       const jigIndex = execution.instantiate(moduleIndex, 'Flock', [])
@@ -113,7 +113,7 @@ describe('deploy code', () => {
     it('can use the deployed module in the same tx', async () => {
       const vm = new VM(storage)
 
-      const tx = new Transaction()
+      const tx = new Tx()
       const exec = new TxExecution(tx, vm)
       const sources = new Map<string, string>()
       sources.set('something.ts', someValidModule)
@@ -128,7 +128,7 @@ describe('deploy code', () => {
     it.skip('can deploy more than 1 file', async () => {
       const vm = new VM(storage)
 
-      const tx = new Transaction()
+      const tx = new Tx()
       const exec = new TxExecution(tx, vm)
       const sources = new Map<string, string>()
       sources.set('something.ts', someValidModule)
@@ -152,7 +152,7 @@ describe('deploy code', () => {
     it('adds the module on the right result index', async () => {
       const vm = new VM(storage)
 
-      const tx = new Transaction()
+      const tx = new Tx()
       const exec = new TxExecution(tx, vm)
       const sources = new Map<string, string>()
       sources.set('something.ts', someValidModule)

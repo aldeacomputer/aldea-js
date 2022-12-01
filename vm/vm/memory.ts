@@ -12,6 +12,10 @@ export class Internref {
     this.name = name
     this.ptr = ptr
   }
+
+  equals(another: Internref) {
+    return this.name === another.name && this.ptr === another.ptr;
+  }
 }
 
 export class Externref {
