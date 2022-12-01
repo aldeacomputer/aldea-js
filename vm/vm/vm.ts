@@ -6,7 +6,6 @@ import fs from "fs"
 import {Storage} from "./storage.js";
 import {abiFromCbor, abiFromJson} from '@aldea/compiler/abi'
 import {compile} from '@aldea/compiler'
-import {blake3} from "@aldea/sdk-js/support/hash";
 import {Location, Tx} from "@aldea/sdk-js";
 import {ExecutionError} from "./errors.js";
 import {calculatePackageId} from "./calculate-package-id.js";
@@ -63,7 +62,10 @@ export class VM {
 
   addPreCompiled (compiledRelative: string, sourceRelative: string): string {
     const srcPath = path.join(__dir, '../../assembly', sourceRelative)
-    const id = Buffer.from(blake3(fs.readFileSync(srcPath))).toString('hex')
+    const srcCode = fs.readFileSync(srcPath);
+    const sources = new Map<string, string>()
+    sources.set('index.ts', srcCode.toString())
+    const id = calculatePackageId(['index.ts'], sources)
     if (this.storage.hasModule(id)) {
       return id
     }
