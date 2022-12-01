@@ -5,6 +5,7 @@ import statuses from 'http-status'
 import { buildVm } from "./build-vm.js"
 import { HttpNotFound } from "./errors.js"
 import { Tx } from '@aldea/sdk-js'
+import asyncHandler from 'express-async-handler'
 
 const { vm, storage } = buildVm()
 
@@ -38,17 +39,11 @@ app.get('/state/:location', (req, res) => {
   res.send(state.objectState(wasm))
 })
 
-app.post('/tx', (req, res) => {
+app.post('/tx', asyncHandler(async (req, res) => {
   const tx = Tx.fromBytes(req.body)
-  vm.execTx(tx).then(
-    (txResult) => {
-      res.send({ txid: txResult.tx.id })
-    },
-    (e) => {
-      throw e
-    }
-  )
-})
+  const txResult = await vm.execTx(tx)
+  res.send({ txid: txResult.tx.id })
+}))
 
 app.use((err, req, res, _next) => {
   if (err instanceof HttpNotFound) {

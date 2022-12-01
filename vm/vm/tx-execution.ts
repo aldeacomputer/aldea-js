@@ -342,7 +342,7 @@ class TxExecution {
       } else if (inst instanceof instructions.LockInstruction) {
         this.lockJigToUser(inst.idx, new Address(inst.pubkeyHash))
       } else if (inst instanceof instructions.LoadInstruction) {
-        this.loadJig(Location.fromBuffer(inst.location.buffer), false, true)
+        this.loadJig(Location.fromBuffer(inst.location), false, true)
       } else if (inst instanceof instructions.LoadByOriginInstruction) {
         this.loadJig(Location.fromBuffer(inst.origin.buffer), false, false)
       } else if (inst instanceof instructions.SignInstruction) {

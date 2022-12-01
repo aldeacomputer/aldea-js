@@ -82,6 +82,7 @@ __metadata:
     cbor: ^8.1.0
     cors: ^2.8.5
     express: ^4.18.1
+    express-async-handler: ^1.2.0
     http-status: ^1.5.3
     standard: ^17.0.0
   languageName: unknown
@@ -4523,6 +4524,13 @@ __metadata:
     signal-exit: ^3.0.0
     strip-eof: ^1.0.0
   checksum: c2a4bf6e051737e46bee61a93ec286cb71a05f16650a1918c8d6262ba9f0bac031472252411baa8c78b7f432f10cb4c601349403774d69be2ebd864e9b1eca60
+  languageName: node
+  linkType: hard
+
+"express-async-handler@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "express-async-handler@npm:1.2.0"
+  checksum: ab9ebba8b8366954cb06ab87cf91fc974428993a97940c499114134ce33144f5d1ffad380e60a53a1569c3cd9501cb209e1fb57b1845a4fc8ff449937598f2f1
   languageName: node
   linkType: hard
 
