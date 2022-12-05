@@ -20,9 +20,11 @@ describe('tx interaction', () => {
     return id
   }
 
+  let aCoin: Location
   beforeEach(() => {
     storage = new Storage()
     vm = new VM(storage)
+    aCoin = vm.mint(userAddr, 1000)
 
     const sources = [
       'ant',
@@ -47,6 +49,10 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .load(aCoin.toUintArray())
+      .fund(3)
+      .lock(3, userAddr)
+      .sign(userPriv)
       .build()
 
     await vm.execTx(tx)
@@ -57,10 +63,14 @@ describe('tx interaction', () => {
 
   it('can call a method in a tx', async () => {
     const tx = new TxBuilder()
+      .load(aCoin.toUintArray())
+      .fund(0)
+      .lock(0, userAddr)
+      .sign(userPriv)
       .import(modIdFor('flock'))
-      .new(0, 0, [])
-      .call(1, 1, [])
-      .lock(1, userAddr)
+      .new(4, 0, [])
+      .call(5, 1, [])
+      .lock(5, userAddr)
       .build()
 
     await vm.execTx(tx)
@@ -254,22 +264,72 @@ describe('tx interaction', () => {
     expect(state.parsedState()[0]).to.eql(11) // 10 initial value + 1 grow
   })
 
-  it('fails extract the amount of units from a coin when fund is present', async () => {
+  it('tx fails if not funded', async () => {
     const tx = new TxBuilder()
       .import(modIdFor('flock'))
       .new(0, 0, [])
-      .fund(1) // not implemented yet
-      .call(1, 1, [])
       .lock(1, userAddr)
       .build()
 
     try {
       await vm.execTx(tx)
-      expect.fail('should fail')
     } catch (e) {
       expect(e).to.be.instanceof(ExecutionError)
       const error = e as ExecutionError
-      expect(error.message).to.eql('fund not implemented')
+      expect(error.message).to.eql('tx not funded')
+      return
     }
+    expect.fail('should have failed because not funded')
+  })
+
+  it('extracts 100 of units from a coin when fund is present', async () => {
+    const loc = vm.mint(userAddr, 1000)
+    const tx = new TxBuilder()
+      .load(new Uint8Array(loc.toBuffer()))
+      .fund(0) // not implemented yet
+      .lock(0, userAddr)
+      .sign(userPriv)
+      .build()
+
+    await vm.execTx(tx)
+    const coin = storage.getJigState(new Location(tx.hash, 0), () => expect.fail('should be present'))
+    const parsed = coin.parsedState()
+    expect(parsed[0]).to.eql(900)
+  })
+
+
+  it('extracts 100 of units from a coin when fund is present', async () => {
+    const loc = vm.mint(userAddr, 1000)
+    const tx = new TxBuilder()
+      .load(new Uint8Array(loc.toBuffer()))
+      .fund(0) // not implemented yet
+      .lock(0, userAddr)
+      .sign(userPriv)
+      .build()
+
+    await vm.execTx(tx)
+    const coin = storage.getJigState(new Location(tx.hash, 0), () => expect.fail('should be present'))
+    const parsed = coin.parsedState()
+    expect(parsed[0]).to.eql(900)
+  })
+
+  it('fails if coin does not have 100 units left', async () => {
+    const loc = vm.mint(userAddr, 90)
+    const tx = new TxBuilder()
+      .load(new Uint8Array(loc.toBuffer()))
+      .fund(0) // not implemented yet
+      .lock(0, userAddr)
+      .sign(userPriv)
+      .build()
+
+    try {
+      await vm.execTx(tx)
+    } catch (e) {
+      expect(e).to.be.instanceof(ExecutionError)
+      const error = e as ExecutionError
+      expect(error.message).to.eql('not enough coins')
+      return
+    }
+    expect.fail('should fail because not enough coins')
   })
 })

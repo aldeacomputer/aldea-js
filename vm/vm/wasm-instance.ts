@@ -21,6 +21,7 @@ import {
 } from "./memory.js";
 import {Location} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
+import {ExecutionError} from "./errors.js";
 
 // enum AuthCheck {
 //   CALL,     // 0 - can the caller call a method?
@@ -156,7 +157,8 @@ export class WasmInstance {
 
           (() => {
             // @external.js
-            throw Error(`${messageStr} in ${fileNameStr}:${lineNumber}:${columnNumber}`);
+            console.warn(`${messageStr} in ${fileNameStr}:${lineNumber}:${columnNumber}`)
+            throw new ExecutionError(messageStr);
           })();
         }
       },

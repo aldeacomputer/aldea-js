@@ -20,6 +20,7 @@ export class VM {
 
   constructor (storage: Storage) {
     this.storage = storage
+    this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', 'coin')
   }
 
   async execTx(tx: Tx): Promise<TxExecution> {
@@ -63,12 +64,14 @@ export class VM {
     return id
   }
 
-  addPreCompiled (compiledRelative: string, sourceRelative: string): string {
+  addPreCompiled (compiledRelative: string, sourceRelative: string, defaultId: string | null = null): string {
     const srcPath = path.join(__dir, '../../assembly', sourceRelative)
     const srcCode = fs.readFileSync(srcPath);
     const sources = new Map<string, string>()
     sources.set('index.ts', srcCode.toString())
-    const id = calculatePackageId(['index.ts'], sources)
+    const id = defaultId
+      ? defaultId
+      : calculatePackageId(['index.ts'], sources)
     if (this.storage.hasModule(id)) {
       return id
     }
@@ -86,17 +89,19 @@ export class VM {
     return id
   }
 
-  mint (address: Address, amount: number = 1e6) {
+  mint (address: Address, amount: number = 1e6): Location {
     const buff = randomBytes(32)
 
+    const location = new Location(buff, 0);
     const minted = new JigState(
-      new Location(buff, 0),
-      new Location(buff, 0),
+      location,
+      location,
       'Coin',
       __encodeArgs([amount]),
       'coin',
       new UserLock(address).serialize()
     )
     this.storage.addJig(minted)
+    return location
   }
 }
