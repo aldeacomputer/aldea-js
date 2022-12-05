@@ -55,6 +55,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/explorer@workspace:explorer"
   dependencies:
+    "@aldea/sdk-js": 0.0.0-alpha.2
     "@fortawesome/fontawesome-svg-core": ^6.2.0
     "@fortawesome/free-solid-svg-icons": ^6.2.0
     "@fortawesome/react-fontawesome": ^0.2.0
@@ -97,7 +98,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/sdk-js@workspace:^, @aldea/sdk-js@workspace:sdk-js":
+"@aldea/sdk-js@0.0.0-alpha.2, @aldea/sdk-js@workspace:^, @aldea/sdk-js@workspace:sdk-js":
   version: 0.0.0-use.local
   resolution: "@aldea/sdk-js@workspace:sdk-js"
   dependencies:

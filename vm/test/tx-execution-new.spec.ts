@@ -228,12 +228,43 @@ describe('execute txs', () => {
   })
 
   it('cannot load a jig that does not exists', () => {
-
     const locationString = new Array(64).fill('0').join('')
     expect(() =>
       exec.loadJig(new Location(Buffer.alloc(32).fill(0).buffer, 99), false, false)
     ).to.throw(ExecutionError, `unknown jig: ${locationString}_o99`)
   })
+
+  describe('when a jig was frozen', () => {
+    let freezeTx: Tx
+    let freezeExec: TxExecution
+    beforeEach(() => {
+      freezeTx = new TxBuilder()
+        .sign(PrivKey.fromRandom())
+        .build()
+
+      freezeExec = new TxExecution(freezeTx, vm)
+      freezeExec.importModule(modIdFor('flock'))
+      freezeExec.instantiate(0, 'Flock', [])
+      freezeExec.callInstanceMethodByIndex(1, 'goToFridge', [])
+      freezeExec.finalize()
+      storage.persist(freezeExec)
+    })
+
+    it('cannot be called methods', () => {
+      exec.loadJig(new Location(freezeTx.hash, 0), false, false)
+      expect(() => exec.callInstanceMethodByIndex(0, 'grow', [])).to.throw(PermissionError)
+    })
+
+    it('cannot be locked', () => {
+      exec.loadJig(new Location(freezeTx.hash, 0), false, false)
+      expect(() => exec.lockJigToUser(0, userAddr)).to.throw(PermissionError)
+    })
+
+    it('saves correctly serialized lock', () => {
+      const state = storage.getJigState(new Location(freezeTx.hash, 0), () => expect.fail('should exist'))
+      expect(state.serializedLock).to.eql({type: 'FrozenLock'})
+    })
+  });
 
   it('can call top level functions')
   it('can create jigs inside jigs')

@@ -22,6 +22,10 @@ export class Flock extends Jig {
     return this.size * 4;
   }
 
+  goToFridge (): void {
+    this.$output.destroy();
+  }
+
   static createWithSize(n: u32): Flock {
     const aFlock = new Flock();
     while (n > 0) {

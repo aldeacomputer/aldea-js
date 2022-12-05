@@ -28,7 +28,7 @@ import {TxExecution} from "./tx-execution.js";
 // }
 
 export enum LockType {
-  DELETED = -1,
+  FROZEN = -1,
   NONE,     // 0 - default, vm allows anyone to lock, but prevents function calls
   PUBKEY,   // 1 - vm requires valid signature to call function or change lock
   CALLER,   // 2 - vm requires parent is caller to call function or change lock

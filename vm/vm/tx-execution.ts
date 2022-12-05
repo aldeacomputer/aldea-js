@@ -8,15 +8,11 @@ import {VM} from "./vm.js";
 import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
-import {ArgNode, findClass, findMethod, TypeNode, ClassNode, CodeKind} from '@aldea/compiler/abi'
-import {
-  Address,
-  Location,
-  Tx,
-  instructions
-} from '@aldea/sdk-js';
+import {ArgNode, ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
+import {Address, instructions, Location, Tx} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
+import {FrozenLock} from "./locks/frozen-lock.js";
 
 abstract class StatementResult {
   abstract get abiNode(): TypeNode;
@@ -253,6 +249,8 @@ class TxExecution {
         throw new ExecutionError('cannot make another jig public')
       }
       childJigRef.changeLock(new PublicLock())
+    } else if (type === LockType.FROZEN) {
+      childJigRef.changeLock(new FrozenLock())
     } else {
       throw new Error('not implemented yet')
     }
@@ -393,6 +391,8 @@ class TxExecution {
       return new JigLock(Location.fromString(frozenLock.data.origin))
     } else if (frozenLock.type === 'PublicLock') {
       return new PublicLock()
+    } else if (frozenLock.type === 'FrozenLock') {
+      return new FrozenLock()
     } else {
       throw new Error('unknown lock type')
     }
