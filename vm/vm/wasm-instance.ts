@@ -63,7 +63,7 @@ export interface WasmExports extends WebAssembly.Exports {
   [key: string]: (...args: number[]) => number | void;
 }
 
-function __encodeArgs (args: any[]): ArrayBuffer {
+export function __encodeArgs (args: any[]): ArrayBuffer {
   const seq = Sequence.from(args)
   return CBOR.encode(seq)
 }

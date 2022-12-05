@@ -1,14 +1,17 @@
 import path from 'path'
-import { WasmInstance } from './wasm-instance.js'
+import {__encodeArgs, WasmInstance} from './wasm-instance.js'
 import { fileURLToPath } from 'url'
 import { TxExecution } from './tx-execution.js'
 import fs from "fs"
 import {Storage} from "./storage.js";
 import {abiFromCbor, abiFromJson} from '@aldea/compiler/abi'
 import {compile} from '@aldea/compiler'
-import {Location, Tx} from "@aldea/sdk-js";
+import {Address, Location, Tx} from "@aldea/sdk-js";
 import {ExecutionError} from "./errors.js";
 import {calculatePackageId} from "./calculate-package-id.js";
+import {JigState} from "./jig-state.js";
+import {randomBytes} from "@aldea/sdk-js/support/ed25519";
+import {UserLock} from "./locks/user-lock.js";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -81,5 +84,19 @@ export class VM {
       abi
     )
     return id
+  }
+
+  mint (address: Address, amount: number = 1e6) {
+    const buff = randomBytes(32)
+
+    const minted = new JigState(
+      new Location(buff, 0),
+      new Location(buff, 0),
+      'Coin',
+      __encodeArgs([amount]),
+      'coin',
+      new UserLock(address).serialize()
+    )
+    this.storage.addJig(minted)
   }
 }

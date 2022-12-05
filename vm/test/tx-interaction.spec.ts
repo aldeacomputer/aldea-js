@@ -254,7 +254,7 @@ describe('tx interaction', () => {
     expect(state.parsedState()[0]).to.eql(11) // 10 initial value + 1 grow
   })
 
-  it('fails if fund is present', async () => {
+  it('fails extract the amount of units from a coin when fund is present', async () => {
     const tx = new TxBuilder()
       .import(modIdFor('flock'))
       .new(0, 0, [])
