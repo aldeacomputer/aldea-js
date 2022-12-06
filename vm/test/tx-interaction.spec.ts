@@ -10,6 +10,8 @@ describe('tx interaction', () => {
   const userPriv = AldeaCrypto.randomPrivateKey()
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
   const userAddr = userPub.toAddress()
+  const fundPriv = AldeaCrypto.randomPrivateKey()
+  const fundAddr = fundPriv.toPubKey().toAddress()
   const moduleIds = new Map<string, string>()
 
   function modIdFor (key: string): string {
@@ -20,9 +22,11 @@ describe('tx interaction', () => {
     return id
   }
 
+  let aCoin: Location
   beforeEach(() => {
     storage = new Storage()
     vm = new VM(storage)
+    aCoin = vm.mint(fundAddr, 1000)
 
     const sources = [
       'ant',
@@ -47,6 +51,7 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
     await vm.execTx(tx)
@@ -61,6 +66,7 @@ describe('tx interaction', () => {
       .new(0, 0, [])
       .call(1, 1, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
     await vm.execTx(tx)
@@ -73,29 +79,37 @@ describe('tx interaction', () => {
     expect(state.className).to.eql('Flock')
   })
 
+  function getLatestCoinLocation(): Uint8Array {
+    const tip = storage.tipFor(aCoin)
+    return tip.toUintArray();
+  }
+
   it('can load by location in a tx', async () => {
     const tx1 = new TxBuilder()
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
       .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .sign(userPriv)
       .build()
+    await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
       .load(new Uint8Array(new Location(tx2.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
-    await vm.execTx(tx1)
-    await vm.execTx(tx2)
     await vm.execTx(tx3)
 
     const state = storage.getJigState(new Location(tx3.hash, 0), () => expect.fail('state should be present'))
@@ -107,24 +121,27 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
       .loadByOrigin(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
       .loadByOrigin(new Uint8Array(new Location(tx2.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
-    await vm.execTx(tx1)
-    await vm.execTx(tx2)
     await vm.execTx(tx3)
 
     const state = storage.getJigState(new Location(tx3.hash, 0), () => expect.fail('state should be present'))
@@ -136,13 +153,16 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
       .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
     const tx3 = new TxBuilder()
@@ -150,9 +170,8 @@ describe('tx interaction', () => {
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
-
-    await vm.execTx(tx1)
     await vm.execTx(tx2)
 
     try {
@@ -170,16 +189,18 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
       .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .signTo(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
-    await vm.execTx(tx1)
     await vm.execTx(tx2)
 
     const state = storage.getJigState(new Location(tx2.hash, 0), () => expect.fail('state should be present'))
@@ -191,24 +212,26 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
       .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
       .signTo(userPriv)
       .call(0, 1, [])
       .lock(0, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
-
-    await vm.execTx(tx1)
 
     try {
       await vm.execTx(tx2)
-      expect.fail('should fail')
     } catch (e: any) {
       expect(e).to.be.instanceof(PermissionError)
-      expect(e.message).to.eql(`no permission to remove lock from jig ${base16.encode(tx1.hash)}_o0`)
+      expect(e.message).to.eql(`jig ${base16.encode(tx1.hash)}_o0 is not allowed to exec "Flock$grow"`)
+      return
     }
+    expect.fail('should fail')
   })
 
   it('can deploy', async () => {
@@ -226,6 +249,7 @@ describe('tx interaction', () => {
     sources.set('index.ts', sourceCode)
     const tx = new TxBuilder()
       .deploy('index.ts', sources)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
     const txExec = await vm.execTx(tx)
@@ -238,9 +262,10 @@ describe('tx interaction', () => {
   it('can exec static methods', async () => {
     const tx = new TxBuilder()
       .import(modIdFor('flock'))
-      .exec(0, 0, 5, [10])
+      .exec(0, 0, 6, [10])
       .call(1, 1, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
     await vm.execTx(tx)
@@ -254,22 +279,72 @@ describe('tx interaction', () => {
     expect(state.parsedState()[0]).to.eql(11) // 10 initial value + 1 grow
   })
 
-  it('fails if fund is present', async () => {
+  it('tx fails if not funded', async () => {
     const tx = new TxBuilder()
       .import(modIdFor('flock'))
       .new(0, 0, [])
-      .fund(1) // not implemented yet
-      .call(1, 1, [])
       .lock(1, userAddr)
       .build()
 
     try {
       await vm.execTx(tx)
-      expect.fail('should fail')
     } catch (e) {
       expect(e).to.be.instanceof(ExecutionError)
       const error = e as ExecutionError
-      expect(error.message).to.eql('fund not implemented')
+      expect(error.message).to.eql('tx not funded')
+      return
     }
+    expect.fail('should have failed because not funded')
+  })
+
+  it('extracts 100 of units from a coin when fund is present', async () => {
+    const loc = vm.mint(userAddr, 1000)
+    const tx = new TxBuilder()
+      .load(new Uint8Array(loc.toBuffer()))
+      .fund(0) // not implemented yet
+      .lock(0, userAddr)
+      .sign(userPriv)
+      .build()
+
+    await vm.execTx(tx)
+    const coin = storage.getJigState(new Location(tx.hash, 0), () => expect.fail('should be present'))
+    const parsed = coin.parsedState()
+    expect(parsed[0]).to.eql(900)
+  })
+
+
+  it('extracts 100 of units from a coin when fund is present', async () => {
+    const loc = vm.mint(userAddr, 1000)
+    const tx = new TxBuilder()
+      .load(new Uint8Array(loc.toBuffer()))
+      .fund(0) // not implemented yet
+      .lock(0, userAddr)
+      .sign(userPriv)
+      .build()
+
+    await vm.execTx(tx)
+    const coin = storage.getJigState(new Location(tx.hash, 0), () => expect.fail('should be present'))
+    const parsed = coin.parsedState()
+    expect(parsed[0]).to.eql(900)
+  })
+
+  it('fails if coin does not have 100 units left', async () => {
+    const loc = vm.mint(userAddr, 90)
+    const tx = new TxBuilder()
+      .load(new Uint8Array(loc.toBuffer()))
+      .fund(0) // not implemented yet
+      .lock(0, userAddr)
+      .sign(userPriv)
+      .build()
+
+    try {
+      await vm.execTx(tx)
+    } catch (e) {
+      expect(e).to.be.instanceof(ExecutionError)
+      const error = e as ExecutionError
+      expect(error.message).to.eql('not enough coins')
+      return
+    }
+    expect.fail('should fail because not enough coins')
   })
 })

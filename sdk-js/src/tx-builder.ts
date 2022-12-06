@@ -87,6 +87,15 @@ export class TxBuilder {
     return this
   }
 
+  fundWith (location: Uint8Array, privKey: PrivKey, nextOwner: Address): TxBuilder {
+    const loadIndex = this.tx.instructions.length
+    this.load(location)
+    this.fund(loadIndex)
+    this.lock(loadIndex, nextOwner)
+    this.sign(privKey)
+    return this
+  }
+
   /**
    * Pushes a LOCK instruction onto the Transaction. Accepts the address as an
    * Address instance or a pubkey hash TypedArray.

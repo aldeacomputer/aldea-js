@@ -21,6 +21,7 @@ import {
 } from "./memory.js";
 import {Location} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
+import {ExecutionError} from "./errors.js";
 
 // enum AuthCheck {
 //   CALL,     // 0 - can the caller call a method?
@@ -63,7 +64,7 @@ export interface WasmExports extends WebAssembly.Exports {
   [key: string]: (...args: number[]) => number | void;
 }
 
-function __encodeArgs (args: any[]): ArrayBuffer {
+export function __encodeArgs (args: any[]): ArrayBuffer {
   const seq = Sequence.from(args)
   return CBOR.encode(seq)
 }
@@ -156,7 +157,8 @@ export class WasmInstance {
 
           (() => {
             // @external.js
-            throw Error(`${messageStr} in ${fileNameStr}:${lineNumber}:${columnNumber}`);
+            console.warn(`${messageStr} in ${fileNameStr}:${lineNumber}:${columnNumber}`)
+            throw new ExecutionError(messageStr);
           })();
         }
       },

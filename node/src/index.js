@@ -6,6 +6,7 @@ import { buildVm } from "./build-vm.js"
 import { HttpNotFound } from "./errors.js"
 import { Tx } from '@aldea/sdk-js'
 import asyncHandler from 'express-async-handler'
+import { Address } from "@aldea/sdk-js"
 
 const { vm, storage } = buildVm()
 
@@ -43,6 +44,12 @@ app.post('/tx', asyncHandler(async (req, res) => {
   const tx = Tx.fromBytes(req.body)
   const txResult = await vm.execTx(tx)
   res.send({ txid: txResult.tx.id })
+}))
+
+app.post('/mint', asyncHandler(async (req, res) => {
+  const { address, amount } = req.body
+  const location = vm.mint(Address.fromString(address), amount)
+  res.status(200).json({ location: location.toString() })
 }))
 
 app.use((err, req, res, _next) => {

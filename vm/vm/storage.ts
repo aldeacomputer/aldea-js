@@ -44,10 +44,10 @@ export class Storage {
     return ret
   }
 
-  tipFor(origin: string): string {
-    const tip = this.tips.get(origin);
+  tipFor(origin: Location): Location {
+    const tip = this.tips.get(origin.toString());
     if (!tip) throw new Error('not found')
-    return tip
+    return Location.fromString(tip)
   }
 
   addTransaction(tx: Tx) {

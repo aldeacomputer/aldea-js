@@ -97,6 +97,29 @@ class ValueStatementResult extends StatementResult {
   }
 }
 
+class EmptyStatementResult extends StatementResult {
+  get abiNode(): TypeNode {
+    throw new ExecutionError('wrong index')
+  }
+
+  asJig(): JigRef {
+    throw new ExecutionError('wrong index')
+  }
+
+  get instance(): WasmInstance {
+    throw new ExecutionError('wrong index')
+  }
+
+  get value(): any {
+    throw new ExecutionError('wrong index')
+  }
+
+  get wasm(): WasmInstance {
+    throw new ExecutionError('wrong index')
+  }
+
+}
+
 class TxExecution {
   tx: Tx;
   private vm: VM;
@@ -105,6 +128,7 @@ class TxExecution {
   private stack: Location[];
   outputs: JigState[];
   statementResults: StatementResult[]
+  private funded: boolean;
 
   constructor(tx: Tx, vm: VM) {
     this.tx = tx
@@ -114,9 +138,13 @@ class TxExecution {
     this.stack = []
     this.outputs = []
     this.statementResults = []
+    this.funded = false
   }
 
   finalize () {
+    if (!this.funded) {
+      throw new ExecutionError('tx not funded')
+    }
     this.jigs.forEach(jigRef => {
       if (jigRef.lock.isOpen()) {
         throw new PermissionError(`unlocked jig: ${jigRef.origin}`)
@@ -344,13 +372,20 @@ class TxExecution {
       } else if (inst instanceof instructions.LoadByOriginInstruction) {
         this.loadJig(Location.fromBuffer(inst.origin.buffer), false, false)
       } else if (inst instanceof instructions.SignInstruction) {
-        continue // noop
+        this.statementResults.push(new EmptyStatementResult())
       } else if (inst instanceof instructions.SignToInstruction) {
-        continue // noop
+        this.statementResults.push(new EmptyStatementResult())
       } else if (inst instanceof instructions.DeployInstruction) {
         await this.deployModule(inst.entry, inst.code)
       } else if (inst instanceof instructions.FundInstruction) {
-        throw new ExecutionError('fund not implemented')
+        this.callInstanceMethodByIndex(inst.idx, 'fund', [])
+        this.markAsFunded()
+        // this.statementResults.push(this.getStatementResult(inst.idx))
+        // try {
+        //   this.callInstanceMethodByIndex(inst.idx, 'fund', [])
+        // } catch (e) {
+        //   throw new ExecutionError('not enough coins')
+        // }
       } else {
         throw new ExecutionError(`unknown instruction: ${inst.opcode}`)
       }
@@ -468,12 +503,13 @@ class TxExecution {
     return result
   }
 
-  lockJigToUser(jigIndex: number, address: Address) {
+  lockJigToUser(jigIndex: number, address: Address): void {
     const jigRef = this.getStatementResult(jigIndex).asJig()
     if (!jigRef.lock.canBeChangedBy(this)) {
       throw new PermissionError(`no permission to remove lock from jig ${jigRef.origin}`)
     }
     jigRef.close(new UserLock(address))
+    this.statementResults.push(this.getStatementResult(jigIndex))
   }
 
   importModule(modId: string): number {
@@ -493,6 +529,10 @@ class TxExecution {
 
   execLength() {
     return this.statementResults.length
+  }
+
+  markAsFunded() {
+    this.funded = true
   }
 }
 
