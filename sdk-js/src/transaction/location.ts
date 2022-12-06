@@ -18,6 +18,13 @@ export class Location {
     return new Uint8Array(buf).buffer
   }
 
+  toUintArray (): Uint8Array {
+    const buf = Buffer.alloc(36)
+    Buffer.from(this.txid).copy(buf, 0, 0, 32)
+    buf.writeInt32LE(this.index, 32)
+    return new Uint8Array(buf)
+  }
+
   equals (another: Location) {
     return Buffer.from(this.txid).equals(Buffer.from(another.txid)) && this.index === another.index
   }
