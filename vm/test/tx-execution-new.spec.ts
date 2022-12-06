@@ -50,6 +50,7 @@ describe('execute txs', () => {
   beforeEach(() => {
     const tx = new Tx()
     exec = new TxExecution(tx, vm)
+    exec.markAsFunded()
   })
 
   it('creates instances from imported modules', () => {
@@ -220,6 +221,7 @@ describe('execute txs', () => {
 
       const jigIndex = exec2.loadJig(new Location(exec.tx.hash, 0), false, false)
       exec2.lockJigToUser(jigIndex, otherAddress)
+      exec2.markAsFunded()
       exec2.finalize()
 
       const output = exec2.outputs[0]
@@ -246,6 +248,7 @@ describe('execute txs', () => {
       freezeExec.importModule(modIdFor('flock'))
       freezeExec.instantiate(0, 'Flock', [])
       freezeExec.callInstanceMethodByIndex(1, 'goToFridge', [])
+      freezeExec.markAsFunded()
       freezeExec.finalize()
       storage.persist(freezeExec)
     })

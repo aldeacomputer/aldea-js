@@ -10,6 +10,8 @@ describe('tx interaction', () => {
   const userPriv = AldeaCrypto.randomPrivateKey()
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
   const userAddr = userPub.toAddress()
+  const fundPriv = AldeaCrypto.randomPrivateKey()
+  const fundAddr = fundPriv.toPubKey().toAddress()
   const moduleIds = new Map<string, string>()
 
   function modIdFor (key: string): string {
@@ -24,7 +26,7 @@ describe('tx interaction', () => {
   beforeEach(() => {
     storage = new Storage()
     vm = new VM(storage)
-    aCoin = vm.mint(userAddr, 1000)
+    aCoin = vm.mint(fundAddr, 1000)
 
     const sources = [
       'ant',
@@ -49,10 +51,7 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
-      .load(aCoin.toUintArray())
-      .fund(3)
-      .lock(3, userAddr)
-      .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
     await vm.execTx(tx)
@@ -63,14 +62,11 @@ describe('tx interaction', () => {
 
   it('can call a method in a tx', async () => {
     const tx = new TxBuilder()
-      .load(aCoin.toUintArray())
-      .fund(0)
-      .lock(0, userAddr)
-      .sign(userPriv)
       .import(modIdFor('flock'))
-      .new(4, 0, [])
-      .call(5, 1, [])
-      .lock(5, userAddr)
+      .new(0, 0, [])
+      .call(1, 1, [])
+      .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
     await vm.execTx(tx)
@@ -83,29 +79,37 @@ describe('tx interaction', () => {
     expect(state.className).to.eql('Flock')
   })
 
+  function getLatestCoinLocation(): Uint8Array {
+    const tip = storage.tipFor(aCoin)
+    return tip.toUintArray();
+  }
+
   it('can load by location in a tx', async () => {
     const tx1 = new TxBuilder()
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
       .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .sign(userPriv)
       .build()
+    await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
       .load(new Uint8Array(new Location(tx2.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
-    await vm.execTx(tx1)
-    await vm.execTx(tx2)
     await vm.execTx(tx3)
 
     const state = storage.getJigState(new Location(tx3.hash, 0), () => expect.fail('state should be present'))
@@ -117,24 +121,27 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
       .loadByOrigin(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
       .loadByOrigin(new Uint8Array(new Location(tx2.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
-    await vm.execTx(tx1)
-    await vm.execTx(tx2)
     await vm.execTx(tx3)
 
     const state = storage.getJigState(new Location(tx3.hash, 0), () => expect.fail('state should be present'))
@@ -146,13 +153,16 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
       .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
     const tx3 = new TxBuilder()
@@ -160,9 +170,8 @@ describe('tx interaction', () => {
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
-
-    await vm.execTx(tx1)
     await vm.execTx(tx2)
 
     try {
@@ -180,16 +189,18 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
       .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .signTo(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
-    await vm.execTx(tx1)
     await vm.execTx(tx2)
 
     const state = storage.getJigState(new Location(tx2.hash, 0), () => expect.fail('state should be present'))
@@ -201,24 +212,26 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .new(0, 0, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
+    await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
       .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
       .signTo(userPriv)
       .call(0, 1, [])
       .lock(0, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
-
-    await vm.execTx(tx1)
 
     try {
       await vm.execTx(tx2)
-      expect.fail('should fail')
     } catch (e: any) {
       expect(e).to.be.instanceof(PermissionError)
-      expect(e.message).to.eql(`no permission to remove lock from jig ${base16.encode(tx1.hash)}_o0`)
+      expect(e.message).to.eql(`jig ${base16.encode(tx1.hash)}_o0 is not allowed to exec "Flock$grow"`)
+      return
     }
+    expect.fail('should fail')
   })
 
   it('can deploy', async () => {
@@ -236,6 +249,7 @@ describe('tx interaction', () => {
     sources.set('index.ts', sourceCode)
     const tx = new TxBuilder()
       .deploy('index.ts', sources)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
     const txExec = await vm.execTx(tx)
@@ -248,9 +262,10 @@ describe('tx interaction', () => {
   it('can exec static methods', async () => {
     const tx = new TxBuilder()
       .import(modIdFor('flock'))
-      .exec(0, 0, 5, [10])
+      .exec(0, 0, 6, [10])
       .call(1, 1, [])
       .lock(1, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
     await vm.execTx(tx)

@@ -379,8 +379,8 @@ class TxExecution {
         await this.deployModule(inst.entry, inst.code)
       } else if (inst instanceof instructions.FundInstruction) {
         this.callInstanceMethodByIndex(inst.idx, 'fund', [])
-        this.funded = true
-        this.statementResults.push(this.getStatementResult(inst.idx))
+        this.markAsFunded()
+        // this.statementResults.push(this.getStatementResult(inst.idx))
         // try {
         //   this.callInstanceMethodByIndex(inst.idx, 'fund', [])
         // } catch (e) {
@@ -529,6 +529,10 @@ class TxExecution {
 
   execLength() {
     return this.statementResults.length
+  }
+
+  markAsFunded() {
+    this.funded = true
   }
 }
 
