@@ -17,19 +17,31 @@ export default {
   ),
   head: (
     <>
-      <meta name="msapplication-TileColor" content="#ffffff" />
-      <meta name="theme-color" content="#ffffff" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <meta httpEquiv="Content-Language" content="en" />
-      <meta name="description" content="Aldea blockchain documentation" />
-      <meta name="og:description" content="Aldea blockchain documentation" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:site:domain" content="docs.aldea.computer" />
-      <meta name="twitter:url" content="https://nextra.vercel.app" />
+      <meta name="msapplication-TileColor" content="#ffffff"/>
+      <meta name="theme-color" content="#ffffff"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+      <meta httpEquiv="Content-Language" content="en"/>
+      <meta name="description" content="Aldea blockchain documentation"/>
+      <meta name="og:description" content="Aldea blockchain documentation"/>
+      <meta name="twitter:card" content="summary_large_image"/>
+      <meta name="twitter:site:domain" content="docs.aldea.computer"/>
+      <meta name="twitter:url" content="https://nextra.vercel.app"/>
       <meta property='og:url' content='https://aldea.docs'/>
-      <meta name="og:title" content="Aldea Docs" />
-      <meta name="apple-mobile-web-app-title" content="Aldea Docs" />
-      <meta name="msapplication-TileImage" content="/ms-icon-144x144.png" />
+      <meta name="og:title" content="Aldea Docs"/>
+      <meta name="apple-mobile-web-app-title" content="Aldea Docs"/>
+      <meta name="msapplication-TileImage" content="/ms-icon-144x144.png"/>
+      <script
+        lang="javascript"
+        dangerouslySetInnerHTML={{
+          __html: `if (!window.localStorage.getItem("theme_default")) {
+      window.localStorage.setItem("theme", "light");
+      window.localStorage.setItem("theme_default", "light");
+      document.documentElement.classList.add("light");
+      document.documentElement.classList.remove("dark");
+    }`,
+        }}
+      />
+      ;
     </>
   ),
   search: true,
