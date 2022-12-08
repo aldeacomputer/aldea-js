@@ -127,6 +127,7 @@ class TxExecution {
   private wasms: Map<string, WasmInstance>;
   private stack: Location[];
   outputs: JigState[];
+  deployments: Uint8Array[];
   statementResults: StatementResult[]
   private funded: boolean;
 
@@ -139,6 +140,7 @@ class TxExecution {
     this.outputs = []
     this.statementResults = []
     this.funded = false
+    this.deployments = []
   }
 
   finalize () {
@@ -205,7 +207,7 @@ class TxExecution {
   remoteCallHandler (callerInstance: WasmInstance, origin: Location, className: string, methodName: string, argBuff: Uint8Array): MethodResult {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
-      jig = this.findJig(origin, false,false)
+      jig = this.findJigByOrigin(origin, false)
     }
 
     const klassNode = findClass(jig.package.abi, className, 'could not find object')
@@ -251,7 +253,7 @@ class TxExecution {
   getPropHandler (origin: Location, propName: string): Prop {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
-      jig = this.findJig(origin, false,false)
+      jig = this.findJigByOrigin(origin, false)
     }
     return jig.package.getPropValue(jig.ref, jig.classIdx, propName)
   }
@@ -347,6 +349,7 @@ class TxExecution {
   }
 
   async run (): Promise<void> {
+    let i = 0
     for (const inst of this.tx.instructions) {
       if (inst instanceof instructions.ImportInstruction) {
         this.importModule(inst.origin)
@@ -369,9 +372,9 @@ class TxExecution {
       } else if (inst instanceof instructions.LockInstruction) {
         this.lockJigToUser(inst.idx, new Address(inst.pubkeyHash))
       } else if (inst instanceof instructions.LoadInstruction) {
-        this.loadJig(Location.fromBuffer(inst.location), false, true)
+        this.loadJigByRef(inst.location, false)
       } else if (inst instanceof instructions.LoadByOriginInstruction) {
-        this.loadJig(Location.fromBuffer(inst.origin), false, false)
+        this.loadJigByOrigin(Location.fromBuffer(inst.origin), false)
       } else if (inst instanceof instructions.SignInstruction) {
         this.statementResults.push(new EmptyStatementResult())
       } else if (inst instanceof instructions.SignToInstruction) {
@@ -390,15 +393,13 @@ class TxExecution {
       } else {
         throw new ExecutionError(`unknown instruction: ${inst.opcode}`)
       }
+      i++
     }
     this.finalize()
   }
 
-  findJig (location: Location, readOnly: boolean, force: boolean): JigRef {
-    const jigState = this.vm.findJigState(location)
-    if (force && !location.equals(jigState.currentLocation)) {
-      throw new ExecutionError('jig already spent')
-    }
+  findJigByRef (location: Uint8Array, readOnly: boolean): JigRef {
+    const jigState = this.vm.findJigStateByRef(location)
     const module = this.loadModule(jigState.packageId)
     const ref = module.hidrate(jigState.classIdx, jigState.stateBuf)
     const lock = this._hidrateLock(jigState.serializedLock)
@@ -410,8 +411,31 @@ class TxExecution {
     return jigRef
   }
 
-  loadJig (location: Location, readOnly: boolean, force: boolean): number {
-    const jigRef = this.findJig(location, readOnly, force)
+  findJigByOrigin (origin: Location, readOnly: boolean): JigRef {
+    const jigState = this.vm.findJigStateByOrigin(origin)
+    const module = this.loadModule(jigState.packageId)
+    const ref = module.hidrate(jigState.classIdx, jigState.stateBuf)
+    const lock = this._hidrateLock(jigState.serializedLock)
+    if (lock instanceof UserLock && !readOnly) {
+      lock.open()
+    }
+    const jigRef = new JigRef(ref, jigState.classIdx, module, jigState.id, lock)
+    this.addNewJigRef(jigRef)
+    return jigRef
+  }
+
+  loadJigByRef (ref: Uint8Array, readOnly: boolean): number {
+    const jigRef = this.findJigByRef(ref, readOnly)
+    const typeNode = {
+      name: jigRef.className(),
+      args: <TypeNode[]>[]
+    }
+    this.statementResults.push(new ValueStatementResult(typeNode, jigRef, jigRef.package))
+    return this.statementResults.length - 1
+  }
+
+  loadJigByOrigin (origin: Location, readOnly: boolean): number {
+    const jigRef = this.findJigByOrigin(origin, readOnly)
     const typeNode = {
       name: jigRef.className(),
       args: <TypeNode[]>[]
@@ -525,7 +549,9 @@ class TxExecution {
 
   async deployModule(entryPoint: string[], sources: Map<string, string>): Promise<number> {
     const moduleId = await this.vm.deployCode(entryPoint, sources)
-    return this.importModule(moduleId)
+    const index = this.importModule(moduleId);
+    this.deployments.push(moduleId)
+    return index
   }
 
   execLength() {

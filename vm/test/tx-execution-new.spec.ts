@@ -221,7 +221,7 @@ describe('execute txs', () => {
 
       const exec2 = new TxExecution(tx2, vm)
 
-      const jigIndex = exec2.loadJig(Location.fromData(exec.tx.hash, 0), false, false)
+      const jigIndex = exec2.loadJigByOrigin(Location.fromData(exec.tx.hash, 0), false)
       exec2.lockJigToUser(jigIndex, otherAddress)
       exec2.markAsFunded()
       exec2.finalize()
@@ -235,7 +235,7 @@ describe('execute txs', () => {
     const zeroBuffer = new Uint8Array(32).fill(0);
     const location = Location.fromData(zeroBuffer, 99);
     expect(() =>
-      exec.loadJig(location, false, false)
+      exec.loadJigByOrigin(location, false)
     ).to.throw(ExecutionError, `unknown jig: ${location.toString()}`)
   })
 
@@ -257,17 +257,17 @@ describe('execute txs', () => {
     })
 
     it('cannot be called methods', () => {
-      exec.loadJig(Location.fromData(freezeTx.hash, 0), false, false)
+      exec.loadJigByOrigin(Location.fromData(freezeTx.hash, 0), false)
       expect(() => exec.callInstanceMethodByIndex(0, 'grow', [])).to.throw(PermissionError)
     })
 
     it('cannot be locked', () => {
-      exec.loadJig(Location.fromData(freezeTx.hash, 0), false, false)
+      exec.loadJigByOrigin(Location.fromData(freezeTx.hash, 0), false)
       expect(() => exec.lockJigToUser(0, userAddr)).to.throw(PermissionError)
     })
 
     it('saves correctly serialized lock', () => {
-      const state = storage.getJigState(Location.fromData(freezeTx.hash, 0), () => expect.fail('should exist'))
+      const state = storage.getJigStateByOrigin(Location.fromData(freezeTx.hash, 0), () => expect.fail('should exist'))
       expect(state.serializedLock).to.eql({type: LockType.FROZEN, data: new Uint8Array(0)})
     })
   });

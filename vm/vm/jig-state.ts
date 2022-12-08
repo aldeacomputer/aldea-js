@@ -27,6 +27,13 @@ export class JigState {
     return parse(this.stateBuf).data
   }
 
+  classId (): Uint8Array {
+    const dig = new Digest()
+      .addBuff(this.packageId)
+      .addNumber(this.classIdx)
+    return dig.toBuffer()
+  }
+
   objectState (module: WasmInstance): any {
     const fields = this.parsedState()
     const abiNode = module.abi.exports[this.classIdx].code as ClassNode
@@ -37,7 +44,7 @@ export class JigState {
     }, {})
   }
 
-  digest () {
+  digest (): Uint8Array {
     const dig = new Digest()
     dig.addBuff(this.id.toBuffer())
     dig.addBuff(this.packageId)
@@ -45,5 +52,6 @@ export class JigState {
     dig.addNumber(this.serializedLock.type)
     dig.addBuff(this.serializedLock.data)
     dig.addBuff(this.stateBuf)
+    return dig.toBuffer()
   }
 }

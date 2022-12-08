@@ -1,7 +1,7 @@
 import {JigState} from './jig-state.js';
 import {TxExecution} from "./tx-execution.js";
 import {Abi} from "@aldea/compiler/abi";
-import {base16, Location, Tx} from "@aldea/sdk-js";
+import {base16, Location} from "@aldea/sdk-js";
 
 export type ModuleData = {
   mod: WebAssembly.Module,
@@ -15,7 +15,7 @@ export class Storage {
   private statesPerLocation: Map<string, JigState>;
   private tips: Map<string, string>;
   private origins: Map<string, string>;
-  private transactions: Map<string, Tx>;
+  private transactions: Map<string, TxExecution>;
   private modules: Map<string, ModuleData>
 
   constructor() {
@@ -27,34 +27,39 @@ export class Storage {
   }
 
   persist(txExecution: TxExecution) {
-    this.addTransaction(txExecution.tx)
+    this.addTransaction(txExecution)
     txExecution.outputs.forEach((state: JigState) => this.addJig(state))
   }
 
   addJig(jigState: JigState) {
-    this.statesPerLocation.set(jigState.currentLocation.toString(), jigState)
-    this.tips.set(jigState.id.toString(), jigState.currentLocation.toString())
-    this.origins.set(jigState.currentLocation.toString(), jigState.id.toString())
+    const currentLocation = base16.encode(jigState.digest());
+    this.statesPerLocation.set(currentLocation, jigState)
+    this.tips.set(jigState.id.toString(), currentLocation)
+    this.origins.set(currentLocation, jigState.id.toString())
   }
 
-  getJigState(location: Location, onNotFound: () => JigState): JigState {
-    const origin = this.origins.get(location.toString())
-    if (!origin) return onNotFound()
-    const latestLocation = this.tips.get(origin)
+  getJigStateByOrigin(origin: Location, onNotFound: () => JigState): JigState {
+    const latestLocation = this.tips.get(origin.toString())
     if (!latestLocation) return onNotFound()
     const ret = this.statesPerLocation.get(latestLocation)
     if (!ret) return onNotFound()
     return ret
   }
 
-  tipFor(origin: Location): Location {
-    const tip = this.tips.get(origin.toString());
-    if (!tip) throw new Error('not found')
-    return Location.fromString(tip)
+  getJigStateByReference (reference: Uint8Array, onNotFound: () => JigState): JigState {
+    const state = this.statesPerLocation.get(base16.encode(reference))
+    if (!state) return onNotFound()
+    return state
   }
 
-  addTransaction(tx: Tx) {
-    this.transactions.set(tx.id, tx)
+  tipFor(origin: Location): Uint8Array {
+    const tip = this.tips.get(origin.toString());
+    if (!tip) throw new Error('not found')
+    return base16.decode(tip)
+  }
+
+  addTransaction(exec: TxExecution) {
+    this.transactions.set(exec.tx.id, exec)
   }
 
   getTransaction(txid: string) {
@@ -76,5 +81,18 @@ export class Storage {
 
   hasModule(id: Uint8Array): boolean {
     return this.modules.has(base16.encode(id));
+  }
+
+  tipForRef(ref: Uint8Array): string {
+    const refHex = base16.encode(ref)
+    const origin = this.origins.get(refHex)
+    if (!origin) {
+      throw new Error('error')
+    }
+    const tip = this.tips.get(origin);
+    if (!tip) {
+      throw new Error('is not present')
+    }
+    return tip
   }
 }
