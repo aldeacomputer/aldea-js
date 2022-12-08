@@ -8,7 +8,7 @@
     "build": "yarn clean && tsc && yarn compile",
     "compile": "node cmd/compile-all.js",
     "dev": "node cmd/watch.js",
-    "fileId": "./cmd/calculate-module-id.js",
+    "fileId": "cmd/calculate-package-id.js",
     "clean": "rm -r tsc/* build/aldea/* || true"
   },
   "exports": {

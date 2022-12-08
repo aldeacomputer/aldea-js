@@ -12,8 +12,8 @@ export class JigLock implements Lock {
 
   serialize (): any {
     return {
-      type: 'JigLock',
-      data: { origin: this.origin.toString() }
+      type: this.typeNumber(),
+      data: this.origin.toBuffer()
     }
   }
 

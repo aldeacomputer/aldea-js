@@ -7,13 +7,13 @@ import { TypeNode } from "@aldea/compiler/abi";
  * Used to receive an arbitrary length list integers and pointers from WASM.
  */
 export class ArgReader {
-  buffer: ArrayBuffer;
+  buffer: Uint8Array;
   view: DataView;
   cursor: number;
 
-  constructor(buffer: ArrayBuffer) {
+  constructor(buffer: Uint8Array) {
     this.buffer = buffer
-    this.view = new DataView(this.buffer)
+    this.view = new DataView(this.buffer.buffer)
     this.cursor = 0
   }
 

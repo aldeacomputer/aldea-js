@@ -20,7 +20,8 @@ export class VM {
 
   constructor (storage: Storage) {
     this.storage = storage
-    this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', 'coin')
+    const enc = new TextEncoder()
+    this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', enc.encode('coin'))
   }
 
   async execTx(tx: Tx): Promise<TxExecution> {
@@ -31,7 +32,7 @@ export class VM {
     return currentExecution
   }
 
-  createWasmInstance (moduleId: string): WasmInstance {
+  createWasmInstance (moduleId: Uint8Array): WasmInstance {
     const existingModule = this.storage.getModule(moduleId)
     return new WasmInstance(existingModule.mod, existingModule.abi, moduleId)
   }
@@ -43,7 +44,7 @@ export class VM {
     })
   }
 
-  async deployCode (entries: string[], sources: Map<string, string>): Promise<string> {
+  async deployCode (entries: string[], sources: Map<string, string>): Promise<Uint8Array> {
     const id = calculatePackageId(entries, sources)
 
     if (this.storage.hasModule(id)) {
@@ -64,7 +65,7 @@ export class VM {
     return id
   }
 
-  addPreCompiled (compiledRelative: string, sourceRelative: string, defaultId: string | null = null): string {
+  addPreCompiled (compiledRelative: string, sourceRelative: string, defaultId: Uint8Array | null = null): Uint8Array {
     const srcPath = path.join(__dir, '../../assembly', sourceRelative)
     const srcCode = fs.readFileSync(srcPath);
     const sources = new Map<string, string>()
@@ -92,13 +93,14 @@ export class VM {
   mint (address: Address, amount: number = 1e6): Location {
     const buff = randomBytes(32)
 
-    const location = new Location(buff, 0);
+    const location = Location.fromData(buff, 0);
+    const enc = new TextEncoder()
     const minted = new JigState(
       location,
       location,
-      'Coin',
+      0,
       __encodeArgs([amount]),
-      'coin',
+       enc.encode('coin'),
       new UserLock(address).serialize()
     )
     this.storage.addJig(minted)

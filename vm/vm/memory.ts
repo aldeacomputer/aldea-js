@@ -20,9 +20,9 @@ export class Internref {
 
 export class Externref {
   name: string;
-  originBuf: ArrayBuffer;
+  originBuf: Uint8Array;
 
-  constructor(name: string, origin: ArrayBuffer) {
+  constructor(name: string, origin: Uint8Array) {
     this.name = name
     this.originBuf = origin
   }
@@ -113,8 +113,8 @@ export function liftInternref(mod: Module, obj: ObjectNode, ptr: number): Intern
 /**
  * Lifts an ArrayBuffer from WASM memory at the given Ptr.
  */
-export function liftBuffer(mod: Module, ptr: number): ArrayBuffer {
-  return mod.memory.buffer.slice(ptr, ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2]);
+export function liftBuffer(mod: Module, ptr: number): Uint8Array {
+  return new Uint8Array(mod.memory.buffer.slice(ptr, ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2]));
 }
 
 /**
@@ -466,7 +466,7 @@ export function lowerObject(mod: Module, obj: ObjectNode, vals: any[] | any): nu
 export function lowerImportedObject(mod: Module, val: JigRef): number {
   const buf = Buffer.from(val.originBuf);
   const bufferPtr = lowerBuffer(mod, buf)
-  const ptr = mod.__new(val.originBuf.byteLength, mod.abi.typeIds[val.name]);
+  const ptr = mod.__new(val.originBuf.byteLength, mod.abi.typeIds[val.className()]);
   const memU32 = new Uint32Array(mod.memory.buffer)
   memU32[ptr >>> 2] = bufferPtr
   return ptr

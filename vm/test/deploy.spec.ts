@@ -43,9 +43,10 @@ describe('deploy code', () => {
       const moduleIndex = exec.importModule(moduleId)
       const jigIndex = exec.instantiate(moduleIndex, 'Coso', [])
       exec.lockJigToUser(jigIndex, userAddr)
+      exec.markAsFunded()
       exec.finalize()
 
-      expect(exec.outputs[0].className).to.eql('Coso')
+      expect(exec.outputs[0].classIdx).to.eql(0)
     })
 
     it('module persist on other vm instance', async () => {
@@ -58,8 +59,9 @@ describe('deploy code', () => {
       const moduleIndex = exec.importModule(moduleId)
       const jigIndex = exec.instantiate(moduleIndex, 'Coso', [])
       exec.lockJigToUser(jigIndex, userAddr)
+      exec.markAsFunded()
       exec.finalize()
-      expect(exec.outputs[0].className).to.eql('Coso')
+      expect(exec.outputs[0].classIdx).to.eql(0)
     })
 
     it('can deploy same module twice', async () => {
@@ -81,8 +83,9 @@ describe('deploy code', () => {
       const moduleIndex = exec.importModule(moduleId)
       const jigIndex = exec.instantiate(moduleIndex, 'Flock', [])
       exec.lockJigToUser(jigIndex, userAddr)
+      exec.markAsFunded()
       exec.finalize()
-      expect(exec.outputs[0].className).to.eql('Flock')
+      expect(exec.outputs[0].classIdx).to.eql(0)
     })
 
     it('some pre compiled module can be added twice', async () => {
@@ -99,14 +102,15 @@ describe('deploy code', () => {
       const flockId = vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
       const tx = new Tx()
-      const execution = new TxExecution(tx, vm)
-      const moduleIndex = execution.importModule(flockId)
-      const jigIndex = execution.instantiate(moduleIndex, 'Flock', [])
-      execution.callInstanceMethodByIndex(jigIndex, 'growWithMath', [])
-      execution.lockJigToUser(jigIndex, userAddr)
-      execution.finalize()
+      const exec = new TxExecution(tx, vm)
+      const moduleIndex = exec.importModule(flockId)
+      const jigIndex = exec.instantiate(moduleIndex, 'Flock', [])
+      exec.callInstanceMethodByIndex(jigIndex, 'growWithMath', [])
+      exec.lockJigToUser(jigIndex, userAddr)
+      exec.markAsFunded()
+      exec.finalize()
 
-      let jigState = execution.outputs[0].parsedState();
+      let jigState = exec.outputs[0].parsedState();
       expect(jigState[0]).to.eql(1)
     })
   })
@@ -122,9 +126,10 @@ describe('deploy code', () => {
       const moduleIndex = await exec.deployModule([fileName],  sources)
       const jigIndex = exec.instantiate(moduleIndex, 'Coso', [])
       exec.lockJigToUser(jigIndex, userAddr)
+      exec.markAsFunded()
       exec.finalize()
 
-      expect(exec.outputs[0].className).to.eql('Coso')
+      expect(exec.outputs[0].classIdx).to.eql(0)
     })
 
     it.skip('can deploy more than 1 file', async () => {
@@ -148,7 +153,7 @@ describe('deploy code', () => {
       exec.lockJigToUser(jig2Index, userAddr)
       exec.finalize()
 
-      expect(exec.outputs[0].className).to.eql('Coso')
+      expect(exec.outputs[0].classIdx).to.eql('Coso')
     })
 
     it('adds the module on the right result index', async () => {

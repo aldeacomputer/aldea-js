@@ -8,7 +8,8 @@ export class PublicLock implements Lock {
 
   serialize (): any {
     return {
-      type: 'PublicLock'
+      type: this.typeNumber(),
+      data: new Uint8Array(0)
     }
   }
 

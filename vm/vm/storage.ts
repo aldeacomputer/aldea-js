@@ -1,7 +1,7 @@
 import {JigState} from './jig-state.js';
 import {TxExecution} from "./tx-execution.js";
 import {Abi} from "@aldea/compiler/abi";
-import {Location, Tx} from "@aldea/sdk-js";
+import {base16, Location, Tx} from "@aldea/sdk-js";
 
 export type ModuleData = {
   mod: WebAssembly.Module,
@@ -29,9 +29,9 @@ export class Storage {
   }
 
   addJig(jigState: JigState) {
-    this.statesPerLocation.set(jigState.location.toString(), jigState)
-    this.tips.set(jigState.origin.toString(), jigState.location.toString())
-    this.origins.set(jigState.location.toString(), jigState.origin.toString())
+    this.statesPerLocation.set(jigState.currentLocation.toString(), jigState)
+    this.tips.set(jigState.id.toString(), jigState.currentLocation.toString())
+    this.origins.set(jigState.currentLocation.toString(), jigState.id.toString())
   }
 
   getJigState(location: Location, onNotFound: () => JigState): JigState {
@@ -58,19 +58,20 @@ export class Storage {
     return this.transactions.get(txid)
   }
 
-  addPackage(id: string, module: WebAssembly.Module, abi: Abi): void {
-    this.modules.set(id, { mod: module, abi })
+  addPackage(id: Uint8Array, module: WebAssembly.Module, abi: Abi): void {
+    this.modules.set(base16.encode(id), { mod: module, abi })
   }
 
-  getModule (id: string): ModuleData {
-    const module =  this.modules.get(id)
+  getModule (id: Uint8Array): ModuleData {
+    const idHex = base16.encode(id)
+    const module =  this.modules.get(idHex)
     if (!module) {
-      throw new Error(`unknown module: ${id}`)
+      throw new Error(`unknown module: ${idHex}`)
     }
     return module
   }
 
-  hasModule(id: string): boolean {
-    return this.modules.has(id);
+  hasModule(id: Uint8Array): boolean {
+    return this.modules.has(base16.encode(id));
   }
 }

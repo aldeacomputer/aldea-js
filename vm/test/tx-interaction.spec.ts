@@ -42,7 +42,7 @@ describe('tx interaction', () => {
 
     sources.forEach(src => {
       const id = vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
-      moduleIds.set(src, id)
+      moduleIds.set(src, base16.encode(id))
     })
   })
 
@@ -56,8 +56,8 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx)
 
-    const state = storage.getJigState(new Location(tx.hash, 0), () => expect.fail('state should be present'))
-    expect(state.className).to.eql('Flock')
+    const state = storage.getJigState(Location.fromData(tx.hash, 0), () => expect.fail('state should be present'))
+    expect(state.classIdx).to.eql(0)
   })
 
   it('can call a method in a tx', async () => {
@@ -72,11 +72,11 @@ describe('tx interaction', () => {
     await vm.execTx(tx)
 
     const state = storage.getJigState(
-      new Location(tx.hash, 0),
+      Location.fromData(tx.hash, 0),
       () => expect.fail('state should be present')
     )
 
-    expect(state.className).to.eql('Flock')
+    expect(state.classIdx).to.eql(0)
   })
 
   function getLatestCoinLocation(): Uint8Array {
@@ -94,7 +94,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
+      .load(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
@@ -103,7 +103,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
-      .load(new Uint8Array(new Location(tx2.hash, 0).toBuffer()))
+      .load(new Uint8Array(Location.fromData(tx2.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -112,7 +112,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx3)
 
-    const state = storage.getJigState(new Location(tx3.hash, 0), () => expect.fail('state should be present'))
+    const state = storage.getJigState(Location.fromData(tx3.hash, 0), () => expect.fail('state should be present'))
     expect(state.parsedState()[0]).to.eql(2)
   })
 
@@ -126,7 +126,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .loadByOrigin(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
+      .loadByOrigin(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -135,7 +135,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
-      .loadByOrigin(new Uint8Array(new Location(tx2.hash, 0).toBuffer()))
+      .loadByOrigin(new Uint8Array(Location.fromData(tx2.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -144,7 +144,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx3)
 
-    const state = storage.getJigState(new Location(tx3.hash, 0), () => expect.fail('state should be present'))
+    const state = storage.getJigState(Location.fromData(tx3.hash, 0), () => expect.fail('state should be present'))
     expect(state.parsedState()[0]).to.eql(2)
   })
 
@@ -158,7 +158,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
+      .load(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -166,7 +166,7 @@ describe('tx interaction', () => {
       .build()
 
     const tx3 = new TxBuilder()
-      .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
+      .load(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -194,7 +194,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
+      .load(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .signTo(userPriv)
@@ -203,7 +203,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx2)
 
-    const state = storage.getJigState(new Location(tx2.hash, 0), () => expect.fail('state should be present'))
+    const state = storage.getJigState(Location.fromData(tx2.hash, 0), () => expect.fail('state should be present'))
     expect(state.parsedState()[0]).to.eql(1)
   })
 
@@ -217,7 +217,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(new Uint8Array(new Location(tx1.hash, 0).toBuffer()))
+      .load(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
       .signTo(userPriv)
       .call(0, 1, [])
       .lock(0, userAddr)
@@ -228,7 +228,7 @@ describe('tx interaction', () => {
       await vm.execTx(tx2)
     } catch (e: any) {
       expect(e).to.be.instanceof(PermissionError)
-      expect(e.message).to.eql(`jig ${base16.encode(tx1.hash)}_o0 is not allowed to exec "Flock$grow"`)
+      expect(e.message).to.eql(`jig ${Location.fromData(tx1.hash, 0).toString()} is not allowed to exec "Flock$grow"`)
       return
     }
     expect.fail('should fail')
@@ -271,11 +271,11 @@ describe('tx interaction', () => {
     await vm.execTx(tx)
 
     const state = storage.getJigState(
-      new Location(tx.hash, 0),
+      Location.fromData(tx.hash, 0),
       () => expect.fail('state should be present')
     )
 
-    expect(state.className).to.eql('Flock')
+    expect(state.classIdx).to.eql(0)
     expect(state.parsedState()[0]).to.eql(11) // 10 initial value + 1 grow
   })
 
@@ -307,7 +307,7 @@ describe('tx interaction', () => {
       .build()
 
     await vm.execTx(tx)
-    const coin = storage.getJigState(new Location(tx.hash, 0), () => expect.fail('should be present'))
+    const coin = storage.getJigState(Location.fromData(tx.hash, 0), () => expect.fail('should be present'))
     const parsed = coin.parsedState()
     expect(parsed[0]).to.eql(900)
   })
@@ -323,7 +323,7 @@ describe('tx interaction', () => {
       .build()
 
     await vm.execTx(tx)
-    const coin = storage.getJigState(new Location(tx.hash, 0), () => expect.fail('should be present'))
+    const coin = storage.getJigState(Location.fromData(tx.hash, 0), () => expect.fail('should be present'))
     const parsed = coin.parsedState()
     expect(parsed[0]).to.eql(900)
   })
