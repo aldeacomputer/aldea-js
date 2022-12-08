@@ -5,7 +5,10 @@ import {base16, Location, Tx} from "@aldea/sdk-js";
 
 export type ModuleData = {
   mod: WebAssembly.Module,
-  abi: Abi
+  abi: Abi,
+  wasmBin: Uint8Array,
+  entries: string[],
+  sources: Map<string, string>
 }
 
 export class Storage {
@@ -58,8 +61,8 @@ export class Storage {
     return this.transactions.get(txid)
   }
 
-  addPackage(id: Uint8Array, module: WebAssembly.Module, abi: Abi): void {
-    this.modules.set(base16.encode(id), { mod: module, abi })
+  addPackage(id: Uint8Array, module: WebAssembly.Module, abi: Abi, sources: Map<string, string>, entries: string[], wasmBin: Uint8Array): void {
+    this.modules.set(base16.encode(id), { mod: module, abi, wasmBin, entries, sources })
   }
 
   getModule (id: Uint8Array): ModuleData {

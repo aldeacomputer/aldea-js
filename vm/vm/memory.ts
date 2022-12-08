@@ -215,12 +215,12 @@ export function liftMap(mod: Module, type: TypeNode, ptr: number): Map<any, any>
   const KeyTypedArray = getTypedArrayConstructor(type.args[0])
   const kBytes = getTypeBytes(type.args[0])
   const kAlign = kBytes > 1 ? Math.ceil(kBytes / 3) : 0
-  const kEntries = new KeyTypedArray(liftBuffer(mod, start))
+  const kEntries = new KeyTypedArray(liftBuffer(mod, start).buffer)
 
   const ValTypedArray = getTypedArrayConstructor(type.args[1])
   const vBytes = getTypeBytes(type.args[1])
   const vAlign = vBytes > 1 ? Math.ceil(vBytes / 3) : 0
-  const vEntries = new ValTypedArray(liftBuffer(mod, start))
+  const vEntries = new ValTypedArray(liftBuffer(mod, start).buffer)
   
   const krBytes = Math.max(kBytes, vBytes)
   const trBytes = Math.max(vBytes, 4)
@@ -254,7 +254,7 @@ export function liftSet(mod: Module, type: TypeNode, ptr: number): Set<any> {
   const TypedArray = getTypedArrayConstructor(type.args[0])
   const vBytes = getTypeBytes(type.args[0])
   const vAlign = vBytes > 1 ? Math.ceil(vBytes / 3) : 0
-  const vEntries = new TypedArray(liftBuffer(mod, start))
+  const vEntries = new TypedArray(liftBuffer(mod, start).buffer)
 
   const vrBytes = Math.max(vBytes, 4)
   const entrySize = vrBytes + Math.max(vrBytes, 4)

@@ -60,7 +60,10 @@ export class VM {
     this.storage.addPackage(
       id,
       new WebAssembly.Module(result.output.wasm),
-      abiFromCbor(result.output.abi.buffer)
+      abiFromCbor(result.output.abi.buffer),
+      sources,
+      entries,
+      result.output.wasm
     )
     return id
   }
@@ -70,9 +73,10 @@ export class VM {
     const srcCode = fs.readFileSync(srcPath);
     const sources = new Map<string, string>()
     sources.set('index.ts', srcCode.toString())
+    const entries = ['index.ts'];
     const id = defaultId
       ? defaultId
-      : calculatePackageId(['index.ts'], sources)
+      : calculatePackageId(entries, sources)
     if (this.storage.hasModule(id)) {
       return id
     }
@@ -85,7 +89,10 @@ export class VM {
     this.storage.addPackage(
       id,
       module,
-      abi
+      abi,
+      sources,
+      entries,
+      new Uint8Array(wasmBuffer)
     )
     return id
   }
