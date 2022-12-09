@@ -371,10 +371,10 @@ class TxExecution {
         this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, inst.args)
       } else if (inst instanceof instructions.LockInstruction) {
         this.lockJigToUser(inst.idx, new Address(inst.pubkeyHash))
-      } else if (inst instanceof instructions.LoadInstruction) {
-        this.loadJigByRef(inst.location, false)
-      } else if (inst instanceof instructions.LoadByOriginInstruction) {
-        this.loadJigByOrigin(Location.fromBuffer(inst.origin), false)
+      } else if (inst instanceof instructions.LoadByRefInstruction) {
+        this.loadJigByRef(inst.jigRef, false)
+      } else if (inst instanceof instructions.LoadByIdInstruction) {
+        this.loadJigByOrigin(Location.fromBuffer(inst.jigId), false)
       } else if (inst instanceof instructions.SignInstruction) {
         this.statementResults.push(new EmptyStatementResult())
       } else if (inst instanceof instructions.SignToInstruction) {
