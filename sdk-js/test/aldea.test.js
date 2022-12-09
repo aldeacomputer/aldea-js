@@ -3,9 +3,9 @@ import crypto from 'crypto'
 import { Aldea, KeyPair, Address, Tx, OpCode } from '../dist/index.js'
 
 test('builds a tx with every opcode and encodes/decodes consistently', t => {
-  const origin1 = new Uint8Array(crypto.randomBytes(20))
-  const origin2 = new Uint8Array(crypto.randomBytes(20))
-  const location = new Uint8Array(crypto.randomBytes(20))
+  const origin1 = new Uint8Array(crypto.randomBytes(32))
+  const origin2 = new Uint8Array(crypto.randomBytes(32))
+  const location = new Uint8Array(crypto.randomBytes(32))
   const keys = KeyPair.fromRandom()
   const address = Address.fromPubKey(keys.pubKey)
 
@@ -71,7 +71,7 @@ test('builds a tx with every opcode and encodes/decodes consistently', t => {
 })
 
 test('builds a deploy transaction', t => {
-  const location = new Uint8Array(crypto.randomBytes(20))
+  const location = new Uint8Array(crypto.randomBytes(32))
   const keys = KeyPair.fromRandom()
   const address = Address.fromPubKey(keys.pubKey)
 
