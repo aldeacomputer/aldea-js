@@ -22,8 +22,8 @@ export class UserLock implements Lock {
 
   serialize (): any {
     return {
-      type: 'UserLock',
-      data: { pubkey: this.addr }
+      type: this.typeNumber(),
+      data: this.addr.hash
     }
   }
 

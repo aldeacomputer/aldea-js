@@ -6,12 +6,13 @@ import fs from "fs"
 import {Storage} from "./storage.js";
 import {abiFromCbor, abiFromJson} from '@aldea/compiler/abi'
 import {compile} from '@aldea/compiler'
-import {Address, Location, Tx} from "@aldea/sdk-js";
+import {Address, base16, Location, Tx} from "@aldea/sdk-js";
 import {ExecutionError} from "./errors.js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {JigState} from "./jig-state.js";
 import {randomBytes} from "@aldea/sdk-js/support/ed25519";
 import {UserLock} from "./locks/user-lock.js";
+import {Buffer} from "buffer";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -20,30 +21,42 @@ export class VM {
 
   constructor (storage: Storage) {
     this.storage = storage
-    this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', 'coin')
+    const enc = new TextEncoder()
+    this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', enc.encode('coin'))
   }
 
   async execTx(tx: Tx): Promise<TxExecution> {
     const currentExecution = new TxExecution(tx, this)
     await currentExecution.run()
-    currentExecution.finalize()
     this.storage.persist(currentExecution)
     return currentExecution
   }
 
-  createWasmInstance (moduleId: string): WasmInstance {
+  createWasmInstance (moduleId: Uint8Array): WasmInstance {
     const existingModule = this.storage.getModule(moduleId)
     return new WasmInstance(existingModule.mod, existingModule.abi, moduleId)
   }
 
 
-  findJigState (location: Location) {
-    return this.storage.getJigState(location, () => {
-      throw new ExecutionError(`unknown jig: ${location.toString()}`)
+  findJigStateByOrigin (origin: Location) {
+    return this.storage.getJigStateByOrigin(origin, () => {
+      throw new ExecutionError(`unknown jig: ${origin.toString()}`)
     })
   }
 
-  async deployCode (entries: string[], sources: Map<string, string>): Promise<string> {
+  findJigStateByRef (ref: Uint8Array) {
+    const jigState = this.storage.getJigStateByReference(ref, () => {
+      throw new ExecutionError(`unknown jig: ${base16.encode(ref)}`)
+    });
+    const lastRef = this.storage.tipFor(jigState.id)
+    if (!Buffer.from(jigState.digest()).equals(Buffer.from(lastRef))) {
+      throw new ExecutionError('jig already spent')
+    }
+    this.storage.tipForRef(jigState.digest())
+    return jigState
+  }
+
+  async deployCode (entries: string[], sources: Map<string, string>): Promise<Uint8Array> {
     const id = calculatePackageId(entries, sources)
 
     if (this.storage.hasModule(id)) {
@@ -59,19 +72,23 @@ export class VM {
     this.storage.addPackage(
       id,
       new WebAssembly.Module(result.output.wasm),
-      abiFromCbor(result.output.abi.buffer)
+      abiFromCbor(result.output.abi.buffer),
+      sources,
+      entries,
+      result.output.wasm
     )
     return id
   }
 
-  addPreCompiled (compiledRelative: string, sourceRelative: string, defaultId: string | null = null): string {
+  addPreCompiled (compiledRelative: string, sourceRelative: string, defaultId: Uint8Array | null = null): Uint8Array {
     const srcPath = path.join(__dir, '../../assembly', sourceRelative)
     const srcCode = fs.readFileSync(srcPath);
     const sources = new Map<string, string>()
     sources.set('index.ts', srcCode.toString())
+    const entries = ['index.ts'];
     const id = defaultId
       ? defaultId
-      : calculatePackageId(['index.ts'], sources)
+      : calculatePackageId(entries, sources)
     if (this.storage.hasModule(id)) {
       return id
     }
@@ -84,24 +101,28 @@ export class VM {
     this.storage.addPackage(
       id,
       module,
-      abi
+      abi,
+      sources,
+      entries,
+      new Uint8Array(wasmBuffer)
     )
     return id
   }
 
-  mint (address: Address, amount: number = 1e6): Location {
+  mint (address: Address, amount: number = 1e6): JigState {
     const buff = randomBytes(32)
 
-    const location = new Location(buff, 0);
+    const location = Location.fromData(buff, 0);
+    const enc = new TextEncoder()
     const minted = new JigState(
       location,
       location,
-      'Coin',
+      0,
       __encodeArgs([amount]),
-      'coin',
+       enc.encode('coin'),
       new UserLock(address).serialize()
     )
     this.storage.addJig(minted)
-    return location
+    return minted
   }
 }

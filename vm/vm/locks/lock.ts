@@ -1,7 +1,7 @@
 import {TxExecution} from "../tx-execution.js";
 
 export interface Lock {
-  serialize (): any
+  serialize (): any;
   isOpen (): boolean
 
   acceptsExecution(context: TxExecution): boolean;

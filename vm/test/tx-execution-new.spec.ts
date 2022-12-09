@@ -5,8 +5,9 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
-import {Location, PrivKey, Tx, TxBuilder} from "@aldea/sdk-js";
+import {base16, Location, PrivKey, Tx, TxBuilder} from "@aldea/sdk-js";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
+import {LockType} from "../vm/wasm-instance.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -16,12 +17,12 @@ describe('execute txs', () => {
   const userAddr = userPub.toAddress()
   const moduleIds = new Map<string, string>()
 
-  function modIdFor (key: string): string {
+  function modIdFor (key: string): Uint8Array {
     const id = moduleIds.get(key)
     if (!id) {
       throw new Error(`module was not deployed: ${key}`)
     }
-    return id
+    return base16.decode(id)
   }
 
   beforeEach(() => {
@@ -42,7 +43,7 @@ describe('execute txs', () => {
 
     sources.forEach(src => {
       const id = vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
-      moduleIds.set(src, id)
+      moduleIds.set(src, base16.encode(id))
     })
   })
 
@@ -60,8 +61,8 @@ describe('execute txs', () => {
     exec.finalize()
 
     const output = exec.outputs[0]
-    expect(output.moduleId).to.eql(modIdFor('flock'))
-    expect(output.className).to.eql('Flock')
+    expect(output.packageId).to.eql(modIdFor('flock'))
+    expect(output.classIdx).to.eql(0)
   })
 
   it('sends arguments to constructor properly.', () => {
@@ -126,10 +127,11 @@ describe('execute txs', () => {
     const flockOutputIndex = 0
     const shepherdOutputIndex = 1
     const parsed = exec.outputs[flockOutputIndex]
-    expect(parsed.className).to.eql('Flock')
-    expect(parsed.serializedLock).to.eql( {type: 'JigLock',   data: {
-        "origin": new Location(exec.tx.hash, shepherdOutputIndex).toString()
-      }})
+    expect(parsed.classIdx).to.eql(0)
+    expect(parsed.serializedLock).to.eql({
+      type: LockType.CALLER,
+      data: Location.fromData(exec.tx.hash, shepherdOutputIndex).toBuffer()
+    })
   })
 
   it('fails if the tx is trying to lock an already locked jig', () => {
@@ -144,7 +146,7 @@ describe('execute txs', () => {
     const flockOutputIndex = 0
     // this tries to lock it again
     expect(() => {exec.lockJigToUser(flockIndex, userAddr)}).to.throw(PermissionError,
-      `no permission to remove lock from jig ${new Location(exec.tx.hash, flockOutputIndex).toString()}`)
+      `no permission to remove lock from jig ${Location.fromData(exec.tx.hash, flockOutputIndex).toString()}`)
   })
 
   it('fails when a jig tries to lock a locked jig', () => {
@@ -219,21 +221,22 @@ describe('execute txs', () => {
 
       const exec2 = new TxExecution(tx2, vm)
 
-      const jigIndex = exec2.loadJig(new Location(exec.tx.hash, 0), false, false)
+      const jigIndex = exec2.loadJigByOrigin(Location.fromData(exec.tx.hash, 0), false)
       exec2.lockJigToUser(jigIndex, otherAddress)
       exec2.markAsFunded()
       exec2.finalize()
 
       const output = exec2.outputs[0]
-      expect(output.serializedLock.data.pubkey).to.eql(otherAddress)
+      expect(output.serializedLock.data).to.eql(otherAddress.hash)
     })
   })
 
   it('cannot load a jig that does not exists', () => {
-    const locationString = new Array(64).fill('0').join('')
+    const zeroBuffer = new Uint8Array(32).fill(0);
+    const location = Location.fromData(zeroBuffer, 99);
     expect(() =>
-      exec.loadJig(new Location(Buffer.alloc(32).fill(0).buffer, 99), false, false)
-    ).to.throw(ExecutionError, `unknown jig: ${locationString}_o99`)
+      exec.loadJigByOrigin(location, false)
+    ).to.throw(ExecutionError, `unknown jig: ${location.toString()}`)
   })
 
   describe('when a jig was frozen', () => {
@@ -254,18 +257,18 @@ describe('execute txs', () => {
     })
 
     it('cannot be called methods', () => {
-      exec.loadJig(new Location(freezeTx.hash, 0), false, false)
+      exec.loadJigByOrigin(Location.fromData(freezeTx.hash, 0), false)
       expect(() => exec.callInstanceMethodByIndex(0, 'grow', [])).to.throw(PermissionError)
     })
 
     it('cannot be locked', () => {
-      exec.loadJig(new Location(freezeTx.hash, 0), false, false)
+      exec.loadJigByOrigin(Location.fromData(freezeTx.hash, 0), false)
       expect(() => exec.lockJigToUser(0, userAddr)).to.throw(PermissionError)
     })
 
     it('saves correctly serialized lock', () => {
-      const state = storage.getJigState(new Location(freezeTx.hash, 0), () => expect.fail('should exist'))
-      expect(state.serializedLock).to.eql({type: 'FrozenLock'})
+      const state = storage.getJigStateByOrigin(Location.fromData(freezeTx.hash, 0), () => expect.fail('should exist'))
+      expect(state.serializedLock).to.eql({type: LockType.FROZEN, data: new Uint8Array(0)})
     })
   });
 

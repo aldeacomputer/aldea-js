@@ -7,7 +7,8 @@ export class FrozenLock implements Lock {
 
   serialize (): any {
     return {
-      type: 'FrozenLock'
+      type: this.typeNumber(),
+      data: new Uint8Array(0)
     }
   }
 

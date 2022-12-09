@@ -1,49 +1,46 @@
-export class Location {
-  txid: ArrayBuffer
-  index: number
+import {base16} from "../support/base.js";
+import {Digest} from "./digest.js";
+import {Buffer} from "buffer";
 
-  constructor(txid: ArrayBuffer, index: number) {
-    this.txid = txid
-    this.index = index
+export class Location {
+  private buff: Uint8Array
+
+  constructor( buff: Uint8Array) {
+    this.buff = buff
   }
 
   toString () {
-    return `${Buffer.from(this.txid).toString('hex')}_o${this.index}`
+    return base16.encode(this.toBuffer())
   }
 
-  toBuffer (): ArrayBuffer {
-    const buf = Buffer.alloc(36)
-    Buffer.from(this.txid).copy(buf, 0, 0, 32)
-    buf.writeInt32LE(this.index, 32)
-    return new Uint8Array(buf).buffer
+  toBuffer (): Uint8Array {
+    return this.buff
   }
 
   toUintArray (): Uint8Array {
-    const buf = Buffer.alloc(36)
-    Buffer.from(this.txid).copy(buf, 0, 0, 32)
-    buf.writeInt32LE(this.index, 32)
-    return new Uint8Array(buf)
+    return this.toBuffer()
   }
 
   equals (another: Location) {
-    return Buffer.from(this.txid).equals(Buffer.from(another.txid)) && this.index === another.index
+    return Buffer.from(this.buff).equals(Buffer.from(another.buff))
   }
 
   static fromString (aString: string): Location {
-    const [txid, index] = aString.split('_o')
+    const buf = base16.decode(aString)
+
     return new this(
-      new Uint8Array(Buffer.from(txid, 'hex')),
-      Number(index)
+      buf
     )
   }
 
-  static fromBuffer (aBuffer: ArrayBuffer): Location {
-    const buffer = Buffer.from(aBuffer);
-    const txid = new Uint8Array(buffer.subarray(0, 32))
-    const index = buffer.readUint32LE(32)
-    return new this(
-      txid,
-      index
-    )
+  static fromData (txid: Uint8Array, index: number): Location {
+    const dig = new Digest()
+      .addBuff(txid)
+      .addNumber(index)
+    return new this(dig.toBuffer())
+  }
+
+  static fromBuffer(buff: Uint8Array): Location {
+    return new this(buff)
   }
 }

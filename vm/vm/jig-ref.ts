@@ -5,19 +5,15 @@ import {Location} from "@aldea/sdk-js";
 
 export class JigRef  {
   ref: Internref;
-  className: string;
-  module: WasmInstance;
+  classIdx: number;
+  package: WasmInstance;
   origin: Location;
   lock: Lock;
 
-  get name (): string {
-    return this.className
-  }
-
-  constructor (ref: Internref, className: string, module: WasmInstance, origin: Location, lock: Lock) {
+  constructor (ref: Internref, classIdx: number, module: WasmInstance, origin: Location, lock: Lock) {
     this.ref = ref
-    this.className = className
-    this.module = module
+    this.classIdx = classIdx
+    this.package = module
     this.origin = origin
     this.lock = lock
   }
@@ -42,7 +38,11 @@ export class JigRef  {
     this.lock = newLock
   }
 
-  serialize(): ArrayBuffer {
-    return this.module.extractState(this.ref, this.className)
+  serialize(): Uint8Array {
+    return this.package.extractState(this.ref, this.classIdx)
+  }
+
+  className(): string {
+    return this.package.abi.exports[this.classIdx].code.name
   }
 }

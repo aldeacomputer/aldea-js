@@ -19,9 +19,10 @@ import {
   lowerObject,
   lowerValue,
 } from "./memory.js";
-import {Location} from "@aldea/sdk-js";
+import {base16, Location} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
+import {ClassNode} from "@aldea/compiler/abi";
 
 // enum AuthCheck {
 //   CALL,     // 0 - can the caller call a method?
@@ -64,13 +65,13 @@ export interface WasmExports extends WebAssembly.Exports {
   [key: string]: (...args: number[]) => number | void;
 }
 
-export function __encodeArgs (args: any[]): ArrayBuffer {
+export function __encodeArgs (args: any[]): Uint8Array {
   const seq = Sequence.from(args)
-  return CBOR.encode(seq)
+  return new Uint8Array(CBOR.encode(seq))
 }
 
-function __decodeArgs (data: ArrayBuffer): any[] {
-  return CBOR.decode(data, null, {mode: "sequence"}).data
+function __decodeArgs (data: Uint8Array): any[] {
+  return CBOR.decode(data.buffer, null, {mode: "sequence"}).data
 }
 
 const voidNode = { name: '_void', args: [] }
@@ -132,7 +133,7 @@ const lockStateAbiNode = {
 }
 
 export class WasmInstance {
-  id: string;
+  id: Uint8Array;
   memory: WebAssembly.Memory;
   private _currentExec: TxExecution | null;
 
@@ -140,7 +141,7 @@ export class WasmInstance {
   private instance: WebAssembly.Instance;
   abi: Abi;
 
-  constructor (module: WebAssembly.Module, abi: Abi, id: string) {
+  constructor (module: WebAssembly.Module, abi: Abi, id: Uint8Array) {
     this.id = id
     this.abi = abi
     abi.objects.push(utxoAbiNode)
@@ -194,8 +195,7 @@ export class WasmInstance {
           const moduleId = liftString(this, originPtr)
           const fnStr = liftString(this, fnNamePtr)
           const argBuf = liftBuffer(this, argsPtr)
-
-          const result = this.currentExec.remoteStaticExecHandler(this, Buffer.from(moduleId).toString(), fnStr, argBuf)
+          const result = this.currentExec.remoteStaticExecHandler(this, base16.decode(moduleId), fnStr, argBuf)
           return lowerValue(this, result.node, result.value)
         },
 
@@ -295,9 +295,9 @@ export class WasmInstance {
     }
   }
 
-  hidrate (className: string, frozenState: ArrayBuffer): Internref {
+  hidrate (classIdx: number, frozenState: Uint8Array): Internref {
     const rawState = __decodeArgs(frozenState)
-    const objectNode = findClass(this.abi, className, `unknown class ${className}`)
+    const objectNode = this.abi.exports[classIdx].code as ClassNode //findClass(, className, `unknown class ${className}`)
     const pointer = lowerObject(this, objectNode, rawState)
     return liftInternref(this, objectNode, pointer)
   }
@@ -324,11 +324,12 @@ export class WasmInstance {
     }
   }
 
-  getPropValue (ref: Internref, className: string, fieldName: string): Prop {
-    const objNode = findClass(this.abi, className, `unknown export: ${className}`)
-    const field = findField(objNode, fieldName, `unknown field: ${fieldName}`)
+  getPropValue (ref: Internref, classIdx: number, fieldName: string): Prop {
+    const objNode = this.abi.exports[classIdx].code // findClass(this.abi, classIdx, `unknown export: ${classIdx}`)
+    const classNode = objNode as ClassNode
+    const field = findField(classNode, fieldName, `unknown field: ${fieldName}`)
 
-    const offsets = getObjectMemLayout(objNode)
+    const offsets = getObjectMemLayout(classNode)
     const { offset, align } = offsets[field.name]
     const TypedArray = getTypedArrayConstructor(field.type)
     const val = new TypedArray(this.memory.buffer)[ref.ptr + offset >>> align]
@@ -379,8 +380,8 @@ export class WasmInstance {
     return __unpin(ptr)
   }
 
-  extractState(ref: Internref, className: string): ArrayBuffer {
-    const abiObj = findClass(this.abi, className, 'not found')
+  extractState(ref: Internref, classIdx: number): Uint8Array {
+    const abiObj = this.abi.exports[classIdx].code as ClassNode
     const liftedObject = liftObject(this, abiObj, ref.ptr)
 
     return __encodeArgs(

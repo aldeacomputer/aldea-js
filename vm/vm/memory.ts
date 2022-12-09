@@ -20,9 +20,9 @@ export class Internref {
 
 export class Externref {
   name: string;
-  originBuf: ArrayBuffer;
+  originBuf: Uint8Array;
 
-  constructor(name: string, origin: ArrayBuffer) {
+  constructor(name: string, origin: Uint8Array) {
     this.name = name
     this.originBuf = origin
   }
@@ -113,8 +113,8 @@ export function liftInternref(mod: Module, obj: ObjectNode, ptr: number): Intern
 /**
  * Lifts an ArrayBuffer from WASM memory at the given Ptr.
  */
-export function liftBuffer(mod: Module, ptr: number): ArrayBuffer {
-  return mod.memory.buffer.slice(ptr, ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2]);
+export function liftBuffer(mod: Module, ptr: number): Uint8Array {
+  return new Uint8Array(mod.memory.buffer.slice(ptr, ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2]));
 }
 
 /**
@@ -215,12 +215,12 @@ export function liftMap(mod: Module, type: TypeNode, ptr: number): Map<any, any>
   const KeyTypedArray = getTypedArrayConstructor(type.args[0])
   const kBytes = getTypeBytes(type.args[0])
   const kAlign = kBytes > 1 ? Math.ceil(kBytes / 3) : 0
-  const kEntries = new KeyTypedArray(liftBuffer(mod, start))
+  const kEntries = new KeyTypedArray(liftBuffer(mod, start).buffer)
 
   const ValTypedArray = getTypedArrayConstructor(type.args[1])
   const vBytes = getTypeBytes(type.args[1])
   const vAlign = vBytes > 1 ? Math.ceil(vBytes / 3) : 0
-  const vEntries = new ValTypedArray(liftBuffer(mod, start))
+  const vEntries = new ValTypedArray(liftBuffer(mod, start).buffer)
   
   const krBytes = Math.max(kBytes, vBytes)
   const trBytes = Math.max(vBytes, 4)
@@ -254,7 +254,7 @@ export function liftSet(mod: Module, type: TypeNode, ptr: number): Set<any> {
   const TypedArray = getTypedArrayConstructor(type.args[0])
   const vBytes = getTypeBytes(type.args[0])
   const vAlign = vBytes > 1 ? Math.ceil(vBytes / 3) : 0
-  const vEntries = new TypedArray(liftBuffer(mod, start))
+  const vEntries = new TypedArray(liftBuffer(mod, start).buffer)
 
   const vrBytes = Math.max(vBytes, 4)
   const entrySize = vrBytes + Math.max(vrBytes, 4)
@@ -466,7 +466,7 @@ export function lowerObject(mod: Module, obj: ObjectNode, vals: any[] | any): nu
 export function lowerImportedObject(mod: Module, val: JigRef): number {
   const buf = Buffer.from(val.originBuf);
   const bufferPtr = lowerBuffer(mod, buf)
-  const ptr = mod.__new(val.originBuf.byteLength, mod.abi.typeIds[val.name]);
+  const ptr = mod.__new(val.originBuf.byteLength, mod.abi.typeIds[val.className()]);
   const memU32 = new Uint32Array(mod.memory.buffer)
   memU32[ptr >>> 2] = bufferPtr
   return ptr

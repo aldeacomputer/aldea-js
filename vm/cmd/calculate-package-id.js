@@ -1,6 +1,7 @@
 #!/bin/env node
 import fs from 'fs'
 import { calculatePackageId } from "../tsc/index.js"
+import { base16 } from "@aldea/sdk-js"
 
 const filePath = process.argv[2]
 
@@ -15,4 +16,4 @@ map.set('index.ts', content.toString())
 
 const id = calculatePackageId(['index.ts'], map)
 
-console.log(id)
+console.log(base16.encode(id))

@@ -1,24 +1,25 @@
 import { CBOR } from "cbor-redux"
-import {FieldNode, findClass} from "@aldea/compiler/abi";
+import {ClassNode, FieldNode} from "@aldea/compiler/abi";
 import {WasmInstance} from "./wasm-instance.js";
 import {Location} from "@aldea/sdk-js";
+import {Digest} from "@aldea/sdk-js/transaction/digest";
 
-const parse = (data: ArrayBuffer) => CBOR.decode(data, null, { mode: "sequence" })
+const parse = (data: Uint8Array) => CBOR.decode(data.buffer, null, { mode: "sequence" })
 
 export class JigState {
-  origin: Location;
-  location: Location;
-  className: string;
-  stateBuf: ArrayBuffer;
-  moduleId: string;
+  id: Location;
+  currentLocation: Location;
+  classIdx: number;
+  stateBuf: Uint8Array;
+  packageId: Uint8Array;
   serializedLock: any;
 
-  constructor (origin: Location, location: Location, className: string, stateBuf: ArrayBuffer, moduleId: string, lock: any) {
-    this.origin = origin
-    this.location = location
-    this.className = className
+  constructor (origin: Location, location: Location, classIdx: number, stateBuf: Uint8Array, moduleId: Uint8Array, lock: any) {
+    this.id = origin
+    this.currentLocation = location
+    this.classIdx = classIdx
     this.stateBuf = stateBuf
-    this.moduleId = moduleId
+    this.packageId = moduleId
     this.serializedLock = lock
   }
 
@@ -26,13 +27,31 @@ export class JigState {
     return parse(this.stateBuf).data
   }
 
+  classId (): Uint8Array {
+    const dig = new Digest()
+      .addBuff(this.packageId)
+      .addNumber(this.classIdx)
+    return dig.toBuffer()
+  }
+
   objectState (module: WasmInstance): any {
     const fields = this.parsedState()
-    const abiNode = findClass(module.abi, this.className)
+    const abiNode = module.abi.exports[this.classIdx].code as ClassNode
     if (!abiNode) { throw new Error('should exists') }
     return abiNode.fields.reduce((acumulated: any, current: FieldNode, index: number) => {
       acumulated[current.name] = fields[index]
       return acumulated
     }, {})
+  }
+
+  digest (): Uint8Array {
+    const dig = new Digest()
+    dig.addBuff(this.id.toBuffer())
+    dig.addBuff(this.packageId)
+    dig.addNumber(this.classIdx)
+    dig.addNumber(this.serializedLock.type)
+    dig.addBuff(this.serializedLock.data)
+    dig.addBuff(this.stateBuf)
+    return dig.toBuffer()
   }
 }

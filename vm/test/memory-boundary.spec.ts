@@ -7,7 +7,7 @@ import {TxExecution} from "../vm/tx-execution.js";
 import {VM, Storage} from "../vm/index.js";
 import {Tx} from "@aldea/sdk-js";
 
-async function compileToWasm(src: string, id: string = 'test'): Promise<WasmInstance> {
+async function compileToWasm(src: string, id: Uint8Array = new Uint8Array([0, 0, 0, 0])): Promise<WasmInstance> {
   try {
     const { output } = await compile(src)
     const module = new WebAssembly.Module(output.wasm)
@@ -106,7 +106,7 @@ describe('reading basic types from memory', () => {
   it('reads ArrayBuffer', async () => {
     const wasm = await compileToWasm('export function test(): ArrayBuffer { return new ArrayBuffer(5) }')
     const res = wasm.functionCall('test', [])
-    assert.typeOf(res.value, 'ArrayBuffer')
+    assert.typeOf(res.value, 'Uint8Array')
     assert.equal(res.value.byteLength, 5)
   })
 })
