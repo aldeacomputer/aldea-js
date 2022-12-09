@@ -11,39 +11,39 @@ import { abiToCbor, abiToJson } from "@aldea/compiler/abi"
 import { CBOR, Sequence } from "cbor-redux"
 
 
-const serializeJigState = (jigState) => {
-  const lock = jigState.serializedLock
-  return {
-    jig_id: base16.encode(jigState.id.toBuffer()),
-    jig_ref: base16.encode(jigState.digest()),
-    pkg_id: base16.encode(jigState.packageId),
-    class_id: base16.encode(jigState.classId()),
-    lock: {
-      type: lock.type,
-      data: lock.data ? base16.encode(lock.data) : null
-    },
-    state_hex: base16.encode(jigState.stateBuf)
-  }
-}
-
-const serializeTxExec = (txExec) => {
-  return {
-    rawTx: txExec.tx.toBytes(),
-    txid: txExec.tx.id,
-    deploys: txExec.deployments.map((packageId) => {
-      const data = storage.getModule(packageId)
-      return {
-        files: data.sources.entries().map(([key, value]) => { return { name: key, content: value } }),
-        entries: data.entries,
-        package_id: Buffer.from(packageId).toString('hex')
-      }
-    }),
-    outputs: txExec.outputs.map(o => serializeJigState(o))
-  }
-}
-
 const buildApp = () => {
   const { vm, storage } = buildVm()
+
+  const serializeJigState = (jigState) => {
+    const lock = jigState.serializedLock
+    return {
+      jig_id: base16.encode(jigState.id.toBuffer()),
+      jig_ref: base16.encode(jigState.digest()),
+      pkg_id: base16.encode(jigState.packageId),
+      class_idx: jigState.classIdx,
+      lock: {
+        type: lock.type,
+        data: lock.data ? base16.encode(lock.data) : null
+      },
+      state_hex: base16.encode(jigState.stateBuf)
+    }
+  }
+
+  const serializeTxExec = (txExec) => {
+    return {
+      rawTx: txExec.tx.toHex(),
+      txid: txExec.tx.id,
+      packages: txExec.deployments.map((packageId) => {
+        const data = storage.getModule(packageId)
+        return {
+          files: Array.from(data.sources.entries()).map(([key, value]) => { return { name: key, content: value } }),
+          entries: data.entries,
+          package_id: Buffer.from(packageId).toString('hex')
+        }
+      }),
+      outputs: txExec.outputs.map(o => serializeJigState(o))
+    }
+  }
 
   const app = express()
 
