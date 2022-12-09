@@ -12,12 +12,16 @@ import { CBOR, Sequence } from "cbor-redux"
 
 
 const serializeJigState = (jigState) => {
+  const lock = jigState.serializedLock
   return {
     jig_id: base16.encode(jigState.id.toBuffer()),
     jig_ref: base16.encode(jigState.digest()),
     pkg_id: base16.encode(jigState.packageId),
     class_id: base16.encode(jigState.classId()),
-    lock: jigState.serializedLock,
+    lock: {
+      type: lock.type,
+      data: lock.data ? base16.encode(lock.data) : null
+    },
     state_hex: base16.encode(jigState.stateBuf)
   }
 }
