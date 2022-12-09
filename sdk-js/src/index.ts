@@ -12,14 +12,9 @@ export {
   PubKey, isPubKey,
   Tx, isTx, TxSerializer,
   TxBuilder,
+  TxOut,
   OpCode,
   Instruction,
-  NewInstruction,
-  ImportInstruction,
-  LockInstruction,
-  LoadInstruction,
-  LoadByOriginInstruction,
-  CallInstruction
 } from './internal.js'
 
 // Instructions exports

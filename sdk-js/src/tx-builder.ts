@@ -7,8 +7,8 @@ import {
   ExecInstruction,
   FundInstruction,
   ImportInstruction,
-  LoadByOriginInstruction,
-  LoadInstruction,
+  LoadByRefInstruction,
+  LoadByIdInstruction,
   LockInstruction,
   DeployInstruction,
   NewInstruction,
@@ -28,30 +28,30 @@ export class TxBuilder {
   tx: Tx = new Tx()
 
   /**
-   * Pushes an IMPORT instruction onto the Transaction. Accepts the origin as
+   * Pushes an IMPORT instruction onto the Transaction. Accepts the pkgId as
    * a string or TypedArray.
    */
-  import(origin: string | Uint8Array): TxBuilder {
-    if (typeof origin === 'string') origin = base16.decode(origin)
-    this.tx.push(new ImportInstruction(origin))
+  import(pkgId: string | Uint8Array): TxBuilder {
+    if (typeof pkgId === 'string') pkgId = base16.decode(pkgId)
+    this.tx.push(new ImportInstruction(pkgId))
     return this
   }
 
   /**
-   * Pushes a LOAD instruction onto the Transaction. Accepts the location as
+   * Pushes a LOADBYREF instruction onto the Transaction. Accepts the jigRef as
    * a string or TypedArray.
    */
-  load(location: Uint8Array): TxBuilder {
-    this.tx.push(new LoadInstruction(location))
+  loadByRef(jigRef: Uint8Array): TxBuilder {
+    this.tx.push(new LoadByRefInstruction(jigRef))
     return this
   }
 
   /**
-   * Pushes a LOADBYORIGIN instruction onto the Transaction. Accepts the origin
+   * Pushes a LOADBYORIGIN instruction onto the Transaction. Accepts the jigId
    * as a string or TypedArray.
    */
-  loadByOrigin(origin: Uint8Array): TxBuilder {
-    this.tx.push(new LoadByOriginInstruction(origin))
+  loadById(jigId: Uint8Array): TxBuilder {
+    this.tx.push(new LoadByIdInstruction(jigId))
     return this
   }
 
@@ -89,7 +89,7 @@ export class TxBuilder {
 
   fundWith (location: Uint8Array, privKey: PrivKey, nextOwner: Address): TxBuilder {
     const loadIndex = this.tx.instructions.length
-    this.load(location)
+    this.loadByRef(location)
     this.fund(loadIndex)
     this.lock(loadIndex, nextOwner)
     this.sign(privKey)

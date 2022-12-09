@@ -1,8 +1,8 @@
 import {
   BufReader, BufWriter, Serializable,
   ImportInstruction, ImportArgsSerializer,
-  LoadInstruction, LoadArgsSerializer,
-  LoadByOriginInstruction, LoadByOriginArgsSerializer,
+  LoadByRefInstruction, LoadByRefArgsSerializer,
+  LoadByIdInstruction, LoadByIdArgsSerializer,
   NewInstruction, NewArgsSerializer,
   CallInstruction, CallArgsSerializer,
   ExecInstruction, ExecArgsSerializer,
@@ -20,8 +20,8 @@ import {
 export enum OpCode {
   // Loading
   IMPORT = 0xA1,
-  LOAD = 0xA2,
-  LOADBYORIGIN = 0xA3,
+  LOADBYREF = 0xA2,
+  LOADBYID = 0xA3,
   // Calling
   NEW = 0xB1,
   CALL = 0xB2,
@@ -72,10 +72,10 @@ export const InstructionSerializer: Serializable<Instruction> = {
     switch(opcode) {
       case OpCode.IMPORT:
         return args.read<ImportInstruction>(ImportArgsSerializer)
-      case OpCode.LOAD:
-        return args.read<LoadInstruction>(LoadArgsSerializer)
-      case OpCode.LOADBYORIGIN:
-        return args.read<LoadByOriginInstruction>(LoadByOriginArgsSerializer)
+      case OpCode.LOADBYREF:
+        return args.read<LoadByRefInstruction>(LoadByRefArgsSerializer)
+      case OpCode.LOADBYID:
+        return args.read<LoadByIdInstruction>(LoadByIdArgsSerializer)
       case OpCode.NEW:
         return args.read<NewInstruction>(NewArgsSerializer)
       case OpCode.CALL:
@@ -103,11 +103,11 @@ export const InstructionSerializer: Serializable<Instruction> = {
       case OpCode.IMPORT:
         args.write<ImportInstruction>(ImportArgsSerializer, inst as ImportInstruction)
         break
-      case OpCode.LOAD:
-        args.write<LoadInstruction>(LoadArgsSerializer, inst as LoadInstruction)
+      case OpCode.LOADBYREF:
+        args.write<LoadByRefInstruction>(LoadByRefArgsSerializer, inst as LoadByRefInstruction)
         break
-      case OpCode.LOADBYORIGIN:
-        args.write<LoadByOriginInstruction>(LoadByOriginArgsSerializer, inst as LoadByOriginInstruction)
+      case OpCode.LOADBYID:
+        args.write<LoadByIdInstruction>(LoadByIdArgsSerializer, inst as LoadByIdInstruction)
         break
       case OpCode.NEW:
         args.write<NewInstruction>(NewArgsSerializer, inst as NewInstruction)
