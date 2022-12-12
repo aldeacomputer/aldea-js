@@ -1,6 +1,14 @@
 import test from 'ava'
 import crypto from 'crypto'
-import { Aldea, KeyPair, Address, Tx, OpCode } from '../dist/index.js'
+import { KeyPair, Address, Tx, OpCode } from '../dist/index.js'
+import { TxBuilder } from '../dist/tx-builder-old.js'
+
+function createTx(callback) {
+  const builder = new TxBuilder()
+  callback(builder)
+  return builder.tx
+}
+
 
 test('builds a tx with every opcode and encodes/decodes consistently', t => {
   const origin1 = new Uint8Array(crypto.randomBytes(32))
@@ -9,12 +17,10 @@ test('builds a tx with every opcode and encodes/decodes consistently', t => {
   const keys = KeyPair.fromRandom()
   const address = Address.fromPubKey(keys.pubKey)
 
-  const aldea = new Aldea()
-
-  const tx1 = aldea.createTx(tx => {
+  const tx1 = createTx(tx => {
     tx.import(origin1)
-    tx.load(location)
-    tx.loadByOrigin(origin2)
+    tx.loadByRef(location)
+    tx.loadById(origin2)
     tx.new(0, 0, [500, address.hash])
     tx.call(1, 1, [500, address.hash])
     tx.exec(2, 2, 2, [500, address.hash])
@@ -32,11 +38,11 @@ test('builds a tx with every opcode and encodes/decodes consistently', t => {
   t.is(tx2.instructions[0].opcode, OpCode.IMPORT)
   t.deepEqual(tx2.instructions[0].origin, origin1)
 
-  t.is(tx2.instructions[1].opcode, OpCode.LOAD)
-  t.deepEqual(tx2.instructions[1].location, location)
+  t.is(tx2.instructions[1].opcode, OpCode.LOADBYREF)
+  t.deepEqual(tx2.instructions[1].jigRef, location)
 
-  t.is(tx2.instructions[2].opcode, OpCode.LOADBYORIGIN)
-  t.deepEqual(tx2.instructions[2].origin, origin2)
+  t.is(tx2.instructions[2].opcode, OpCode.LOADBYID)
+  t.deepEqual(tx2.instructions[2].jigId, origin2)
 
   t.is(tx2.instructions[3].opcode, OpCode.NEW)
   t.is(tx2.instructions[3].idx, 0)
@@ -75,7 +81,6 @@ test('builds a deploy transaction', t => {
   const keys = KeyPair.fromRandom()
   const address = Address.fromPubKey(keys.pubKey)
 
-  const aldea = new Aldea()
   const code = new Map()
   code.set('foo.ts', 'export function foo(): string { return "hello world" }')
   code.set('index.ts', `
@@ -83,8 +88,8 @@ test('builds a deploy transaction', t => {
     export function bar(): string { return foo() }
   `)
 
-  const tx1 = aldea.createTx(tx => {
-    tx.load(location)
+  const tx1 = createTx(tx => {
+    tx.loadByRef(location)
     tx.deploy(code)
     tx.call(0, 1, [500, address.hash])
     tx.fund(0)
@@ -104,10 +109,8 @@ test('builds a tiny tx comparison to bitcoin', t => {
   const keys = KeyPair.fromRandom()
   const address = Address.fromPubKey(keys.pubKey)
 
-  const aldea = new Aldea()
-
-  const tx1 = aldea.createTx(tx => {
-    tx.load(location)
+  const tx1 = createTx(tx => {
+    tx.loadByRef(location)
     tx.call(0, 1, [500, address.hash])
     tx.fund(0)
     tx.sign(keys.privKey)

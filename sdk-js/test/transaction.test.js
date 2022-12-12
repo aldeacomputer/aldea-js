@@ -1,8 +1,6 @@
 import test from 'ava'
-import {
-  PrivKey,
-  TxBuilder,
-} from '../dist/index.js'
+import { PrivKey } from '../dist/index.js'
+import { TxBuilder } from '../dist/tx-builder-old.js'
 import { base16 } from "@scure/base"
 
 const someLocation = base16.decode(new Array(72).fill('0').join(''))

@@ -1,6 +1,7 @@
 //import ky from 'ky'
 import ky from 'ky-universal'
-import { TxBuilder, Tx, TxOut } from './internal.js'
+import { Abi } from '@aldea/compiler/abi'
+import { TxBuilder, Tx } from './internal.js'
 
 /**
  * TODO
@@ -10,8 +11,7 @@ export class Aldea {
 
   constructor(opts: any) {
     this.api = ky.create({
-      prefixUrl: 'http://localhost:4000',
-      cache: 'force-cache'
+      prefixUrl: 'https://node.aldea.computer'
     })
   }
 
@@ -19,26 +19,40 @@ export class Aldea {
    * TODO
    */
   async commit(tx: Tx): Promise<TxResponse> {
+    const headers = { 'content-type': 'application/octet-stream' }
     const body = tx.toBytes()
-    return ky.post('/tx', { body }).json<TxResponse>()
+    return this.api.post('tx', { headers, body }).json<TxResponse>()
   }
 
   /**
    * TODO
    */
-  async loadOutput(ref: string): Promise<TxOut> {
-    const outputJson = await ky.get(`state/${ ref }`).json<TxOutResponse>()
-    return TxOut.fromJson(outputJson)
+  async getOutput(jigRef: string): Promise<TxOutResponse> {
+    return await this.api.get(`output/${ jigRef }`).json<TxOutResponse>()
+  }
+
+  /**
+   * TODO
+   */
+  async getOutputByOrigin(origin: string): Promise<TxOutResponse> {
+    return await this.api.get(`output-by-origin/${ origin }`).json<TxOutResponse>()
+  }
+
+  /**
+   * TODO
+   */
+   async getPackage(pkgId: string): Promise<Abi> {
+    return await this.api.get(`package/${ pkgId }/abi.json`).json<Abi>()
   }
 
   /**
    * Builds and returns a new Transaction. The given callback recieves the
    * TxBuilder instance.
    */
-  createTx(builder: (tx: TxBuilder) => void): Tx {
-    const txBuilder = new TxBuilder()
+  createTx(builder: (tx: TxBuilder) => void): Promise<Tx> {
+    const txBuilder = new TxBuilder(this)
     builder(txBuilder)
-    return txBuilder.tx
+    return txBuilder.build()
   }
 }
 
@@ -59,9 +73,9 @@ export interface TxOutResponse {
   jig_id: string;
   jig_ref: string;
   pkg_id: string;
-  class_id: string;
+  class_idx: number;
   lock: { type: number, data: string };
-  state: string;
+  state_hex: string;
 }
 
 /**

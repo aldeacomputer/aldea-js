@@ -12,7 +12,6 @@ export {
   PubKey, isPubKey,
   Tx, isTx, TxSerializer,
   TxBuilder,
-  TxOut,
   OpCode,
   Instruction,
 } from './internal.js'
