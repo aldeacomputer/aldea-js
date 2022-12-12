@@ -91,7 +91,13 @@ const buildApp = () => {
 
   app.get('/output/:jigRef', (req, res) => {
     const location = req.params.jigRef
-    const jigState = storage.getJigStateByOrigin(base16.decode(location), () => { throw new HttpNotFound(`${location} not found`, {location})})
+    const jigState = storage.getJigStateByReference(base16.decode(location), () => { throw new HttpNotFound(`${location} not found`, {location})})
+    res.status(200).send(serializeJigState(jigState))
+  })
+
+  app.get('/output-by-id/:jigRef', (req, res) => {
+    const location = req.params.jigRef
+    const jigState = storage.getJigStateByReference(base16.decode(location), () => { throw new HttpNotFound(`${location} not found`, {location})})
     res.status(200).send(serializeJigState(jigState))
   })
 
