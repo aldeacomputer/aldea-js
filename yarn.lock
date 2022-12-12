@@ -5,7 +5,7 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@aldea/compiler@0.0.1, @aldea/compiler@workspace:^, @aldea/compiler@workspace:compiler":
+"@aldea/compiler@^0.0.0-alpha, @aldea/compiler@workspace:^, @aldea/compiler@workspace:compiler":
   version: 0.0.0-use.local
   resolution: "@aldea/compiler@workspace:compiler"
   dependencies:
@@ -98,16 +98,30 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/playground@workspace:example1"
   dependencies:
-    "@aldea/compiler": 0.0.1
+    "@aldea/compiler": ^0.0.0-alpha
     cbor-redux: ^1.0.0-3
   languageName: unknown
   linkType: soft
 
-"@aldea/sdk-js@0.0.0-alpha.2, @aldea/sdk-js@workspace:^, @aldea/sdk-js@workspace:sdk-js":
+"@aldea/sdk-js@npm:0.0.0-alpha.2":
+  version: 0.0.0-alpha.2
+  resolution: "@aldea/sdk-js@npm:0.0.0-alpha.2"
+  dependencies:
+    "@noble/ed25519": ^1.7.1
+    "@noble/hashes": ^1.1.3
+    "@scure/base": ^1.1.1
+    "@scure/bip39": ^1.1.0
+    cbor-redux: ^1.0.0-3
+    micro-ed25519-hdkey: ^0.1.2
+  checksum: 0c6225a1660acf7cce44d3dbc7541fe85e2a44336a7fbf08ef7bdd46e98c1b5e536554c05e5d626d831dad253c0402643792965b7a8bae5dce4b34151dc2bf54
+  languageName: node
+  linkType: hard
+
+"@aldea/sdk-js@workspace:^, @aldea/sdk-js@workspace:sdk-js":
   version: 0.0.0-use.local
   resolution: "@aldea/sdk-js@workspace:sdk-js"
   dependencies:
-    "@aldea/compiler": "workspace:^"
+    "@aldea/compiler": ^0.0.0-alpha
     "@noble/ed25519": ^1.7.1
     "@noble/hashes": ^1.1.3
     "@scure/base": ^1.1.1

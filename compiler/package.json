@@ -1,6 +1,6 @@
 {
   "name": "@aldea/compiler",
-  "version": "0.0.1",
+  "version": "0.0.0-alpha.2",
   "type": "module",
   "license": "MIT",
   "bin": {
@@ -8,10 +8,18 @@
   },
   "exports": {
     ".": "./dist/compiler.js",
-    "./abi": "./dist/abi.js"
+    "./abi": "./dist/abi.js",
+    "./assembly.json": "./assembly.json"
   },
   "main": "./dist/compiler.js",
   "types": "./dist/compiler.d.ts",
+  "files": [
+    "bin/*",
+    "dist/**/*",
+    "lib/**/*",
+    "types/**/*",
+    "assembly.json"
+  ],
   "scripts": {
     "build": "tsc && yarn build:dts",
     "build:dts": "node scripts/build-dts.js",

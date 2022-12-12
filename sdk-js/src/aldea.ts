@@ -11,7 +11,7 @@ export class Aldea {
 
   constructor(opts: any) {
     this.api = ky.create({
-      prefixUrl: 'https://node.aldea.computer'
+      prefixUrl: (opts.node || 'https://node.aldea.computer')
     })
   }
 
