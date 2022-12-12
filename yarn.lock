@@ -94,15 +94,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/playground@workspace:example1":
-  version: 0.0.0-use.local
-  resolution: "@aldea/playground@workspace:example1"
-  dependencies:
-    "@aldea/compiler": ^0.0.0-alpha
-    cbor-redux: ^1.0.0-3
-  languageName: unknown
-  linkType: soft
-
 "@aldea/sdk-js@npm:0.0.0-alpha.2":
   version: 0.0.0-alpha.2
   resolution: "@aldea/sdk-js@npm:0.0.0-alpha.2"
