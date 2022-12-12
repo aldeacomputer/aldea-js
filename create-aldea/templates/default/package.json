@@ -4,13 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "keygen": "node scripts/keygen.js",
+    "fund": "node scripts/fund.js",
     "deploy": "node scripts/deploy.js"
   },
   "dependencies": {
+    "@aldea/compiler": "^0.0.0-alpha",
     "@aldea/sdk-js": "^0.0.0-alpha"
   },
   "devDependencies": {
     "assemblyscript": "^0.24.1",
+    "dotenv": "^16.0.3",
     "minimist": "^1.2.7"
   }
 }

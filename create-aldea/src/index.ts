@@ -76,7 +76,6 @@ async function create(cwd: string, argv: minimist.ParsedArgs): Promise<void> {
 
   const pkgInfo = pkgFromUserAgent(process.env.npm_config_user_agent)
   const pkgManager = pkgInfo?.name || 'npm'
-  //const isYarn1 = pkgManager === 'yarn' && pkgInfo?.version.startsWith('1.')
 
   console.log(`\nScaffolding project in ${root}...`)
 
@@ -87,17 +86,8 @@ async function create(cwd: string, argv: minimist.ParsedArgs): Promise<void> {
   console.log(`\nDone. Now run:\n`)
 
   if (root !== cwd) {
-    console.log(`  cd ${relative(cwd, root)}`)
-  }
-  switch (pkgManager) {
-    case 'yarn':
-      console.log('  yarn')
-      console.log('  yarn dev')
-      break
-    default:
-      console.log(`  ${pkgManager} install`)
-      console.log(`  ${pkgManager} run dev`)
-      break
+    const install = pkgManager === 'yarn' ? 'yarn' : `${ pkgManager } i`
+    console.log(`  cd ${relative(cwd, root)} && ${install}`)
   }
   console.log()
 }
