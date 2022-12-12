@@ -1,6 +1,6 @@
 {
   "name": "create-aldea",
-  "version": "0.0.0-alpha.3",
+  "version": "0.0.0-alpha.4",
   "type": "module",
   "license": "MIT",
   "bin": "index.js",
