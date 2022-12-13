@@ -99,14 +99,17 @@ export class BufWriter {
         buf = this.add(9)
         buf.view.setUint8(0, 255)
         buf.view.setBigUint64(1, int as bigint, true)
+        break
       case int >= 0x10000:
         buf = this.add(5)
         buf.view.setUint8(0, 254)
         buf.view.setUint32(1, int as number, true)
+        break
       case int >= 253:
         buf = this.add(3)
         buf.view.setUint8(0, 253)
         buf.view.setUint16(1, int as number, true)
+        break
       default:
         this.writeU8(int as number)
     }
