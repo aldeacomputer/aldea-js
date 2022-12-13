@@ -1,7 +1,7 @@
-//import ky from 'ky'
+import { Abi } from '@aldea/compiler/abi';
 import ky from 'ky-universal'
-import { Abi } from '@aldea/compiler/abi'
-import { TxBuilder, Tx } from './internal.js'
+import { CBOR } from 'cbor-redux'
+import { InstructionRef, TxBuilder, Tx, ref } from './internal.js'
 
 /**
  * TODO
@@ -9,80 +9,134 @@ import { TxBuilder, Tx } from './internal.js'
 export class Aldea {
   api: typeof ky;
 
-  constructor(opts: any) {
+  constructor(host: string, port?: number, protocol: string = 'http', base: string = '') {
+    let url: string = `${protocol}://${host}`
+
+    if (typeof port === 'number' && port !== 80) {
+      url = `${url}:${port}`
+    }
+    if (typeof base === 'string' && base.length) {
+      url = join(url, base)
+    }
+
     this.api = ky.create({
-      prefixUrl: (opts.node || 'https://node.aldea.computer')
+      prefixUrl: url,
+      parseJson: text => camelKeys(JSON.parse(text))
     })
-  }
-
-  /**
-   * TODO
-   */
-  async commit(tx: Tx): Promise<TxResponse> {
-    const headers = { 'content-type': 'application/octet-stream' }
-    const body = tx.toBytes()
-    return this.api.post('tx', { headers, body }).json<TxResponse>()
-  }
-
-  /**
-   * TODO
-   */
-  async getOutput(jigRef: string): Promise<TxOutResponse> {
-    return await this.api.get(`output/${ jigRef }`).json<TxOutResponse>()
-  }
-
-  /**
-   * TODO
-   */
-  async getOutputByOrigin(origin: string): Promise<TxOutResponse> {
-    return await this.api.get(`output-by-origin/${ origin }`).json<TxOutResponse>()
-  }
-
-  /**
-   * TODO
-   */
-   async getPackage(pkgId: string): Promise<Abi> {
-    return await this.api.get(`package/${ pkgId }/abi.json`).json<Abi>()
   }
 
   /**
    * Builds and returns a new Transaction. The given callback recieves the
    * TxBuilder instance.
    */
-  createTx(builder: (tx: TxBuilder) => void): Promise<Tx> {
+  async createTx(builder: (tx: TxBuilder, ref: (idx: number) => InstructionRef) => void): Promise<Tx> {
     const txBuilder = new TxBuilder(this)
-    builder(txBuilder)
+    builder(txBuilder, ref)
     return txBuilder.build()
+  }
+
+  async commitTx(tx: Tx): Promise<TxResponse> {
+    const headers = { 'content-type': 'application/octet-stream' }
+    const body = tx.toBytes()
+    return this.api.post('tx', { headers, body }).json()
+  }
+
+  async getTx(txid: string): Promise<TxResponse> {
+    return this.api.get(`tx/${txid}`).json()
+  }
+
+  async getRawTx(txid: string): Promise<Uint8Array> {
+    const data = await this.api.get(`tx/${txid}`).arrayBuffer()
+    return new Uint8Array(data)
+  }
+
+  async getOutput(jigRef: string): Promise<OutputResponse> {
+    return this.api.get(`output/${jigRef}`).json()
+  }
+
+  getOutputById(jigId: string): Promise<OutputResponse> {
+    return this.api.get(`output/${jigId}`).json()
+  }
+
+  async getPackageAbi(pkgId: string): Promise<Abi> {
+    return this.api.get(`package/${pkgId}/abi.json`).json()
+  }
+
+  async getPackageSrc(pkgId: string): Promise<PackageResponse> {
+    const data = await this.api.get(`package/${pkgId}/source`).arrayBuffer()
+    const seq = CBOR.decode(data, null, { mode: 'sequence' })
+    return {
+      entries: seq.get(1),
+      files: seq.get(2),
+      pkgId
+    }
+  }
+
+  async getPackageWasm(pkgId: string): Promise<Uint8Array> {
+    const data = await this.api.get(`package/${pkgId}/wasm`).arrayBuffer()
+    return new Uint8Array(data)
   }
 }
 
-/**
- * TODO
- */
 export interface TxResponse {
   txid: string;
-  outputs: TxOutResponse[];
-  packages: TxPkgResponse[];
-  tx?: string;
+  outputs: OutputResponse[];
+  packages: PackageResponse[];
+  rawTx?: string;
 }
 
-/**
- * TODO
- */
-export interface TxOutResponse {
-  jig_id: string;
-  jig_ref: string;
-  pkg_id: string;
-  class_idx: number;
-  lock: { type: number, data: string };
-  state_hex: string;
+export interface OutputResponse {
+  jigId: string;
+  jigRef: string;
+  pkgId: string;
+  classIdx: number;
+  lock: LockResponse;
+  stateHex: string;
 }
 
-/**
- * TODO
- */
-export interface TxPkgResponse {
-  pkg_id: string;
-  files: string[];
+export interface PackageResponse {
+  files: FileResponse[];
   entries: string[];
+  pkgId: string;
+}
+
+export interface LockResponse {
+  type: number;
+  data: string
+}
+
+export interface FileResponse {
+  name: string;
+  content: string;
+}
+
+type keyedObject = { [key: string]: any }
+
+// TODO
+function camelKeys(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj
+  if (Array.isArray(obj)) return obj.map(camelKeys)
+
+  return Object.entries(obj).reduce((obj: keyedObject, [key, val]: [string, any]) => {
+    obj[camelize(key)] = camelKeys(val)
+    return obj
+  }, {})
+}
+
+// TODO
+function camelize(str: string): string {
+  return str.replace(/[_.-](\w|$)/g, function (_,x) {
+    return x.toUpperCase();
+  })
+}
+
+// TODO
+function join(...parts: string[]) {
+  return parts.map((part, i) => {
+    if (i === 0) {
+      return part.trim().replace(/[\/]*$/g, '')
+    } else {
+      return part.trim().replace(/(^[\/]*|[\/]*$)/g, '')
+    }
+  }).filter(x => x.length).join('/')
 }

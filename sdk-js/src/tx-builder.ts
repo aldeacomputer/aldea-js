@@ -13,6 +13,8 @@ import {
   Address,
   PrivKey,
   Tx,
+  ref,
+  InstructionRef,
   CallInstruction,
   ExecInstruction,
   FundInstruction,
@@ -61,7 +63,7 @@ export class TxBuilder {
    */
   import(pkgId: string): InstructionRef {
     return this.push(async (tx: Tx) => {
-      const abi = await this.aldea.getPackage(pkgId)
+      const abi = await this.aldea.getPackageAbi(pkgId)
 
       tx.push(new ImportInstruction(base16.decode(pkgId)))
       return pkgResult(abi)
@@ -74,11 +76,11 @@ export class TxBuilder {
    */
   loadById(origin: string): InstructionRef {
     return this.push(async (tx: Tx) => {
-      const output = await this.aldea.getOutputByOrigin(origin)
-      const abi = await this.aldea.getPackage(output.pkg_id)
+      const output = await this.aldea.getOutputById(origin)
+      const abi = await this.aldea.getPackageAbi(output.pkgId)
       tx.push(new LoadByIdInstruction(base16.decode(origin)))
 
-      return jigResult(abi, output.class_idx)
+      return jigResult(abi, output.classIdx)
     })
   }
 
@@ -89,10 +91,10 @@ export class TxBuilder {
   loadByRef(jigRef: string): InstructionRef {
     return this.push(async (tx: Tx) => {
       const output = await this.aldea.getOutput(jigRef)
-      const abi = await this.aldea.getPackage(output.pkg_id)
+      const abi = await this.aldea.getPackageAbi(output.pkgId)
       tx.push(new LoadByRefInstruction(base16.decode(jigRef)))
       
-      return jigResult(abi, output.class_idx)
+      return jigResult(abi, output.classIdx)
     })
   }
 
@@ -243,14 +245,14 @@ export class TxBuilder {
   // Pushes a build step onto the stack of steps.
   private push(step: BuildStep): InstructionRef {
     const idx = this.steps.push(step) - 1
-    return new InstructionRef(idx)
+    return ref(idx)
   }
 
   // Pulls an InstructionResult from the stack of results.
-  private pull(idx: InstructionRef, type: ResultType): InstructionResult {
-    const res = this.results[idx.valueOf()]
+  private pull(ref: InstructionRef, type: ResultType): InstructionResult {
+    const res = this.results[ref.valueOf()]
     if (!res) {
-      throw new Error(`intruction result not found: ${idx}`)
+      throw new Error(`intruction result not found: ${ref}`)
     } else if (res.type !== type) {
       const expected = ResultType[type]
       const actual = ResultType[res.type]
@@ -269,7 +271,7 @@ export class TxBuilder {
       return jigResult(abi, exportIdx)
     }
     if (imported) {
-      const remoteAbi = await this.aldea.getPackage(imported.origin)
+      const remoteAbi = await this.aldea.getPackageAbi(imported.origin)
       const klass = findClass(remoteAbi, imported.name, `class not found: ${ imported.name }`)
       const exportIdx = remoteAbi.exports.findIndex(e => e.code === klass)
       return jigResult(remoteAbi, exportIdx)
@@ -279,11 +281,6 @@ export class TxBuilder {
     return noResult()
   }
 }
-
-/**
- * InstructionRef class - just a wrapper around number
- */
-export class InstructionRef extends Number {}
 
 // BuildStep tyep
 type BuildStep = (tx: Tx) => InstructionResult | Promise<InstructionResult>

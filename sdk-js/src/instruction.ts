@@ -1,3 +1,4 @@
+import { Sequence, TaggedValue } from 'cbor-redux'
 import {
   BufReader, BufWriter, Serializable,
   ImportInstruction, ImportArgsSerializer,
@@ -13,6 +14,8 @@ import {
   SignToInstruction, SignToArgsSerializer,
   UnknownInstruction
 } from './internal.js'
+
+const REF_CBOR_TAG = 42
 
 /**
  * All OpCode bytes.
@@ -55,6 +58,43 @@ export class Instruction {
     const buf = new BufWriter()
     buf.write<Instruction>(InstructionSerializer, this)
     return buf.data
+  }
+}
+
+/**
+ * InstructionRef class - just a wrapper around number
+ */
+export class InstructionRef extends Number {}
+
+/**
+ * Wrap a number with InstructionRef
+ */
+export function ref(idx: number): InstructionRef {
+  if (!Number.isInteger(idx)) throw new Error('invalid ref. must be an integer.')
+  return new InstructionRef(idx)
+}
+
+/**
+ * Tags an InstructionRef for CBOR encoding
+ */
+export function refTagger(_key: any, val: any): any {
+  if (val instanceof InstructionRef) {
+    return new TaggedValue(val.valueOf(), REF_CBOR_TAG)
+  } else if (val instanceof Sequence) {
+    return new Sequence(val.data.map((val, i) => refTagger(i, val)))
+  } else {
+    return val
+  }
+}
+
+/**
+ * Untags an InstructionRef from deocded CBOR
+ */
+export function refUntagger(_key: any, val: any): any {
+  if (val instanceof TaggedValue && val.tag === REF_CBOR_TAG) {
+    return ref(val.value)
+  } else {
+    return val
   }
 }
 
