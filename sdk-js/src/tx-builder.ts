@@ -13,6 +13,8 @@ import {
   Address,
   PrivKey,
   Tx,
+  ref,
+  InstructionRef,
   CallInstruction,
   ExecInstruction,
   FundInstruction,
@@ -243,14 +245,14 @@ export class TxBuilder {
   // Pushes a build step onto the stack of steps.
   private push(step: BuildStep): InstructionRef {
     const idx = this.steps.push(step) - 1
-    return new InstructionRef(idx)
+    return ref(idx)
   }
 
   // Pulls an InstructionResult from the stack of results.
-  private pull(idx: InstructionRef, type: ResultType): InstructionResult {
-    const res = this.results[idx.valueOf()]
+  private pull(ref: InstructionRef, type: ResultType): InstructionResult {
+    const res = this.results[ref.valueOf()]
     if (!res) {
-      throw new Error(`intruction result not found: ${idx}`)
+      throw new Error(`intruction result not found: ${ref}`)
     } else if (res.type !== type) {
       const expected = ResultType[type]
       const actual = ResultType[res.type]
@@ -279,11 +281,6 @@ export class TxBuilder {
     return noResult()
   }
 }
-
-/**
- * InstructionRef class - just a wrapper around number
- */
-export class InstructionRef extends Number {}
 
 // BuildStep tyep
 type BuildStep = (tx: Tx) => InstructionResult | Promise<InstructionResult>

@@ -4,7 +4,9 @@ import {
   BufWriter,
   Instruction,
   OpCode,
-  Serializable
+  Serializable,
+  refTagger,
+  refUntagger,
 } from '../internal.js'
 
 /**
@@ -35,13 +37,13 @@ export const NewArgsSerializer: Serializable<NewInstruction> = {
     const cborData = buf.readBytes(buf.remaining)
 
     const cborDataBuf = cborData.buffer.slice(cborData.byteOffset, cborData.byteOffset + cborData.byteLength)
-    const args = CBOR.decode(cborDataBuf, null, { mode: 'sequence' })
+    const args = CBOR.decode(cborDataBuf, refUntagger, { mode: 'sequence' })
     
     return new NewInstruction(idx, exportIdx, args.data)
   },
 
   write(buf: BufWriter, instruction: NewInstruction): BufWriter {
-    const cborData = CBOR.encode(new Sequence(instruction.args))
+    const cborData = CBOR.encode(new Sequence(instruction.args), refTagger)
     buf.writeU16(instruction.idx)
     buf.writeU16(instruction.exportIdx)
     buf.writeBytes(new Uint8Array(cborData))

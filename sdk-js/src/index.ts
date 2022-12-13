@@ -13,7 +13,7 @@ export {
   Tx, isTx, TxSerializer,
   TxBuilder,
   OpCode,
-  Instruction,
+  Instruction, InstructionRef, ref,
 } from './internal.js'
 
 // Instructions exports

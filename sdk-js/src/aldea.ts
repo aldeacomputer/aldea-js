@@ -1,7 +1,7 @@
 import { Abi } from '@aldea/compiler/abi';
 import ky from 'ky-universal'
 import { CBOR } from 'cbor-redux'
-import { TxBuilder, Tx } from './internal.js'
+import { InstructionRef, TxBuilder, Tx, ref } from './internal.js'
 
 /**
  * TODO
@@ -29,9 +29,9 @@ export class Aldea {
    * Builds and returns a new Transaction. The given callback recieves the
    * TxBuilder instance.
    */
-  async createTx(builder: (tx: TxBuilder) => void): Promise<Tx> {
+  async createTx(builder: (tx: TxBuilder, ref: (idx: number) => InstructionRef) => void): Promise<Tx> {
     const txBuilder = new TxBuilder(this)
-    builder(txBuilder)
+    builder(txBuilder, ref)
     return txBuilder.build()
   }
 
