@@ -61,7 +61,7 @@ export class TxBuilder {
    */
   import(pkgId: string): InstructionRef {
     return this.push(async (tx: Tx) => {
-      const abi = await this.aldea.getPackage(pkgId)
+      const abi = await this.aldea.getPackageAbi(pkgId)
 
       tx.push(new ImportInstruction(base16.decode(pkgId)))
       return pkgResult(abi)
@@ -74,11 +74,11 @@ export class TxBuilder {
    */
   loadById(origin: string): InstructionRef {
     return this.push(async (tx: Tx) => {
-      const output = await this.aldea.getOutputByOrigin(origin)
-      const abi = await this.aldea.getPackage(output.pkg_id)
+      const output = await this.aldea.getOutputById(origin)
+      const abi = await this.aldea.getPackageAbi(output.pkgId)
       tx.push(new LoadByIdInstruction(base16.decode(origin)))
 
-      return jigResult(abi, output.class_idx)
+      return jigResult(abi, output.classIdx)
     })
   }
 
@@ -89,10 +89,10 @@ export class TxBuilder {
   loadByRef(jigRef: string): InstructionRef {
     return this.push(async (tx: Tx) => {
       const output = await this.aldea.getOutput(jigRef)
-      const abi = await this.aldea.getPackage(output.pkg_id)
+      const abi = await this.aldea.getPackageAbi(output.pkgId)
       tx.push(new LoadByRefInstruction(base16.decode(jigRef)))
       
-      return jigResult(abi, output.class_idx)
+      return jigResult(abi, output.classIdx)
     })
   }
 
@@ -269,7 +269,7 @@ export class TxBuilder {
       return jigResult(abi, exportIdx)
     }
     if (imported) {
-      const remoteAbi = await this.aldea.getPackage(imported.origin)
+      const remoteAbi = await this.aldea.getPackageAbi(imported.origin)
       const klass = findClass(remoteAbi, imported.name, `class not found: ${ imported.name }`)
       const exportIdx = remoteAbi.exports.findIndex(e => e.code === klass)
       return jigResult(remoteAbi, exportIdx)
