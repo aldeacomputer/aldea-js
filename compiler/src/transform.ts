@@ -179,13 +179,14 @@ function exportClassMethods(obj: ClassWrap, ctx: TransformCtx): void {
     }, [])
   
   // If no constructor is defined then add a default
-  if (obj.methods.every(n => n.kind !== MethodKind.CONSTRUCTOR)) {
+  if (!obj.methods.some(n => n.kind === MethodKind.CONSTRUCTOR)) {
     const n: MethodNode = {
       kind: MethodKind.CONSTRUCTOR,
       name: 'constructor',
       args: [],
       rtype: null
     }
+    obj.methods.unshift(n)
     codes.unshift(writeExportedMethod(n as MethodWrap, obj))
   }
 
