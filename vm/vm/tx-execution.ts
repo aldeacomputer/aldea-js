@@ -9,7 +9,7 @@ import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-inst
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
 import {ArgNode, ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
-import {Address, base16, instructions, Location, Tx} from '@aldea/sdk-js';
+import {Address, base16, instructions, Location, Tx, InstructionRef} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
@@ -361,7 +361,14 @@ class TxExecution {
         const jig = this.getStatementResult(inst.idx).asJig()
         const classNode = jig.package.abi.exports[jig.classIdx].code as ClassNode
         const methodName = classNode.methods[inst.methodIdx].name
-        this.callInstanceMethodByIndex(inst.idx, methodName, inst.args)
+        const args = inst.args.map(arg => {
+          if (arg instanceof InstructionRef) {
+            return this.getStatementResult(arg).asJig()
+          } else {
+            return arg
+          }
+        })
+        this.callInstanceMethodByIndex(inst.idx, methodName, args)
       } else if (inst instanceof instructions.ExecInstruction) {
         const wasm = this.getStatementResult(inst.idx).instance
         const exportNode = wasm.abi.exports[inst.exportIdx]
@@ -522,8 +529,8 @@ class TxExecution {
     return this.stack[this.stack.length - 1]
   }
 
-  getStatementResult (index: number): StatementResult {
-    const result = this.statementResults[index]
+  getStatementResult (index: Number): StatementResult {
+    const result = this.statementResults[index as number]
     if (!result) { throw new ExecutionError(`undefined index: ${index}`)}
     return result
   }
