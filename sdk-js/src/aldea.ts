@@ -166,9 +166,8 @@ const cacheGetter: BeforeRequestHook = function(this: Aldea, req, _opts) {
 
 const cacheSetter: AfterResponseHook = function(this: Aldea, req, _opts, res) {
   if (
-    req.method === 'GET' &&
-    req.cache !== 'no-store' &&
-    req.cache !== 'no-cache'
+    req.method === 'GET' && res.ok &&
+    req.cache !== 'no-store' && req.cache !== 'no-cache'
   ) {
     this.cache.set(req.url, res)
   }
