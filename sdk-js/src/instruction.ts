@@ -64,13 +64,19 @@ export class Instruction {
 /**
  * InstructionRef class - just a wrapper around number
  */
-export class InstructionRef extends Number {}
+export class InstructionRef {
+  idx: number;
+
+  constructor(idx: number) {
+    if (!Number.isInteger(idx)) throw new Error('invalid ref. must be an integer.')
+    this.idx = idx
+  }
+}
 
 /**
  * Wrap a number with InstructionRef
  */
 export function ref(idx: number): InstructionRef {
-  if (!Number.isInteger(idx)) throw new Error('invalid ref. must be an integer.')
   return new InstructionRef(idx)
 }
 
@@ -79,7 +85,7 @@ export function ref(idx: number): InstructionRef {
  */
 export function refTagger(_key: any, val: any): any {
   if (val instanceof InstructionRef) {
-    return new TaggedValue(val.valueOf(), REF_CBOR_TAG)
+    return new TaggedValue(val.idx, REF_CBOR_TAG)
   } else if (val instanceof Sequence) {
     return new Sequence(val.data.map((val, i) => refTagger(i, val)))
   } else {
@@ -92,7 +98,7 @@ export function refTagger(_key: any, val: any): any {
  */
 export function refUntagger(_key: any, val: any): any {
   if (val instanceof TaggedValue && val.tag === REF_CBOR_TAG) {
-    return ref(val.value)
+    return new InstructionRef(val.value)
   } else {
     return val
   }

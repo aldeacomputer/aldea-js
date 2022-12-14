@@ -108,7 +108,7 @@ export class TxBuilder {
       const klass = findClass(res.abi, className, `class not found: ${ className }`)
       const exportIdx = res.abi.exports.findIndex(e => e.code === klass)
 
-      tx.push(new NewInstruction(ref.valueOf(), exportIdx, args))
+      tx.push(new NewInstruction(ref.idx, exportIdx, args))
       return jigResult(res.abi, exportIdx)
     })
   }
@@ -124,7 +124,7 @@ export class TxBuilder {
       const method = findMethod(klass, methodName, `method not found: ${ methodName }`)
       const methodIdx = klass.methods.findIndex(m => m === method)
 
-      tx.push(new CallInstruction(ref.valueOf(), methodIdx, args))
+      tx.push(new CallInstruction(ref.idx, methodIdx, args))
       return this.resultFromReturnType(res.abi, method.rtype)
     })
   }
@@ -151,7 +151,7 @@ export class TxBuilder {
           const klassIdx = res.abi.exports.findIndex(e => e.code === klass)
           const methodIdx = klass.methods.findIndex(m => m === method)
 
-          tx.push(new ExecInstruction(ref.valueOf(), klassIdx, methodIdx, args))
+          tx.push(new ExecInstruction(ref.idx, klassIdx, methodIdx, args))
           return this.resultFromReturnType(res.abi, method.rtype)
 
         case 1:
@@ -159,7 +159,7 @@ export class TxBuilder {
           const func = findFunction(res.abi, funcName, `function not found: ${ funcName }`)
           const funcIdx = res.abi.exports.findIndex(e => e.code === func)
 
-          tx.push(new ExecInstruction(ref.valueOf(), funcIdx, 0, args))
+          tx.push(new ExecInstruction(ref.idx, funcIdx, 0, args))
           return this.resultFromReturnType(res.abi, func.rtype)
 
         default:
@@ -175,7 +175,7 @@ export class TxBuilder {
   fund(ref: InstructionRef): InstructionRef {
     return this.push((tx: Tx) => {
       this.pull(ref, ResultType.JIG) // pull the index to check type
-      tx.push(new FundInstruction(ref.valueOf()))
+      tx.push(new FundInstruction(ref.idx))
       return noResult()
     })
   }
@@ -188,7 +188,7 @@ export class TxBuilder {
     return this.push((tx: Tx) => {
       this.pull(ref, ResultType.JIG) // pull the index to check type
       if (typeof address === 'string') address = Address.fromString(address)
-      tx.push(new LockInstruction(ref.valueOf(), address.hash))
+      tx.push(new LockInstruction(ref.idx, address.hash))
       return noResult()
     })
   }
@@ -250,9 +250,9 @@ export class TxBuilder {
 
   // Pulls an InstructionResult from the stack of results.
   private pull(ref: InstructionRef, type: ResultType): InstructionResult {
-    const res = this.results[ref.valueOf()]
+    const res = this.results[ref.idx]
     if (!res) {
-      throw new Error(`intruction result not found: ${ref}`)
+      throw new Error(`intruction result not found: ${ref.idx}`)
     } else if (res.type !== type) {
       const expected = ResultType[type]
       const actual = ResultType[res.type]

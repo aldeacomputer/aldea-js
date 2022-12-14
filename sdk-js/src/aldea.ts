@@ -1,7 +1,7 @@
 import { Abi } from '@aldea/compiler/abi';
 import ky from 'ky-universal'
 import { CBOR } from 'cbor-redux'
-import { InstructionRef, TxBuilder, Tx, ref } from './internal.js'
+import { InstructionRef, Output, TxBuilder, Tx, ref } from './internal.js'
 
 /**
  * TODO
@@ -75,6 +75,18 @@ export class Aldea {
   async getPackageWasm(pkgId: string): Promise<Uint8Array> {
     const data = await this.api.get(`package/${pkgId}/wasm`).arrayBuffer()
     return new Uint8Array(data)
+  }
+
+  async loadOutput(jigRef: string): Promise<Output> {
+    const res = await this.getOutput(jigRef)
+    const abi = await this.getPackageAbi(res.pkgId)
+    return new Output(res, abi)
+  }
+
+  async loadOutputById(jigId: string): Promise<Output> {
+    const res = await this.getOutputById(jigId)
+    const abi = await this.getPackageAbi(res.pkgId)
+    return new Output(res, abi)
   }
 }
 
