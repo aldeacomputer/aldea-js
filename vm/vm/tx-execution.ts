@@ -9,7 +9,7 @@ import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-inst
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
 import {ArgNode, ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
-import {Address, base16, instructions, Location, Tx} from '@aldea/sdk-js';
+import {Address, base16, InstructionRef, instructions, Location, Tx} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
@@ -356,19 +356,19 @@ class TxExecution {
       } else if (inst instanceof instructions.NewInstruction) {
         const wasm = this.getStatementResult(inst.idx).instance
         const className = wasm.abi.exports[inst.exportIdx].code.name
-        this.instantiate(inst.idx, className, inst.args)
+        this.instantiate(inst.idx, className, this.parseArgs(inst.args))
       } else if (inst instanceof instructions.CallInstruction) {
         const jig = this.getStatementResult(inst.idx).asJig()
         const classNode = jig.package.abi.exports[jig.classIdx].code as ClassNode
         const methodName = classNode.methods[inst.methodIdx].name
-        this.callInstanceMethodByIndex(inst.idx, methodName, inst.args)
+        this.callInstanceMethodByIndex(inst.idx, methodName, this.parseArgs(inst.args))
       } else if (inst instanceof instructions.ExecInstruction) {
         const wasm = this.getStatementResult(inst.idx).instance
         const exportNode = wasm.abi.exports[inst.exportIdx]
         if (exportNode.kind !== CodeKind.CLASS) { throw new Error('not a class')}
         const klassNode = exportNode.code as ClassNode
         const methodNode = klassNode.methods[inst.methodIdx]
-        this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, inst.args)
+        this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, this.parseArgs(inst.args))
       } else if (inst instanceof instructions.LockInstruction) {
         this.lockJigToUser(inst.idx, new Address(inst.pubkeyHash))
       } else if (inst instanceof instructions.LoadByRefInstruction) {
@@ -396,6 +396,16 @@ class TxExecution {
       i++
     }
     this.finalize()
+  }
+
+  private parseArgs(args: any[]) {
+    return args.map(arg => {
+      if (arg instanceof InstructionRef) {
+        return this.getStatementResult(arg).asJig()
+      } else {
+        return arg
+      }
+    });
   }
 
   findJigByRef (location: Uint8Array, readOnly: boolean): JigRef {
@@ -500,6 +510,9 @@ class TxExecution {
     if (value instanceof Internref) {
       value = this.jigs.find(j => j.package === module && j.ref.equals(value))
     }
+    if (value instanceof Externref) {
+      value = this.jigs.find(j => j.origin.equals(Location.fromBuffer(value.originBuf)))
+    }
     return new ValueStatementResult(
       node,
       value,
@@ -522,8 +535,8 @@ class TxExecution {
     return this.stack[this.stack.length - 1]
   }
 
-  getStatementResult (index: number): StatementResult {
-    const result = this.statementResults[index]
+  getStatementResult (index: Number): StatementResult {
+    const result = this.statementResults[index as number]
     if (!result) { throw new ExecutionError(`undefined index: ${index}`)}
     return result
   }

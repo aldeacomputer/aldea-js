@@ -77,6 +77,10 @@ export class Shepherd extends Jig {
   growFlockUsingExternalTools (): void {
     ExternalFlockOperations.growFlock(this.flock)
   }
+
+  static returnAFlock (someFlock: Flock): Flock {
+    return someFlock
+  }
 }
 
 export class ExternalFlockOperations extends Jig  {
