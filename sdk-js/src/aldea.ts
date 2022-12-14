@@ -1,5 +1,5 @@
 import { Abi } from '@aldea/compiler/abi';
-import ky, { AfterResponseHook, BeforeRequestHook, KyResponse  } from 'ky-universal'
+import ky, { AfterResponseHook, BeforeRequestHook } from 'ky-universal'
 import { CBOR } from 'cbor-redux'
 import { InstructionRef, Output, TxBuilder, Tx, ref } from './internal.js'
 
@@ -8,7 +8,7 @@ import { InstructionRef, Output, TxBuilder, Tx, ref } from './internal.js'
  */
 export class Aldea {
   api: typeof ky;
-  cache = new Map<string, KyResponse>();
+  cache = new Map<string, Response>();
 
   constructor(host: string, port?: number, protocol: string = 'http', base: string = '') {
     let url: string = `${protocol}://${host}`
