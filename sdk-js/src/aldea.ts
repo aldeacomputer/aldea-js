@@ -2,12 +2,14 @@ import { Abi } from '@aldea/compiler/abi';
 import ky from 'ky-universal'
 import { CBOR } from 'cbor-redux'
 import { InstructionRef, Output, TxBuilder, Tx, ref } from './internal.js'
+import { MiniCache, createCache } from './support/cache.js'
 
 /**
  * TODO
  */
 export class Aldea {
   api: typeof ky;
+  cache: MiniCache;
 
   constructor(host: string, port?: number, protocol: string = 'http', base: string = '') {
     let url: string = `${protocol}://${host}`
@@ -23,6 +25,7 @@ export class Aldea {
       prefixUrl: url,
       parseJson: text => camelKeys(JSON.parse(text))
     })
+    this.cache = createCache()
   }
 
   /**
@@ -42,39 +45,51 @@ export class Aldea {
   }
 
   async getTx(txid: string): Promise<TxResponse> {
-    return this.api.get(`tx/${txid}`).json()
+    const path = `tx/${txid}`
+    return this.cache(path, () => this.api.get(path).json<TxResponse>())
   }
 
   async getRawTx(txid: string): Promise<Uint8Array> {
-    const data = await this.api.get(`tx/${txid}`).arrayBuffer()
-    return new Uint8Array(data)
+    const path = `rawtx/${txid}`
+    return this.cache(path, async () => {
+      const data = await this.api.get(path).arrayBuffer()
+      return new Uint8Array(data)
+    })
   }
 
   async getOutput(jigRef: string): Promise<OutputResponse> {
-    return this.api.get(`output/${jigRef}`).json()
+    const path = `output/${jigRef}`
+    return this.cache(path, () => this.api.get(path).json<OutputResponse>())
   }
 
   getOutputById(jigId: string): Promise<OutputResponse> {
-    return this.api.get(`output/${jigId}`).json()
+    return this.api.get(`output-by-id/${jigId}`).json()
   }
 
   async getPackageAbi(pkgId: string): Promise<Abi> {
-    return this.api.get(`package/${pkgId}/abi.json`).json()
+    const path = `package/${pkgId}/abi.json`
+    return this.cache(path, () => this.api.get(path).json<Abi>())
   }
 
   async getPackageSrc(pkgId: string): Promise<PackageResponse> {
-    const data = await this.api.get(`package/${pkgId}/source`).arrayBuffer()
-    const seq = CBOR.decode(data, null, { mode: 'sequence' })
-    return {
-      entries: seq.get(1),
-      files: seq.get(2),
-      pkgId
-    }
+    const path = `package/${pkgId}/source`
+    return this.cache(path, async () => {
+      const data = await this.api.get(`package/${pkgId}/source`).arrayBuffer()
+      const seq = CBOR.decode(data, null, { mode: 'sequence' })
+      return {
+        entries: seq.get(1),
+        files: seq.get(2),
+        pkgId
+      }
+    })
   }
 
   async getPackageWasm(pkgId: string): Promise<Uint8Array> {
-    const data = await this.api.get(`package/${pkgId}/wasm`).arrayBuffer()
-    return new Uint8Array(data)
+    const path = `package/${pkgId}/wasm`
+    return this.cache(path, async () => {
+      const data = await this.api.get(path).arrayBuffer()
+      return new Uint8Array(data)
+    })
   }
 
   async loadOutput(jigRef: string): Promise<Output> {
