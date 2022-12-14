@@ -356,7 +356,14 @@ class TxExecution {
       } else if (inst instanceof instructions.NewInstruction) {
         const wasm = this.getStatementResult(inst.idx).instance
         const className = wasm.abi.exports[inst.exportIdx].code.name
-        this.instantiate(inst.idx, className, inst.args)
+        const args = inst.args.map(arg => {
+          if (arg instanceof InstructionRef) {
+            return this.getStatementResult(arg).asJig()
+          } else {
+            return arg
+          }
+        })
+        this.instantiate(inst.idx, className, args)
       } else if (inst instanceof instructions.CallInstruction) {
         const jig = this.getStatementResult(inst.idx).asJig()
         const classNode = jig.package.abi.exports[jig.classIdx].code as ClassNode
@@ -375,7 +382,14 @@ class TxExecution {
         if (exportNode.kind !== CodeKind.CLASS) { throw new Error('not a class')}
         const klassNode = exportNode.code as ClassNode
         const methodNode = klassNode.methods[inst.methodIdx]
-        this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, inst.args)
+        const args = inst.args.map(arg => {
+          if (arg instanceof InstructionRef) {
+            return this.getStatementResult(arg).asJig()
+          } else {
+            return arg
+          }
+        })
+        this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, args)
       } else if (inst instanceof instructions.LockInstruction) {
         this.lockJigToUser(inst.idx, new Address(inst.pubkeyHash))
       } else if (inst instanceof instructions.LoadByRefInstruction) {
@@ -506,6 +520,9 @@ class TxExecution {
     let {node, value, mod} = module.staticCall(className, methodName, args)
     if (value instanceof Internref) {
       value = this.jigs.find(j => j.package === module && j.ref.equals(value))
+    }
+    if (value instanceof Externref) {
+      value = this.jigs.find(j => j.origin.equals(Location.fromBuffer(value.originBuf)))
     }
     return new ValueStatementResult(
       node,

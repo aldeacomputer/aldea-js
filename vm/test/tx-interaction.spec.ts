@@ -59,6 +59,26 @@ describe('tx interaction', () => {
     expect(state.classIdx).to.eql(0)
   })
 
+  it('can create an instance sending a jig as a parameter', async () => {
+    const tx = new TxBuilder()
+      .import(modIdFor('flock'))
+      .import(modIdFor('sheep-counter'))
+      .new(0, 0, [])
+      .new(1, 1, [ref(2)])
+      .lock(3, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
+      .build()
+
+    await vm.execTx(tx)
+
+    const state = storage.getJigStateByOrigin(
+      Location.fromData(tx.hash, 1),
+      () => expect.fail('state should be present')
+    )
+
+    expect(state.parsedState()[0]).to.eql({name: 'Flock', originBuf: Location.fromData(tx.hash, 0).toBuffer()})
+  })
+
   it('can call a method in a tx', async () => {
     const tx = new TxBuilder()
       .import(modIdFor('flock'))
@@ -137,10 +157,6 @@ describe('tx interaction', () => {
 
     const state = storage.getJigStateByOrigin(Location.fromData(tx1.hash, 0), () => expect.fail('state should be present'))
     expect(state.parsedState()[0]).to.eql(2)
-  })
-
-  it('can send jigs on a constructor', async () => {
-
   })
 
   it('can load by origin in a tx', async () => {
@@ -305,6 +321,21 @@ describe('tx interaction', () => {
 
     expect(state.classIdx).to.eql(0)
     expect(state.parsedState()[0]).to.eql(11) // 10 initial value + 1 grow
+  })
+
+  it('can send jigs as parameters to static methods', async () => {
+    const tx = new TxBuilder()
+      .import(modIdFor('flock'))
+      .import(modIdFor('sheep-counter'))
+      .new(0, 0, [])
+      .exec(1, 1, 7, [ref(2)])
+      .lock(2, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
+      .build()
+
+    const exec = await vm.execTx(tx)
+
+    expect(exec.getStatementResult(3).asJig().origin).to.eql(Location.fromData(tx.hash, 0))
   })
 
   it('tx fails if not funded', async () => {
