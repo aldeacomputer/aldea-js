@@ -1,15 +1,14 @@
 import { Abi } from '@aldea/compiler/abi';
-import ky from 'ky-universal'
+import ky, { AfterResponseHook, BeforeRequestHook, KyResponse  } from 'ky-universal'
 import { CBOR } from 'cbor-redux'
 import { InstructionRef, Output, TxBuilder, Tx, ref } from './internal.js'
-import { MiniCache, createCache } from './support/cache.js'
 
 /**
  * TODO
  */
 export class Aldea {
   api: typeof ky;
-  cache: MiniCache;
+  cache = new Map<string, KyResponse>();
 
   constructor(host: string, port?: number, protocol: string = 'http', base: string = '') {
     let url: string = `${protocol}://${host}`
@@ -23,9 +22,12 @@ export class Aldea {
 
     this.api = ky.create({
       prefixUrl: url,
-      parseJson: text => camelKeys(JSON.parse(text))
+      parseJson: text => camelKeys(JSON.parse(text)),
+      hooks: {
+        beforeRequest: [ cacheGetter.bind(this) ],
+        afterResponse: [ cacheSetter.bind(this) ],
+      },
     })
-    this.cache = createCache()
   }
 
   /**
@@ -45,51 +47,39 @@ export class Aldea {
   }
 
   async getTx(txid: string): Promise<TxResponse> {
-    const path = `tx/${txid}`
-    return this.cache(path, () => this.api.get(path).json<TxResponse>())
+    return this.api.get(`tx/${txid}`).json<TxResponse>()
   }
 
   async getRawTx(txid: string): Promise<Uint8Array> {
-    const path = `rawtx/${txid}`
-    return this.cache(path, async () => {
-      const data = await this.api.get(path).arrayBuffer()
-      return new Uint8Array(data)
-    })
+    const data = await this.api.get(`rawtx/${txid}`).arrayBuffer()
+    return new Uint8Array(data)
   }
 
   async getOutput(jigRef: string): Promise<OutputResponse> {
-    const path = `output/${jigRef}`
-    return this.cache(path, () => this.api.get(path).json<OutputResponse>())
+    return this.api.get(`output/${jigRef}`).json()
   }
 
   getOutputById(jigId: string): Promise<OutputResponse> {
-    return this.api.get(`output-by-id/${jigId}`).json()
+    return this.api.get(`output-by-id/${jigId}`, { cache: 'no-cache' }).json()
   }
 
   async getPackageAbi(pkgId: string): Promise<Abi> {
-    const path = `package/${pkgId}/abi.json`
-    return this.cache(path, () => this.api.get(path).json<Abi>())
+    return this.api.get(`package/${pkgId}/abi.json`).json()
   }
 
   async getPackageSrc(pkgId: string): Promise<PackageResponse> {
-    const path = `package/${pkgId}/source`
-    return this.cache(path, async () => {
-      const data = await this.api.get(`package/${pkgId}/source`).arrayBuffer()
-      const seq = CBOR.decode(data, null, { mode: 'sequence' })
-      return {
-        entries: seq.get(1),
-        files: seq.get(2),
-        pkgId
-      }
-    })
+    const data = await this.api.get(`package/${pkgId}/source`).arrayBuffer()
+    const seq = CBOR.decode(data, null, { mode: 'sequence' })
+    return {
+      entries: seq.get(1),
+      files: seq.get(2),
+      pkgId
+    }
   }
 
   async getPackageWasm(pkgId: string): Promise<Uint8Array> {
-    const path = `package/${pkgId}/wasm`
-    return this.cache(path, async () => {
-      const data = await this.api.get(path).arrayBuffer()
-      return new Uint8Array(data)
-    })
+    const data = await this.api.get(`package/${pkgId}/wasm`).arrayBuffer()
+    return new Uint8Array(data)
   }
 
   async loadOutput(jigRef: string): Promise<Output> {
@@ -166,4 +156,20 @@ function join(...parts: string[]) {
       return part.trim().replace(/(^[\/]*|[\/]*$)/g, '')
     }
   }).filter(x => x.length).join('/')
+}
+
+const cacheGetter: BeforeRequestHook = function(this: Aldea, req, _opts) {
+  if (this.cache.has(req.url)) {
+    return this.cache.get(req.url)
+  }
+}
+
+const cacheSetter: AfterResponseHook = function(this: Aldea, req, _opts, res) {
+  if (
+    req.method === 'GET' &&
+    req.cache !== 'no-store' &&
+    req.cache !== 'no-cache'
+  ) {
+    this.cache.set(req.url, res)
+  }
 }
