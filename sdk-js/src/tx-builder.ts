@@ -19,8 +19,8 @@ import {
   ExecInstruction,
   FundInstruction,
   ImportInstruction,
-  LoadByRefInstruction,
-  LoadByIdInstruction,
+  LoadInstruction,
+  LoadByOriginInstruction,
   LockInstruction,
   DeployInstruction,
   NewInstruction,
@@ -71,28 +71,28 @@ export class TxBuilder {
   }
 
   /**
-   * Pushes a LOADBYID instruction onto the Transaction. Accepts the jig_id as
+   * Pushes a LOAD instruction onto the Transaction. Accepts the output_id as
    * a string.
    */
-  loadById(origin: string): InstructionRef {
+  load(outputId: string): InstructionRef {
     return this.push(async (tx: Tx) => {
-      const output = await this.aldea.getOutputById(origin)
+      const output = await this.aldea.getOutput(outputId)
       const abi = await this.aldea.getPackageAbi(output.pkgId)
-      tx.push(new LoadByIdInstruction(base16.decode(origin)))
+      tx.push(new LoadByOriginInstruction(base16.decode(outputId)))
 
       return jigResult(abi, output.classIdx)
     })
   }
 
   /**
-   * Pushes a LOADBYREF instruction onto the Transaction. Accepts the jig_ref as
-   * a string.
+   * Pushes a LOADBYORIGIN instruction onto the Transaction. Accepts the origin
+   * as a string.
    */
-  loadByRef(jigRef: string): InstructionRef {
+  loadByOrigin(origin: string): InstructionRef {
     return this.push(async (tx: Tx) => {
-      const output = await this.aldea.getOutput(jigRef)
+      const output = await this.aldea.getOutputByOrigin(origin)
       const abi = await this.aldea.getPackageAbi(output.pkgId)
-      tx.push(new LoadByRefInstruction(base16.decode(jigRef)))
+      tx.push(new LoadInstruction(base16.decode(origin)))
       
       return jigResult(abi, output.classIdx)
     })

@@ -55,12 +55,12 @@ export class Aldea {
     return new Uint8Array(data)
   }
 
-  async getOutput(jigRef: string): Promise<OutputResponse> {
-    return this.api.get(`output/${jigRef}`).json()
+  async getOutput(outputId: string): Promise<OutputResponse> {
+    return this.api.get(`output/${outputId}`).json()
   }
 
-  getOutputById(jigId: string): Promise<OutputResponse> {
-    return this.api.get(`output-by-id/${jigId}`, { cache: 'no-cache' }).json()
+  getOutputByOrigin(origin: string): Promise<OutputResponse> {
+    return this.api.get(`output-by-id/${origin}`, { cache: 'no-cache' }).json()
   }
 
   async getPackageAbi(pkgId: string): Promise<Abi> {
@@ -82,14 +82,14 @@ export class Aldea {
     return new Uint8Array(data)
   }
 
-  async loadOutput(jigRef: string): Promise<Output> {
-    const res = await this.getOutput(jigRef)
+  async loadOutput(outputId: string): Promise<Output> {
+    const res = await this.getOutput(outputId)
     const abi = await this.getPackageAbi(res.pkgId)
     return new Output(res, abi)
   }
 
-  async loadOutputById(jigId: string): Promise<Output> {
-    const res = await this.getOutputById(jigId)
+  async loadOutputByOrigin(jigId: string): Promise<Output> {
+    const res = await this.getOutputByOrigin(jigId)
     const abi = await this.getPackageAbi(res.pkgId)
     return new Output(res, abi)
   }

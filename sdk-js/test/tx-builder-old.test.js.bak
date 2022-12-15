@@ -19,8 +19,8 @@ test('builds a tx with every opcode and encodes/decodes consistently', t => {
 
   const tx1 = createTx(tx => {
     tx.import(origin1)
-    tx.loadByRef(location)
-    tx.loadById(origin2)
+    tx.load(location)
+    tx.loadByOrigin(origin2)
     tx.new(0, 0, [500, address.hash])
     tx.call(1, 1, [500, address.hash])
     tx.exec(2, 2, 2, [500, address.hash])
@@ -89,7 +89,7 @@ test('builds a deploy transaction', t => {
   `)
 
   const tx1 = createTx(tx => {
-    tx.loadByRef(location)
+    tx.load(location)
     tx.deploy(code)
     tx.call(0, 1, [500, address.hash])
     tx.fund(0)
@@ -110,7 +110,7 @@ test('builds a tiny tx comparison to bitcoin', t => {
   const address = Address.fromPubKey(keys.pubKey)
 
   const tx1 = createTx(tx => {
-    tx.loadByRef(location)
+    tx.load(location)
     tx.call(0, 1, [500, address.hash])
     tx.fund(0)
     tx.sign(keys.privKey)
