@@ -8,6 +8,7 @@ export {
   Address, isAddress,
   HDKey, isHDKey,
   KeyPair, isKeyPair,
+  Pointer,
   PrivKey, isPrivKey,
   PubKey, isPubKey,
   Tx, isTx, TxSerializer,
