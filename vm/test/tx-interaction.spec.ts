@@ -1,4 +1,5 @@
-import {base16, Location, TxBuilder} from "@aldea/sdk-js";
+import {base16, Location, ref} from "@aldea/sdk-js";
+import {TxBuilder} from './tx-builder.js'
 import {Storage, VM} from "../vm/index.js";
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {expect} from "chai";
@@ -33,9 +34,7 @@ describe('tx interaction', () => {
       'basic-math',
       'flock',
       'nft',
-      'remote-control',
       'sheep-counter',
-      'tv',
       'weapon',
       'forever-counter'
     ]
@@ -60,6 +59,26 @@ describe('tx interaction', () => {
     expect(state.classIdx).to.eql(0)
   })
 
+  it('can create an instance sending a jig as a parameter', async () => {
+    const tx = new TxBuilder()
+      .import(modIdFor('flock'))
+      .import(modIdFor('sheep-counter'))
+      .new(0, 0, [])
+      .new(1, 1, [ref(2)])
+      .lock(3, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
+      .build()
+
+    await vm.execTx(tx)
+
+    const state = storage.getJigStateByOrigin(
+      Location.fromData(tx.hash, 1),
+      () => expect.fail('state should be present')
+    )
+
+    expect(state.parsedState()[0]).to.eql({name: 'Flock', originBuf: Location.fromData(tx.hash, 0).toBuffer()})
+  })
+
   it('can call a method in a tx', async () => {
     const tx = new TxBuilder()
       .import(modIdFor('flock'))
@@ -79,6 +98,31 @@ describe('tx interaction', () => {
     expect(state.classIdx).to.eql(0)
   })
 
+  it('can send a jig as parameter to a method', async () => {
+    const tx = new TxBuilder()
+      .import(modIdFor('flock'))
+      .import(modIdFor('sheep-counter'))
+      .new(0, 0, [])
+      .new(1, 0, [])
+      .call(2, 1, [])
+      .call(3, 2, [ref(2)])
+      .lock(2, userAddr)
+      .lock(3, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
+      .build()
+
+    await vm.execTx(tx)
+
+    const state = storage.getJigStateByOrigin(
+      Location.fromData(tx.hash, 1),
+      () => expect.fail('state should be present')
+    )
+
+    expect(state.parsedState()[0]).to.eql(1)
+    expect(state.parsedState()[1]).to.eql(4)
+  })
+
+
   function getLatestCoinLocation(): Uint8Array {
     return storage.tipFor(aCoin)
   }
@@ -93,7 +137,7 @@ describe('tx interaction', () => {
     const exec1 = await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(exec1.outputs[0].digest())
+      .loadByRef(exec1.outputs[0].digest())
       .call(0, 1, [])
       .lock(0, userAddr)
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
@@ -102,7 +146,7 @@ describe('tx interaction', () => {
     const exec2 = await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
-      .load(exec2.outputs[0].digest())
+      .loadByRef(exec2.outputs[0].digest())
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -125,7 +169,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .loadByOrigin(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
+      .loadById(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -134,7 +178,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
-      .loadByOrigin(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
+      .loadById(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -157,7 +201,7 @@ describe('tx interaction', () => {
     const exec1 = await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(exec1.outputs[0].digest())
+      .loadByRef(exec1.outputs[0].digest())
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -166,7 +210,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
-      .load(exec1.outputs[0].digest())
+      .loadByRef(exec1.outputs[0].digest())
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -194,7 +238,7 @@ describe('tx interaction', () => {
     const exec1 = await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(exec1.outputs[0].digest())
+      .loadByRef(exec1.outputs[0].digest())
       .call(0, 1, [])
       .lock(0, userAddr)
       .signTo(userPriv)
@@ -217,7 +261,7 @@ describe('tx interaction', () => {
     const exec1 = await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(exec1.outputs[0].digest())
+      .loadByRef(exec1.outputs[0].digest())
       .signTo(userPriv)
       .call(0, 1, [])
       .lock(0, userAddr)
@@ -279,6 +323,21 @@ describe('tx interaction', () => {
     expect(state.parsedState()[0]).to.eql(11) // 10 initial value + 1 grow
   })
 
+  it('can send jigs as parameters to static methods', async () => {
+    const tx = new TxBuilder()
+      .import(modIdFor('flock'))
+      .import(modIdFor('sheep-counter'))
+      .new(0, 0, [])
+      .exec(1, 1, 7, [ref(2)])
+      .lock(2, userAddr)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
+      .build()
+
+    const exec = await vm.execTx(tx)
+
+    expect(exec.getStatementResult(3).asJig().origin).to.eql(Location.fromData(tx.hash, 0))
+  })
+
   it('tx fails if not funded', async () => {
     const tx = new TxBuilder()
       .import(modIdFor('flock'))
@@ -300,7 +359,7 @@ describe('tx interaction', () => {
   it('extracts 100 of units from a coin when fund is present', async () => {
     const coinState = vm.mint(userAddr, 1000)
     const tx = new TxBuilder()
-      .load(coinState.digest())
+      .loadByRef(coinState.digest())
       .fund(0) // not implemented yet
       .lock(0, userAddr)
       .sign(userPriv)
@@ -315,7 +374,7 @@ describe('tx interaction', () => {
   it('fails if coin does not have 100 units left', async () => {
     const coinState = vm.mint(userAddr, 90)
     const tx = new TxBuilder()
-      .load(coinState.digest())
+      .loadByRef(coinState.digest())
       .fund(0) // not implemented yet
       .lock(0, userAddr)
       .sign(userPriv)

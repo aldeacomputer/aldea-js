@@ -5,9 +5,10 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
-import {base16, Location, PrivKey, Tx, TxBuilder} from "@aldea/sdk-js";
+import {base16, Location, PrivKey, Tx} from "@aldea/sdk-js";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
 import {LockType} from "../vm/wasm-instance.js";
+import {TxBuilder} from "./tx-builder.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -34,9 +35,7 @@ describe('execute txs', () => {
       'basic-math',
       'flock',
       'nft',
-      'remote-control',
       'sheep-counter',
-      'tv',
       'weapon',
       'forever-counter'
     ]
