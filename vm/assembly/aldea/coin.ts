@@ -28,7 +28,11 @@ export class Coin extends Jig {
   }
 
   merge(coin: Coin): Coin {
+    const prevAmount = this.amount
     this.amount += coin.amount
+    if(this.amount < prevAmount ){
+      throw new Error('Overflow error')
+    }
     coin.combineInto()
     return this
   }
