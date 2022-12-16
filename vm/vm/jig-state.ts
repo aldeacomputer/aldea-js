@@ -52,7 +52,7 @@ export class JigState {
     if (this.serializedLock.data) {
       bufW.writeBytes(this.serializedLock.data)
     }
-    bufW.writeU32(this.stateBuf.byteLength)
+    bufW.writeVarInt(this.stateBuf.byteLength)
     bufW.writeBytes(this.stateBuf)
     return blake3(bufW.data)
   }

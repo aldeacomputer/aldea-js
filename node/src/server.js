@@ -9,7 +9,7 @@ import asyncHandler from 'express-async-handler'
 import { Address, base16 } from "@aldea/sdk-js"
 import { abiToCbor, abiToJson } from "@aldea/compiler/abi"
 import { CBOR, Sequence } from "cbor-redux"
-import { Pointer } from "@aldea/sdk-js/src/index.js"
+import { Pointer } from "@aldea/sdk-js"
 
 
 const buildApp = () => {
@@ -18,13 +18,13 @@ const buildApp = () => {
   const serializeJigState = (jigState) => {
     const lock = jigState.serializedLock
     return {
-      id: jigState.origin.toString(),
+      id: base16.encode(jigState.id()),
       origin: jigState.origin.toString(),
       location: jigState.currentLocation.toString(),
       class: jigState.classId().toString(),
       lock: {
         type: lock.type,
-        data: lock.data ? base16.encode(lock.data) : null
+        data: lock.data ? base16.encode(lock.data) : ''
       },
       state: base16.encode(jigState.stateBuf)
     }
@@ -97,8 +97,8 @@ const buildApp = () => {
   })
 
   app.get('/output-by-origin/:origin', (req, res) => {
-    const origin = req.params.jigRef
-    const jigState = storage.getJigStateByOutputId(Pointer.fromString(origin), () => { throw new HttpNotFound(`${origin} not found`, {location: origin})})
+    const origin = req.params.origin
+    const jigState = storage.getJigStateByOrigin(Pointer.fromString(origin), () => { throw new HttpNotFound(`${origin} not found`, {location: origin})})
     res.status(200).send(serializeJigState(jigState))
   })
 

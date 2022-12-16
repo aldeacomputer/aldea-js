@@ -16,6 +16,14 @@ import {Buffer} from "buffer";
 
 const __dir = fileURLToPath(import.meta.url)
 
+// Magic Coin Pkg ID
+const COIN_PKG_ID = new Uint8Array([
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0,
+])
+
 export class VM {
   private storage: Storage;
 
@@ -113,13 +121,12 @@ export class VM {
     const buff = randomBytes(32)
 
     const location = new Pointer(buff, 0);
-    const enc = new TextEncoder()
     const minted = new JigState(
       location,
       location,
       0,
       __encodeArgs([amount]),
-       enc.encode('coin'),
+      COIN_PKG_ID,
       new UserLock(address).serialize()
     )
     this.storage.addJig(minted)

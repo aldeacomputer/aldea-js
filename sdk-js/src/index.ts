@@ -9,6 +9,7 @@ export {
   HDKey, isHDKey,
   KeyPair, isKeyPair,
   Lock, LockSerializer,
+  Output, OutputSerializer,
   Pointer, PointerSerializer,
   PrivKey, isPrivKey,
   PubKey, isPubKey,

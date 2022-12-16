@@ -117,6 +117,17 @@ export class Output {
     buf.write<Output>(OutputSerializer, this)
     return buf.data
   }
+
+  toJson(): OutputResponse {
+    return {
+      id: this.id,
+      origin: this.origin.toString(),
+      location: this.location.toString(),
+      class: this.classPtr.toString(),
+      lock: this.lock.toJson(),
+      state: base16.encode(this.stateBuf)
+    }
+  }
 }
 
 /**
