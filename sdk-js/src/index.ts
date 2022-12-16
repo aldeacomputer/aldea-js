@@ -8,13 +8,14 @@ export {
   Address, isAddress,
   HDKey, isHDKey,
   KeyPair, isKeyPair,
-  Pointer,
+  Lock, LockSerializer,
+  Pointer, PointerSerializer,
   PrivKey, isPrivKey,
   PubKey, isPubKey,
   Tx, isTx, TxSerializer,
   TxBuilder,
   OpCode,
-  Instruction, InstructionRef, ref,
+  Instruction, InstructionSerializer, InstructionRef, ref,
 } from './internal.js'
 
 // Instructions exports

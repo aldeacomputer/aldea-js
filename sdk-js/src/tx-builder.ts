@@ -11,6 +11,7 @@ import {
 import {
   Aldea,
   Address,
+  Pointer,
   PrivKey,
   Tx,
   ref,
@@ -77,10 +78,11 @@ export class TxBuilder {
   load(outputId: string): InstructionRef {
     return this.push(async (tx: Tx) => {
       const output = await this.aldea.getOutput(outputId)
-      const abi = await this.aldea.getPackageAbi(output.pkgId)
+      const pkgPtr = Pointer.fromString(output.class)
+      const abi = await this.aldea.getPackageAbi(pkgPtr.id)
       tx.push(new LoadByOriginInstruction(base16.decode(outputId)))
 
-      return jigResult(abi, output.classIdx)
+      return jigResult(abi, pkgPtr.idx)
     })
   }
 
@@ -91,10 +93,11 @@ export class TxBuilder {
   loadByOrigin(origin: string): InstructionRef {
     return this.push(async (tx: Tx) => {
       const output = await this.aldea.getOutputByOrigin(origin)
-      const abi = await this.aldea.getPackageAbi(output.pkgId)
+      const pkgPtr = Pointer.fromString(output.class)
+      const abi = await this.aldea.getPackageAbi(pkgPtr.id)
       tx.push(new LoadInstruction(base16.decode(origin)))
       
-      return jigResult(abi, output.classIdx)
+      return jigResult(abi, pkgPtr.idx)
     })
   }
 

@@ -1,7 +1,14 @@
 import { Abi } from '@aldea/compiler/abi';
 import ky, { AfterResponseHook, BeforeRequestHook } from 'ky-universal'
 import { CBOR } from 'cbor-redux'
-import { InstructionRef, Output, TxBuilder, Tx, ref } from './internal.js'
+import {
+  ref,
+  InstructionRef,
+  Output,
+  Pointer,
+  Tx,
+  TxBuilder,
+} from './internal.js'
 
 /**
  * TODO
@@ -71,9 +78,9 @@ export class Aldea {
     const data = await this.api.get(`package/${pkgId}/source`).arrayBuffer()
     const seq = CBOR.decode(data, null, { mode: 'sequence' })
     return {
+      id: pkgId,
       entries: seq.get(1),
       files: seq.get(2),
-      pkgId
     }
   }
 
@@ -84,42 +91,44 @@ export class Aldea {
 
   async loadOutput(outputId: string): Promise<Output> {
     const res = await this.getOutput(outputId)
-    const abi = await this.getPackageAbi(res.pkgId)
-    return new Output(res, abi)
+    const pkgPtr = Pointer.fromString(res.class)
+    const abi = await this.getPackageAbi(pkgPtr.id)
+    return Output.fromJson(res, abi)
   }
 
-  async loadOutputByOrigin(jigId: string): Promise<Output> {
-    const res = await this.getOutputByOrigin(jigId)
-    const abi = await this.getPackageAbi(res.pkgId)
-    return new Output(res, abi)
+  async loadOutputByOrigin(origin: string): Promise<Output> {
+    const res = await this.getOutputByOrigin(origin)
+    const pkgPtr = Pointer.fromString(res.class)
+    const abi = await this.getPackageAbi(pkgPtr.id)
+    return Output.fromJson(res, abi)
   }
 }
 
 export interface TxResponse {
-  txid: string;
+  id: string;                       // <- id's are always just "id" when contained in the thing it identifies
   outputs: OutputResponse[];
   packages: PackageResponse[];
-  rawTx?: string;
+  rawtx?: string;                   // <- avoid snake here
 }
 
 export interface OutputResponse {
-  jigId: string;
-  jigRef: string;
-  pkgId: string;
-  classIdx: number;
+  id: string;                       // <- just id
+  origin: string;
+  location: string;
+  class: string;
   lock: LockResponse;
-  stateHex: string;
+  state: string;                    // <- no need for _hex here. pretty much everything is hex
 }
 
 export interface PackageResponse {
+  id: string;                       // <- just id
+  entries: string[];  
   files: FileResponse[];
-  entries: string[];
-  pkgId: string;
 }
 
 export interface LockResponse {
   type: number;
-  data: string
+  data: string;
 }
 
 export interface FileResponse {

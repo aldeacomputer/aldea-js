@@ -22,11 +22,11 @@ const POINTER_STR_REGX = /^[a-f0-9]{64}_\d+$/i
  *     3b2af88dad7f1847f5b333852b71ac6fd2ae519ba2d359e8ce07b071aad30e80_1
  */
 export class Pointer {
-  id: Uint8Array;
+  idBuf: Uint8Array;
   idx: number;
 
-  constructor(id: Uint8Array, idx: number) {
-    this.id = id
+  constructor(id: Uint8Array | string, idx: number) {
+    this.idBuf = typeof id === 'string' ? base16.decode(id) : id
     this.idx = idx
   }
 
@@ -47,8 +47,12 @@ export class Pointer {
     return new Pointer(base16.decode(idStr), Number(idxStr))
   }
 
+  get id(): string {
+    return base16.encode(this.idBuf)
+  }
+
   equals(ptr: Pointer): boolean {
-    return this.id.every((byte, i) => byte === ptr.id[i]) && this.idx === ptr.idx
+    return this.idBuf.every((byte, i) => byte === ptr.idBuf[i]) && this.idx === ptr.idx
   }
 
   toBytes(): Uint8Array {
@@ -58,7 +62,7 @@ export class Pointer {
   }
 
   toString(): string {
-    return `${ base16.encode(this.id) }_${ this.idx }`
+    return `${ this.id }_${ this.idx }`
   }
 }
 
@@ -73,7 +77,7 @@ export const PointerSerializer: Serializable<Pointer> = {
   },
 
   write(buf: BufWriter, ptr: Pointer): BufWriter {
-    buf.writeBytes(ptr.id)
+    buf.writeBytes(ptr.idBuf)
     buf.writeU32(ptr.idx)
     return buf
   }

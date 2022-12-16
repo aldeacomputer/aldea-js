@@ -1,31 +1,92 @@
 import { Abi, ClassNode, validateAbi } from '@aldea/compiler/abi'
 import { CBOR } from 'cbor-redux';
 import { base16 } from './support/base.js'
-import { OutputResponse } from './internal.js'
+import { blake3 } from './support/hash.js'
+
+import {
+  BufReader,
+  BufWriter,
+  Lock,
+  LockSerializer,
+  OutputResponse,
+  Pointer,
+  PointerSerializer,
+  Serializable
+} from './internal.js'
 
 export class Output {
-  id: string;
-  ref: string;
-  pkgId: string;
-  expIdx: number;
-  state: any[];
+  origin: Pointer;
+  location: Pointer;
+  classPtr: Pointer;
+  lock: Lock;
+  stateBuf: Uint8Array;
+
   #abi?: Abi;
   #classNode?: ClassNode;
+  #props: any;
 
-  constructor(data: OutputResponse, abi?: Abi) {
-    this.id = data.jigId
-    this.ref = data.jigRef
-    this.pkgId = data.pkgId
-    this.expIdx = data.classIdx
+  constructor(
+    origin: Pointer,
+    location: Pointer,
+    classPtr: Pointer,
+    lock: Lock,
+    stateBuf: Uint8Array,
+    abi?: Abi,
+  ) {
+    this.origin = origin
+    this.location = location
+    this.classPtr = classPtr
+    this.lock = lock
+    this.stateBuf = stateBuf
+    if (typeof abi !== 'undefined') { this.abi = abi }
+  }
 
-    const stateBuf = base16.decode(data.stateHex)
-    const stateSeq = CBOR.decode(stateBuf.buffer, null, { mode: 'sequence' })
-    this.state = stateSeq.data
+  static fromBytes(bytes: Uint8Array, abi?: Abi): Output {
+    if (!ArrayBuffer.isView(bytes)) {
+      throw Error('The first argument to `Output.fromBytes()` must be a `Uint8Array`')
+    }
+    const buf = new BufReader(bytes)
+    const output = buf.read<Output>(OutputSerializer)
+    if (typeof abi !== 'undefined') { output.abi = abi }
+    return output
+  }
 
-    if (typeof abi !== 'undefined' && validateAbi(abi)) {
+  static fromJson(data: OutputResponse, abi?: Abi): Output {
+    const output = new Output(
+      Pointer.fromString(data.origin),
+      Pointer.fromString(data.location),
+      Pointer.fromString(data.class),
+      Lock.fromJson(data.lock),
+      base16.decode(data.state),
+    )
+    if (data.id !== output.id) {
+      throw Error('invalid id. the given id does not match the computed id.')
+    }
+    if (typeof abi !== 'undefined') { output.abi = abi }
+    return output
+  }
+
+  set abi(abi: Abi | void) {
+    if (typeof abi === 'undefined') {
+      this.#abi = undefined
+      this.#classNode = undefined
+    } else if (validateAbi(abi)) {
       this.#abi = abi
-      this.#classNode = this.#abi.exports[this.expIdx].code as ClassNode
-    } 
+      const exp = abi.exports[this.classPtr.idx]
+      if (exp) { this.#classNode = exp.code as ClassNode }
+    }
+  }
+
+  get abi(): Abi | void {
+    return this.#abi
+  }
+
+  get id(): string {
+    return base16.encode(this.hash)
+  }
+
+  get hash(): Uint8Array {
+    return blake3(this.toBytes())
   }
 
   get className(): string | void {
@@ -34,12 +95,51 @@ export class Output {
     }
   }
 
-  get props(): any | void {
-    if (this.#classNode) {
-      return this.#classNode.fields.reduce((props: any, f, i) => {
-        props[f.name] = this.state[i]
+  get classNode(): ClassNode | void {
+    return this.#classNode
+  }
+
+  get props(): { [key: string]: any } | void {
+    if (this.#classNode && typeof this.#props === 'undefined') {
+      const stateSeq = CBOR.decode(this.stateBuf.buffer, null, { mode: 'sequence' })
+      const props = this.#classNode.fields.reduce((props: any, f, i) => {
+        props[f.name] = stateSeq.get(i)
         return props
       }, {})
+      this.#props = Object.freeze(props)
     }
+
+    return this.#props
+  }
+
+  toBytes(): Uint8Array {
+    const buf = new BufWriter()
+    buf.write<Output>(OutputSerializer, this)
+    return buf.data
+  }
+}
+
+/**
+ * TODO
+ */
+export const OutputSerializer: Serializable<Output> = {
+  read(buf: BufReader): Output {
+    const origin = buf.read<Pointer>(PointerSerializer)
+    const location = buf.read<Pointer>(PointerSerializer)
+    const classPtr = buf.read<Pointer>(PointerSerializer)
+    const lock = buf.read<Lock>(LockSerializer)
+    const stateLen = buf.readVarInt()
+    const stateBuf = buf.readBytes(Number(stateLen))
+    return new Output(origin, location, classPtr, lock, stateBuf)
+  },
+
+  write(buf: BufWriter, output: Output): BufWriter {
+    buf.write<Pointer>(PointerSerializer, output.origin)
+    buf.write<Pointer>(PointerSerializer, output.location)
+    buf.write<Pointer>(PointerSerializer, output.classPtr)
+    buf.write<Lock>(LockSerializer, output.lock)
+    buf.writeVarInt(output.stateBuf.byteLength)
+    buf.writeBytes(output.stateBuf)
+    return buf
   }
 }
