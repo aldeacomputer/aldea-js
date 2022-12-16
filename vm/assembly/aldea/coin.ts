@@ -17,13 +17,11 @@ export class Coin extends Jig {
 
   }
 
-  merge(coin: Coin): Coin {
-    const prevAmount = this.motos
-    this.motos += coin.motos
-    if(this.motos < prevAmount ){
-      throw new Error('Overflow error')
-    }
-    coin.combineInto()
+  merge(coins: Array<Coin>): Coin {
+    coins.forEach(coin => {
+      this.motos += coin.motos
+      coin.combineInto()
+    })
     return this
   }
 

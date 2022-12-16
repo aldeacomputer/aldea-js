@@ -126,24 +126,29 @@ describe('Coin', () => {
   describe('#merge', () => {
     let coin: JigState
     let otherCoin: JigState
+    let yetAnotherCoin: JigState
     let originalAmount: number
     let otherCoinAmount: number
+    let yetAnotherCoinAmount: number
     const mergeMethodIndex = 2
     let tx: Tx
 
     beforeEach(() => {
       originalAmount = 1000
       otherCoinAmount = 200
+      yetAnotherCoinAmount = 500
       coin = vm.mint(userAddr, originalAmount)
       otherCoin = vm.mint(userAddr, otherCoinAmount)
+      yetAnotherCoin = vm.mint(userAddr, yetAnotherCoinAmount)
     })
 
     const testSubject = async () : Promise<TxExecution> => {
       tx = new TxBuilder()
         .load(coin.id())
         .load(otherCoin.id())
+        .load(yetAnotherCoin.id())
         .sign(userPriv)
-        .call(0, mergeMethodIndex, [ref(1)])
+        .call(0, mergeMethodIndex, [[ref(1), ref(2)]])
         .fund(0)
         .build()
 
@@ -152,22 +157,26 @@ describe('Coin', () => {
 
     describe('on successful scenarios', () => {
 
-      it('adds the motos amount of the coin passed by parameter to the current coin', async () => {
+      it('adds the motos amount of the coins passed by parameter to the current coin', async () => {
         const execution = await testSubject()
 
         const originalCoinOutputIndex = 0
         const originalCoinOutput = execution.outputs[originalCoinOutputIndex]
 
         const originalCoinAmount = originalCoinOutput.parsedState()[0]
-        expect(originalCoinAmount).to.eql(originalAmount + otherCoinAmount)
+        expect(originalCoinAmount).to.eql(originalAmount + otherCoinAmount + yetAnotherCoinAmount)
       })
 
-      it('destroys the passed coin after the operation', async () => {
+      it('destroys the passed coins after the operation', async () => {
         const execution = await testSubject()
 
         const otherCoinOutputIndex = 1
         const otherCoinOutput = execution.outputs[otherCoinOutputIndex]
         expect(otherCoinOutput.serializedLock.type).to.eql(LockType.FROZEN)
+
+        const yetAnotherCoinOutputIndex = 2
+        const yetAnotherCoinOutput = execution.outputs[yetAnotherCoinOutputIndex]
+        expect(yetAnotherCoinOutput.serializedLock.type).to.eql(LockType.FROZEN)
       })
     })
 
@@ -191,7 +200,7 @@ describe('Coin', () => {
             .load(coin.id())
             .load(otherCoin.id())
             .sign(userPriv)
-            .call(0, mergeMethodIndex, [ref(1)])
+            .call(0, mergeMethodIndex, [[ref(1)]])
             .fund(0)
             .build()
 
