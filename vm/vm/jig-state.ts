@@ -1,21 +1,22 @@
 import { CBOR } from "cbor-redux"
 import {ClassNode, FieldNode} from "@aldea/compiler/abi";
 import {WasmInstance} from "./wasm-instance.js";
-import {Location} from "@aldea/sdk-js";
-import {Digest} from "@aldea/sdk-js/transaction/digest";
+import {Pointer} from "@aldea/sdk-js";
+import {BufWriter} from "@aldea/sdk-js/buf-writer";
+import {blake3} from "@aldea/sdk-js/support/hash";
 
 const parse = (data: Uint8Array) => CBOR.decode(data.buffer, null, { mode: "sequence" })
 
 export class JigState {
-  id: Location;
-  currentLocation: Location;
+  origin: Pointer;
+  currentLocation: Pointer;
   classIdx: number;
   stateBuf: Uint8Array;
   packageId: Uint8Array;
   serializedLock: any;
 
-  constructor (origin: Location, location: Location, classIdx: number, stateBuf: Uint8Array, moduleId: Uint8Array, lock: any) {
-    this.id = origin
+  constructor (origin: Pointer, location: Pointer, classIdx: number, stateBuf: Uint8Array, moduleId: Uint8Array, lock: any) {
+    this.origin = origin
     this.currentLocation = location
     this.classIdx = classIdx
     this.stateBuf = stateBuf
@@ -27,11 +28,8 @@ export class JigState {
     return parse(this.stateBuf).data
   }
 
-  classId (): Uint8Array {
-    const dig = new Digest()
-      .addBuff(this.packageId)
-      .addNumber(this.classIdx)
-    return dig.toBuffer()
+  classId (): Pointer {
+    return new Pointer(this.packageId, this.classIdx)
   }
 
   objectState (module: WasmInstance): any {
@@ -44,14 +42,18 @@ export class JigState {
     }, {})
   }
 
-  digest (): Uint8Array {
-    const dig = new Digest()
-    dig.addBuff(this.id.toBuffer())
-    dig.addBuff(this.packageId)
-    dig.addNumber(this.classIdx)
-    dig.addNumber(this.serializedLock.type)
-    dig.addBuff(this.serializedLock.data)
-    dig.addBuff(this.stateBuf)
-    return dig.toBuffer()
+  id (): Uint8Array {
+    const bufW = new BufWriter()
+    bufW.writeBytes(this.origin.toBytes())
+    bufW.writeBytes(this.currentLocation.toBytes())
+    bufW.writeBytes(this.packageId)
+    bufW.writeU32(this.classIdx)
+    bufW.writeU8(this.serializedLock.type)
+    if (this.serializedLock.data) {
+      bufW.writeBytes(this.serializedLock.data)
+    }
+    bufW.writeU32(this.stateBuf.byteLength)
+    bufW.writeBytes(this.stateBuf)
+    return blake3(bufW.data)
   }
 }

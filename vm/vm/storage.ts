@@ -1,7 +1,7 @@
 import {JigState} from './jig-state.js';
 import {TxExecution} from "./tx-execution.js";
 import {Abi} from "@aldea/compiler/abi";
-import {base16, Location} from "@aldea/sdk-js";
+import {base16, Pointer} from "@aldea/sdk-js";
 
 export type ModuleData = {
   mod: WebAssembly.Module,
@@ -32,13 +32,13 @@ export class Storage {
   }
 
   addJig(jigState: JigState) {
-    const currentLocation = base16.encode(jigState.digest());
+    const currentLocation = base16.encode(jigState.id());
     this.statesPerLocation.set(currentLocation, jigState)
-    this.tips.set(jigState.id.toString(), currentLocation)
-    this.origins.set(currentLocation, jigState.id.toString())
+    this.tips.set(jigState.origin.toString(), currentLocation)
+    this.origins.set(currentLocation, jigState.origin.toString())
   }
 
-  getJigStateByOrigin(origin: Location, onNotFound: () => JigState): JigState {
+  getJigStateByOrigin(origin: Pointer, onNotFound: () => JigState): JigState {
     const latestLocation = this.tips.get(origin.toString())
     if (!latestLocation) return onNotFound()
     const ret = this.statesPerLocation.get(latestLocation)
@@ -46,13 +46,13 @@ export class Storage {
     return ret
   }
 
-  getJigStateByReference (reference: Uint8Array, onNotFound: () => JigState): JigState {
-    const state = this.statesPerLocation.get(base16.encode(reference))
+  getJigStateByOutputId (outputId: Uint8Array, onNotFound: () => JigState): JigState {
+    const state = this.statesPerLocation.get(base16.encode(outputId))
     if (!state) return onNotFound()
     return state
   }
 
-  tipFor(origin: Location): Uint8Array {
+  tipFor(origin: Pointer): Uint8Array {
     const tip = this.tips.get(origin.toString());
     if (!tip) throw new Error('not found')
     return base16.decode(tip)
@@ -83,7 +83,7 @@ export class Storage {
     return this.modules.has(base16.encode(id));
   }
 
-  tipForRef(ref: Uint8Array): string {
+  tipForOrigin(ref: Uint8Array): string {
     const refHex = base16.encode(ref)
     const origin = this.origins.get(refHex)
     if (!origin) {

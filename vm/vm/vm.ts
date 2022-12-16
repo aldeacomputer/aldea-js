@@ -6,7 +6,7 @@ import fs from "fs"
 import {Storage} from "./storage.js";
 import {abiFromCbor, abiFromJson} from '@aldea/compiler/abi'
 import {compile} from '@aldea/compiler'
-import {Address, base16, Location, Tx} from "@aldea/sdk-js";
+import {Address, base16, Pointer, Tx} from "@aldea/sdk-js";
 import {ExecutionError} from "./errors.js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {JigState} from "./jig-state.js";
@@ -38,21 +38,21 @@ export class VM {
   }
 
 
-  findJigStateByOrigin (origin: Location) {
+  findJigStateByOrigin (origin: Pointer) {
     return this.storage.getJigStateByOrigin(origin, () => {
       throw new ExecutionError(`unknown jig: ${origin.toString()}`)
     })
   }
 
-  findJigStateByRef (ref: Uint8Array) {
-    const jigState = this.storage.getJigStateByReference(ref, () => {
-      throw new ExecutionError(`unknown jig: ${base16.encode(ref)}`)
+  findJigStateByOutputId (outputId: Uint8Array) {
+    const jigState = this.storage.getJigStateByOutputId(outputId, () => {
+      throw new ExecutionError(`unknown jig: ${base16.encode(outputId)}`)
     });
-    const lastRef = this.storage.tipFor(jigState.id)
-    if (!Buffer.from(jigState.digest()).equals(Buffer.from(lastRef))) {
+    const lastRef = this.storage.tipFor(jigState.origin)
+    if (!Buffer.from(jigState.id()).equals(Buffer.from(lastRef))) {
       throw new ExecutionError('jig already spent')
     }
-    this.storage.tipForRef(jigState.digest())
+    this.storage.tipForOrigin(jigState.id())
     return jigState
   }
 
@@ -112,7 +112,7 @@ export class VM {
   mint (address: Address, amount: number = 1e6): JigState {
     const buff = randomBytes(32)
 
-    const location = Location.fromData(buff, 0);
+    const location = new Pointer(buff, 0);
     const enc = new TextEncoder()
     const minted = new JigState(
       location,

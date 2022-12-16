@@ -19,7 +19,7 @@ import {
   lowerObject,
   lowerValue,
 } from "./memory.js";
-import {base16, Location} from "@aldea/sdk-js";
+import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
 import {ClassNode} from "@aldea/compiler/abi";
@@ -174,7 +174,7 @@ export class WasmInstance {
         },
         vm_remote_authcheck: (originPtr: number, check: AuthCheck) => {
           const origin = liftBuffer(this, originPtr)
-          return this.currentExec.remoteAuthCheckHandler(Location.fromBuffer(origin), check)
+          return this.currentExec.remoteAuthCheckHandler(Pointer.fromBytes(origin), check)
         },
         vm_local_call_end: () => {
           this.currentExec.localCallEndtHandler()
@@ -188,7 +188,7 @@ export class WasmInstance {
 
           // const [] = fnStr.split('$')
 
-          const methodResult = this.currentExec.remoteCallHandler(this, Location.fromBuffer(targetOriginArrBuf), className, methodName, argBuf)
+          const methodResult = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), className, methodName, argBuf)
           return lowerValue(this, methodResult.node, methodResult.value)
         },
         vm_remote_call_s: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
@@ -204,7 +204,7 @@ export class WasmInstance {
           const propStr = liftString(this, propNamePtr)
           const propName = propStr.split('.')[1]
 
-          const prop = this.currentExec.getPropHandler(Location.fromBuffer(targetOrigBuf), propName)
+          const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propName)
           return lowerValue(prop.mod, prop.node, prop.value)
         },
         vm_local_authcheck: (targetJigPtr: number, check: AuthCheck) => {
@@ -244,7 +244,7 @@ export class WasmInstance {
         vm_remote_lock: (originPtr: number, type: LockType, argsPtr: number) => {
           const argBuf = liftBuffer(this, argsPtr)
           const originBuf = liftBuffer(this, originPtr)
-          this.currentExec.remoteLockHandler(Location.fromBuffer(originBuf), type, argBuf)
+          this.currentExec.remoteLockHandler(Pointer.fromBytes(originBuf), type, argBuf)
         }
       }
     }

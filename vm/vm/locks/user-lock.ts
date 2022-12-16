@@ -28,6 +28,7 @@ export class UserLock implements Lock {
   }
 
   acceptsExecution(context: TxExecution): boolean {
+    this._isOpen = true;
     return context.tx.isSignedBy(this.addr, context.execLength());
   }
 

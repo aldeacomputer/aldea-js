@@ -1,8 +1,9 @@
-import {base16, Location, TxBuilder} from "@aldea/sdk-js";
+import {base16, Pointer} from "@aldea/sdk-js";
 import {Storage, VM} from "../vm/index.js";
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {expect} from "chai";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
+import {TxBuilder} from "./tx-builder.js";
 
 describe('tx interaction', () => {
   let storage: Storage
@@ -22,7 +23,7 @@ describe('tx interaction', () => {
     return id
   }
 
-  let aCoin: Location
+  let aCoin: Pointer
   beforeEach(() => {
     storage = new Storage()
     vm = new VM(storage)
@@ -56,7 +57,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx)
 
-    const state = storage.getJigStateByOrigin(Location.fromData(tx.hash, 0), () => expect.fail('state should be present'))
+    const state = storage.getJigStateByOrigin(new Pointer(tx.hash, 0), () => expect.fail('state should be present'))
     expect(state.classIdx).to.eql(0)
   })
 
@@ -72,7 +73,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx)
 
     const state = storage.getJigStateByOrigin(
-      Location.fromData(tx.hash, 0),
+      new Pointer(tx.hash, 0),
       () => expect.fail('state should be present')
     )
 
@@ -93,7 +94,7 @@ describe('tx interaction', () => {
     const exec1 = await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(exec1.outputs[0].digest())
+      .load(exec1.outputs[0].id())
       .call(0, 1, [])
       .lock(0, userAddr)
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
@@ -102,7 +103,7 @@ describe('tx interaction', () => {
     const exec2 = await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
-      .load(exec2.outputs[0].digest())
+      .load(exec2.outputs[0].id())
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -111,7 +112,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx3)
 
-    const state = storage.getJigStateByOrigin(Location.fromData(tx1.hash, 0), () => expect.fail('state should be present'))
+    const state = storage.getJigStateByOrigin(new Pointer(tx1.hash, 0), () => expect.fail('state should be present'))
     expect(state.parsedState()[0]).to.eql(2)
   })
 
@@ -125,7 +126,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .loadByOrigin(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
+      .loadByOrigin(new Uint8Array(new Pointer(tx1.hash, 0).toBytes()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -134,7 +135,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
-      .loadByOrigin(new Uint8Array(Location.fromData(tx1.hash, 0).toBuffer()))
+      .loadByOrigin(new Uint8Array(new Pointer(tx1.hash, 0).toBytes()))
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -143,7 +144,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx3)
 
-    const state = storage.getJigStateByOrigin(Location.fromData(tx1.hash, 0), () => expect.fail('state should be present'))
+    const state = storage.getJigStateByOrigin(new Pointer(tx1.hash, 0), () => expect.fail('state should be present'))
     expect(state.parsedState()[0]).to.eql(2)
   })
 
@@ -157,7 +158,7 @@ describe('tx interaction', () => {
     const exec1 = await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(exec1.outputs[0].digest())
+      .load(exec1.outputs[0].id())
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -166,7 +167,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx2)
 
     const tx3 = new TxBuilder()
-      .load(exec1.outputs[0].digest())
+      .load(exec1.outputs[0].id())
       .call(0, 1, [])
       .lock(0, userAddr)
       .sign(userPriv)
@@ -194,7 +195,7 @@ describe('tx interaction', () => {
     const exec1 = await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(exec1.outputs[0].digest())
+      .load(exec1.outputs[0].id())
       .call(0, 1, [])
       .lock(0, userAddr)
       .signTo(userPriv)
@@ -203,7 +204,7 @@ describe('tx interaction', () => {
 
     const exec2 = await vm.execTx(tx2)
 
-    const state = storage.getJigStateByReference(exec2.outputs[0].digest(), () => expect.fail('state should be present'))
+    const state = storage.getJigStateByOutputId(exec2.outputs[0].id(), () => expect.fail('state should be present'))
     expect(state.parsedState()[0]).to.eql(1)
   })
 
@@ -217,7 +218,7 @@ describe('tx interaction', () => {
     const exec1 = await vm.execTx(tx1)
 
     const tx2 = new TxBuilder()
-      .load(exec1.outputs[0].digest())
+      .load(exec1.outputs[0].id())
       .signTo(userPriv)
       .call(0, 1, [])
       .lock(0, userAddr)
@@ -228,7 +229,7 @@ describe('tx interaction', () => {
       await vm.execTx(tx2)
     } catch (e: any) {
       expect(e).to.be.instanceof(PermissionError)
-      expect(e.message).to.eql(`jig ${Location.fromData(tx1.hash, 0).toString()} is not allowed to exec "Flock$grow"`)
+      expect(e.message).to.eql(`jig ${new Pointer(tx1.hash, 0).toString()} is not allowed to exec "Flock$grow"`)
       return
     }
     expect.fail('should fail')
@@ -271,7 +272,7 @@ describe('tx interaction', () => {
     await vm.execTx(tx)
 
     const state = storage.getJigStateByOrigin(
-      Location.fromData(tx.hash, 0),
+      new Pointer(tx.hash, 0),
       () => expect.fail('state should be present')
     )
 
@@ -300,14 +301,14 @@ describe('tx interaction', () => {
   it('extracts 100 of units from a coin when fund is present', async () => {
     const coinState = vm.mint(userAddr, 1000)
     const tx = new TxBuilder()
-      .load(coinState.digest())
+      .load(coinState.id())
       .fund(0) // not implemented yet
       .lock(0, userAddr)
       .sign(userPriv)
       .build()
 
     await vm.execTx(tx)
-    const coin = storage.getJigStateByOrigin(coinState.id, () => expect.fail('should be present'))
+    const coin = storage.getJigStateByOrigin(coinState.origin, () => expect.fail('should be present'))
     const parsed = coin.parsedState()
     expect(parsed[0]).to.eql(900)
   })
@@ -315,7 +316,7 @@ describe('tx interaction', () => {
   it('fails if coin does not have 100 units left', async () => {
     const coinState = vm.mint(userAddr, 90)
     const tx = new TxBuilder()
-      .load(coinState.digest())
+      .load(coinState.id())
       .fund(0) // not implemented yet
       .lock(0, userAddr)
       .sign(userPriv)

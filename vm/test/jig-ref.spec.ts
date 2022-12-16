@@ -1,6 +1,6 @@
 import {JigRef} from "../vm/jig-ref.js";
 import {Storage, VM} from "../vm/index.js";
-import {Location} from '@aldea/sdk-js'
+import {Pointer} from '@aldea/sdk-js'
 import {PublicLock} from "../vm/locks/public-lock.js";
 import {Internref} from "../vm/memory.js";
 import {expect} from 'chai'
@@ -15,11 +15,11 @@ describe('JigRef', function () {
       new Internref('Flock', 0),
       1,
       wasm,
-      Location.fromData(new Uint8Array([0,0,0]), 0),
+      new Pointer(new Uint8Array([0,0,0]), 0),
       new PublicLock()
     )
 
-    expect(jig.origin.toBuffer()).to.eql(Location.fromData(new Uint8Array([0,0,0]), 0).toBuffer())
+    expect(jig.origin.toBytes()).to.eql(new Pointer(new Uint8Array([0,0,0]), 0).toBytes())
   })
 
   // it('returns right reference', () => {

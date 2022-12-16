@@ -9,7 +9,7 @@ import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-inst
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
 import {ArgNode, ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
-import {Address, base16, instructions, Location, Tx} from '@aldea/sdk-js';
+import {Address, base16, instructions, Pointer, Tx} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
@@ -125,7 +125,7 @@ class TxExecution {
   private vm: VM;
   private jigs: JigRef[];
   private wasms: Map<string, WasmInstance>;
-  private stack: Location[];
+  private stack: Pointer[];
   outputs: JigState[];
   deployments: Uint8Array[];
   statementResults: StatementResult[]
@@ -154,7 +154,7 @@ class TxExecution {
     })
 
     this.jigs.forEach((jigRef, index) => {
-      const location = Location.fromData(this.tx.hash, index)
+      const location = new Pointer(this.tx.hash, index)
       const origin = jigRef.origin || location
       const serialized = jigRef.serialize() //  module.instanceCall(jigRef.ref, jigRef.className, 'serialize')
       const jigState = new JigState(origin, location , jigRef.classIdx, serialized, jigRef.package.id, jigRef.lock.serialize())
@@ -178,7 +178,7 @@ class TxExecution {
   }
 
   constructorHandler(source: WasmInstance, jigPtr: number, className: string): void {
-    const origin = this.newOrigin()
+    const origin = this.createNextOrigin()
     const existingRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.package === source)
     const classIdx = source.abi.exports.findIndex(e => e.code.name === className)
     if (existingRef) {
@@ -204,10 +204,10 @@ class TxExecution {
     this.remoteLockHandler(childJigRef.origin, type, extraArg)
   }
 
-  remoteCallHandler (callerInstance: WasmInstance, origin: Location, className: string, methodName: string, argBuff: Uint8Array): MethodResult {
+  remoteCallHandler (callerInstance: WasmInstance, origin: Pointer, className: string, methodName: string, argBuff: Uint8Array): MethodResult {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
-      jig = this.findJigByOrigin(origin, false)
+      jig = this.findJigByOrigin(origin)
     }
 
     const klassNode = findClass(jig.package.abi, className, 'could not find object')
@@ -218,7 +218,7 @@ class TxExecution {
       const ptr = readType(argReader, n.type)
       const value = liftValue(callerInstance, n.type, ptr)
       if (value instanceof Externref) {
-        return this.getJigRefByOrigin(Location.fromBuffer(value.originBuf))
+        return this.getJigRefByOrigin(Pointer.fromBytes(value.originBuf))
       } else {
         return value
       }
@@ -241,7 +241,7 @@ class TxExecution {
       return liftValue(srcModule, arg.type, pointer)
     }).map((value: any) => {
       if (value instanceof Externref) {
-        return this.getJigRefByOrigin(Location.fromBuffer(value.originBuf))
+        return this.getJigRefByOrigin(Pointer.fromBytes(value.originBuf))
       } else {
         return value
       }
@@ -250,10 +250,10 @@ class TxExecution {
     return targetMod.staticCall(className, methodName, argValues)
   }
 
-  getPropHandler (origin: Location, propName: string): Prop {
+  getPropHandler (origin: Pointer, propName: string): Prop {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
-      jig = this.findJigByOrigin(origin, false)
+      jig = this.findJigByOrigin(origin)
     }
     return jig.package.getPropValue(jig.ref, jig.classIdx, propName)
   }
@@ -263,7 +263,7 @@ class TxExecution {
   //   return this.instantiate(moduleId, className, args)
   // }
 
-  remoteLockHandler (childOrigin: Location, type: LockType, extraArg: ArrayBuffer): void {
+  remoteLockHandler (childOrigin: Pointer, type: LockType, extraArg: ArrayBuffer): void {
     const childJigRef = this.getJigRefByOrigin(childOrigin)
     if (!childJigRef.lock.canBeChangedBy(this)) {
       throw new PermissionError('lock cannot be changed')
@@ -308,7 +308,7 @@ class TxExecution {
   }
 
 
-  remoteAuthCheckHandler (origin: Location, check: AuthCheck): boolean {
+  remoteAuthCheckHandler (origin: Pointer, check: AuthCheck): boolean {
     const jigRef = this.jigs.find(jigR => jigR.origin.equals(origin))
     if (!jigRef) {
       throw new Error('jig ref should exists')
@@ -323,7 +323,7 @@ class TxExecution {
   findUtxoHandler(wasm: WasmInstance, jigPtr: number): JigRef {
     const jigRef = this.jigs.find(ref => ref.package === wasm && ref.ref.ptr === jigPtr)
     if (!jigRef) {
-      let origin = this.newOrigin();
+      let origin = this.createNextOrigin();
       return this.addNewJigRef(new JigRef(
         new Internref('', jigPtr),
         -1,
@@ -335,7 +335,7 @@ class TxExecution {
     return jigRef
   }
 
-  getJigRefByOrigin (origin: Location): JigRef {
+  getJigRefByOrigin (origin: Pointer): JigRef {
     const jigRef = this.jigs.find(jr => jr.origin.equals(origin));
     if (!jigRef) {
       throw new Error('does not exists')
@@ -371,10 +371,10 @@ class TxExecution {
         this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, inst.args)
       } else if (inst instanceof instructions.LockInstruction) {
         this.lockJigToUser(inst.idx, new Address(inst.pubkeyHash))
-      } else if (inst instanceof instructions.LoadByRefInstruction) {
-        this.loadJigByRef(inst.jigRef, false)
-      } else if (inst instanceof instructions.LoadByIdInstruction) {
-        this.loadJigByOrigin(Location.fromBuffer(inst.jigId), false)
+      } else if (inst instanceof instructions.LoadInstruction) {
+        this.loadJigByOutputId(inst.outputId)
+      } else if (inst instanceof instructions.LoadByOriginInstruction) {
+        this.loadJigByOrigin(Pointer.fromBytes(inst.origin))
       } else if (inst instanceof instructions.SignInstruction) {
         this.statementResults.push(new EmptyStatementResult())
       } else if (inst instanceof instructions.SignToInstruction) {
@@ -398,34 +398,27 @@ class TxExecution {
     this.finalize()
   }
 
-  findJigByRef (location: Uint8Array, readOnly: boolean): JigRef {
-    const jigState = this.vm.findJigStateByRef(location)
-    const module = this.loadModule(jigState.packageId)
-    const ref = module.hidrate(jigState.classIdx, jigState.stateBuf)
-    const lock = this._hidrateLock(jigState.serializedLock)
-    if (lock instanceof UserLock && !readOnly) {
-      lock.open()
-    }
-    const jigRef = new JigRef(ref, jigState.classIdx, module, jigState.id, lock)
-    this.addNewJigRef(jigRef)
-    return jigRef
+  findJigByOutputId (outputId: Uint8Array): JigRef {
+    const jigState = this.vm.findJigStateByOutputId(outputId)
+    return this.hydrateJigState(jigState)
   }
 
-  findJigByOrigin (origin: Location, readOnly: boolean): JigRef {
+  findJigByOrigin (origin: Pointer): JigRef {
     const jigState = this.vm.findJigStateByOrigin(origin)
-    const module = this.loadModule(jigState.packageId)
-    const ref = module.hidrate(jigState.classIdx, jigState.stateBuf)
-    const lock = this._hidrateLock(jigState.serializedLock)
-    if (lock instanceof UserLock && !readOnly) {
-      lock.open()
-    }
-    const jigRef = new JigRef(ref, jigState.classIdx, module, jigState.id, lock)
+    return this.hydrateJigState(jigState)
+  }
+
+  private hydrateJigState(state: JigState): JigRef {
+    const module = this.loadModule(state.packageId)
+    const ref = module.hidrate(state.classIdx, state.stateBuf)
+    const lock = this.hidrateLock(state.serializedLock)
+    const jigRef = new JigRef(ref, state.classIdx, module, state.origin, lock)
     this.addNewJigRef(jigRef)
     return jigRef
   }
 
-  loadJigByRef (ref: Uint8Array, readOnly: boolean): number {
-    const jigRef = this.findJigByRef(ref, readOnly)
+  loadJigByOutputId (outputId: Uint8Array): number {
+    const jigRef = this.findJigByOutputId(outputId)
     const typeNode = {
       name: jigRef.className(),
       args: <TypeNode[]>[]
@@ -434,8 +427,8 @@ class TxExecution {
     return this.statementResults.length - 1
   }
 
-  loadJigByOrigin (origin: Location, readOnly: boolean): number {
-    const jigRef = this.findJigByOrigin(origin, readOnly)
+  loadJigByOrigin (origin: Pointer): number {
+    const jigRef = this.findJigByOrigin(origin)
     const typeNode = {
       name: jigRef.className(),
       args: <TypeNode[]>[]
@@ -444,11 +437,11 @@ class TxExecution {
     return this.statementResults.length - 1
   }
 
-  _hidrateLock (frozenLock: any): Lock {
+  private hidrateLock (frozenLock: any): Lock {
     if (frozenLock.type === LockType.PUBKEY) {
       return new UserLock(new Address(frozenLock.data))
     } else if (frozenLock.type === LockType.CALLER) {
-      return new JigLock(Location.fromString(frozenLock.data))
+      return new JigLock(Pointer.fromBytes(frozenLock.data))
     } else if (frozenLock.type === LockType.ANYONE) {
       return new PublicLock()
     } else if (frozenLock.type === LockType.FROZEN) {
@@ -461,7 +454,7 @@ class TxExecution {
   instantiate(statementIndex: number, className: string, args: any[]): number {
     const statement = this.statementResults[statementIndex]
     const instance = statement.instance
-    this.stack.push(this.newOrigin())
+    this.stack.push(this.createNextOrigin())
     const result = instance.staticCall(className, 'constructor', args)
     this.stack.pop()
     const jigRef = this.jigs.find(j => j.package === instance && j.ref.ptr === result.value.ptr)
@@ -514,8 +507,8 @@ class TxExecution {
     return this.statementResults.length - 1
   }
 
-  newOrigin () {
-    return Location.fromData(this.tx.hash, this.jigs.length)
+  createNextOrigin () {
+    return new Pointer(this.tx.hash, this.jigs.length)
   }
 
   stackTop () {

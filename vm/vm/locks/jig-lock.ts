@@ -1,19 +1,19 @@
 import {Lock} from "./lock.js";
 import {TxExecution} from "../tx-execution.js";
 import {LockType} from "../wasm-instance.js";
-import {Location} from "@aldea/sdk-js";
+import {Pointer} from "@aldea/sdk-js";
 
 export class JigLock implements Lock {
-  private origin: Location;
+  private origin: Pointer;
 
-  constructor (ownerOrigin: Location) {
+  constructor (ownerOrigin: Pointer) {
     this.origin = ownerOrigin
   }
 
   serialize (): any {
     return {
       type: this.typeNumber(),
-      data: this.origin.toBuffer()
+      data: this.origin.toBytes()
     }
   }
 

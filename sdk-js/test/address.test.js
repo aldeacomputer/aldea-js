@@ -2,6 +2,7 @@ import test from 'ava'
 
 import { Address, isAddress } from '../dist/address.js'
 import { KeyPair } from '../dist/keypair.js'
+import { Pointer } from "../src/index.js"
 
 test.before(t => {
   t.context.keys = KeyPair.fromRandom()
@@ -23,15 +24,15 @@ test('Address.fromPubKey() throws with invalid PubKey', t => {
 })
 
 test('Address.fromString() parses string and returns an Address', t => {
-  const address = Address.fromString(t.context.addrStr)
+  const address = Pointer.fromString(t.context.addrStr)
   t.deepEqual(address, t.context.addr)
 })
 
 test('Address.fromString() throws with invalid string', t => {
-  t.throws(() => Address.fromString())
-  t.throws(() => Address.fromString({}))
-  t.throws(() => Address.fromString(123))
-  t.throws(() => Address.fromString('aldea:butnotanaddress'))
+  t.throws(() => Pointer.fromString(undefined))
+  t.throws(() => Pointer.fromString({}))
+  t.throws(() => Pointer.fromString(123))
+  t.throws(() => Pointer.fromString('aldea:butnotanaddress'))
 })
 
 test('Address#toString() returns address string', t => {

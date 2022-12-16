@@ -1,10 +1,10 @@
 import test from 'ava'
 import crypto from 'crypto'
-import { Pointer } from '../dist/pointer.js'
 import { base16 } from '../dist/support/base.js'
+import { Pointer } from "../src/index.js"
 
 test.before(t => {
-  t.context.id = crypto.randomBytes(32)
+  t.context.origin = crypto.randomBytes(32)
   t.context.idx = 42
   t.context.ptr = new Pointer(t.context.id, t.context.idx)
 })
@@ -15,7 +15,7 @@ test('Pointer.fromString() parses string and returns an Pointer', t => {
 })
 
 test('Pointer.fromString() throws with invalid string', t => {
-  t.throws(() => Pointer.fromString())
+  t.throws(() => Pointer.fromString(undefined))
   t.throws(() => Pointer.fromString({}))
   t.throws(() => Pointer.fromString(123))
   t.throws(() => Pointer.fromString('totally not a pointer'))

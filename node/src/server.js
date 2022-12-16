@@ -9,6 +9,7 @@ import asyncHandler from 'express-async-handler'
 import { Address, base16 } from "@aldea/sdk-js"
 import { abiToCbor, abiToJson } from "@aldea/compiler/abi"
 import { CBOR, Sequence } from "cbor-redux"
+import { Pointer } from "@aldea/sdk-js/src/index.js"
 
 
 const buildApp = () => {
@@ -17,28 +18,28 @@ const buildApp = () => {
   const serializeJigState = (jigState) => {
     const lock = jigState.serializedLock
     return {
-      jig_id: base16.encode(jigState.id.toBuffer()),
-      jig_ref: base16.encode(jigState.digest()),
-      pkg_id: base16.encode(jigState.packageId),
-      class_idx: jigState.classIdx,
+      id: jigState.origin.toString(),
+      origin: jigState.origin.toString(),
+      location: jigState.currentLocation.toString(),
+      class: jigState.classId().toString(),
       lock: {
         type: lock.type,
         data: lock.data ? base16.encode(lock.data) : null
       },
-      state_hex: base16.encode(jigState.stateBuf)
+      state: base16.encode(jigState.stateBuf)
     }
   }
 
   const serializeTxExec = (txExec) => {
     return {
-      rawTx: txExec.tx.toHex(),
-      txid: txExec.tx.id,
+      id: txExec.tx.id,
+      raw_tx: txExec.tx.toHex(),
       packages: txExec.deployments.map((packageId) => {
         const data = storage.getModule(packageId)
         return {
+          id: Buffer.from(packageId).toString('hex'),
           files: Array.from(data.sources.entries()).map(([key, value]) => { return { name: key, content: value } }),
-          entries: data.entries,
-          package_id: Buffer.from(packageId).toString('hex')
+          entries: data.entries
         }
       }),
       outputs: txExec.outputs.map(o => serializeJigState(o))
@@ -82,22 +83,22 @@ const buildApp = () => {
 
   app.get('/state/:location', (req, res) => {
     const location = req.params.location
-    const state = storage.getJigStateByReference(base16.decode(location), () => { throw new HttpNotFound(`state not found: ${location}`, { location })})
+    const state = storage.getJigStateByOutputId(Pointer.fromString(location), () => { throw new HttpNotFound(`state not found: ${location}`, { location })})
     const wasm = vm.createWasmInstance(state.packageId)
     res.send({
       state: state.objectState(wasm)
     })
   })
 
-  app.get('/output/:jigRef', (req, res) => {
-    const location = req.params.jigRef
-    const jigState = storage.getJigStateByReference(base16.decode(location), () => { throw new HttpNotFound(`${location} not found`, {location})})
+  app.get('/output/:outputId', (req, res) => {
+    const outputId = req.params.outputId
+    const jigState = storage.getJigStateByOutputId(base16.decode(outputId), () => { throw new HttpNotFound(`${outputId} not found`, {location: outputId})})
     res.status(200).send(serializeJigState(jigState))
   })
 
-  app.get('/output-by-id/:jigRef', (req, res) => {
-    const location = req.params.jigRef
-    const jigState = storage.getJigStateByReference(base16.decode(location), () => { throw new HttpNotFound(`${location} not found`, {location})})
+  app.get('/output-by-origin/:origin', (req, res) => {
+    const origin = req.params.jigRef
+    const jigState = storage.getJigStateByOutputId(Pointer.fromString(origin), () => { throw new HttpNotFound(`${origin} not found`, {location: origin})})
     res.status(200).send(serializeJigState(jigState))
   })
 

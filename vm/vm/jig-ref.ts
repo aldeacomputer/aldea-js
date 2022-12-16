@@ -1,16 +1,16 @@
 import {WasmInstance} from './wasm-instance.js';
 import {Lock} from "./locks/lock.js";
 import {Internref} from "./memory.js";
-import {Location} from "@aldea/sdk-js";
+import {Pointer} from "@aldea/sdk-js";
 
 export class JigRef  {
   ref: Internref;
   classIdx: number;
   package: WasmInstance;
-  origin: Location;
+  origin: Pointer;
   lock: Lock;
 
-  constructor (ref: Internref, classIdx: number, module: WasmInstance, origin: Location, lock: Lock) {
+  constructor (ref: Internref, classIdx: number, module: WasmInstance, origin: Pointer, lock: Lock) {
     this.ref = ref
     this.classIdx = classIdx
     this.package = module
@@ -27,7 +27,7 @@ export class JigRef  {
   // }
 
   get originBuf (): ArrayBuffer {
-    return this.origin.toBuffer()
+    return this.origin.toBytes()
   }
 
   changeLock (newLock: Lock) {
