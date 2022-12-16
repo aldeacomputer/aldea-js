@@ -29,8 +29,7 @@ export class VM {
 
   constructor (storage: Storage) {
     this.storage = storage
-    const enc = new TextEncoder()
-    this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', enc.encode('coin'))
+    this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', COIN_PKG_ID)
   }
 
   async execTx(tx: Tx): Promise<TxExecution> {

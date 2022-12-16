@@ -35,9 +35,7 @@ describe('execute txs', () => {
       'basic-math',
       'flock',
       'nft',
-      'remote-control',
       'sheep-counter',
-      'tv',
       'weapon',
       'forever-counter'
     ]
