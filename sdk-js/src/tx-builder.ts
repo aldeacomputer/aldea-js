@@ -80,7 +80,7 @@ export class TxBuilder {
       const output = await this.aldea.getOutput(outputId)
       const pkgPtr = Pointer.fromString(output.class)
       const abi = await this.aldea.getPackageAbi(pkgPtr.id)
-      tx.push(new LoadByOriginInstruction(base16.decode(outputId)))
+      tx.push(new LoadInstruction(base16.decode(outputId)))
 
       return jigResult(abi, pkgPtr.idx)
     })
@@ -95,7 +95,7 @@ export class TxBuilder {
       const output = await this.aldea.getOutputByOrigin(origin)
       const pkgPtr = Pointer.fromString(output.class)
       const abi = await this.aldea.getPackageAbi(pkgPtr.id)
-      tx.push(new LoadInstruction(base16.decode(origin)))
+      tx.push(new LoadByOriginInstruction(base16.decode(origin)))
       
       return jigResult(abi, pkgPtr.idx)
     })
