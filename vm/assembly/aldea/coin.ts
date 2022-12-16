@@ -1,16 +1,16 @@
 export class Coin extends Jig {
-  amount: u32;
+  motos: u32;
 
   constructor(amount: u32) {
     super()
-    this.amount = amount
+    this.motos = amount
   }
 
   send (amount: u32, newOwner: ArrayBuffer): Coin {
-    if(this.amount < amount){
+    if(this.motos < amount){
       throw new Error('not enough coins')
     }
-    this.amount -= amount
+    this.motos -= amount
     const newCoin = new Coin(amount)
     newCoin.$lock.toPubkeyHash(newOwner)
     return newCoin
@@ -18,9 +18,9 @@ export class Coin extends Jig {
   }
 
   merge(coin: Coin): Coin {
-    const prevAmount = this.amount
-    this.amount += coin.amount
-    if(this.amount < prevAmount ){
+    const prevAmount = this.motos
+    this.motos += coin.motos
+    if(this.motos < prevAmount ){
       throw new Error('Overflow error')
     }
     coin.combineInto()
@@ -28,7 +28,7 @@ export class Coin extends Jig {
   }
 
   private combineInto(): void {
-    this.amount = 0
+    this.motos = 0
     this.$output.destroy()
   }
 
