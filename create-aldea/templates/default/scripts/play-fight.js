@@ -6,15 +6,20 @@ import dotenv from 'dotenv'
 import { Address, Aldea, KeyPair, PrivKey } from '@aldea/sdk-js'
 
 /**
- * Bundles the list of files and creates a deploy transaction.
+ * TODO
  */
-async function deploy(cwd, argv) {
+async function play(cwd, argv) {
   if (!argv.coin) {
     throw new Error('cannot fund transaction. please specify funding coin with --coin argument.')
   }
+  if (!argv.p1) {
+    throw new Error('cannot load player1. please specify fighter with --p1 argument.')
+  }
+  if (!argv.p2) {
+    throw new Error('cannot load player2. please specify fighter with --p2 argument.')
+  }
 
   const keys = loadKeys(cwd)
-  const pkg = buildPackage(cwd, argv._)
   const address = Address.fromPubKey(keys.pubKey)
 
   const aldea = new Aldea('localhost', 4000)
@@ -27,7 +32,11 @@ async function deploy(cwd, argv) {
   // Build the deploy transaction
   const tx = await aldea.createTx((tx, ref) => {
     const coinRef = tx.load(coin.id)
-    tx.deploy(pkg)
+    const player1 = tx.load(argv.p1)
+    const player2 = tx.load(argv.p2)
+
+    tx.call(player1, 'attack', [player2])
+    
     tx.fund(coinRef)
     tx.lock(coinRef, address)
     tx.sign(keys.privKey)
@@ -38,17 +47,13 @@ async function deploy(cwd, argv) {
     process.exit()
   })
 
-  console.log('The package has been succesfully deployed!')
-  console.log()
-  console.log('Raw transaction data:')
+  // TODO - format and explain the output
+  console.log('it worked...')
   console.log(res)
-  console.log()
-  console.log('Coin ID: (change)')
-  console.log(bold(res.outputs[0].id))
-  console.log()
-  console.log('Package ID:')
-  console.log(bold(res.packages[0].id))
-  console.log()
+  for (let data of res.outputs) {
+    const output = await aldea.loadOutput(data.id)
+    console.log(output.props)
+  }
 }
 
 function loadKeys(cwd) {
@@ -65,23 +70,7 @@ function loadKeys(cwd) {
   }
 }
 
-function buildPackage(cwd, files) {
-  const pkg = new Map()
-  try {
-    if (!files.length) throw new Error('no files given')
-    for (let i = 0; i < files.length; i++) {
-      const file = fs.readFileSync(join(cwd, 'aldea', files[i]))
-      pkg.set(files[i], file.toString())
-    }
-  } catch (e) {
-    console.log(e.message)
-    process.exit()
-  }
-  
-  return pkg
-}
-
-deploy(
+play(
   process.cwd(),
   minimist(process.argv.slice(2), { string: ['_'] })
 ).catch((e) => {

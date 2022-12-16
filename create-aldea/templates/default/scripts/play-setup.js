@@ -6,15 +6,17 @@ import dotenv from 'dotenv'
 import { Address, Aldea, KeyPair, PrivKey } from '@aldea/sdk-js'
 
 /**
- * Bundles the list of files and creates a deploy transaction.
+ * TODO
  */
-async function deploy(cwd, argv) {
+async function play(cwd, argv) {
   if (!argv.coin) {
     throw new Error('cannot fund transaction. please specify funding coin with --coin argument.')
   }
+  if (!argv.pkg) {
+    throw new Error('cannot import package. please specify package with --pkg argument.')
+  }
 
   const keys = loadKeys(cwd)
-  const pkg = buildPackage(cwd, argv._)
   const address = Address.fromPubKey(keys.pubKey)
 
   const aldea = new Aldea('localhost', 4000)
@@ -24,10 +26,19 @@ async function deploy(cwd, argv) {
     throw Error('insufficient balance to fund transaction:', coin.props)
   }
 
-  // Build the deploy transaction
   const tx = await aldea.createTx((tx, ref) => {
+    const pkgRef  = tx.import(argv.pkg)
     const coinRef = tx.load(coin.id)
-    tx.deploy(pkg)
+
+    const player1 = tx.new(pkgRef, 'Fighter', ['Gandalf'])
+    const player2 = tx.new(pkgRef, 'Fighter', ['Yoda'])
+
+    const sword   = tx.new(pkgRef, 'Item', ['Excalibur', 20])
+    tx.call(player1, 'equip', [sword])
+
+    tx.lock(player1, address)
+    tx.lock(player2, address)
+    
     tx.fund(coinRef)
     tx.lock(coinRef, address)
     tx.sign(keys.privKey)
@@ -38,17 +49,13 @@ async function deploy(cwd, argv) {
     process.exit()
   })
 
-  console.log('The package has been succesfully deployed!')
-  console.log()
-  console.log('Raw transaction data:')
+  // TODO - format and explain the output
+  console.log('it worked...')
   console.log(res)
-  console.log()
-  console.log('Coin ID: (change)')
-  console.log(bold(res.outputs[0].id))
-  console.log()
-  console.log('Package ID:')
-  console.log(bold(res.packages[0].id))
-  console.log()
+  for (let data of res.outputs) {
+    const output = await aldea.loadOutput(data.id)
+    console.log(output.props)
+  }
 }
 
 function loadKeys(cwd) {
@@ -65,23 +72,7 @@ function loadKeys(cwd) {
   }
 }
 
-function buildPackage(cwd, files) {
-  const pkg = new Map()
-  try {
-    if (!files.length) throw new Error('no files given')
-    for (let i = 0; i < files.length; i++) {
-      const file = fs.readFileSync(join(cwd, 'aldea', files[i]))
-      pkg.set(files[i], file.toString())
-    }
-  } catch (e) {
-    console.log(e.message)
-    process.exit()
-  }
-  
-  return pkg
-}
-
-deploy(
+play(
   process.cwd(),
   minimist(process.argv.slice(2), { string: ['_'] })
 ).catch((e) => {

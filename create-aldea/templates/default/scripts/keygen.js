@@ -1,6 +1,7 @@
 import fs from 'fs'
 import { join } from 'path'
 import minimist from 'minimist'
+import { bold } from 'kolorist'
 import { Address, KeyPair } from '@aldea/sdk-js'
 
 /**
@@ -15,7 +16,8 @@ async function keygen(cwd, argv) {
   }
 
   fs.writeFileSync(keysFile, generateKeyFile())
-  console.log(`keys successfully written to file ${filename}`)
+  console.log(`Keys successfully written to file ${filename}`)
+  console.log()
 }
 
 // Generates keyfile data
