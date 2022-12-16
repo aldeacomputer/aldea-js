@@ -3,6 +3,7 @@ import {Storage, VM} from "../vm/index.js";
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {expect} from "chai";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
+import {LockType} from "../vm/wasm-instance.js";
 import {TxBuilder} from "./tx-builder.js";
 
 describe('tx interaction', () => {
@@ -356,19 +357,17 @@ describe('tx interaction', () => {
     expect.fail('should have failed because not funded')
   })
 
-  it('extracts 100 of units from a coin when fund is present', async () => {
+  it('freezes the coin that funds the transaction', async () => {
     const coinState = vm.mint(userAddr, 1000)
     const tx = new TxBuilder()
       .load(coinState.id())
-      .fund(0) // not implemented yet
-      .lock(0, userAddr)
+      .fund(0)
       .sign(userPriv)
       .build()
 
     await vm.execTx(tx)
     const coin = storage.getJigStateByOrigin(coinState.origin, () => expect.fail('should be present'))
-    const parsed = coin.parsedState()
-    expect(parsed[0]).to.eql(900)
+    expect(coin.serializedLock.type).to.eql(LockType.FROZEN)
   })
 
   it('fails if coin does not have 100 units left', async () => {
@@ -385,7 +384,7 @@ describe('tx interaction', () => {
     } catch (e) {
       expect(e).to.be.instanceof(ExecutionError)
       const error = e as ExecutionError
-      expect(error.message).to.eql('not enough coins')
+      expect(error.message).to.eql('not enough coins to fund the transaction')
       return
     }
     expect.fail('should fail because not enough coins')

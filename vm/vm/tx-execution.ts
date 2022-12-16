@@ -382,14 +382,11 @@ class TxExecution {
       } else if (inst instanceof instructions.DeployInstruction) {
         await this.deployModule(inst.entry, inst.code)
       } else if (inst instanceof instructions.FundInstruction) {
-        this.callInstanceMethodByIndex(inst.idx, 'fund', [])
+        const coinJig = this.getStatementResult(inst.idx).asJig()
+        const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'amount').value
+        if(amount < 100) throw new ExecutionError('not enough coins to fund the transaction')
+        coinJig.changeLock(new FrozenLock())
         this.markAsFunded()
-        // this.statementResults.push(this.getStatementResult(inst.idx))
-        // try {
-        //   this.callInstanceMethodByIndex(inst.idx, 'fund', [])
-        // } catch (e) {
-        //   throw new ExecutionError('not enough coins')
-        // }
       } else {
         throw new ExecutionError(`unknown instruction: ${inst.opcode}`)
       }
