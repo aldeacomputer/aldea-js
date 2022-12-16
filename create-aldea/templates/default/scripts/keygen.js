@@ -23,9 +23,9 @@ function generateKeyFile() {
   const keys = KeyPair.fromRandom()
   const addr = Address.fromPubKey(keys.pubKey)
   const chunks = []
-  chunks.push(`PRIVKEY: ${keys.privKey.toHex()}`)
-  chunks.push(`PUBKEY: ${keys.pubKey.toHex()}`)
-  chunks.push(`ADDRESS: ${addr.toString()}`)
+  chunks.push(`PRIVKEY=${keys.privKey.toHex()}`)
+  chunks.push(`PUBKEY=${keys.pubKey.toHex()}`)
+  chunks.push(`ADDRESS=${addr.toString()}`)
   return chunks.join('\n')
 }
 

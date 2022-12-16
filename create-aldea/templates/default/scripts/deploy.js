@@ -1,44 +1,47 @@
 import fs from 'fs'
 import { join } from 'path'
-import crypto from 'crypto'
 import minimist from 'minimist'
-import { Aldea, KeyPair } from '@aldea/sdk-js'
+import dotenv from 'dotenv'
+import { Address, Aldea, KeyPair, PrivKey } from '@aldea/sdk-js'
 
 /**
  * Bundles the list of files and creates a deploy transaction.
  */
 async function deploy(cwd, argv) {
-  if (!argv.fund) {
-    throw new Error('cannot fund transaction. please specify funding coin with --fund argument.')
+  if (!argv.coin) {
+    throw new Error('cannot fund transaction. please specify funding coin with --coin argument.')
   }
 
   const keys = loadKeys(cwd)
   const pkg = buildPackage(cwd, argv._)
   const address = Address.fromPubKey(keys.pubKey)
 
-  const aldea = new Aldea({ node: 'http://localhost:4000' })
-  const { jig_ref: coinRef } = await aldea.getOutput(argv.fund)
+  const aldea = new Aldea('localhost', 4000)
+  const coin = await aldea.loadOutput(argv.coin)
+
+  if (coin.props.amount < 100) {
+    throw Error('insufficient balance to fund transaction:', coin.props)
+  }
 
   // Build the deploy transaction
-  const tx = await aldea.createTx(tx => {
-    const coin =  tx.loadByRef(coinRef)
-                  tx.deploy(pkg)
-                  tx.fund(coin)
-                  tx.lock(coin, address)
-                  tx.sign(keys.privKey)
+  const tx = await aldea.createTx((tx, ref) => {
+    const coinRef = tx.load(coin.id)
+    tx.deploy(pkg)
+    tx.fund(coinRef)
+    tx.lock(coinRef, address)
+    tx.sign(keys.privKey)
   })
 
-  // TODO - we need to send the tx to a node!
-  console.log(tx)
-  console.log(tx.toHex())
-
-  const res = await aldea.commit(tx).catch(async e => {
-    console.log(await e.response.text())
+  const res = await aldea.commitTx(tx).catch(async e => {
+    console.error(await e.response.text())
   })
+
+  // TODO - format and explain the output
+  // highlight any values that need to be copy and pasted
+  console.log('it worked...')
   console.log(res)
 }
 
-// Loads keys from file
 function loadKeys(cwd) {
   const filename = '.aldea'
   const keysFile = join(cwd, filename)
@@ -53,7 +56,6 @@ function loadKeys(cwd) {
   }
 }
 
-// Builds a package map
 function buildPackage(cwd, files) {
   const pkg = new Map()
   try {

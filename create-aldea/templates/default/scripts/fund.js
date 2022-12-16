@@ -1,21 +1,28 @@
 import fs from 'fs'
 import { join } from 'path'
 import minimist from 'minimist'
+import { bold } from 'kolorist'
 import dotenv from 'dotenv'
 import { Address, Aldea, KeyPair, PrivKey } from '@aldea/sdk-js'
 
 /**
- * Uses the fauce to fund the project address with a coin.
+ * Uses the faucet to fund the project address with a coin.
  */
-async function fund(cwd, argv) {
+async function fund(cwd, _argv) {
   const keys = loadKeys(cwd)
   const address = Address.fromPubKey(keys.pubKey)
   
-  const aldea = new Aldea()
+  const aldea = new Aldea('localhost', 4000)
   const params = { amount: 10000, address: address.toString() }
   const res = await aldea.api.post('mint', { json: params }).json()
+  const coin = await aldea.loadOutput(res.id)
 
-  console.log('make a note of the coin jig_ref')
+  console.log(`You've received ${ coin.props.amount } motos to your address!`)
+
+  console.log('\nCoin id: (make a note of this)')
+  console.log(bold(coin.id))
+
+  console.log('\nRaw output data:')
   console.log(res)
 }
 
