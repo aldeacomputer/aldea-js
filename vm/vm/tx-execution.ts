@@ -383,7 +383,7 @@ class TxExecution {
         await this.deployModule(inst.entry, inst.code)
       } else if (inst instanceof instructions.FundInstruction) {
         const coinJig = this.getStatementResult(inst.idx).asJig()
-        const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'amount').value
+        const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'motos').value
         if(amount < 100) throw new ExecutionError('not enough coins to fund the transaction')
         coinJig.changeLock(new FrozenLock())
         this.markAsFunded()
