@@ -9,9 +9,7 @@ export function buildVm () {
     'basic-math',
     'flock',
     'nft',
-    'remote-control',
     'sheep-counter',
-    'tv',
     'weapon'
   ]
 
