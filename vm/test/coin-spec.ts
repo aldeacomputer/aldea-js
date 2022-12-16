@@ -5,7 +5,8 @@ import {TxBuilder} from "./tx-builder.js";
 import {LockType} from "../vm/wasm-instance.js";
 import {JigState} from "../vm/jig-state.js";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
-import {ref} from "@aldea/sdk-js";
+import {ref, Tx} from "@aldea/sdk-js";
+import {TxExecution} from "../vm/tx-execution.js";
 
 describe('Coin', () => {
   let storage: Storage
@@ -31,6 +32,19 @@ describe('Coin', () => {
   describe('#send', () => {
     let sentAmount: number
     let originalAmount: number
+    const sendMethodIndex = 1
+
+    const testSubject = async () : Promise<TxExecution> => {
+      const tx = new TxBuilder()
+        .load(coin.id())
+        .sign(userPriv)
+        .call(0, sendMethodIndex, [sentAmount, otherUserAddr.hash])
+        .lock(0, userAddr)
+        .fund(0)
+        .build()
+
+      return await vm.execTx(tx)
+    }
 
     describe('on successful scenarios', () => {
 
@@ -40,17 +54,9 @@ describe('Coin', () => {
         coin = vm.mint(userAddr, originalAmount)
       })
 
+
       it('creates a new coin for the receiver with the indicated amount', async () => {
-        const tx = new TxBuilder()
-          .loadByRef(coin.digest())
-          .sign(userPriv)
-          .fund(0)
-          .call(0, 2, [sentAmount, otherUserAddr.hash])
-          .lock(0, userAddr)
-          .build()
-
-        const execution = await vm.execTx(tx)
-
+        const execution = await testSubject()
         const newCoinOutputIndex = 1
         const newCoinOutput = execution.outputs[newCoinOutputIndex]
 
@@ -58,47 +64,17 @@ describe('Coin', () => {
         expect(newCoinAmount).to.eql(sentAmount)
       })
 
-      it('reduces the indicated amount in the original coin', async () => {
-        const tx = new TxBuilder()
-          .loadByRef(coin.digest())
-          .sign(userPriv)
-          .fund(0)
-          .call(0, 2, [sentAmount, otherUserAddr.hash])
-          .lock(0, userAddr)
-          .build()
-
-        const execution = await vm.execTx(tx)
+      it('reduces the amount in the original coin and freezes it', async () => {
+        const execution = await testSubject()
 
         const originalCoinIndex = 0
-        const newCoinOutput = execution.outputs[originalCoinIndex]
+        const originalCoinOutput = execution.outputs[originalCoinIndex]
 
-        const originalCoinAmount = newCoinOutput.parsedState()[0]
-        expect(originalCoinAmount).to.eql(originalAmount - sentAmount - fundCost)
+        const originalCoinAmount = originalCoinOutput.parsedState()[0]
+        expect(originalCoinOutput.serializedLock.type).to.eql(LockType.FROZEN)
+        expect(originalCoinAmount).to.eql(originalAmount - sentAmount)
       })
 
-      describe('if the operation consumes all of the original coin', () => {
-
-        beforeEach(() => {
-          sentAmount = 900
-          coin = vm.mint(userAddr, originalAmount)
-        })
-
-        it('freezes the original coin', async () => {
-          const tx = new TxBuilder()
-            .loadByRef(coin.digest())
-            .sign(userPriv)
-            .fund(0)
-            .call(0, 2, [sentAmount, otherUserAddr.hash])
-            .build()
-
-          const execution = await vm.execTx(tx)
-
-          const originalCoinIndex = 0
-          const newCoinOutput = execution.outputs[originalCoinIndex]
-          expect(newCoinOutput.serializedLock.type).to.eql(LockType.FROZEN)
-        })
-
-      })
     })
 
     describe('on unsuccessful scenarios', () => {
@@ -112,16 +88,8 @@ describe('Coin', () => {
         })
 
         it('fails properly', async () => {
-          const tx = new TxBuilder()
-            .loadByRef(coin.digest())
-            .sign(userPriv)
-            .fund(0)
-            .call(0, 2, [sentAmount, otherUserAddr.hash])
-            .lock(0, userAddr)
-            .build()
-
           try {
-            await vm.execTx(tx)
+            await testSubject()
           } catch (e) {
             expect(e).to.be.instanceof(ExecutionError)
             const error = e as ExecutionError
@@ -132,17 +100,9 @@ describe('Coin', () => {
         })
 
         it('does not change the state of any of the involved coins', async () => {
-          const tx = new TxBuilder()
-            .loadByRef(coin.digest())
-            .sign(userPriv)
-            .fund(0)
-            .call(0, 2, [sentAmount, otherUserAddr.hash])
-            .lock(0, userAddr)
-            .build()
-
           let execution
           try {
-            execution = await vm.execTx(tx)
+            execution = await testSubject()
           } catch (e) {
             if (!execution || !execution.outputs) return
             const originalCoinIndex = 0
@@ -168,6 +128,8 @@ describe('Coin', () => {
     let otherCoin: JigState
     let originalAmount: number
     let otherCoinAmount: number
+    const mergeMethodIndex = 2
+    let tx: Tx
 
     beforeEach(() => {
       originalAmount = 1000
@@ -176,38 +138,32 @@ describe('Coin', () => {
       otherCoin = vm.mint(userAddr, otherCoinAmount)
     })
 
+    const testSubject = async () : Promise<TxExecution> => {
+      tx = new TxBuilder()
+        .load(coin.id())
+        .load(otherCoin.id())
+        .sign(userPriv)
+        .call(0, mergeMethodIndex, [ref(1)])
+        .fund(0)
+        .build()
+
+      return await vm.execTx(tx)
+    }
+
     describe('on successful scenarios', () => {
 
       it('adds the amount of the coin passed by parameter to the current coin', async () => {
-        const tx = new TxBuilder()
-          .loadByRef(coin.digest())
-          .loadByRef(otherCoin.digest())
-          .sign(userPriv)
-          .fund(0)
-          .call(0, 3, [ref(1)])
-          .lock(0, userAddr)
-          .build()
-
-        const execution = await vm.execTx(tx)
+        const execution = await testSubject()
 
         const originalCoinOutputIndex = 0
         const originalCoinOutput = execution.outputs[originalCoinOutputIndex]
 
         const originalCoinAmount = originalCoinOutput.parsedState()[0]
-        expect(originalCoinAmount).to.eql(originalAmount + otherCoinAmount - fundCost)
+        expect(originalCoinAmount).to.eql(originalAmount + otherCoinAmount)
       })
 
       it('destroys the passed coin after the operation', async () => {
-        const tx = new TxBuilder()
-          .loadByRef(coin.digest())
-          .loadByRef(otherCoin.digest())
-          .sign(userPriv)
-          .fund(0)
-          .call(0, 3, [ref(1)])
-          .lock(0, userAddr)
-          .build()
-
-        const execution = await vm.execTx(tx)
+        const execution = await testSubject()
 
         const otherCoinOutputIndex = 1
         const otherCoinOutput = execution.outputs[otherCoinOutputIndex]
@@ -230,20 +186,23 @@ describe('Coin', () => {
           otherCoin = vm.mint(otherUserAddr, otherCoinAmount)
         })
 
+        const testSubject = async () : Promise<TxExecution> => {
+          tx = new TxBuilder()
+            .load(coin.id())
+            .load(otherCoin.id())
+            .sign(userPriv)
+            .call(0, mergeMethodIndex, [ref(1)])
+            .fund(0)
+            .build()
+
+          return await vm.execTx(tx)
+        }
+
         // TODO: This is kinda failing for the right reason, but not in the correct spot:
         //  it's failing for the lock change instead of failing in Coin#combineInto
         it('fails properly', async () => {
-          const tx = new TxBuilder()
-            .loadByRef(coin.digest())
-            .loadByRef(otherCoin.digest())
-            .sign(userPriv)
-            .fund(0)
-            .call(0, 3, [ref(1)])
-            .lock(0, userAddr)
-            .build()
-
           try {
-            await vm.execTx(tx)
+            await testSubject()
           } catch (e) {
             expect(e).to.be.instanceof(PermissionError)
             const error = e as PermissionError
@@ -254,17 +213,8 @@ describe('Coin', () => {
         })
 
         it('does not modify the state of the coins involved', async () => {
-          const tx = new TxBuilder()
-            .loadByRef(coin.digest())
-            .loadByRef(otherCoin.digest())
-            .sign(userPriv)
-            .fund(0)
-            .call(0, 3, [ref(1)])
-            .lock(0, userAddr)
-            .build()
-
           try {
-            await vm.execTx(tx)
+            await testSubject()
           } catch (e) {
             expect(storage.getTransaction(tx.id)).to.eql(undefined)
             return
@@ -282,17 +232,8 @@ describe('Coin', () => {
         })
 
         it('fails properly', async () => {
-          const tx = new TxBuilder()
-            .loadByRef(coin.digest())
-            .loadByRef(otherCoin.digest())
-            .sign(userPriv)
-            .fund(0)
-            .call(0, 3, [ref(1)])
-            .lock(0, userAddr)
-            .build()
-
           try {
-            await vm.execTx(tx)
+            await testSubject()
           } catch (e) {
             expect(e).to.be.instanceof(ExecutionError)
             const error = e as ExecutionError
@@ -303,24 +244,14 @@ describe('Coin', () => {
         })
 
         it('does not modify the state of the coins involved', async () => {
-          const tx = new TxBuilder()
-            .loadByRef(coin.digest())
-            .loadByRef(otherCoin.digest())
-            .sign(userPriv)
-            .fund(0)
-            .call(0, 3, [ref(1)])
-            .lock(0, userAddr)
-            .build()
-
           try {
-            await vm.execTx(tx)
+            await testSubject()
           } catch (e) {
             expect(storage.getTransaction(tx.id)).to.eql(undefined)
             return
           }
           expect.fail('test should have failed')
         })
-
       })
     })
   })

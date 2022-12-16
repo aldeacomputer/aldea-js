@@ -6,21 +6,11 @@ export class Coin extends Jig {
     this.amount = amount
   }
 
-  fund (): void {
-    if (this.amount < 100) {
-      throw new Error('not enough coins')
-    }
-    this.amount -= 100
-  }
-
   send (amount: u32, newOwner: ArrayBuffer): Coin {
     if(this.amount < amount){
       throw new Error('not enough coins')
     }
     this.amount -= amount
-    if(this.amount === 0){
-      this.$output.destroy()
-    }
     const newCoin = new Coin(amount)
     newCoin.$lock.toPubkeyHash(newOwner)
     return newCoin
