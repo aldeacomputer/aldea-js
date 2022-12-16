@@ -1,12 +1,12 @@
 export class Coin extends Jig {
-  motos: u32;
+  motos: u64;
 
-  constructor(amount: u32) {
+  constructor(amount: u64) {
     super()
     this.motos = amount
   }
 
-  send (amount: u32, newOwner: ArrayBuffer): Coin {
+  send (amount: u64, newOwner: ArrayBuffer): Coin {
     if(this.motos < amount){
       throw new Error('not enough coins')
     }

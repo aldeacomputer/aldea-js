@@ -55,7 +55,7 @@ describe('Coin', () => {
       })
 
 
-      it('creates a new coin for the receiver with the indicated amount', async () => {
+      it('creates a new coin for the receiver with the indicated motos amount', async () => {
         const execution = await testSubject()
         const newCoinOutputIndex = 1
         const newCoinOutput = execution.outputs[newCoinOutputIndex]
@@ -64,7 +64,7 @@ describe('Coin', () => {
         expect(newCoinAmount).to.eql(sentAmount)
       })
 
-      it('reduces the amount in the original coin and freezes it', async () => {
+      it('reduces the motos amount in the original coin and freezes it', async () => {
         const execution = await testSubject()
 
         const originalCoinIndex = 0
@@ -79,7 +79,7 @@ describe('Coin', () => {
 
     describe('on unsuccessful scenarios', () => {
 
-      describe('like when the indicated amount is greater than the available amount of the coin', () => {
+      describe('like when the indicated motos amount is greater than the available motos amount of the coin', () => {
 
         beforeEach(() => {
           sentAmount = 2000
@@ -152,7 +152,7 @@ describe('Coin', () => {
 
     describe('on successful scenarios', () => {
 
-      it('adds the amount of the coin passed by parameter to the current coin', async () => {
+      it('adds the motos amount of the coin passed by parameter to the current coin', async () => {
         const execution = await testSubject()
 
         const originalCoinOutputIndex = 0
@@ -222,36 +222,6 @@ describe('Coin', () => {
           expect.fail('test should have failed')
         })
 
-      })
-
-      describe('like when passed amount overflows the number type', () => {
-        const maxU32Amount = 4294967295
-        beforeEach(() => {
-          coin = vm.mint(userAddr, maxU32Amount)
-          otherCoin = vm.mint(otherUserAddr, 200)
-        })
-
-        it('fails properly', async () => {
-          try {
-            await testSubject()
-          } catch (e) {
-            expect(e).to.be.instanceof(ExecutionError)
-            const error = e as ExecutionError
-            expect(error.message).to.eql('Overflow error')
-            return
-          }
-          expect.fail('test should have failed')
-        })
-
-        it('does not modify the state of the coins involved', async () => {
-          try {
-            await testSubject()
-          } catch (e) {
-            expect(storage.getTransaction(tx.id)).to.eql(undefined)
-            return
-          }
-          expect.fail('test should have failed')
-        })
       })
     })
   })
