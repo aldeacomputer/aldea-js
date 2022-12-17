@@ -302,6 +302,88 @@ describe('execute txs', () => {
     expect(bagState[0]).to.eql([flockOutput.origin.toBytes()])
   })
 
+  it('can restore jigs that contain jigs of the same package', () => {
+    exec.importModule(modIdFor('flock'))
+    const flockIndex = exec.instantiate(0, 'Flock', [])
+    const bagIndex = exec.instantiate(0, 'FlockBag', [])
+    const jig = exec.getStatementResult(flockIndex).asJig()
+    exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [jig])
+    exec.lockJigToUser(bagIndex, userAddr)
+    exec.markAsFunded()
+    exec.finalize()
+
+    storage.persist(exec)
+
+    const tx2 = new TxBuilder()
+      .sign(userPriv)
+      .build()
+
+    const exec2 = new TxExecution(tx2, vm)
+    exec2.loadJigByOutputId(exec.outputs[1].id())
+    exec2.callInstanceMethodByIndex(0, 'growAll', [])
+    exec2.lockJigToUser(0, userAddr)
+    exec2.markAsFunded()
+    exec2.finalize()
+
+    const flockOutput = exec2.outputs[0];
+    const flockState = flockOutput.parsedState()
+    expect(flockState[0]).to.eql(1)
+    const bagOutput = exec2.outputs[1];
+    const bagState = bagOutput.parsedState()
+    expect(bagState[0]).to.eql([flockOutput.origin.toBytes()])
+  })
+
+  it('can send local and external jigs as parameters', () => {
+    exec.importModule(modIdFor('flock'))
+    exec.importModule(modIdFor('sheep-counter'))
+    const flockIndex = exec.instantiate(0, 'Flock', [])
+    const flockJig = exec.getStatementResult(flockIndex).asJig()
+    const sheperdIndex = exec.instantiate(1, 'Shepherd', [flockJig])
+    const counterIndex = exec.instantiate(1, 'SheepCounter', [])
+    exec.callInstanceMethodByIndex(sheperdIndex, 'growFlockUsingInternalTools', [])
+    const shepherdJig = exec.getStatementResult(sheperdIndex).asJig()
+    exec.callInstanceMethodByIndex(counterIndex, 'countShepherd', [shepherdJig])
+    exec.lockJigToUser(sheperdIndex, userAddr)
+    exec.lockJigToUser(counterIndex, userAddr)
+    exec.markAsFunded()
+    exec.finalize()
+
+    const flockState = exec.outputs[0].parsedState()
+    expect(flockState[0]).to.eql(1)
+    const counterState = exec.outputs[2].parsedState()
+    expect(counterState[0]).to.eql(1)
+    expect(counterState[1]).to.eql(6)
+  })
+
+  it('can send static method result as parameter', () => {
+    exec.importModule(modIdFor('flock'))
+    const flockIndex = exec.execStaticMethodByIndex(0, 'Flock', 'createWithSize', [3])
+    const bagIndex = exec.instantiate(0, 'FlockBag', [])
+    const flockJig = exec.getStatementResult(flockIndex).asJig()
+    exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [flockJig])
+    exec.lockJigToUser(bagIndex, userAddr)
+    exec.markAsFunded()
+    exec.finalize()
+
+    const bagState = exec.outputs[1].parsedState()
+    expect(bagState[0]).to.eql([exec.outputs[0].origin.toBytes()])
+  })
+
+  it('can send instance method result as parameter', () => {
+    exec.importModule(modIdFor('flock'))
+    const flockIndex = exec.instantiate(0, 'Flock', [])
+    const bagIndex = exec.instantiate(0, 'FlockBag', [])
+    const callIndex = exec.callInstanceMethodByIndex(flockIndex, 'returnSelf', [])
+    const flockJig = exec.getStatementResult(callIndex).asJig()
+    exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [flockJig])
+    exec.lockJigToUser(bagIndex, userAddr)
+    exec.markAsFunded()
+    exec.finalize()
+
+    const bagState = exec.outputs[1].parsedState()
+    expect(bagState[0]).to.eql([exec.outputs[0].origin.toBytes()])
+  })
+
   it('can call top level functions')
   it('can create jigs inside jigs')
   it('can save numbers inside statement result')

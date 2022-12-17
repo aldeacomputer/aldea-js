@@ -490,7 +490,14 @@ class TxExecution {
   callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {
     const jigRef = this.getStatementResult(jigIndex).asJig()
     const methodResult = this.callInstanceMethod(jigRef, methodName, args)
-    this.statementResults.push(new ValueStatementResult(methodResult.node, methodResult.value, methodResult.mod))
+    let value = methodResult.value
+    if (value instanceof Internref) {
+      value = this.jigs.find(j => j.package === jigRef.package && j.ref.equals(value))
+    }
+    if (value instanceof Externref) {
+      value = this.jigs.find(j => j.origin.equals(Pointer.fromBytes(value.originBuf)))
+    }
+    this.statementResults.push(new ValueStatementResult(methodResult.node, value, methodResult.mod))
     return this.statementResults.length - 1
   }
 

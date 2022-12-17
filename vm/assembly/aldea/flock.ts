@@ -26,6 +26,10 @@ export class Flock extends Jig {
     this.$output.destroy();
   }
 
+  returnSelf (): Flock {
+    return this
+  }
+
   static createWithSize(n: u32): Flock {
     const aFlock = new Flock();
     while (n > 0) {
