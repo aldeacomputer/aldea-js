@@ -26,6 +26,10 @@ export class Flock extends Jig {
     this.$output.destroy();
   }
 
+  returnSelf (): Flock {
+    return this
+  }
+
   static createWithSize(n: u32): Flock {
     const aFlock = new Flock();
     while (n > 0) {
@@ -33,6 +37,26 @@ export class Flock extends Jig {
       n--
     }
     return aFlock
+  }
+}
+
+export class FlockBag extends Jig {
+  flocks: Flock[];
+
+  constructor () {
+    super();
+    this.flocks = []
+  }
+
+  addFlock (aFlock: Flock): void {
+    aFlock.$lock.toCaller()
+    this.flocks.push(aFlock)
+  }
+
+  growAll (): void {
+    this.flocks.forEach((fl: Flock) => {
+      fl.grow()
+    })
   }
 }
 

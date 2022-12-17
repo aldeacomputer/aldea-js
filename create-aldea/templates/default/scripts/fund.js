@@ -18,12 +18,13 @@ async function fund(cwd, _argv) {
   const coin = await aldea.loadOutput(res.id)
 
   console.log(`You've received ${ coin.props.amount } motos to your address!`)
-
-  console.log('\nCoin id: (make a note of this)')
-  console.log(bold(coin.id))
-
-  console.log('\nRaw output data:')
+  console.log()
+  console.log('Raw output data:')
   console.log(res)
+  console.log()
+  console.log('Coin ID: (make a note of this)')
+  console.log(bold(coin.id))
+  console.log()
 }
 
 // Loads keys from file
