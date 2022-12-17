@@ -42,7 +42,7 @@ describe('Coin', () => {
 
       it('creates a new coin for the receiver with the indicated amount', async () => {
         const tx = new TxBuilder()
-          .loadByRef(coin.digest())
+          .load(coin.id())
           .sign(userPriv)
           .fund(0)
           .call(0, 2, [sentAmount, otherUserAddr.hash])
@@ -60,7 +60,7 @@ describe('Coin', () => {
 
       it('reduces the indicated amount in the original coin', async () => {
         const tx = new TxBuilder()
-          .loadByRef(coin.digest())
+          .load(coin.id())
           .sign(userPriv)
           .fund(0)
           .call(0, 2, [sentAmount, otherUserAddr.hash])
@@ -85,7 +85,7 @@ describe('Coin', () => {
 
         it('freezes the original coin', async () => {
           const tx = new TxBuilder()
-            .loadByRef(coin.digest())
+            .load(coin.id())
             .sign(userPriv)
             .fund(0)
             .call(0, 2, [sentAmount, otherUserAddr.hash])
@@ -113,7 +113,7 @@ describe('Coin', () => {
 
         it('fails properly', async () => {
           const tx = new TxBuilder()
-            .loadByRef(coin.digest())
+            .load(coin.id())
             .sign(userPriv)
             .fund(0)
             .call(0, 2, [sentAmount, otherUserAddr.hash])
@@ -133,7 +133,7 @@ describe('Coin', () => {
 
         it('does not change the state of any of the involved coins', async () => {
           const tx = new TxBuilder()
-            .loadByRef(coin.digest())
+            .load(coin.id())
             .sign(userPriv)
             .fund(0)
             .call(0, 2, [sentAmount, otherUserAddr.hash])
@@ -180,8 +180,8 @@ describe('Coin', () => {
 
       it('adds the amount of the coin passed by parameter to the current coin', async () => {
         const tx = new TxBuilder()
-          .loadByRef(coin.digest())
-          .loadByRef(otherCoin.digest())
+          .load(coin.id())
+          .load(otherCoin.id())
           .sign(userPriv)
           .fund(0)
           .call(0, 3, [ref(1)])
@@ -199,8 +199,8 @@ describe('Coin', () => {
 
       it('destroys the passed coin after the operation', async () => {
         const tx = new TxBuilder()
-          .loadByRef(coin.digest())
-          .loadByRef(otherCoin.digest())
+          .load(coin.id())
+          .load(otherCoin.id())
           .sign(userPriv)
           .fund(0)
           .call(0, 3, [ref(1)])
@@ -234,8 +234,8 @@ describe('Coin', () => {
         //  it's failing for the lock change instead of failing in Coin#combineInto
         it('fails properly', async () => {
           const tx = new TxBuilder()
-            .loadByRef(coin.digest())
-            .loadByRef(otherCoin.digest())
+            .load(coin.id())
+            .load(otherCoin.id())
             .sign(userPriv)
             .fund(0)
             .call(0, 3, [ref(1)])
@@ -255,8 +255,8 @@ describe('Coin', () => {
 
         it('does not modify the state of the coins involved', async () => {
           const tx = new TxBuilder()
-            .loadByRef(coin.digest())
-            .loadByRef(otherCoin.digest())
+            .load(coin.id())
+            .load(otherCoin.id())
             .sign(userPriv)
             .fund(0)
             .call(0, 3, [ref(1)])
@@ -283,8 +283,8 @@ describe('Coin', () => {
 
         it('fails properly', async () => {
           const tx = new TxBuilder()
-            .loadByRef(coin.digest())
-            .loadByRef(otherCoin.digest())
+            .load(coin.id())
+            .load(otherCoin.id())
             .sign(userPriv)
             .fund(0)
             .call(0, 3, [ref(1)])
@@ -304,8 +304,8 @@ describe('Coin', () => {
 
         it('does not modify the state of the coins involved', async () => {
           const tx = new TxBuilder()
-            .loadByRef(coin.digest())
-            .loadByRef(otherCoin.digest())
+            .load(coin.id())
+            .load(otherCoin.id())
             .sign(userPriv)
             .fund(0)
             .call(0, 3, [ref(1)])

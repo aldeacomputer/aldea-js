@@ -13,22 +13,24 @@ import {
   findObject,
   TypeNode
 } from "@aldea/compiler/abi";
-import {
-  getObjectMemLayout,
-  getTypedArrayConstructor,
-  Internref,
-  liftBuffer,
-  liftInternref,
-  liftString,
-  liftValue,
-  lowerInternref,
-  lowerObject,
-  lowerValue,
-} from "./memory.js";
+// import {
+//   getObjectMemLayout,
+//   getTypedArrayConstructor,
+//   Internref,
+//   liftBuffer,
+//   liftInternref,
+//   liftString,
+//   liftValue,
+//   lowerInternref,
+//   lowerObject,
+//   lowerValue,
+// } from "./memory.js";
 import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
-import {MemoryManager} from "./memory-manager.js";
+import {InternRefMap, MemoryManager} from "./memory-manager.js";
+import {Internref} from "./memory.js";
+import {WasmPointer} from "./arg-reader.js";
 
 // enum AuthCheck {
 //   CALL,     // 0 - can the caller call a method?
@@ -147,7 +149,10 @@ export class WasmInstance {
   private instance: WebAssembly.Instance;
   abi: Abi;
 
+  memMgr: MemoryManager;
+
   constructor (module: WebAssembly.Module, abi: Abi, id: Uint8Array) {
+    this.memMgr = new MemoryManager()
     this.id = id
     this.abi = abi
     abi.objects.push(utxoAbiNode)
@@ -159,8 +164,8 @@ export class WasmInstance {
       env: {
         memory: wasmMemory,
         abort: (messagePtr: number, fileNamePtr: number, lineNumber: number, columnNumber: number) => {
-          const messageStr = liftString(this, messagePtr);
-          const fileNameStr = liftString(this, fileNamePtr);
+          const messageStr = this.memMgr.liftString(this, messagePtr);
+          const fileNameStr = this.memMgr.liftString(this, fileNamePtr);
 
           (() => {
             // @external.js
@@ -171,53 +176,51 @@ export class WasmInstance {
       },
       vm: {
         vm_constructor: (jigPtr: number, classNamePtr: number): void => {
-          const className = liftString(this, classNamePtr)
+          const className = this.memMgr.liftString(this, classNamePtr)
           this.currentExec.constructorHandler(this, jigPtr, className)
         },
         vm_local_call_start: (jigPtr: number, _fnNamePtr: number): void => {
-          const fnName = liftString(this, _fnNamePtr)
+          const fnName = this.memMgr.liftString(this, _fnNamePtr)
           this.currentExec.localCallStartHandler(this, jigPtr, fnName)
         },
         vm_remote_authcheck: (originPtr: number, check: AuthCheck) => {
-          const origin = liftBuffer(this, originPtr)
+          const origin = this.memMgr.liftBuffer(this, originPtr)
           return this.currentExec.remoteAuthCheckHandler(Pointer.fromBytes(origin), check)
         },
         vm_local_call_end: () => {
           this.currentExec.localCallEndtHandler()
         },
         vm_remote_call_i: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
-          const targetOriginArrBuf = liftBuffer(this, targetOriginPtr)
-          const fnStr = liftString(this, fnNamePtr)
-          const argBuf = liftBuffer(this, argsPtr)
+          const targetOriginArrBuf = this.memMgr.liftBuffer(this, targetOriginPtr)
+          const fnStr = this.memMgr.liftString(this, fnNamePtr)
+          const argBuf = this.memMgr.liftBuffer(this, argsPtr)
 
           const [className, methodName] = fnStr.split('$')
 
-          // const [] = fnStr.split('$')
-
           const methodResult = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), className, methodName, argBuf)
-          return lowerValue(this, methodResult.node, methodResult.value)
+          return this.memMgr.lowerValue(this, methodResult.node, methodResult.value)
         },
         vm_remote_call_s: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
-          const moduleId = liftString(this, originPtr)
-          const fnStr = liftString(this, fnNamePtr)
-          const argBuf = liftBuffer(this, argsPtr)
+          const moduleId = this.memMgr.liftString(this, originPtr)
+          const fnStr = this.memMgr.liftString(this, fnNamePtr)
+          const argBuf = this.memMgr.liftBuffer(this, argsPtr)
           const result = this.currentExec.remoteStaticExecHandler(this, base16.decode(moduleId), fnStr, argBuf)
-          return lowerValue(this, result.node, result.value)
+          return this.memMgr.lowerValue(this, result.node, result.value)
         },
 
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
-          const targetOrigBuf = liftBuffer(this, targetOriginPtr)
-          const propStr = liftString(this, propNamePtr)
+          const targetOrigBuf = this.memMgr.liftBuffer(this, targetOriginPtr)
+          const propStr = this.memMgr.liftString(this, propNamePtr)
           const propName = propStr.split('.')[1]
 
           const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propName)
-          return lowerValue(prop.mod, prop.node, prop.value)
+          return this.memMgr.lowerValue(prop.mod, prop.node, prop.value)
         },
         vm_local_authcheck: (targetJigPtr: number, check: AuthCheck) => {
           return this.currentExec.localAuthCheckHandler(targetJigPtr, this, check)
         },
         vm_local_lock: (targetJigRefPtr: number, type: LockType, argsPtr: number): void => {
-          const argBuf = liftBuffer(this, argsPtr)
+          const argBuf = this.memMgr.liftBuffer(this, argsPtr)
           this.currentExec.localLockHandler(targetJigRefPtr, this, type, argBuf)
         },
         vm_local_state: (jigPtr: number): number => {
@@ -231,10 +234,10 @@ export class WasmInstance {
               data: new ArrayBuffer(0)
             }
           }
-          return lowerObject(this, abiNode, utxo)
+          return this.memMgr.lowerObject(this, abiNode, utxo)
         },
         vm_remote_state: (originPtr: number): number => {
-          const originBuff = liftBuffer(this, originPtr)
+          const originBuff = this.memMgr.liftBuffer(this, originPtr)
           const jigRef = this.currentExec.findRemoteUtxoHandler(originBuff)
           const utxo = {
             origin: jigRef.origin.toString(),
@@ -245,11 +248,11 @@ export class WasmInstance {
             }
           }
           const abiNode = findObject(this.abi, 'UtxoState', 'should be present')
-          return lowerObject(this, abiNode, utxo)
+          return this.memMgr.lowerObject(this, abiNode, utxo)
         },
         vm_remote_lock: (originPtr: number, type: LockType, argsPtr: number) => {
-          const argBuf = liftBuffer(this, argsPtr)
-          const originBuf = liftBuffer(this, originPtr)
+          const argBuf = this.memMgr.liftBuffer(this, argsPtr)
+          const originBuf = this.memMgr.liftBuffer(this, originPtr)
           this.currentExec.remoteLockHandler(Pointer.fromBytes(originBuf), type, argBuf)
         }
       }
@@ -285,14 +288,14 @@ export class WasmInstance {
     const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
 
     const ptrs = method.args.map((argNode: ArgNode, i: number) => {
-      return lowerValue(this, argNode.type, args[i])
+      return this.memMgr.lowerValue(this, argNode.type, args[i])
     })
 
     const fn = this.instance.exports[fnName] as Function;
     const retPtr = fn(...ptrs)
     const retValue = methodName === 'constructor'
       ? new Internref(className, retPtr)
-      : liftValue(this, method.rtype, retPtr)
+      : this.memMgr.liftValue(this, method.rtype, retPtr)
 
     return {
       node: method.rtype ? method.rtype : voidNode,
@@ -305,14 +308,15 @@ export class WasmInstance {
     const rawState = __decodeArgs(frozenState)
     const objectNode = this.abi.exports[classIdx].code as ClassNode //findClass(, className, `unknown class ${className}`)
 
-    const mgr = new MemoryManager()
-    mgr.lowerInterRefFilter = (originBytes: Uint8Array): JigRef => {
+    // const mgr = new MemoryManager()
+    this.memMgr.lowerInterRefFilter = (originBytes: Uint8Array): JigRef => {
       const ptr = Pointer.fromBytes(originBytes)
       return this.currentExec.findJigByOrigin(ptr)
     }
 
-    const pointer = mgr.lowerObject(this, objectNode, rawState)
-    return liftInternref(this, objectNode, pointer)
+    const pointer = this.memMgr.lowerObject(this, objectNode, rawState)
+    this.memMgr.reset()
+    return this.memMgr.liftInternref(this, objectNode, pointer)
   }
 
   instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): MethodResult {
@@ -321,15 +325,15 @@ export class WasmInstance {
     const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
 
     const ptrs = [
-      lowerInternref(ref),
+      this.memMgr.lowerInternref(ref),
       ...method.args.map((argNode: ArgNode, i: number) => {
-        return lowerValue(this, argNode.type, args[i])
+        return this.memMgr.lowerValue(this, argNode.type, args[i])
       })
     ]
 
     const fn = this.instance.exports[fnName] as Function;
     const ptr = fn(...ptrs)
-    const result = liftValue(this, method.rtype, ptr)
+    const result = this.memMgr.liftValue(this, method.rtype, ptr)
     return {
       mod: this,
       value: result,
@@ -342,9 +346,9 @@ export class WasmInstance {
     const classNode = objNode as ClassNode
     const field = findField(classNode, fieldName, `unknown field: ${fieldName}`)
 
-    const offsets = getObjectMemLayout(classNode)
+    const offsets = this.memMgr.getObjectMemLayout(classNode)
     const { offset, align } = offsets[field.name]
-    const TypedArray = getTypedArrayConstructor(field.type)
+    const TypedArray = this.memMgr.getTypedArrayConstructor(field.type)
     const val = new TypedArray(this.memory.buffer)[ref.ptr + offset >>> align]
 
     return {
@@ -364,12 +368,12 @@ export class WasmInstance {
     const abiFn = findFunction(this.abi, fnName, `unknown export: ${fnName}`)
 
     const ptrs = abiFn.args.map((argNode: ArgNode, i: number) => {
-      return lowerValue(this, argNode.type, args[i])
+      return this.memMgr.lowerValue(this, argNode.type, args[i])
     })
 
     const fn = this.instance.exports[fnName] as Function;
     const ptr = fn(...ptrs)
-    const result = liftValue(this, abiFn.rtype, ptr)
+    const result = this.memMgr.liftValue(this, abiFn.rtype, ptr)
 
     return {
       mod: this,
@@ -393,15 +397,18 @@ export class WasmInstance {
     return __unpin(ptr)
   }
 
-  extractState(ref: Internref, classIdx: number): Uint8Array {
+  extractState(ref: Internref, classIdx: number, findJigOrigin: InternRefMap): Uint8Array {
     const abiObj = this.abi.exports[classIdx].code as ClassNode
     const mgr = new MemoryManager()
-
-    const liftedObject = mgr.liftObject(this, abiObj, ref.ptr)
-
-
+    mgr.liftInterRefMap = findJigOrigin
+    const lifted = mgr.liftObject(this, abiObj, ref.ptr)
+    mgr.reset()
     return __encodeArgs(
-      abiObj.fields.map((field: FieldNode) => liftedObject[field.name])
+      abiObj.fields.map((field: FieldNode) => lifted[field.name])
     )
+  }
+
+  extractValue(ptr: WasmPointer, type: TypeNode): any {
+    return this.memMgr.liftValue(this, type, ptr)
   }
 }

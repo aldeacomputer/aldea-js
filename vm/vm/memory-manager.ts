@@ -26,6 +26,11 @@ export class MemoryManager {
     this.lowerInterRefFilter = null
   }
 
+  reset () {
+    this.liftInterRefMap = (ref: Internref) => ref
+    this.lowerInterRefFilter = null
+  }
+
   liftValue(mod: Module, type: TypeNode | null, val: number | bigint): any {
     if (type === null || type.name === 'void') return;
 

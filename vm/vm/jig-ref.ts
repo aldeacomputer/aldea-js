@@ -18,14 +18,6 @@ export class JigRef  {
     this.lock = lock
   }
 
-  // sendMessage (methodName: string, args: any[] , context: TxExecution): MethodResult {
-  //   if (!this.lock.acceptsExecution(context)) {
-  //     throw new PermissionError(`jig ${this.origin} does not accept message "${methodName}" from ${context.stackTop()}`)
-  //   }
-  //   return {mod: null, value: null, node: null}
-  //   // return context.callInstanceMethod(this, methodName, args)
-  // }
-
   get originBuf (): ArrayBuffer {
     return this.origin.toBytes()
   }
@@ -36,10 +28,6 @@ export class JigRef  {
 
   close (newLock: Lock) {
     this.lock = newLock
-  }
-
-  serialize(): Uint8Array {
-    return this.package.extractState(this.ref, this.classIdx)
   }
 
   className(): string {

@@ -5,22 +5,14 @@ import {UserLock} from "./locks/user-lock.js"
 import {NoLock} from "./locks/no-lock.js"
 import {JigState} from "./jig-state.js"
 import {VM} from "./vm.js";
-import {
-  __encodeArgs,
-  AuthCheck,
-  LockType,
-  MethodResult,
-  Prop,
-  WasmInstance
-} from "./wasm-instance.js";
+import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
-import {Externref, Internref, liftValue} from "./memory.js";
-import {ArgNode, ClassNode, CodeKind, FieldNode, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
-import {Address, base16, instructions, Pointer, InstructionRef, Tx} from '@aldea/sdk-js';
+import {Externref, Internref} from "./memory.js";
+import {ArgNode, ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
+import {Address, base16, InstructionRef, instructions, Pointer, Tx} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
-import {MemoryManager} from "./memory-manager.js";
 
 abstract class StatementResult {
   abstract get abiNode(): TypeNode;
@@ -169,19 +161,14 @@ class TxExecution {
     })
   }
 
-  private serializeJig (jig: JigRef) {
-    const abiObj = jig.package.abi.exports[jig.classIdx].code as ClassNode
-    const ref = jig.ref
-    const mgr = new MemoryManager()
-    mgr.liftInterRefMap = (newRef: Internref) => {
+  private serializeJig (jig: JigRef): Uint8Array {
+    return jig.package.extractState(jig.ref, jig.classIdx, (newRef: Internref) => {
       const childJig = this.jigs.find(j => j.package === jig.package && j.ref.equals(newRef))
-      if (!childJig) { throw new ExecutionError('child jig should exist')}
+      if (!childJig) {
+        throw new ExecutionError('child jig should exist')
+      }
       return childJig.asChildRef()
-    }
-    const liftedObject = mgr.liftObject(jig.package, abiObj, ref.ptr)
-    return __encodeArgs(
-      abiObj.fields.map((field: FieldNode) => liftedObject[field.name])
-    )
+    })
   }
 
   loadModule (moduleId: Uint8Array): WasmInstance {
@@ -238,7 +225,7 @@ class TxExecution {
     const argReader = new ArgReader(argBuff)
     const args = method.args.map((n: ArgNode) => {
       const ptr = readType(argReader, n.type)
-      const value = liftValue(callerInstance, n.type, ptr)
+      const value = callerInstance.extractValue(ptr, n.type)  // liftValue(callerInstance, n.type, ptr)
       if (value instanceof Externref) {
         return this.getJigRefByOrigin(Pointer.fromBytes(value.originBuf))
       } else {
@@ -260,7 +247,7 @@ class TxExecution {
     const argReader = new ArgReader(argBuffer)
     const argValues = method.args.map((arg) => {
       const pointer = readType(argReader, arg.type)
-      return liftValue(srcModule, arg.type, pointer)
+      return srcModule.extractValue(pointer, arg.type)
     }).map((value: any) => {
       if (value instanceof Externref) {
         return this.getJigRefByOrigin(Pointer.fromBytes(value.originBuf))
