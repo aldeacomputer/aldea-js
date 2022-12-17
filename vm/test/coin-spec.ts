@@ -18,9 +18,7 @@ describe('Coin', () => {
   const otherUserPriv = AldeaCrypto.randomPrivateKey()
   const otherUserPub = AldeaCrypto.publicKeyFromPrivateKey(otherUserPriv)
   const otherUserAddr = otherUserPub.toAddress()
-
-  const fundCost = 100
-
+  
   let coin: JigState
 
   beforeEach(() => {
@@ -230,9 +228,7 @@ describe('Coin', () => {
           }
           expect.fail('test should have failed')
         })
-
       })
     })
   })
-
 })

@@ -18,7 +18,7 @@ export class Coin extends Jig {
   }
 
   merge(coins: Coin[]): Coin {
-    this.motos += coins.reduce((total: u64, c: Coin) => total + c.motos, 0)
+    this.motos = coins.reduce((total: u64, c: Coin) => total + c.motos, this.motos)
     coins.forEach((coin: Coin) => {
       coin.combineInto()
     })

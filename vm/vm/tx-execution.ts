@@ -413,6 +413,8 @@ class TxExecution {
     return args.map(arg => {
       if (arg instanceof InstructionRef) {
         return this.getStatementResult(arg.idx).asJig()
+      } else if (Array.isArray(arg) && arg.length > 0 && arg[0] instanceof InstructionRef) {
+        return arg.map(instRef => this.getStatementResult(instRef.idx).asJig())
       } else {
         return arg
       }
