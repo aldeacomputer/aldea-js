@@ -96,7 +96,7 @@ export function buildSomeSheepCounter (): SheepCounter {
 
 
 // @ts-ignore
-@imported('acf62268efb8b0c4cbce93a235a394d18087648cb2590466d386f478ea94bb5c')
+@imported('715fa9ea6974c387ad5839c697dcd1ee789fb0504b306d5452e6b08820bb8d1e')
 declare class Flock extends Jig {
   constructor();
   size: u32;
@@ -105,7 +105,7 @@ declare class Flock extends Jig {
 }
 
 // @ts-ignore
-@imported('acf62268efb8b0c4cbce93a235a394d18087648cb2590466d386f478ea94bb5c')
+@imported('715fa9ea6974c387ad5839c697dcd1ee789fb0504b306d5452e6b08820bb8d1e')
 declare class InternalFlockOperations extends Jig {
   static growFlock (aFlock: Flock): void
 }
