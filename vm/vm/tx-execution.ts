@@ -5,14 +5,22 @@ import {UserLock} from "./locks/user-lock.js"
 import {NoLock} from "./locks/no-lock.js"
 import {JigState} from "./jig-state.js"
 import {VM} from "./vm.js";
-import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
+import {
+  __encodeArgs,
+  AuthCheck,
+  LockType,
+  MethodResult,
+  Prop,
+  WasmInstance
+} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref, liftValue} from "./memory.js";
-import {ArgNode, ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
+import {ArgNode, ClassNode, CodeKind, FieldNode, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
 import {Address, base16, instructions, Pointer, InstructionRef, Tx} from '@aldea/sdk-js';
 import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
+import {MemoryManager} from "./memory-manager.js";
 
 abstract class StatementResult {
   abstract get abiNode(): TypeNode;
@@ -117,7 +125,6 @@ class EmptyStatementResult extends StatementResult {
   get wasm(): WasmInstance {
     throw new ExecutionError('wrong index')
   }
-
 }
 
 class TxExecution {
@@ -156,10 +163,25 @@ class TxExecution {
     this.jigs.forEach((jigRef, index) => {
       const location = new Pointer(this.tx.hash, index)
       const origin = jigRef.origin || location
-      const serialized = jigRef.serialize() //  module.instanceCall(jigRef.ref, jigRef.className, 'serialize')
+      const serialized = this.serializeJig(jigRef)
       const jigState = new JigState(origin, location , jigRef.classIdx, serialized, jigRef.package.id, jigRef.lock.serialize())
       this.outputs.push(jigState)
     })
+  }
+
+  private serializeJig (jig: JigRef) {
+    const abiObj = jig.package.abi.exports[jig.classIdx].code as ClassNode
+    const ref = jig.ref
+    const mgr = new MemoryManager()
+    mgr.liftInterRefMap = (newRef: Internref) => {
+      const childJig = this.jigs.find(j => j.package === jig.package && j.ref.equals(newRef))
+      if (!childJig) { throw new ExecutionError('child jig should exist')}
+      return childJig.asChildRef()
+    }
+    const liftedObject = mgr.liftObject(jig.package, abiObj, ref.ptr)
+    return __encodeArgs(
+      abiObj.fields.map((field: FieldNode) => liftedObject[field.name])
+    )
   }
 
   loadModule (moduleId: Uint8Array): WasmInstance {

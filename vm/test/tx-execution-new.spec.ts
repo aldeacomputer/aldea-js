@@ -271,6 +271,37 @@ describe('execute txs', () => {
     })
   });
 
+  it('can restore jigs that contain jigs of the same package', () => {
+    exec.importModule(modIdFor('flock'))
+    const flockIndex = exec.instantiate(0, 'Flock', [])
+    const bagIndex = exec.instantiate(0, 'FlockBag', [])
+    const jig = exec.getStatementResult(flockIndex).asJig()
+    exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [jig])
+    exec.lockJigToUser(bagIndex, userAddr)
+    exec.markAsFunded()
+    exec.finalize()
+
+    storage.persist(exec)
+
+    const tx2 = new TxBuilder()
+      .sign(userPriv)
+      .build()
+
+    const exec2 = new TxExecution(tx2, vm)
+    exec2.loadJigByOutputId(exec.outputs[1].id())
+    exec2.callInstanceMethodByIndex(0, 'growAll', [])
+    exec2.lockJigToUser(0, userAddr)
+    exec2.markAsFunded()
+    exec2.finalize()
+
+    const flockOutput = exec2.outputs[0];
+    const flockState = flockOutput.parsedState()
+    expect(flockState[0]).to.eql(1)
+    const bagOutput = exec2.outputs[1];
+    const bagState = bagOutput.parsedState()
+    expect(bagState[0]).to.eql([flockOutput.origin.toBytes()])
+  })
+
   it('can call top level functions')
   it('can create jigs inside jigs')
   it('can save numbers inside statement result')

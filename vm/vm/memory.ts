@@ -1,6 +1,14 @@
 import { blake3 } from '@noble/hashes/blake3'
 import { bytesToHex as toHex } from '@noble/hashes/utils'
-import { normalizeTypeName, FieldNode, ObjectNode, TypeNode, findClass, findImport, findObject } from '@aldea/compiler/abi'
+import {
+  normalizeTypeName,
+  FieldNode,
+  ObjectNode,
+  TypeNode,
+  findClass,
+  findImport,
+  findObject
+} from '@aldea/compiler/abi'
 import { WasmInstance as Module } from './wasm-instance.js'
 import { JigRef } from "./jig-ref.js";
 
@@ -36,7 +44,7 @@ export type AnyTypedArray = Int8Array | Int16Array | Int32Array | Uint8Array | U
 /**
  * Memory layout interface
  */
-interface MemoryLayout {
+export interface MemoryLayout {
   [field: string]: {
     align: 0 | 1 | 2 | 3;
     offset: number;

@@ -45,4 +45,8 @@ export class JigRef  {
   className(): string {
     return this.package.abi.exports[this.classIdx].code.name
   }
+
+  asChildRef(): Uint8Array {
+    return this.origin.toBytes()
+  }
 }

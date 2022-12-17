@@ -36,6 +36,26 @@ export class Flock extends Jig {
   }
 }
 
+export class FlockBag extends Jig {
+  flocks: Flock[];
+
+  constructor () {
+    super();
+    this.flocks = []
+  }
+
+  addFlock (aFlock: Flock): void {
+    aFlock.$lock.toCaller()
+    this.flocks.push(aFlock)
+  }
+
+  growAll (): void {
+    this.flocks.forEach((fl: Flock) => {
+      fl.grow()
+    })
+  }
+}
+
 export class InternalFlockOperations extends Jig {
   static growFlock (aFlock: Flock): void {
     aFlock.grow()

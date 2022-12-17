@@ -1,10 +1,17 @@
 import {CBOR, Sequence} from 'cbor-redux'
 import {JigRef} from "./jig-ref.js";
 import {
-  Abi, ArgNode,
-  FieldKind, FieldNode,
-  TypeNode,
-  findClass, findField, findFunction, findMethod, findObject
+  Abi,
+  ArgNode,
+  ClassNode,
+  FieldKind,
+  FieldNode,
+  findClass,
+  findField,
+  findFunction,
+  findMethod,
+  findObject,
+  TypeNode
 } from "@aldea/compiler/abi";
 import {
   getObjectMemLayout,
@@ -12,7 +19,6 @@ import {
   Internref,
   liftBuffer,
   liftInternref,
-  liftObject,
   liftString,
   liftValue,
   lowerInternref,
@@ -22,7 +28,7 @@ import {
 import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
-import {ClassNode} from "@aldea/compiler/abi";
+import {MemoryManager} from "./memory-manager.js";
 
 // enum AuthCheck {
 //   CALL,     // 0 - can the caller call a method?
@@ -298,7 +304,14 @@ export class WasmInstance {
   hidrate (classIdx: number, frozenState: Uint8Array): Internref {
     const rawState = __decodeArgs(frozenState)
     const objectNode = this.abi.exports[classIdx].code as ClassNode //findClass(, className, `unknown class ${className}`)
-    const pointer = lowerObject(this, objectNode, rawState)
+
+    const mgr = new MemoryManager()
+    mgr.lowerInterRefFilter = (originBytes: Uint8Array): JigRef => {
+      const ptr = Pointer.fromBytes(originBytes)
+      return this.currentExec.findJigByOrigin(ptr)
+    }
+
+    const pointer = mgr.lowerObject(this, objectNode, rawState)
     return liftInternref(this, objectNode, pointer)
   }
 
@@ -382,7 +395,10 @@ export class WasmInstance {
 
   extractState(ref: Internref, classIdx: number): Uint8Array {
     const abiObj = this.abi.exports[classIdx].code as ClassNode
-    const liftedObject = liftObject(this, abiObj, ref.ptr)
+    const mgr = new MemoryManager()
+
+    const liftedObject = mgr.liftObject(this, abiObj, ref.ptr)
+
 
     return __encodeArgs(
       abiObj.fields.map((field: FieldNode) => liftedObject[field.name])
