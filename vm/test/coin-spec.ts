@@ -18,7 +18,7 @@ describe('Coin', () => {
   const otherUserPriv = AldeaCrypto.randomPrivateKey()
   const otherUserPub = AldeaCrypto.publicKeyFromPrivateKey(otherUserPriv)
   const otherUserAddr = otherUserPub.toAddress()
-  
+
   let coin: JigState
 
   beforeEach(() => {
