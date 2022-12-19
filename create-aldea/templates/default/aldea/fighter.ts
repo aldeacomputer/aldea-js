@@ -5,24 +5,24 @@ import { canLock } from 'aldea/auth'
  */
 export class Fighter extends Jig {
   name: string;
-  gear: Item[];
+  weapons: Weapon[];
   health: i8 = 100;
 
   constructor(name: string) {
     super()
     this.name = name
-    this.gear = []
+    this.weapons = []
   }
 
-  equip(item: Item): void {
+  equip(item: Weapon): void {
     if (canLock(item)) {
       item.$lock.toCaller()
-      this.gear.push(item)
+      this.weapons.push(item)
     }
   }
 
   attack(other: Fighter): void {
-    const power = this.gear.reduce<i8>((power, item) => power + item.power, 0)
+    const power = this.weapons.reduce<i8>((power, item) => power + item.power, 0)
     other.takeDamage(power)
   }
 
@@ -36,9 +36,9 @@ export class Fighter extends Jig {
 }
 
 /**
- * Item class
+ * Weapon class
  */
-export class Item extends Jig {
+export class Weapon extends Jig {
   name: string;
   power: i8;
 

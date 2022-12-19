@@ -1,8 +1,8 @@
 import fs from 'fs'
 import { join } from 'path'
+import dotenv from 'dotenv'
 import minimist from 'minimist'
 import { bold } from 'kolorist'
-import dotenv from 'dotenv'
 import { Address, Aldea, KeyPair, PrivKey } from '@aldea/sdk-js'
 
 /**
@@ -28,8 +28,8 @@ async function deploy(cwd, argv) {
   const tx = await aldea.createTx((tx, ref) => {
     const coinRef = tx.load(coin.id)
     tx.deploy(pkg)
+    tx.call(coinRef, 'send', [coin.props.motos - 100, address.hash])
     tx.fund(coinRef)
-    tx.lock(coinRef, address)
     tx.sign(keys.privKey)
   })
 
@@ -44,7 +44,7 @@ async function deploy(cwd, argv) {
   console.log(res)
   console.log()
   console.log('Coin ID: (change)')
-  console.log(bold(res.outputs[0].id))
+  console.log(bold(res.outputs[1].id))
   console.log()
   console.log('Package ID:')
   console.log(bold(res.packages[0].id))

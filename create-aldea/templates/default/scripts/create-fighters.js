@@ -1,14 +1,14 @@
 import fs from 'fs'
 import { join } from 'path'
+import dotenv from 'dotenv'
 import minimist from 'minimist'
 import { bold } from 'kolorist'
-import dotenv from 'dotenv'
 import { Address, Aldea, KeyPair, PrivKey } from '@aldea/sdk-js'
 
 /**
  * TODO
  */
-async function play(cwd, argv) {
+async function createFighters(cwd, argv) {
   if (!argv.coin) {
     throw new Error('cannot fund transaction. please specify funding coin with --coin argument.')
   }
@@ -30,17 +30,17 @@ async function play(cwd, argv) {
     const pkgRef  = tx.import(argv.pkg)
     const coinRef = tx.load(coin.id)
 
-    const player1 = tx.new(pkgRef, 'Fighter', ['Gandalf'])
-    const player2 = tx.new(pkgRef, 'Fighter', ['Yoda'])
+    const player1 = tx.new(pkgRef, 'Fighter', ['Scorpion'])
+    const player2 = tx.new(pkgRef, 'Fighter', ['Sub-zero'])
 
-    const sword   = tx.new(pkgRef, 'Item', ['Excalibur', 20])
+    const sword   = tx.new(pkgRef, 'Item', ['Kunai Spear', 20])
     tx.call(player1, 'equip', [sword])
 
     tx.lock(player1, address)
     tx.lock(player2, address)
     
+    tx.call(coinRef, 'send', [coin.props.motos - 100, address.hash])
     tx.fund(coinRef)
-    tx.lock(coinRef, address)
     tx.sign(keys.privKey)
   })
 
@@ -49,12 +49,24 @@ async function play(cwd, argv) {
     process.exit()
   })
 
-  // TODO - format and explain the output
-  console.log('it worked...')
+  console.log('Your fighters have been created!')
+  console.log()
+  console.log('Raw transaction data:')
   console.log(res)
+
   for (let data of res.outputs) {
     const output = await aldea.loadOutput(data.id)
-    console.log(output.props)
+    
+    if (output.className === 'Coin' && output.lock.type === 1) {
+      console.log()
+      console.log('Coin ID:', output.props)
+      console.log(bold(output.id))
+    } else
+    if (output.className === 'Fighter') {
+      console.log()
+      console.log('Fighter:', { name: output.props.name, weapons: output.props.gear.length, health: output.props.health })
+      console.log(bold(output.id))
+    }
   }
 }
 
@@ -72,7 +84,7 @@ function loadKeys(cwd) {
   }
 }
 
-play(
+createFighters(
   process.cwd(),
   minimist(process.argv.slice(2), { string: ['_'] })
 ).catch((e) => {

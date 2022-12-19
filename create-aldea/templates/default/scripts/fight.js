@@ -1,14 +1,14 @@
 import fs from 'fs'
 import { join } from 'path'
+import dotenv from 'dotenv'
 import minimist from 'minimist'
 import { bold } from 'kolorist'
-import dotenv from 'dotenv'
 import { Address, Aldea, KeyPair, PrivKey } from '@aldea/sdk-js'
 
 /**
  * TODO
  */
-async function play(cwd, argv) {
+async function fight(cwd, argv) {
   if (!argv.coin) {
     throw new Error('cannot fund transaction. please specify funding coin with --coin argument.')
   }
@@ -36,9 +36,10 @@ async function play(cwd, argv) {
     const player2 = tx.load(argv.p2)
 
     tx.call(player1, 'attack', [player2])
+    tx.lock(player1, address)
     
+    tx.call(coinRef, 'send', [coin.props.motos - 100, address.hash])
     tx.fund(coinRef)
-    tx.lock(coinRef, address)
     tx.sign(keys.privKey)
   })
 
@@ -47,12 +48,24 @@ async function play(cwd, argv) {
     process.exit()
   })
 
-  // TODO - format and explain the output
-  console.log('it worked...')
+  console.log('The battle was fierce but fair!')
+  console.log()
+  console.log('Raw transaction data:')
   console.log(res)
+
   for (let data of res.outputs) {
     const output = await aldea.loadOutput(data.id)
-    console.log(output.props)
+    
+    if (output.className === 'Coin' && output.lock.type === 1) {
+      console.log()
+      console.log('Coin ID:', output.props)
+      console.log(bold(output.id))
+    } else
+    if (output.className === 'Fighter') {
+      console.log()
+      console.log('Fighter:', { name: output.props.name, weapons: output.props.gear.length, health: output.props.health })
+      console.log(bold(output.id))
+    }
   }
 }
 
@@ -70,7 +83,7 @@ function loadKeys(cwd) {
   }
 }
 
-play(
+fight(
   process.cwd(),
   minimist(process.argv.slice(2), { string: ['_'] })
 ).catch((e) => {

@@ -6,7 +6,9 @@
   "scripts": {
     "keygen": "node scripts/keygen.js",
     "fund": "node scripts/fund.js",
-    "deploy": "node scripts/deploy.js"
+    "deploy": "node scripts/deploy.js",
+    "create-fighters": "node scripts/create-fighters.js",
+    "fight": "node scripts/fight.js"
   },
   "dependencies": {
     "@aldea/compiler": "^0.0.0-alpha",
