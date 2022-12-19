@@ -98,7 +98,6 @@ export class TxBuilder {
     const loadIndex = this.tx.instructions.length
     this.load(location)
     this.fund(loadIndex)
-    this.lock(loadIndex, nextOwner)
     this.sign(privKey)
     return this
   }
