@@ -73,6 +73,42 @@ nav {
   background-color: var(--background-color) !important;
   border: none;
 
+  li {
+    position: relative;
+  }
+
+  li button:hover:after {
+    display: block;
+  }
+
+  li button::after {
+    display: none;
+    position: absolute;
+    content: '';
+    top: 1em;
+    right: .5em;
+    width: 0.5em;
+    height: 0.5em;
+    background: var(--darker-background-color);
+    clip-path: polygon(0 25%, 50% 70%, 100% 25%, 100% 0, 50% 40%, 0% 0%);
+  }
+
+  li.active button::after {
+    clip-path: polygon(30% 0, 80% 50%, 30% 100%, 0% 100%, 25% 50%, 0% 0%);
+  }
+
+
+  ul ul {
+    margin-left: 0;
+
+    li a {
+      color: var(--color-paragraph);
+      font-size: 0.9em;
+      margin: 0;
+      line-height: 1em;
+    }
+  }
+
   a, button{
     color: var(--primary-color);
     border-radius: var(--container-radius);
