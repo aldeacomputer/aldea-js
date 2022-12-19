@@ -73,6 +73,17 @@ nav {
   background-color: var(--background-color) !important;
   border: none;
 
+  ul ul {
+    margin-left: 0;
+
+    li a {
+      color: var(--color-paragraph);
+      font-size: 0.9em;
+      margin: 0;
+      line-height: 1em;
+    }
+  }
+
   a, button{
     color: var(--primary-color);
     border-radius: var(--container-radius);
