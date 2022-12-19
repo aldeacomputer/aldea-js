@@ -1,16 +1,16 @@
 import test from 'ava'
 import crypto from 'crypto'
 import { base16 } from '../dist/support/base.js'
-import { Pointer } from "../src/index.js"
+import { Pointer } from "../dist/index.js"
 
 test.before(t => {
   t.context.origin = crypto.randomBytes(32)
   t.context.idx = 42
-  t.context.ptr = new Pointer(t.context.id, t.context.idx)
+  t.context.ptr = new Pointer(t.context.origin, t.context.idx)
 })
 
 test('Pointer.fromString() parses string and returns an Pointer', t => {
-  const ptr = Pointer.fromString(base16.encode(t.context.id) + '_42')
+  const ptr = Pointer.fromString(base16.encode(t.context.origin) + '_42')
   t.true(ptr.equals(t.context.ptr))
 })
 
@@ -27,7 +27,7 @@ test('Pointer#equals() returns false when comparing a different Pointer', t => {
 })
 
 test('Pointer#equals() returns true when comparing a matching Pointer', t => {
-  const ptr = new Pointer(t.context.id, t.context.idx)
+  const ptr = new Pointer(t.context.origin, t.context.idx)
   t.true(t.context.ptr.equals(ptr))
 })
 
