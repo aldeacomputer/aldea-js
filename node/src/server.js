@@ -83,7 +83,7 @@ const buildApp = () => {
 
   app.get('/state/:location', (req, res) => {
     const location = req.params.location
-    const state = storage.getJigStateByOutputId(Pointer.fromString(location), () => { throw new HttpNotFound(`state not found: ${location}`, { location })})
+    const state = storage.getJigStateByOutputId(base16.decode(location), () => { throw new HttpNotFound(`state not found: ${location}`, { location })})
     const wasm = vm.createWasmInstance(state.packageId)
     res.send({
       state: state.objectState(wasm)
