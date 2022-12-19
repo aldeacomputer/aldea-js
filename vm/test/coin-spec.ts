@@ -121,7 +121,7 @@ describe('Coin', () => {
     })
   })
 
-  describe('#merge', () => {
+  describe('#combine', () => {
     let coin: JigState
     let otherCoin: JigState
     let yetAnotherCoin: JigState
