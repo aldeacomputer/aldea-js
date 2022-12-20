@@ -2,6 +2,7 @@
 title: 'Enter into battle'
 ---
 
+import {CodeContainer} from '../../customComponents/codeContainer'
 import Callout from 'nextra-theme-docs/callout'
 
 # Lets fight! Enter into battle
@@ -12,24 +13,26 @@ In the last walkthrough You created two `Fighter` Jigs and equiped one of them w
 
 he `Fighter` class in `aldea/fighter.ts` has a method called `attack()` which allows one fighter to attack another. The attack power is determined by adding up the power of all the weapons that the attacking fighter has equipped. The method `takeDamage()` is called on the opponent fighter, with the attack power as an argument. This reduces the opponent's health by the attack power.
 
-```tsx
-class Fighter extends Jig {
-  // ...
+<CodeContainer lang="ts">
+    ```
+    class Fighter extends Jig {
+      // ...
 
-  attack(other: Fighter): void {
-    const power = this.weapons.reduce<i8>((power, weapon) => power + weapon.power, 0)
-    other.takeDamage(power)
-  }
+      attack(other: Fighter): void {
+        const power = this.weapons.reduce<i8>((power, weapon) => power + weapon.power, 0)
+        other.takeDamage(power)
+      }
 
-  private takeDamage(damage: i8): void {
-    this.health -= damage
-    if (this.health <= 0) {
-      this.health = 0
-      this.$lock.freeze()
+      private takeDamage(damage: i8): void {
+        this.health -= damage
+        if (this.health <= 0) {
+          this.health = 0
+          this.$lock.freeze()
+        }
+      }
     }
-  }
-}
-```
+    ```
+</CodeContainer>
 
 <Callout emoji="ℹ️">
   **Private methods?**<br/>
@@ -44,78 +47,92 @@ Let's try it out.
 
 There is a script in the starter kit called that creates a transaction for two fighters to battle. This transaction can be found in the `scripts/fight.js` file.
 
-```tsx
-const tx = await aldea.createTx(tx => {
-  const coinRef = tx.load(coin.id)
-  const player1 = tx.load(argv.p1)
-  const player2 = tx.load(argv.p2)
+<CodeContainer lang="ts">
+    ```
+    const tx = await aldea.createTx(tx => {
+      const coinRef = tx.load(coin.id)
+      const player1 = tx.load(argv.p1)
+      const player2 = tx.load(argv.p2)
 
-  tx.call(player1, 'attack', [player2])
+      tx.call(player1, 'attack', [player2])
 
-  tx.lock(player1, address)
-  tx.lock(player2, address)
+      tx.lock(player1, address)
+      tx.lock(player2, address)
 
-  tx.call(coinRef, 'send', [coin.motos - 100, address])
-  tx.fund(coinRef)
-  tx.sign(keys.privKey)
-})
-```
+      tx.call(coinRef, 'send', [coin.motos - 100, address])
+      tx.fund(coinRef)
+      tx.sign(keys.privKey)
+    })
+    ```
+</CodeContainer>
 
 Let's go through the code line by line to make sure you understand it:
 
 1. The `LoadInstruction` is used to load the instances of the coin that will fund the transaction and the two fighters. No packages need to be imported as they are included with the instances.
     
-    ```tsx
-    const coinRef = tx.load(coin.id)
-    const player1 = tx.load(argv.p1)
-    const player2 = tx.load(argv.p2)
-    ```
+    <CodeContainer lang="ts" lines={false}>
+        ```
+        const coinRef = tx.load(coin.id)
+        const player1 = tx.load(argv.p1)
+        const player2 = tx.load(argv.p2)
+        ```
+    </CodeContainer>
     
 2. The `CallInstruction` calls the `attack` method on the `player1` instance and passes the `player2` instance as an argument.
     
-    ```tsx
-    tx.call(player1, 'attack', [player2])
-    ```
+    <CodeContainer lang="ts" lines={false}>
+        ```
+        tx.call(player1, 'attack', [player2])
+        ```
+    </CodeContainer>
 
 3. For a transaction to be successful, Jigs must be locked if they have been called or updated. Address re-use should be avoided in practice.
 
-    ```tsx
-    tx.lock(player1, address)
-    tx.lock(player2, address)
-    ```
+    <CodeContainer lang="ts" lines={false}>
+        ```
+        tx.lock(player1, address)
+        tx.lock(player2, address)
+        ```
+    </CodeContainer>
     
 4. The following steps are used to complete the transaction: fund it, send change to yourself, and add a signature authorizing all the instructions.
     
-    ```tsx
-    tx.call(coinRef, 'send', [coin.motos - 100, address])
-    tx.fund(coinRef)
-    tx.sign(keys.privKey)
-    ```
+    <CodeContainer lang="ts" lines={false}>
+        ```
+        tx.call(coinRef, 'send', [coin.motos - 100, address])
+        tx.fund(coinRef)
+        tx.sign(keys.privKey)
+        ```
+    </CodeContainer>
     
 
 ## Execute the script
 
 To run the script that initiates the battle between the two fighters, you need the output IDs of an unspent coin and the two fighters from a previous walkthrough. You can execute the script by running the following command in your terminal:
 
-```bash
-npm run attack \
-  --coin <COIN_OUTPUT_ID> \
-  --p1 <PLAYER1_OUTPUT_ID> \
-  --p2 <PLAYER2_OUTPUT_ID>
-```
+<CodeContainer lang="bash" lines={false}>
+    ```
+    npm run attack \
+      --coin <COIN_OUTPUT_ID> \
+      --p1 <PLAYER1_OUTPUT_ID> \
+      --p2 <PLAYER2_OUTPUT_ID>
+    ```
+</CodeContainer>
 
 This command will print the full transaction execution result, as well as the state of the change coin and the two fighters. The output should look something like this:
 
-```text
-Fighter: { name: 'Scorpion', weapons: 1, health: 100 }
-020e6e77ce9d0330518278f6764dc4c5eb271af744da31b08c42c11eb6744eda
+<CodeContainer lang="text" lines={false}>
+    ```
+    Fighter: { name: 'Scorpion', weapons: 1, health: 100 }
+    020e6e77ce9d0330518278f6764dc4c5eb271af744da31b08c42c11eb6744eda
 
-Fighter: { name: 'Sub-zero', weapons: 0, health: 80 }
-bf9d5dd9e7278dacf3f589f8f05e44a0a6b9f984bfcd1adf3e5d8e3db53744c9
+    Fighter: { name: 'Sub-zero', weapons: 0, health: 80 }
+    bf9d5dd9e7278dacf3f589f8f05e44a0a6b9f984bfcd1adf3e5d8e3db53744c9
 
-Coin ID: { motos: 9600 }
-130890fa951b6249d746d543692ffc8d617c0e4b28cf3fcc71fe827e00b2e1a0
-```
+    Coin ID: { motos: 9600 }
+    130890fa951b6249d746d543692ffc8d617c0e4b28cf3fcc71fe827e00b2e1a0
+    ```
+</CodeContainer>
 
 If everything has worked correctly, the second fighter's health should have been reduced by 20. You have successfully deployed and executed code on the Aldea Computer!
 

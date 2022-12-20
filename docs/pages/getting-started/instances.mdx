@@ -2,6 +2,8 @@
 title: 'Create and equip a fighter'
 ---
 
+import {CodeContainer} from '../../customComponents/codeContainer'
+
 # Lets play! Create and equip a fighter
 
 Now we're getting to the fun part! In the previous steps, we created our own keys, received an Aldea Token coin, and deployed some code. If you haven't already, take a moment to familiarize yourself with the `aldea/fighter.ts` code. In this tutorial, we will create our first Jigs!
@@ -10,85 +12,101 @@ Now we're getting to the fun part! In the previous steps, we created our own key
 
 Your starter kit includes a script for creating two instances of a fighter, one of which will be equipped with a weapon. To understand how this is done, open the `scripts/create-fighter` file and find the transaction builder code.
 
-```tsx
-const tx = await aldea.createTx((tx, ref) => {
-  const pkgRef  = tx.import(argv.pkg)
-  const coinRef = tx.load(coin.id)
+<CodeContainer lang="ts">
+    ```
+    const tx = await aldea.createTx((tx, ref) => {
+    const pkgRef  = tx.import(argv.pkg)
+    const coinRef = tx.load(coin.id)
 
-  const player1 = tx.new(pkgRef, 'Fighter', ['Scorpion'])
-  const player2 = tx.new(pkgRef, 'Fighter', ['Sub-Zero'])
+    const player1 = tx.new(pkgRef, 'Fighter', ['Scorpion'])
+    const player2 = tx.new(pkgRef, 'Fighter', ['Sub-Zero'])
 
-  const weapon  = tx.new(pkgRef, 'Weapon', ['Kunai Spear', 20])
-  tx.call(player1, 'equip', [weapon])
+    const weapon  = tx.new(pkgRef, 'Weapon', ['Kunai Spear', 20])
+    tx.call(player1, 'equip', [weapon])
 
-  tx.lock(player1, address)
-  tx.lock(player2, address)
+    tx.lock(player1, address)
+    tx.lock(player2, address)
 
-  tx.fund(coinRef)
-  tx.lock(coinRef, address)
-  tx.sign(keys.privKey)
-})
-```
+    tx.fund(coinRef)
+    tx.lock(coinRef, address)
+    tx.sign(keys.privKey)
+    })
+    ```
+</CodeContainer>
 
 There's a bit more going on here but lets break it up line by line:
 
 1. Here we use the `ImportInstruction` to load the package that new instances will be created from, and the `LoadInstruction` to load the coin that will be used to fund the transaction.
     
-    ```tsx
-    const pkgRef  = tx.import(argv.pkg)
-    const coinRef = tx.load(coin.id)
-    ```
+    <CodeContainer lang="ts" lines={false}>
+        ```
+        const pkgRef  = tx.import(argv.pkg)
+        const coinRef = tx.load(coin.id)
+        ```
+    </CodeContainer>
     
 2. To create new instances of the `Fighter` class in the package referenced by `pkgRef`, you can use the `NewInstruction`. The following instructions create two new `Fighter` instances, with the names 'Scorpion' and 'Sub-Zero' respectively.
     
-    ```tsx
-    const player1 = tx.new(pkgRef, 'Fighter', ['Scorpion'])
-    const player2 = tx.new(pkgRef, 'Fighter', ['Sub-Zero'])
-    ```
+    <CodeContainer lang="ts" lines={false}>
+        ```
+        const player1 = tx.new(pkgRef, 'Fighter', ['Scorpion'])
+        const player2 = tx.new(pkgRef, 'Fighter', ['Sub-Zero'])
+        ```
+    </CodeContainer>
     
 3. This creates a new `Weapon` instance with the name 'Kunai Spear' and power 20, and then calls the `equip` function on the `player1` fighter, passing it the `weapon` as an argument.
     
-    ```tsx
-    const weapon  = tx.new(pkgRef, 'Weapon', ['Kunai Spear', 20])
-    tx.call(player1, 'equip', [weapon])
-    ```
+    <CodeContainer lang="ts" lines={false}>
+        ```
+        const weapon  = tx.new(pkgRef, 'Weapon', ['Kunai Spear', 20])
+        tx.call(player1, 'equip', [weapon])
+        ```
+    </CodeContainer>
     
 4. By default, new instances have the `UNLOCKED` lock type. In order for a transaction to be successful, all Jigs involved in the transaction must be locked. The `weapon` instance does not need to be locked separately because it is already locked to the `player1` instance when it is equipped.
     
-    ```tsx
-    tx.lock(player1, address)
-    tx.lock(player2, address)
-    ```
+    <CodeContainer lang="ts" lines={false}>
+        ```
+        tx.lock(player1, address)
+        tx.lock(player2, address)
+        ```
+    </CodeContainer>
     
 5. As in our previous example, the funding coin is split by sending change to yourselve, the remaining coin is used to fund the transaction, and a signature is added authorizing these instructions.
     
-    ```tsx
-    tx.call(coinRef, 'send', [coin.motos - 100, address])
-    tx.fund(coinRef)
-    tx.sign(keys.privKey)
-    ```
+    <CodeContainer lang="ts" lines={false}>
+        ```
+        tx.call(coinRef, 'send', [coin.motos - 100, address])
+        tx.fund(coinRef)
+        tx.sign(keys.privKey)
+        ```
+    </CodeContainer>
     
 
 ## Execute the script
 
 To execute the script, you will need the output ID of an unspent coin and the package ID that you obtained when you deployed the package. You can run the script using the following command:
 
-```text
-npm run create-fighters --coin <OUTPUT_ID> --pkg <PACKAGE_ID>
-```
+<CodeContainer lang="bash" lines={false}>
+    ```
+    npm run create-fighters --coin <OUTPUT_ID> --pkg <PACKAGE_ID>
+    ```
+</CodeContainer>
 
 This will print the full transaction execution result, as well as the state of the change coin and the two fighters. The output will look something like this:
 
-```text
-Fighter: { name: 'Scorpion', weapons: 1, health: 100 }
-c38a30d0f9c3ba76a590d575a23af964ba1b14a530aea3910722dfd94a7dd16d
+<CodeContainer lang="text" lines={false}>
+    ```
+    Fighter: { name: 'Scorpion', weapons: 1, health: 100 }
+    c38a30d0f9c3ba76a590d575a23af964ba1b14a530aea3910722dfd94a7dd16d
 
-Fighter: { name: 'Sub-zero', weapons: 0, health: 100 }
-d3d5b85b986b80d3528463eaca2f4375f4b2800327240cd821778c293478beb1
+    Fighter: { name: 'Sub-zero', weapons: 0, health: 100 }
+    d3d5b85b986b80d3528463eaca2f4375f4b2800327240cd821778c293478beb1
 
-Coin ID: { motos: 9800 }
-277797682831f1e378ac1c11378e4ca188ee0b8b375eeb74e6525fafaafbe093
-```
+    Coin ID: { motos: 9800 }
+    277797682831f1e378ac1c11378e4ca188ee0b8b375eeb74e6525fafaafbe093
+    ```
+</CodeContainer>
 
 The two fighters have default health of 100. The `Fighter` class has a method called `attack`, which deducts the opponent's health by the sum of the power of their weapons.
 

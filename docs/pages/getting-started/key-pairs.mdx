@@ -3,6 +3,7 @@ title: 'Create a new key pair'
 ---
 
 import Callout from 'nextra-theme-docs/callout'
+import {CodeContainer} from '../../customComponents/codeContainer'
 
 # Create a new key pair
 
@@ -14,26 +15,32 @@ In the next few steps, we will generate a new KeyPair and use a faucet to transf
 
 Your starter kit project comes with a script that you can use to generate a new random key pair. To run the script, use the following command:
 
-```bash
-npm run keygen
-```
+<CodeContainer lang="bash" lines={false}>
+    ```
+    npm run keygen
+    ```
+</CodeContainer>
 
 This will create a new file called `.aldea` in your project. The file will contain your private key, public key, and address, like this:
 
-```text
-PRIVKEY=1c0f2da803d2082fc3cbe479dae600395c6aa56935cb1f489b3707df3b1485f5
-PUBKEY=2c29e3cd0e323a5634dde254ed387e3066c0826d126a8ef1a8d34462adc3ea5a
-ADDRESS=aldea:1e0lnpaa8y8jpqhuq7t2c5m926nt2aqjzk26jzc
-```
+<CodeContainer lang="text">
+    ```
+    PRIVKEY=1c0f2da803d2082fc3cbe479dae600395c6aa56935cb1f489b3707df3b1485f5
+    PUBKEY=2c29e3cd0e323a5634dde254ed387e3066c0826d126a8ef1a8d34462adc3ea5a
+    ADDRESS=aldea:1e0lnpaa8y8jpqhuq7t2c5m926nt2aqjzk26jzc
+    ```
+</CodeContainer>
 
 The private key is a random 256-bit number, and the public key is derived from the private key using Ed25519 elliptic curve mathematics. The address is an encoded hash of the public key.
 
 If you're curious, you can look at the source code in `scripts/keygen.js` to see how the keys are generated using the Aldea SDK. Here's what the code looks like:
 
-```jsx
-const keys = KeyPair.fromRandom()
-const address = Address.fromPubKey(keys.pubKey)
-```
+<CodeContainer lang="ts">
+    ```
+    const keys = KeyPair.fromRandom()
+    const address = Address.fromPubKey(keys.pubKey)
+    ```
+</CodeContainer>
 
 ## Use the faucet
 
@@ -45,16 +52,18 @@ npm run fund
 
 The script will return a JSON output that looks like this:
 
-```json
-{
-  "id": "f1499fe3aa44403ed2e675d1abfe5e234358a82bf5a0ff66123c025df0829b5d",
-  "origin": "1f994dc0a605006c737fbc373f87303e4dd026e595e316f61b26970473c29b5a_0",
-  "location": "1f994dc0a605006c737fbc373f87303e4dd026e595e316f61b26970473c29b5a_0",
-  "class": "0000000000000000000000000000000000000000000000000000000000000000_0",
-  "lock": { "type": 1, "data": "cbff30f7a721e4105f80f2d58a6caad4d6ae8242" },
-  "state": "192710"
-}
-```
+<CodeContainer lang="ts">
+    ```
+    {
+      "id": "f1499fe3aa44403ed2e675d1abfe5e234358a82bf5a0ff66123c025df0829b5d",
+      "origin": "1f994dc0a605006c737fbc373f87303e4dd026e595e316f61b26970473c29b5a_0",
+      "location": "1f994dc0a605006c737fbc373f87303e4dd026e595e316f61b26970473c29b5a_0",
+      "class": "0000000000000000000000000000000000000000000000000000000000000000_0",
+      "lock": { "type": 1, "data": "cbff30f7a721e4105f80f2d58a6caad4d6ae8242" },
+      "state": "192710"
+    }
+    ```
+</CodeContainer>
 
 This is the JSON representation of an output. In this case, the output is an instance of a `Coin` Jig.
 

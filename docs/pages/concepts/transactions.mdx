@@ -2,6 +2,8 @@
 title: 'Transactions'
 ---
 
+import {CodeContainer} from '../../customComponents/codeContainer'
+
 # Transactions
 
 All changes to the state of the Aldea Computer happen through transactions. A transaction is a list of instructions that are executed in order when the transaction is processed.
@@ -14,10 +16,12 @@ In Aldea, an instruction is a unit of code that performs a specific task. There 
 
 For example, in the example below, the first instruction loads a Jig by its output ID, which can then be referred to by its index (0) in subsequent instructions. The second instruction accesses the Jig from the first instruction and calls the third method (index 2) from the Jig's application binary interface (ABI) and passed the CBOR encoded arguments to the method.
 
-```ts
-LOAD <OUTPUT_ID>
-CALL 0 2 <CBOR_ENCODED_ARGS>
-```
+<CodeContainer lang="text" lines={false}>
+    ```
+    LOAD <OUTPUT_ID>
+    CALL 0 2 <CBOR_ENCODED_ARGS>
+    ```
+</CodeContainer>
 
 ## Signatures
 

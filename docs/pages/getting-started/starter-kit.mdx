@@ -2,6 +2,8 @@
 title: 'Install the starter kit'
 ---
 
+import {CodeContainer} from '../../customComponents/codeContainer'
+
 # Install the starter kit
 
 The Aldea Starter Kit is a simple way to set up an Aldea project and start writing and deploying code on the Aldea Computer blockchain.
@@ -12,15 +14,19 @@ To use it, you need to have a Node.js development environment with `npm` or `yar
 
 To create a new Aldea project, run the following command. It will create a directory called `demo-project` and set up a new Aldea project inside it.
 
-```bash
-npm create aldea demo-project
-```
+<CodeContainer lang="bash" lines={false}>
+    ```
+    npm create aldea demo-project
+    ```
+</CodeContainer>
 
 Once it's done, go into the directory and install the dependencies.
 
-```bash
-cd demo-project && npm i
-```
+<CodeContainer lang="bash" lines={false}>
+    ```
+    cd demo-project && npm i
+    ```
+</CodeContainer>
 
 You're now ready to start working on your Aldea project!
 
