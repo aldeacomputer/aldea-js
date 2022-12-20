@@ -2,6 +2,8 @@
 title: 'Jigs'
 ---
 
+import {CodeContainer} from '../../customComponents/codeContainer'
+
 # Jigs
 
 A Jig is a programmable digital object that can contain state and behaviour. A Jig has methods that allows it to be interacted with from the outside world or by other Jigs.
@@ -10,23 +12,25 @@ On Aldea, *everything is a Jig!* The Aldea Computer can be thought of as a machi
 
 If you are familiar with object oriented programming, you're familiar with Jigs:
 
-```ts
-export class Counter extends Jig {
-  count: i64 = 0
+<CodeContainer lang='ts' >
+    ```
+    export class Counter extends Jig {
+      count: i64 = 0
 
-  increase(): void {
-    this.count++
-  }
+      increase(): void {
+        this.count++
+      }
 
-  decrease(): void {
-    this.count--
-  }
+      decrease(): void {
+        this.count--
+      }
 
-  reset(): void {
-    this.count = 0
-  }
-}
-```
+      reset(): void {
+        this.count = 0
+      }
+    }
+    ```
+</CodeContainer>
 
 ## Understanding Jigs
 

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react'
+import {useEffect} from 'react'
 import Prism from 'prismjs'
 import 'prismjs/plugins/line-numbers/prism-line-numbers.js'
 import 'prismjs/plugins/line-numbers/prism-line-numbers.css'
@@ -6,8 +6,6 @@ import "prismjs/components/prism-rust"
 import "prismjs/components/prism-solidity"
 import "prismjs/components/prism-typescript"
 import styles from './codeContainer.module.scss'
-import {AldeaButton} from "./aldeaButton";
-import {toast} from "react-hot-toast";
 
 // Expected codeSnippets prop structure: [{:title, :code, :lang}, ...]
 export function CodeContainer({lang, children, title}) {
@@ -20,6 +18,8 @@ export function CodeContainer({lang, children, title}) {
     const map = {
       'js': 'language-javascript',
       'ts': 'language-typescript',
+      'json': 'language-json',
+      'bash': 'language-bash',
       'solidity': 'language-solidity',
       'rust': 'language-rust',
     }

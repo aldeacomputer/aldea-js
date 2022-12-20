@@ -1,3 +1,5 @@
+@import "mixins";
+
 :root {
   --primary-color: black;
   --dark-accent-color: #3a190c;
@@ -121,6 +123,14 @@ nav {
   li.active>a {
     background-color: var(--darker-background-color);
     color: var(--primary-color);
+  }
+}
+
+pre {
+  @include flatContainer;
+  background-color: var(--code-background-color);
+  code {
+    padding: 1.5em 1em 1em;
   }
 }
 

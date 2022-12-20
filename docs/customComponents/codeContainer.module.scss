@@ -51,6 +51,7 @@ $title-height: 4em;
     height: calc(100% - #{$title-height});
 
     code {
+      padding: 0;
       font-size: 1em !important;
       width: 86%;
       max-height: calc(var(--max-height-content-panel) - 2em);
