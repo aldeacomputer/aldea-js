@@ -10,7 +10,7 @@ import {
   findField,
   findFunction,
   findMethod,
-  findObject,
+  findObject, ImportNode,
   TypeNode
 } from "@aldea/compiler/abi";
 // import {
@@ -116,6 +116,12 @@ const utxoAbiNode = {
   methods: []
 }
 
+const coinNode: ImportNode = {
+  name: 'Coin',
+  origin: new Array(32).fill('0').join(''),
+  kind: 0
+}
+
 const lockStateAbiNode = {
   name: 'LockState',
   extends: null,
@@ -157,6 +163,7 @@ export class WasmInstance {
     this.abi = abi
     abi.objects.push(utxoAbiNode)
     abi.objects.push(lockStateAbiNode)
+    abi.imports.push(coinNode)
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
     this._currentExec = null
 
