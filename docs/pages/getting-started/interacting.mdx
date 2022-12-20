@@ -52,6 +52,9 @@ const tx = await aldea.createTx(tx => {
 
   tx.call(player1, 'attack', [player2])
 
+  tx.lock(player1, address)
+  tx.lock(player2, address)
+
   tx.call(coinRef, 'send', [coin.motos - 100, address])
   tx.fund(coinRef)
   tx.sign(keys.privKey)
@@ -73,8 +76,15 @@ Let's go through the code line by line to make sure you understand it:
     ```tsx
     tx.call(player1, 'attack', [player2])
     ```
+
+3. For a transaction to be successful, Jigs must be locked if they have been called or updated. Address re-use should be avoided in practice.
+
+    ```tsx
+    tx.lock(player1, address)
+    tx.lock(player2, address)
+    ```
     
-3. The following steps are used to complete the transaction: fund it, send change to yourself, and add a signature authorizing all the instructions.
+4. The following steps are used to complete the transaction: fund it, send change to yourself, and add a signature authorizing all the instructions.
     
     ```tsx
     tx.call(coinRef, 'send', [coin.motos - 100, address])
@@ -97,14 +107,14 @@ npm run attack \
 This command will print the full transaction execution result, as well as the state of the change coin and the two fighters. The output should look something like this:
 
 ```text
-abcdefg:
-Coin: { amount: 123 }
+Fighter: { name: 'Scorpion', weapons: 1, health: 100 }
+020e6e77ce9d0330518278f6764dc4c5eb271af744da31b08c42c11eb6744eda
 
-abcedfg
-Fighter: { name: 'Scorpion', weapons: ['abcdefg'] health: 100 }
+Fighter: { name: 'Sub-zero', weapons: 0, health: 80 }
+bf9d5dd9e7278dacf3f589f8f05e44a0a6b9f984bfcd1adf3e5d8e3db53744c9
 
-abcedfg
-Fighter: { name: 'Sub-zero', weapons: [], health: 80 }
+Coin ID: { motos: 9600 }
+130890fa951b6249d746d543692ffc8d617c0e4b28cf3fcc71fe827e00b2e1a0
 ```
 
 If everything has worked correctly, the second fighter's health should have been reduced by 20. You have successfully deployed and executed code on the Aldea Computer!

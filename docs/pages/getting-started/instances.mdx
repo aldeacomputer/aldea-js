@@ -80,14 +80,14 @@ npm run create-fighters --coin <OUTPUT_ID> --pkg <PACKAGE_ID>
 This will print the full transaction execution result, as well as the state of the change coin and the two fighters. The output will look something like this:
 
 ```text
-abcdefg:
-Coin: { amount: 123 }
+Fighter: { name: 'Scorpion', weapons: 1, health: 100 }
+c38a30d0f9c3ba76a590d575a23af964ba1b14a530aea3910722dfd94a7dd16d
 
-abcedfg
-Fighter: { name: 'Scorpion', weapons: ['abcdefg'] health: 100 }
+Fighter: { name: 'Sub-zero', weapons: 0, health: 100 }
+d3d5b85b986b80d3528463eaca2f4375f4b2800327240cd821778c293478beb1
 
-abcedfg
-Fighter: { name: 'Sub-zero', weapons: [], health: 100 }
+Coin ID: { motos: 9800 }
+277797682831f1e378ac1c11378e4ca188ee0b8b375eeb74e6525fafaafbe093
 ```
 
 The two fighters have default health of 100. The `Fighter` class has a method called `attack`, which deducts the opponent's health by the sum of the power of their weapons.
