@@ -2,5 +2,6 @@
   "starter-kit": "Install the starter kit",
   "key-pairs": "Create a new key pair",
   "deployments": "Deploy your first package",
-  "creating-jigs": "Create and interract with Jigs"
+  "instances": "Create and equip a fighter",
+  "interacting": "Enter into battle"
 }

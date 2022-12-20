@@ -1,0 +1,110 @@
+import Callout from 'nextra-theme-docs/callout'
+
+# Lets fight! Enter into battle
+
+In the last walkthrough You created two `Fighter` Jigs and equiped one of them with a `Weapon`. Now it's time for them to fight.
+
+## The attack method
+
+he `Fighter` class in `aldea/fighter.ts` has a method called `attack()` which allows one fighter to attack another. The attack power is determined by adding up the power of all the weapons that the attacking fighter has equipped. The method `takeDamage()` is called on the opponent fighter, with the attack power as an argument. This reduces the opponent's health by the attack power.
+
+```tsx
+class Fighter extends Jig {
+  // ...
+
+  attack(other: Fighter): void {
+    const power = this.weapons.reduce<i8>((power, weapon) => power + weapon.power, 0)
+    other.takeDamage(power)
+  }
+
+  private takeDamage(damage: i8): void {
+    this.health -= damage
+    if (this.health <= 0) {
+      this.health = 0
+      this.$lock.freeze()
+    }
+  }
+}
+```
+
+<Callout emoji="ℹ️">
+  **Private methods?**<br/>
+  In Aldea, private methods can only be called by instances within the same package and are not accessible from outside the package. This is different from JavaScript and TypeScript, where private methods cannot be called by instances of the same class.
+</Callout>
+
+One of your fighters has a weapon with a power of 20. When it attacks an opponent, the opponent fighter's health should be reduced by 20.
+
+Let's try it out.
+
+## The transaction
+
+There is a script in the starter kit called that creates a transaction for two fighters to battle. This transaction can be found in the `scripts/fight.js` file.
+
+```tsx
+const tx = await aldea.createTx(tx => {
+  const coinRef = tx.load(coin.id)
+  const player1 = tx.load(argv.p1)
+  const player2 = tx.load(argv.p2)
+
+  tx.call(player1, 'attack', [player2])
+
+  tx.call(coinRef, 'send', [coin.motos - 100, address])
+  tx.fund(coinRef)
+  tx.sign(keys.privKey)
+})
+```
+
+Let's go through the code line by line to make sure you understand it:
+
+1. The `LoadInstruction` is used to load the instances of the coin that will fund the transaction and the two fighters. No packages need to be imported as they are included with the instances.
+    
+    ```tsx
+    const coinRef = tx.load(coin.id)
+    const player1 = tx.load(argv.p1)
+    const player2 = tx.load(argv.p2)
+    ```
+    
+2. The `CallInstruction` calls the `attack` method on the `player1` instance and passes the `player2` instance as an argument.
+    
+    ```tsx
+    tx.call(player1, 'attack', [player2])
+    ```
+    
+3. The following steps are used to complete the transaction: fund it, send change to yourself, and add a signature authorizing all the instructions.
+    
+    ```tsx
+    tx.call(coinRef, 'send', [coin.motos - 100, address])
+    tx.fund(coinRef)
+    tx.sign(keys.privKey)
+    ```
+    
+
+## Execute the script
+
+To run the script that initiates the battle between the two fighters, you need the output IDs of an unspent coin and the two fighters from a previous walkthrough. You can execute the script by running the following command in your terminal:
+
+```bash
+npm run attack \
+  --coin <COIN_OUTPUT_ID> \
+  --p1 <PLAYER1_OUTPUT_ID> \
+  --p2 <PLAYER2_OUTPUT_ID>
+```
+
+This command will print the full transaction execution result, as well as the state of the change coin and the two fighters. The output should look something like this:
+
+```text
+abcdefg:
+Coin: { amount: 123 }
+
+abcedfg
+Fighter: { name: 'Scorpion', weapons: ['abcdefg'] health: 100 }
+
+abcedfg
+Fighter: { name: 'Sub-zero', weapons: [], health: 80 }
+```
+
+If everything has worked correctly, the second fighter's health should have been reduced by 20. You have successfully deployed and executed code on the Aldea Computer!
+
+## What next?
+
+Now that you have completed the walkthrough, you can continue experimenting with the starter kit scripts. You can try creating new weapons and equipping the fighters with them, or see what happens when one of the fighter's health reaches zero. Have fun exploring and experimenting with the code.
