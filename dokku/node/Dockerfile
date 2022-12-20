@@ -14,8 +14,6 @@ COPY sdk-js sdk-js
 COPY vm vm
 COPY node node
 
-RUN ls
-
 RUN yarn install
 RUN yarn build
 RUN yarn workspace @aldea/vm build
