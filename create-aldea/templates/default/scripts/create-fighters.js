@@ -1,12 +1,10 @@
-import fs from 'fs'
-import { join } from 'path'
-import dotenv from 'dotenv'
 import minimist from 'minimist'
 import { bold } from 'kolorist'
-import { Address, Aldea, KeyPair, PrivKey } from '@aldea/sdk-js'
+import { Address, Aldea } from '@aldea/sdk-js'
+import { loadKeys } from './_helpers.js'
 
 /**
- * TODO
+ * Creates two fighter instances and equips one with a weapon
  */
 async function createFighters(cwd, argv) {
   if (!argv.coin) {
@@ -19,7 +17,7 @@ async function createFighters(cwd, argv) {
   const keys = loadKeys(cwd)
   const address = Address.fromPubKey(keys.pubKey)
 
-  const aldea = new Aldea('localhost', 4000)
+  const aldea = new Aldea('node.aldea.computer', undefined, 'https')
   const coin = await aldea.loadOutput(argv.coin)
 
   if (coin.props.amount < 100) {
@@ -33,7 +31,7 @@ async function createFighters(cwd, argv) {
     const player1 = tx.new(pkgRef, 'Fighter', ['Scorpion'])
     const player2 = tx.new(pkgRef, 'Fighter', ['Sub-zero'])
 
-    const sword   = tx.new(pkgRef, 'Item', ['Kunai Spear', 20])
+    const sword   = tx.new(pkgRef, 'Weapon', ['Kunai Spear', 20])
     tx.call(player1, 'equip', [sword])
 
     tx.lock(player1, address)
@@ -64,23 +62,9 @@ async function createFighters(cwd, argv) {
     } else
     if (output.className === 'Fighter') {
       console.log()
-      console.log('Fighter:', { name: output.props.name, weapons: output.props.gear.length, health: output.props.health })
+      console.log('Fighter:', { name: output.props.name, weapons: output.props.weapons.length, health: output.props.health })
       console.log(bold(output.id))
     }
-  }
-}
-
-function loadKeys(cwd) {
-  const filename = '.aldea'
-  const keysFile = join(cwd, filename)
-
-  try {
-    const data = fs.readFileSync(keysFile)
-    const keys = dotenv.parse(data)
-    const privKey = PrivKey.fromHex(keys.PRIVKEY)
-    return KeyPair.fromPrivKey(privKey)
-  } catch(e) {
-    throw new Error(`file ${filename} does not exists. invoke setup command first.`)
   }
 }
 

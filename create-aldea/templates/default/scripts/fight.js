@@ -1,12 +1,10 @@
-import fs from 'fs'
-import { join } from 'path'
-import dotenv from 'dotenv'
 import minimist from 'minimist'
 import { bold } from 'kolorist'
-import { Address, Aldea, KeyPair, PrivKey } from '@aldea/sdk-js'
+import { Address, Aldea } from '@aldea/sdk-js'
+import { loadKeys } from './_helpers.js'
 
 /**
- * TODO
+ * Create a battle between two fighters
  */
 async function fight(cwd, argv) {
   if (!argv.coin) {
@@ -22,21 +20,22 @@ async function fight(cwd, argv) {
   const keys = loadKeys(cwd)
   const address = Address.fromPubKey(keys.pubKey)
 
-  const aldea = new Aldea('localhost', 4000)
+  const aldea = new Aldea('node.aldea.computer', undefined, 'https')
   const coin = await aldea.loadOutput(argv.coin)
 
   if (coin.props.amount < 100) {
     throw Error('insufficient balance to fund transaction:', coin.props)
   }
 
-  // Build the deploy transaction
   const tx = await aldea.createTx((tx, ref) => {
     const coinRef = tx.load(coin.id)
     const player1 = tx.load(argv.p1)
     const player2 = tx.load(argv.p2)
 
     tx.call(player1, 'attack', [player2])
+
     tx.lock(player1, address)
+    tx.lock(player2, address)
     
     tx.call(coinRef, 'send', [coin.props.motos - 100, address.hash])
     tx.fund(coinRef)
@@ -63,23 +62,9 @@ async function fight(cwd, argv) {
     } else
     if (output.className === 'Fighter') {
       console.log()
-      console.log('Fighter:', { name: output.props.name, weapons: output.props.gear.length, health: output.props.health })
+      console.log('Fighter:', { name: output.props.name, weapons: output.props.weapons.length, health: output.props.health })
       console.log(bold(output.id))
     }
-  }
-}
-
-function loadKeys(cwd) {
-  const filename = '.aldea'
-  const keysFile = join(cwd, filename)
-
-  try {
-    const data = fs.readFileSync(keysFile)
-    const keys = dotenv.parse(data)
-    const privKey = PrivKey.fromHex(keys.PRIVKEY)
-    return KeyPair.fromPrivKey(privKey)
-  } catch(e) {
-    throw new Error(`file ${filename} does not exists. invoke setup command first.`)
   }
 }
 

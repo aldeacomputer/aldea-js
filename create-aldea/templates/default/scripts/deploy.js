@@ -1,9 +1,7 @@
-import fs from 'fs'
-import { join } from 'path'
-import dotenv from 'dotenv'
 import minimist from 'minimist'
 import { bold } from 'kolorist'
-import { Address, Aldea, KeyPair, PrivKey } from '@aldea/sdk-js'
+import { Address, Aldea } from '@aldea/sdk-js'
+import { buildPackage, loadKeys } from './_helpers.js'
 
 /**
  * Bundles the list of files and creates a deploy transaction.
@@ -17,7 +15,7 @@ async function deploy(cwd, argv) {
   const pkg = buildPackage(cwd, argv._)
   const address = Address.fromPubKey(keys.pubKey)
 
-  const aldea = new Aldea('localhost', 4000)
+  const aldea = new Aldea('node.aldea.computer', undefined, 'https')
   const coin = await aldea.loadOutput(argv.coin)
 
   if (coin.props.amount < 100) {
@@ -25,7 +23,7 @@ async function deploy(cwd, argv) {
   }
 
   // Build the deploy transaction
-  const tx = await aldea.createTx((tx, ref) => {
+  const tx = await aldea.createTx(tx => {
     const coinRef = tx.load(coin.id)
     tx.deploy(pkg)
     tx.call(coinRef, 'send', [coin.props.motos - 100, address.hash])
@@ -49,36 +47,6 @@ async function deploy(cwd, argv) {
   console.log('Package ID:')
   console.log(bold(res.packages[0].id))
   console.log()
-}
-
-function loadKeys(cwd) {
-  const filename = '.aldea'
-  const keysFile = join(cwd, filename)
-
-  try {
-    const data = fs.readFileSync(keysFile)
-    const keys = dotenv.parse(data)
-    const privKey = PrivKey.fromHex(keys.PRIVKEY)
-    return KeyPair.fromPrivKey(privKey)
-  } catch(e) {
-    throw new Error(`file ${filename} does not exists. invoke setup command first.`)
-  }
-}
-
-function buildPackage(cwd, files) {
-  const pkg = new Map()
-  try {
-    if (!files.length) throw new Error('no files given')
-    for (let i = 0; i < files.length; i++) {
-      const file = fs.readFileSync(join(cwd, 'aldea', files[i]))
-      pkg.set(files[i], file.toString())
-    }
-  } catch (e) {
-    console.log(e.message)
-    process.exit()
-  }
-  
-  return pkg
 }
 
 deploy(
