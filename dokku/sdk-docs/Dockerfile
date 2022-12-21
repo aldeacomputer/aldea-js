@@ -20,5 +20,6 @@ RUN yarn workspace @aldea/sdk-js docs
 
 FROM nginx:alpine
 
+EXPOSE 80
 # Copy fully compiled files.
 COPY --from=build /app/sdk-js/docs /usr/share/nginx/html
