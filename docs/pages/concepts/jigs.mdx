@@ -6,11 +6,11 @@ import {CodeContainer} from '../../customComponents/codeContainer'
 
 # Jigs
 
-A Jig is a programmable digital object that can contain state and behaviour. A Jig has methods that allows it to be interacted with from the outside world or by other Jigs.
+A Jig is a programmable digital object. Like any object, Jigs contain state and behaviour, and can be interracted with through methods. But Jig's exist on a blockchain and have some special charcteristics because of this.
+
+A Jig's behavior is "deterministic", meaning that it will always produce the same result given the same starting state and conditions. The source code that describes this behavior is publicly available, and the history of a Jig can be traced and reviewed by anyone. Jigs can be controlled by different entities - individuals, organisations, even other Jigs!
 
 On Aldea, *everything is a Jig!* The Aldea Computer can be thought of as a machine made up of many Jigs interacting with each other. From tokens and NFTs to smart contracts and DeFi, all use cases are implemented as Jigs.
-
-If you are familiar with object oriented programming, you're familiar with Jigs:
 
 <CodeContainer lang="ts">
     ```
@@ -31,12 +31,6 @@ If you are familiar with object oriented programming, you're familiar with Jigs:
     }
     ```
 </CodeContainer>
-
-## Understanding Jigs
-
-- Jig classes are written in AssemblyScript, a language that is similar to TypeScript and will be familiar to many developers.
-- A Jig is **an instance** of a class that inherits from the `Jig` parent class.
-- Jigs have typed properties that can store state, and methods that allow the Jig to be interacted with.
 
 ## Jig authorization
 
