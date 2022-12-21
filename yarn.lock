@@ -114,7 +114,6 @@ __metadata:
     npm-run-all: ^4.1.5
     rimraf: ^3.0.2
     typedoc: ^0.23.23
-    typedoc-plugin-missing-exports: ^1.0.0
     typescript: ^4.8.4
   languageName: unknown
   linkType: soft
@@ -11019,15 +11018,6 @@ __metadata:
     media-typer: 0.3.0
     mime-types: ~2.1.24
   checksum: 2c8e47675d55f8b4e404bcf529abdf5036c537a04c2b20177bcf78c9e3c1da69da3942b1346e6edb09e823228c0ee656ef0e033765ec39a70d496ef601a0c657
-  languageName: node
-  linkType: hard
-
-"typedoc-plugin-missing-exports@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "typedoc-plugin-missing-exports@npm:1.0.0"
-  peerDependencies:
-    typedoc: 0.22.x || 0.23.x
-  checksum: 11ef3ba347a88924397f2f2f84216e5d41f9714baba671e4f9a86dd4de22d5e5e47477a295776c4f489be91065a152fedcbfa9aa6cba90499894e6670441ce31
   languageName: node
   linkType: hard
 

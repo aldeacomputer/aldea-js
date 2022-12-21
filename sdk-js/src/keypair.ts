@@ -4,7 +4,7 @@ import {
 } from './internal.js'
 
 /**
- * Aldea keypair
+ * Aldea Key Pair
  * 
  * Convinience wrapper around a PrivKey and PubKey pair.
  */

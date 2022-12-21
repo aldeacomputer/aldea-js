@@ -14,6 +14,21 @@ import {
   Serializable
 } from './internal.js'
 
+/**
+ * Transaction Execution Output
+ * 
+ * When a transaction is executed it creates one or more outputs. An output
+ * has the following fields:
+ * 
+ * - `origin`: a 36-byte pointer to the transaction the instance was first instantiated
+ * - `location`: a 36-byte pointer to the transaction of the current state of the instance
+ * - `class`: a 36-byte pointer to the package the class is found in
+ * - `lock`: the Lock type and data
+ * - `state`: CBOR encoded output state
+ * 
+ * The Output class is a generic wrapper for any output, and provides a way to
+ * access the parsed state as a JavaScript object.
+ */
 export class Output {
   origin: Pointer;
   location: Pointer;
@@ -131,7 +146,7 @@ export class Output {
 }
 
 /**
- * TODO
+ * Output Serializer object - implements the Serializable interface.
  */
 export const OutputSerializer: Serializable<Output> = {
   read(buf: BufReader): Output {

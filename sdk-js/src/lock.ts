@@ -25,7 +25,10 @@ export enum LockType {
 }
 
 /**
- * TODO
+ * Output Lock
+ * 
+ * Every output has a Lock which determines who can call methods and update the
+ * instance.
  */
 export class Lock {
   type: LockType;
@@ -60,7 +63,7 @@ export class Lock {
 }
 
 /**
- * TODO
+ * Lock Serializer object - implements the Serializable interface.
  */
 export const LockSerializer: Serializable<Lock> = {
   read(buf: BufReader): Lock {

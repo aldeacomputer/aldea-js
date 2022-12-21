@@ -41,6 +41,10 @@ export enum OpCode {
 
 /**
  * Instruction base class.
+ * 
+ * An Instruction is Aldea's smallest contiguous unit of execution. A
+ * transaction consists of a `OpCode` byte and a number of arguments, depending
+ * on the `OpCode`.
  */
 export class Instruction {
   opcode: OpCode;
