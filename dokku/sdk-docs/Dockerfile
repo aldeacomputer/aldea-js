@@ -15,6 +15,7 @@ COPY compiler compiler
 COPY sdk-js sdk-js
 
 RUN yarn install
+RUN yarn build
 RUN yarn workspace @aldea/sdk-js docs
 
 FROM nginx:alpine
