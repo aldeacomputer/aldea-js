@@ -72,10 +72,3 @@ export class PrivKey {
     return PubKey.fromPrivKey(this)
   }
 }
-
-/**
- * Checks the given argument is an PrivKey.
- */
-export function isPrivKey(privKey: any): boolean {
-  return privKey instanceof PrivKey
-}

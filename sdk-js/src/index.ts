@@ -5,16 +5,17 @@
 // Core exports
 export {
   Aldea,
-  Address, isAddress,
-  HDKey, isHDKey,
-  KeyPair, isKeyPair,
+  Address,
+  HDKey,
+  KeyPair,
   Lock, LockSerializer,
   Output, OutputSerializer,
   Pointer, PointerSerializer,
-  PrivKey, isPrivKey,
-  PubKey, isPubKey,
-  Tx, isTx, TxSerializer,
+  PrivKey,
+  PubKey,
+  Tx, TxSerializer,
   TxBuilder,
+  Serializable,
   OpCode,
   Instruction, InstructionSerializer, InstructionRef, ref,
 } from './internal.js'

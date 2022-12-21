@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import { Address, isAddress } from '../dist/address.js'
+import { Address } from '../dist/address.js'
 import { KeyPair } from '../dist/keypair.js'
 
 test.before(t => {
@@ -41,13 +41,3 @@ test('Address#toString() returns address string', t => {
   t.is(address, t.context.addrStr)
 })
 
-test('isAddress() is true if passed Address', t => {
-  t.true(isAddress(t.context.addr))
-})
-
-test('isAddress() is false if not passed Address', t => {
-  t.false(isAddress())
-  t.false(isAddress({}))
-  t.false(isAddress('123'))
-  t.false(isAddress(123))
-})

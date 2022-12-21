@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import { KeyPair, isKeyPair } from '../dist/keypair.js'
+import { KeyPair } from '../dist/keypair.js'
 import { PrivKey } from '../dist/privkey.js'
 import { PubKey } from '../dist/pubkey.js'
 
@@ -26,16 +26,4 @@ test('KeyPair.fromPrivKey() throws with invalid PrivKey', t => {
   t.throws(() => KeyPair.fromPrivKey({}))
   t.throws(() => KeyPair.fromPrivKey(123))
   t.throws(() => KeyPair.fromPrivKey('abc'))
-})
-
-test('isKeyPair() is true if passed KeyPair', t => {
-  const key = KeyPair.fromRandom()
-  t.true(isKeyPair(key))
-})
-
-test('isKeyPair() is false if not passed KeyPair', t => {
-  t.false(isKeyPair())
-  t.false(isKeyPair({}))
-  t.false(isKeyPair('123'))
-  t.false(isKeyPair(123))
 })

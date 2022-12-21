@@ -1,7 +1,7 @@
 import test from 'ava'
 import { Address } from '../dist/address.js'
 
-import { PubKey, isPubKey } from '../dist/pubkey.js'
+import { PubKey } from '../dist/pubkey.js'
 import { PrivKey } from '../dist/privkey.js'
 
 test.before(t => {
@@ -72,15 +72,4 @@ test('PubKey#toHex() returns a string', t => {
 test('PubKey#toAddress() returns n Address', t => {
   const address = t.context.pubKey.toAddress()
   t.true(address instanceof Address)
-})
-
-test('isPubKey() is true if passed PubKey', t => {
-  t.true(isPubKey(t.context.pubKey))
-})
-
-test('isPubKey() is false if not passed PubKey', t => {
-  t.false(isPubKey())
-  t.false(isPubKey({}))
-  t.false(isPubKey('123'))
-  t.false(isPubKey(123))
 })

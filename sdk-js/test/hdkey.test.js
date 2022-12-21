@@ -1,7 +1,7 @@
 import test from 'ava'
 import { wordlist } from '@scure/bip39/wordlists/english.js'
 
-import { HDKey, isHDKey } from '../dist/hdkey.js'
+import { HDKey } from '../dist/hdkey.js'
 import { generateMnemonic, mnemonicToSeed } from '../dist/support/mnemonic.js'
 import { HDNode } from '../dist/support/ed25519.js'
 import { PrivKey } from '../dist/privkey.js'
@@ -42,15 +42,4 @@ test('HDKey#derive() throws with an invalid path', t => {
   t.throws(() => t.context.key.derive())
   t.throws(() => t.context.key.derive({}))
   t.throws(() => t.context.key.derive(123))
-})
-
-test('isHDKey() is true if passed HDKey', t => {
-  t.true(isHDKey(t.context.key))
-})
-
-test('isHDKey() is false if not passed HDKey', t => {
-  t.false(isHDKey())
-  t.false(isHDKey({}))
-  t.false(isHDKey('123'))
-  t.false(isHDKey(123))
 })

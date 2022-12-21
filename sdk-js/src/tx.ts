@@ -119,13 +119,6 @@ export class Tx {
 }
 
 /**
- * Checks the given argument is a Transaction.
- */
- export function isTx(tx: any): boolean {
-  return tx instanceof Tx
-}
-
-/**
  * Tx Serializer object - implements the Serializable interface.
  */
 export const TxSerializer: Serializable<Tx> = {

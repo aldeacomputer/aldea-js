@@ -46,10 +46,3 @@ export class HDKey {
     return new HDKey(node)
   }
 }
-
-/**
- * Checks the given argument is an HDKey.
- */
-export function isHDKey(hdKey: any): boolean {
-  return hdKey instanceof HDKey
-}

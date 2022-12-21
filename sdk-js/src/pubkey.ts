@@ -1,4 +1,4 @@
-import { Address, PrivKey, isPrivKey } from './internal.js'
+import { Address, PrivKey } from './internal.js'
 import { base16 } from './support/base.js'
 import { Point, calcPoint, pointFromBytes, pointToBytes } from './support/ed25519.js'
 
@@ -59,7 +59,7 @@ export class PubKey {
    * Returns a the giveb PrivKey's corresponding PubKey.
    */
   static fromPrivKey(privKey: PrivKey): PubKey {
-    if (!isPrivKey(privKey)) {
+    if (!(privKey instanceof PrivKey)) {
       throw Error('The first argument to `PubKey.fromPrivKey()` must be a `PrivKey`')
     }
     const point = calcPoint(privKey.d)
@@ -86,11 +86,4 @@ export class PubKey {
   toHex(): string {
     return base16.encode(this.toBytes())
   }
-}
-
-/**
- * Checks the given argument is a PubKey.
- */
-export function isPubKey(pubKey: any): boolean {
-  return pubKey instanceof PubKey
 }

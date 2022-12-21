@@ -1,4 +1,4 @@
-import { PubKey, isPubKey } from './internal.js';
+import { PubKey } from './internal.js';
 import { bech32m } from './support/base.js'
 import { blake3 } from './support/hash.js'
 
@@ -25,7 +25,7 @@ export class Address {
    * Returns an Address from the given PubKey.
    */
   static fromPubKey(pubKey: PubKey): Address {
-    if (!isPubKey(pubKey)) {
+    if (!(pubKey instanceof PubKey)) {
       throw Error('The first argument to `Address.fromPubKey()` must be a `PubKey`')
     }
     const hash = blake3(pubKey.toBytes(), 20)
@@ -50,11 +50,4 @@ export class Address {
   equals (another: Address): boolean {
     return Buffer.from(this.hash).equals(Buffer.from(another.hash))
   }
-}
-
-/**
- * Checks the given argument is an Address.
- */
-export function isAddress(address: any): boolean {
-  return address instanceof Address
 }

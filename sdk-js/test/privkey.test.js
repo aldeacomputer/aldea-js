@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import { PrivKey, isPrivKey } from '../dist/privkey.js'
+import { PrivKey } from '../dist/privkey.js'
 import { KeyPair } from '../dist/keypair.js'
 import { PubKey } from '../dist/pubkey.js'
 
@@ -68,15 +68,4 @@ test('PrivKey#toKeyPair() returns a KeyPair', t => {
 test('PrivKey#toPubKey() returns a PubKey', t => {
   const pubKey = t.context.privKey.toPubKey()
   t.true(pubKey instanceof PubKey)
-})
-
-test('isPrivKey() is true if passed ProvKey', t => {
-  t.true(isPrivKey(t.context.privKey))
-})
-
-test('isPrivKey() is false if not passed ProvKey', t => {
-  t.false(isPrivKey())
-  t.false(isPrivKey({}))
-  t.false(isPrivKey('123'))
-  t.false(isPrivKey(123))
 })

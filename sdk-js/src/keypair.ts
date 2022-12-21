@@ -1,7 +1,6 @@
 import {
   PrivKey,
   PubKey,
-  isPrivKey,
 } from './internal.js'
 
 /**
@@ -30,17 +29,10 @@ export class KeyPair {
    * Returns a KeyPair from the given PrivKey.
    */
   static fromPrivKey(privKey: PrivKey): KeyPair {
-    if (!isPrivKey(privKey)) {
+    if (!(privKey instanceof PrivKey)) {
       throw Error('The first argument to `KeyPair.fromPrivKey()` must be a `PrivKey`')
     }
     const pubKey = privKey.toPubKey()
     return new KeyPair(privKey, pubKey)
   }
-}
-
-/**
- * Checks the given argument is an KeyPair.
- */
-export function isKeyPair(keyPair: any): boolean {
-  return keyPair instanceof KeyPair
 }
