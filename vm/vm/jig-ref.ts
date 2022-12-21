@@ -1,6 +1,6 @@
 import {WasmInstance} from './wasm-instance.js';
 import {Lock} from "./locks/lock.js";
-import {Internref} from "./memory.js";
+import {Externref, Internref} from "./memory.js";
 import {Pointer} from "@aldea/sdk-js";
 
 export class JigRef  {
@@ -36,5 +36,9 @@ export class JigRef  {
 
   asChildRef(): Uint8Array {
     return this.origin.toBytes()
+  }
+
+  asExtRef() {
+    return new Externref(this.className(), this.origin.toBytes());
   }
 }

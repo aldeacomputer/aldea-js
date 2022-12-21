@@ -228,6 +228,12 @@ class TxExecution {
       const value = callerInstance.extractValue(ptr, n.type)  // liftValue(callerInstance, n.type, ptr)
       if (value instanceof Externref) {
         return this.getJigRefByOrigin(Pointer.fromBytes(value.originBuf))
+      } else if (value instanceof Internref) {
+        const jigRef = this.jigs.find(j => j.package === callerInstance && j.ref.equals(value))
+        if (!jigRef) {
+          throw new Error('should exist')
+        }
+        return jigRef
       } else {
         return value
       }
@@ -428,7 +434,9 @@ class TxExecution {
 
   private hydrateJigState(state: JigState): JigRef {
     const module = this.loadModule(state.packageId)
-    const ref = module.hidrate(state.classIdx, state.stateBuf)
+    const ref = module.hidrate(state.classIdx, state.stateBuf, (ref: Externref) => {
+      return this.findJigByOrigin(Pointer.fromBytes(ref.originBuf))
+    })
     const lock = this.hidrateLock(state.serializedLock)
     const jigRef = new JigRef(ref, state.classIdx, module, state.origin, lock)
     this.addNewJigRef(jigRef)
@@ -483,20 +491,28 @@ class TxExecution {
   }
 
   callInstanceMethod (jig: JigRef, methodName: string, args: any[]): MethodResult {
-    return jig.package.instanceCall(jig, jig.className(), methodName, args)
+    const methodResult = jig.package.instanceCall(jig, jig.className(), methodName, args);
+    let value = methodResult.value
+    if (value instanceof Internref) {
+      value = this.jigs.find(j => j.package === jig.package && j.ref.equals(value))
+    }
+    if (value instanceof Externref) {
+      value = this.jigs.find(j => j.origin.equals(Pointer.fromBytes(value.originBuf)))
+    }
+    return {...methodResult, value}
   }
 
   callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {
     const jigRef = this.getStatementResult(jigIndex).asJig()
     const methodResult = this.callInstanceMethod(jigRef, methodName, args)
-    let value = methodResult.value
-    if (value instanceof Internref) {
-      value = this.jigs.find(j => j.package === jigRef.package && j.ref.equals(value))
-    }
-    if (value instanceof Externref) {
-      value = this.jigs.find(j => j.origin.equals(Pointer.fromBytes(value.originBuf)))
-    }
-    this.statementResults.push(new ValueStatementResult(methodResult.node, value, methodResult.mod))
+    // let value = methodResult.value
+    // if (value instanceof Internref) {
+    //   value = this.jigs.find(j => j.package === jigRef.package && j.ref.equals(value))
+    // }
+    // if (value instanceof Externref) {
+    //   value = this.jigs.find(j => j.origin.equals(Pointer.fromBytes(value.originBuf)))
+    // }
+    this.statementResults.push(new ValueStatementResult(methodResult.node, methodResult.value, methodResult.mod))
     return this.statementResults.length - 1
   }
 
