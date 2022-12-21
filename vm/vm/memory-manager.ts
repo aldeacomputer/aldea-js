@@ -16,19 +16,35 @@ import {AnyTypedArray, Externref, Internref, MemoryLayout} from "./memory.js";
 
 export type InternRefMap = (ref: Internref) => any
 export type InternRefFilter = (origin: Uint8Array) => JigRef
+export type ExternRefFilter = (ref: Externref | JigRef) => JigRef
 
 export class MemoryManager {
   liftInterRefMap: InternRefMap
   lowerInterRefFilter: InternRefFilter | null
+  extRefFilter: ExternRefFilter
 
   constructor() {
     this.liftInterRefMap = (ref: Internref) => ref
     this.lowerInterRefFilter = null
+    this.extRefFilter = (ref: Externref | JigRef) => {
+      if (ref instanceof Externref) {
+        throw new Error('should be a jig ref')
+      } else {
+        return ref
+      }
+    }
   }
 
   reset () {
     this.liftInterRefMap = (ref: Internref) => ref
     this.lowerInterRefFilter = null
+    this.extRefFilter = (ref: Externref | JigRef) => {
+      if (ref instanceof Externref) {
+        throw new Error('should be a jig ref')
+      } else {
+        return ref
+      }
+    }
   }
 
   liftValue(mod: Module, type: TypeNode | null, val: number | bigint): any {
@@ -285,7 +301,7 @@ export class MemoryManager {
           }
           return this.lowerInternref(interRef)
         }
-        if (imported) { return this.lowerImportedObject(mod, val) }
+        if (imported) { return this.lowerImportedObject(mod, this.extRefFilter(val)) }
         if (isobject) { return this.lowerObject(mod, isobject, val) }
 
         throw new Error(`cannot lower unspported type: ${type.name}`)

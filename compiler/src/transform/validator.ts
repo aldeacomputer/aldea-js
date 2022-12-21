@@ -82,7 +82,7 @@ const whitelist = {
     'Int8Array', 'Int16Array', 'Int32Array', 'Int64Array',
     'Uint8Array', 'Uint16Array', 'Uint32Array', 'Uint64Array',
     'Array', 'StaticArray',
-    'Map', 'Set'
+    'Map', 'Set', 'Coin'
   ]
 }
 

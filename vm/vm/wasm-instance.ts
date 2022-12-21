@@ -10,7 +10,7 @@ import {
   findField,
   findFunction,
   findMethod,
-  findObject,
+  findObject, ImportNode,
   TypeNode
 } from "@aldea/compiler/abi";
 // import {
@@ -29,7 +29,7 @@ import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
 import {InternRefMap, MemoryManager} from "./memory-manager.js";
-import {Internref} from "./memory.js";
+import {Externref, Internref} from "./memory.js";
 import {WasmPointer} from "./arg-reader.js";
 
 // enum AuthCheck {
@@ -116,6 +116,12 @@ const utxoAbiNode = {
   methods: []
 }
 
+const coinNode: ImportNode = {
+  name: 'Coin',
+  origin: new Array(32).fill('0').join(''),
+  kind: 0
+}
+
 const lockStateAbiNode = {
   name: 'LockState',
   extends: null,
@@ -157,6 +163,7 @@ export class WasmInstance {
     this.abi = abi
     abi.objects.push(utxoAbiNode)
     abi.objects.push(lockStateAbiNode)
+    abi.imports.push(coinNode)
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
     this._currentExec = null
 
@@ -304,7 +311,7 @@ export class WasmInstance {
     }
   }
 
-  hidrate (classIdx: number, frozenState: Uint8Array): Internref {
+  hidrate (classIdx: number, frozenState: Uint8Array, findJig: (ref: Externref) => JigRef): Internref {
     const rawState = __decodeArgs(frozenState)
     const objectNode = this.abi.exports[classIdx].code as ClassNode //findClass(, className, `unknown class ${className}`)
 
@@ -312,6 +319,10 @@ export class WasmInstance {
     this.memMgr.lowerInterRefFilter = (originBytes: Uint8Array): JigRef => {
       const ptr = Pointer.fromBytes(originBytes)
       return this.currentExec.findJigByOrigin(ptr)
+    }
+    this.memMgr.extRefFilter = (ref: Externref | JigRef) => {
+      if(ref instanceof JigRef) { return ref }
+      return findJig(ref)
     }
 
     const pointer = this.memMgr.lowerObject(this, objectNode, rawState)
