@@ -114,7 +114,7 @@ export class TransformCtx {
   private mapTypeIds(): TypeIds {
     if (!this.program) return {}
 
-    const whitelist = Array.from(this.exposedTypes.keys()).concat('LockState', 'UtxoState', 'Coin')
+    const whitelist = Array.from(this.exposedTypes.keys()).concat('LockState', 'UtxoState', 'Coin', 'Jig')
     return [...this.program.managedClasses].reduce((obj: TypeIds, [id, klass]) => {
       const name = normalizeClassName(klass)
       if (whitelist.includes(name)) { obj[name] = id }
