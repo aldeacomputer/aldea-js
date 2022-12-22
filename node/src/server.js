@@ -10,6 +10,7 @@ import { Address, base16 } from "@aldea/sdk-js"
 import { abiToCbor, abiToJson } from "@aldea/compiler/abi"
 import { CBOR, Sequence } from "cbor-redux"
 import { Pointer } from "@aldea/sdk-js"
+import { CompileError } from "@aldea/compiler"
 
 
 const buildApp = () => {
@@ -153,6 +154,15 @@ const buildApp = () => {
         message: err.message,
         code: 'NOT_FOUND',
         data: err.data
+      })
+    } else if (err instanceof CompileError) {
+      res.status(statuses.BAD_REQUEST)
+      res.send({
+        message: 'there was an error compiling a package',
+        code: 'COMPILE_ERROR',
+        data: {
+          message: err.stderr.toString()
+        }
       })
     } else {
       res.status(statuses.BAD_REQUEST)

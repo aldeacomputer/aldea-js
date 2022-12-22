@@ -20,5 +20,6 @@ export async function compileFile (file) {
     console.log(`compiled ${relativePath} ok.`)
   } catch (e) {
     console.warn(`error compiling ${relativePath}: ${e.message}`)
+    console.error(e.stderr.toString())
   }
 }
