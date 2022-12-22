@@ -1,6 +1,6 @@
 {
   "name": "@aldea/sdk-js",
-  "version": "0.0.1-beta.1",
+  "version": "0.0.1-beta.2",
   "type": "module",
   "license": "MIT",
   "exports": {
@@ -27,7 +27,8 @@
     "dist/aldea.bundle.cjs",
     "dist/aldea.bundle.mjs",
     "dist/aldea.bundle.min.js",
-    "dist/aldea.bundle.min.js.map"
+    "dist/aldea.bundle.min.js.map",
+    "dist/**/*.d.ts"
   ],
   "scripts": {
     "build": "run-s clean build:ts build:es",
