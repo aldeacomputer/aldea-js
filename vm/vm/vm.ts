@@ -57,7 +57,7 @@ export class VM {
     });
     const lastRef = this.storage.tipFor(jigState.origin)
     if (!Buffer.from(jigState.id()).equals(Buffer.from(lastRef))) {
-      throw new ExecutionError('jig already spent')
+      throw new ExecutionError(`jig already spent: ${outputId}`)
     }
     this.storage.tipForOrigin(jigState.id())
     return jigState

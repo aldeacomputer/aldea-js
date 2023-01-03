@@ -25,4 +25,8 @@ export class NoLock implements Lock {
   typeNumber(): number {
     return LockType.NONE;
   }
+
+  data(): Uint8Array {
+    return new Uint8Array(0);
+  }
 }

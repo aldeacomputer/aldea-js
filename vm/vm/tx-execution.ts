@@ -157,6 +157,7 @@ class TxExecution {
       const origin = jigRef.origin || location
       const serialized = this.serializeJig(jigRef)
       const jigState = new JigState(origin, location , jigRef.classIdx, serialized, jigRef.package.id, jigRef.lock.serialize())
+      // console.log(jigState.parsedState())
       this.outputs.push(jigState)
     })
   }
@@ -412,6 +413,10 @@ class TxExecution {
 
   findJigByOutputId (outputId: Uint8Array): JigRef {
     const jigState = this.vm.findJigStateByOutputId(outputId)
+    const existing = this.jigs.find(j => j.origin.equals(jigState.origin))
+    if (existing) {
+      return existing
+    }
     return this.hydrateJigState(jigState)
   }
 
@@ -428,6 +433,10 @@ class TxExecution {
   }
 
   findJigByOrigin (origin: Pointer): JigRef {
+    const existing = this.jigs.find(j => j.origin.equals(origin))
+    if (existing) {
+      return existing
+    }
     const jigState = this.vm.findJigStateByOrigin(origin)
     return this.hydrateJigState(jigState)
   }
@@ -597,6 +606,10 @@ class TxExecution {
 
   markAsFunded() {
     this.funded = true
+  }
+
+  outputIndexFor(jigRef: JigRef): number {
+    return this.jigs.findIndex(j => j === jigRef)
   }
 }
 
