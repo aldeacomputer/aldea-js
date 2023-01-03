@@ -88,7 +88,7 @@ export class Aldea {
    * the most transaction execution output.
    */
   getOutputByOrigin(origin: string): Promise<OutputResponse> {
-    return this.api.get(`output-by-id/${origin}`, { cache: 'no-cache' }).json()
+    return this.api.get(`output-by-origin/${origin}`, { cache: 'no-cache' }).json()
   }
 
   /**
