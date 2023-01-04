@@ -92,7 +92,7 @@ const utxoAbiNode = {
       kind: FieldKind.PUBLIC,
       name: 'origin',
       type: {
-        name: 'ArrayBuffer',
+        name: 'string',
         args: []
       }
     },
@@ -100,15 +100,7 @@ const utxoAbiNode = {
       kind: FieldKind.PUBLIC,
       name: 'location',
       type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'motos',
-      type: {
-        name: 'u64',
+        name: 'string',
         args: []
       }
     },
@@ -242,9 +234,8 @@ export class WasmInstance {
           const jigRef = this.currentExec.findUtxoHandler(this, jigPtr)
           const abiNode = findObject(this.abi, 'UtxoState', 'should be present')
           const utxo = {
-            origin: jigRef.origin.toBytes(),
-            location: new Pointer(this.currentExec.tx.id, this.currentExec.outputIndexFor(jigRef)).toBytes(),
-            motos: 0,
+            origin: jigRef.origin.toString(),
+            location: new Pointer(this.currentExec.tx.id, this.currentExec.outputIndexFor(jigRef)).toString(),
             lock: {
               type: jigRef.lock.typeNumber(),
               data: jigRef.lock.data()
@@ -258,7 +249,6 @@ export class WasmInstance {
           const utxo = {
             origin: jigRef.origin.toString(),
             location: new Pointer(this.currentExec.tx.id, this.currentExec.outputIndexFor(jigRef)).toString(),
-            motos: 0,
             lock: {
               type: jigRef.lock.typeNumber(),
               data: jigRef.lock.data()

@@ -307,7 +307,7 @@ describe('tx interaction', () => {
   it('can exec static methods', async () => {
     const tx = new TxBuilder()
       .import(modIdFor('flock'))
-      .exec(0, 0, 7, [10])
+      .exec(0, 0, 9, [10])
       .call(1, 1, [])
       .lock(1, userAddr)
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
@@ -329,7 +329,7 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .import(modIdFor('sheep-counter'))
       .new(0, 0, [])
-      .exec(1, 1, 7, [ref(2)])
+      .exec(1, 1, 9, [ref(2)])
       .lock(2, userAddr)
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
@@ -388,5 +388,85 @@ describe('tx interaction', () => {
       return
     }
     expect.fail('should fail because not enough coins')
+  })
+
+  it('can use local location inside tx.', async () => {
+    const tx = new TxBuilder()
+      .import(modIdFor('flock'))
+      .new(0, 0, []) // not implemented yet
+      .lock(1, userAddr)
+      .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
+      .build()
+
+    const exec = await vm.execTx(tx)
+
+    const tx2 = new TxBuilder()
+      .load(exec.outputs[0].id())
+      .call(0, 7, []) // not implemented yet
+      .lock(0, userAddr)
+      .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
+      .build()
+
+    const exec2 = await vm.execTx(tx2)
+
+    const result = exec2.getStatementResult(1)
+    expect(result.value).to.eql(exec2.outputs[0].currentLocation.toString())
+  })
+
+  it('can use local origin inside tx.', async () => {
+    const tx = new TxBuilder()
+      .import(modIdFor('flock'))
+      .new(0, 0, []) // not implemented yet
+      .lock(1, userAddr)
+      .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
+      .build()
+
+    const exec = await vm.execTx(tx)
+
+    const tx2 = new TxBuilder()
+      .load(exec.outputs[0].id())
+      .call(0, 8, []) // not implemented yet
+      .lock(0, userAddr)
+      .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
+      .build()
+
+    const exec2 = await vm.execTx(tx2)
+
+    const result = exec2.getStatementResult(1)
+    expect(result.value).to.eql(exec2.outputs[0].origin.toString())
+  })
+
+  it('can use external origin and location inside tx.', async () => {
+    const tx = new TxBuilder()
+      .import(modIdFor('flock'))
+      .new(0, 0, [])
+      .lock(1, userAddr)
+      .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
+      .build()
+
+    const exec = await vm.execTx(tx)
+
+    const tx2 = new TxBuilder()
+      .load(exec.outputs[0].id())
+      .import(modIdFor('sheep-counter'))
+      .new(1, 1, [ref(0)])
+      .call(2, 7, [])
+      .call(2, 8, [])
+      .lock(2, userAddr)
+      .sign(userPriv)
+      .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
+      .build()
+
+    const exec2 = await vm.execTx(tx2)
+
+    const origin = exec2.getStatementResult(3).value
+    const location = exec2.getStatementResult(4).value
+    expect(origin).to.eql(exec2.outputs[0].origin.toString())
+    expect(location).to.eql(exec2.outputs[0].currentLocation.toString())
   })
 })
