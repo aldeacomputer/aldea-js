@@ -367,7 +367,7 @@ class TxExecution {
     let i = 0
     for (const inst of this.tx.instructions) {
       if (inst instanceof instructions.ImportInstruction) {
-        this.importModule(inst.origin)
+        this.importModule(inst.pkgId)
       } else if (inst instanceof instructions.NewInstruction) {
         const wasm = this.getStatementResult(inst.idx).instance
         const className = wasm.abi.exports[inst.exportIdx].code.name

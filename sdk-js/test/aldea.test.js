@@ -1,6 +1,114 @@
 import test from 'ava'
 import { mockAldea  } from './test-helpers.js'
-import { Aldea, Output, Tx } from '../dist/aldea.bundle.mjs'
+import {
+  Aldea,
+  Address,
+  KeyPair,
+  OpCode,
+  Output,
+  Pointer,
+  Tx,
+  base16,
+} from '../dist/aldea.bundle.mjs'
+
+test('Builds a tx with every opcode and encodes/decodes consistently', async t => {
+  const aldea = new Aldea('localhost')
+  mockAldea(aldea, mock => {
+    mock.get('http://localhost/package/0d1cf6b53ba774de8b1f063a93a5e93b016923aeee74ea3cbbb8bab610496fe3/abi.json', { file: 'test/mocks/txb.pkg.json', format: 'string' })
+    mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
+    mock.get('http://localhost/output/ddf0b9045226da3ffbe5de25f22f76a5d00f01b1ee99e75e68d87bdce8cbc86d', { file: 'test/mocks/txb.coin.json', format: 'string' })
+    mock.get('http://localhost/output-by-origin/b31fa880f92288828fddc92bef6f191f651ef8b905bdeabc31c006849702a361_1', { file: 'test/mocks/txb.jig.json', format: 'string' })
+  })
+
+  const keys = KeyPair.fromRandom()
+  const addr = Address.fromPubKey(keys.pubKey)
+
+  const pkg = new Map([
+    ['index.ts', 'export function helloWorld(msg: string): string { return `Hello ${msg}!` }']
+  ])
+
+  const pkgId = '0d1cf6b53ba774de8b1f063a93a5e93b016923aeee74ea3cbbb8bab610496fe3'
+  const coinId = 'ddf0b9045226da3ffbe5de25f22f76a5d00f01b1ee99e75e68d87bdce8cbc86d'
+  const jigOrigin = 'b31fa880f92288828fddc92bef6f191f651ef8b905bdeabc31c006849702a361_1'
+
+  const tx1 = await aldea.createTx((tx, ref) => {
+    tx.import(pkgId)
+    tx.load(coinId)
+    tx.loadByOrigin(jigOrigin)
+  
+    tx.new(ref(0), 'Badge', ['foo'])
+    tx.call(ref(1), 'send', [700, addr.hash])
+    tx.call(ref(2), 'rename', ['bar'])
+    tx.exec(ref(0), 'Badge.helloWorld', ['mum'])
+  
+    tx.fund(ref(1))
+    tx.lock(ref(2), addr)
+    tx.lock(ref(3), addr)
+    
+    tx.deploy(pkg)
+    
+    tx.sign(keys.privKey)
+    tx.signTo(keys.privKey)
+  })
+  
+  const tx2 = Tx.fromHex(tx1.toHex())
+  t.true(tx1 instanceof Tx)
+  t.true(tx2 instanceof Tx)
+
+  t.is(tx2.instructions.length, 13)
+  t.is(tx2.instructions[0].opcode, OpCode.IMPORT)
+  t.deepEqual(tx2.instructions[0].pkgId, base16.decode(pkgId))
+
+  t.is(tx2.instructions[1].opcode, OpCode.LOAD)
+  t.deepEqual(tx2.instructions[1].outputId, base16.decode(coinId))
+
+  t.is(tx2.instructions[2].opcode, OpCode.LOADBYORIGIN)
+  t.deepEqual(tx2.instructions[2].origin, Pointer.fromString(jigOrigin).toBytes())
+
+  t.is(tx2.instructions[3].opcode, OpCode.NEW)
+  t.is(tx2.instructions[3].idx, 0)
+  t.is(tx2.instructions[3].exportIdx, 0)
+  t.deepEqual(tx2.instructions[3].args, ['foo'])
+
+  t.is(tx2.instructions[4].opcode, OpCode.CALL)
+  t.is(tx2.instructions[4].idx, 1)
+  t.is(tx2.instructions[4].methodIdx, 1)
+  t.deepEqual(tx2.instructions[4].args, [700, addr.hash])
+
+  t.is(tx2.instructions[5].opcode, OpCode.CALL)
+  t.is(tx2.instructions[5].idx, 2)
+  t.is(tx2.instructions[5].methodIdx, 1)
+  t.deepEqual(tx2.instructions[5].args, ['bar'])
+
+  t.is(tx2.instructions[6].opcode, OpCode.EXEC)
+  t.is(tx2.instructions[6].idx, 0)
+  t.is(tx2.instructions[6].exportIdx, 0)
+  t.is(tx2.instructions[6].methodIdx, 2)
+  t.deepEqual(tx2.instructions[6].args, ['mum'])
+
+  t.is(tx2.instructions[7].opcode, OpCode.FUND)
+  t.is(tx2.instructions[7].idx, 1)
+
+  t.is(tx2.instructions[8].opcode, OpCode.LOCK)
+  t.is(tx2.instructions[8].idx, 2)
+  t.deepEqual(tx2.instructions[8].pubkeyHash, addr.hash)
+
+  t.is(tx2.instructions[9].opcode, OpCode.LOCK)
+  t.is(tx2.instructions[9].idx, 3)
+  t.deepEqual(tx2.instructions[9].pubkeyHash, addr.hash)
+
+  t.is(tx2.instructions[10].opcode, OpCode.DEPLOY)
+  t.deepEqual(tx2.instructions[10].entry, ['index.ts'])
+  t.deepEqual(tx2.instructions[10].code, pkg)
+
+  t.is(tx2.instructions[11].opcode, OpCode.SIGN)
+  t.is(tx2.instructions[11].sig.length, 64)
+  t.deepEqual(tx2.instructions[11].pubkey, keys.pubKey.toBytes())
+
+  t.is(tx2.instructions[12].opcode, OpCode.SIGNTO)
+  t.is(tx2.instructions[12].sig.length, 64)
+  t.deepEqual(tx2.instructions[12].pubkey, keys.pubKey.toBytes())
+})
 
 test('Aldea.commitTx() returns a created TX object', async t => {
   const aldea = new Aldea('localhost')
