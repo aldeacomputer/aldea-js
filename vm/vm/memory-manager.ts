@@ -290,7 +290,7 @@ export class MemoryManager {
       default:
         const exported = findClass(mod.abi, type.name)
         const imported = findImport(mod.abi, type.name)
-        const isobject = findObject(mod.abi, type.name)
+        const objectNode = findObject(mod.abi, type.name)
 
         if (exported) {
           let interRef
@@ -302,7 +302,7 @@ export class MemoryManager {
           return this.lowerInternref(interRef)
         }
         if (imported) { return this.lowerImportedObject(mod, this.extRefFilter(val)) }
-        if (isobject) { return this.lowerObject(mod, isobject, val) }
+        if (objectNode) { return this.lowerObject(mod, objectNode, val) }
 
         throw new Error(`cannot lower unspported type: ${type.name}`)
     }
