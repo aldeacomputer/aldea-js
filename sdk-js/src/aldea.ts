@@ -1,5 +1,5 @@
 import { Abi } from '@aldea/compiler/abi';
-import ky, { AfterResponseHook, BeforeRequestHook } from 'ky-universal'
+import ky, { AfterResponseHook, BeforeRequestHook, HTTPError } from 'ky-universal'
 import { CBOR } from 'cbor-redux'
 import {
   ref,
@@ -55,7 +55,7 @@ export class Aldea {
   async commitTx(tx: Tx): Promise<TxResponse> {
     const headers = { 'content-type': 'application/octet-stream' }
     const body = tx.toBytes()
-    return this.api.post('tx', { headers, body }).json()
+    return this.api.post('tx', { headers, body }).json<TxResponse>()
   }
 
   /**
@@ -106,8 +106,8 @@ export class Aldea {
     const seq = CBOR.decode(data, null, { mode: 'sequence' })
     return {
       id: pkgId,
-      entries: seq.get(1),
-      files: seq.get(2),
+      entries: seq.get(0),
+      files: seq.get(1),
     }
   }
 
