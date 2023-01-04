@@ -1,6 +1,7 @@
 import {TxExecution} from "../tx-execution.js";
 
 export interface Lock {
+  data(): Uint8Array;
   serialize (): any;
   isOpen (): boolean
 

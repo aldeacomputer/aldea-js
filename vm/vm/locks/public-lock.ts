@@ -28,4 +28,8 @@ export class PublicLock implements Lock {
   typeNumber(): number {
     return LockType.ANYONE;
   }
+
+  data(): Uint8Array {
+    return new Uint8Array(0);
+  }
 }

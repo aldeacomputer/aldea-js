@@ -2,7 +2,6 @@ import {
   Address,
   PrivKey,
   Tx,
-  isAddress,
   instructions,
   base16,
   ed25519
@@ -107,7 +106,7 @@ export class TxBuilder {
    * Address instance or a pubkey hash TypedArray.
    */
   lock(idx: number, address: Address | Uint8Array): TxBuilder {
-    if (!isAddress(address)) address = new Address(<Uint8Array>address)
+    if (address instanceof Uint8Array) address = new Address(<Uint8Array>address)
     this.tx.push(new LockInstruction(idx, (<Address>address).hash))
     return this
   }
