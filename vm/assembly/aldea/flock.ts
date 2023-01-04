@@ -30,6 +30,14 @@ export class Flock extends Jig {
     return this
   }
 
+  returnLocation (): string {
+    return this.$output.location
+  }
+
+  returnOrigin (): string {
+    return this.$output.origin
+  }
+
   static createWithSize(n: u32): Flock {
     const aFlock = new Flock();
     while (n > 0) {

@@ -9,14 +9,14 @@ import {
 /**
  * Import Instruction.
  * 
- * Imports code by the given origin.
+ * Imports code by the given pakcage ID.
  */
 export class ImportInstruction extends Instruction {
-  origin: Uint8Array;
+  pkgId: Uint8Array;
 
-  constructor(origin: Uint8Array) {
+  constructor(pkgId: Uint8Array) {
     super(OpCode.IMPORT)
-    this.origin = origin
+    this.pkgId = pkgId
   }
 }
 
@@ -25,12 +25,12 @@ export class ImportInstruction extends Instruction {
  */
 export const ImportArgsSerializer: Serializable<ImportInstruction> = {
   read(buf: BufReader): ImportInstruction {
-    const origin = buf.readBytes(32)
-    return new ImportInstruction(origin)
+    const pkgId = buf.readBytes(32)
+    return new ImportInstruction(pkgId)
   },
 
   write(buf: BufWriter, inst: ImportInstruction): BufWriter {
-    buf.writeBytes(inst.origin)
+    buf.writeBytes(inst.pkgId)
     return buf
   }
 }

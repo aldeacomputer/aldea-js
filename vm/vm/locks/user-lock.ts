@@ -39,4 +39,8 @@ export class UserLock implements Lock {
   typeNumber(): number {
     return LockType.PUBKEY;
   }
+
+  data(): Uint8Array {
+    return this.addr.hash
+  }
 }

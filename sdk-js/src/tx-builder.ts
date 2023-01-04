@@ -92,10 +92,11 @@ export class TxBuilder {
    */
   loadByOrigin(origin: string): InstructionRef {
     return this.push(async (tx: Tx) => {
+      const originPtr = Pointer.fromString(origin)
       const output = await this.aldea.getOutputByOrigin(origin)
       const pkgPtr = Pointer.fromString(output.class)
       const abi = await this.aldea.getPackageAbi(pkgPtr.id)
-      tx.push(new LoadByOriginInstruction(base16.decode(origin)))
+      tx.push(new LoadByOriginInstruction(originPtr.toBytes()))
       
       return jigResult(abi, pkgPtr.idx)
     })

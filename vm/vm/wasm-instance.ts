@@ -92,7 +92,7 @@ const utxoAbiNode = {
       kind: FieldKind.PUBLIC,
       name: 'origin',
       type: {
-        name: 'ArrayBuffer',
+        name: 'string',
         args: []
       }
     },
@@ -100,7 +100,7 @@ const utxoAbiNode = {
       kind: FieldKind.PUBLIC,
       name: 'location',
       type: {
-        name: 'ArrayBuffer',
+        name: 'string',
         args: []
       }
     },
@@ -235,10 +235,10 @@ export class WasmInstance {
           const abiNode = findObject(this.abi, 'UtxoState', 'should be present')
           const utxo = {
             origin: jigRef.origin.toString(),
-            location: 'currentlocation', // FIXME: real location,
+            location: new Pointer(this.currentExec.tx.id, this.currentExec.outputIndexFor(jigRef)).toString(),
             lock: {
-              type: 1,
-              data: new ArrayBuffer(0)
+              type: jigRef.lock.typeNumber(),
+              data: jigRef.lock.data()
             }
           }
           return this.memMgr.lowerObject(this, abiNode, utxo)
@@ -248,10 +248,10 @@ export class WasmInstance {
           const jigRef = this.currentExec.findRemoteUtxoHandler(originBuff)
           const utxo = {
             origin: jigRef.origin.toString(),
-            location: jigRef, // FIXME: real location,
+            location: new Pointer(this.currentExec.tx.id, this.currentExec.outputIndexFor(jigRef)).toString(),
             lock: {
               type: jigRef.lock.typeNumber(),
-              data: new ArrayBuffer(0)
+              data: jigRef.lock.data()
             }
           }
           const abiNode = findObject(this.abi, 'UtxoState', 'should be present')

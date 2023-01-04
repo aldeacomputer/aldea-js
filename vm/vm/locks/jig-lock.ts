@@ -32,4 +32,8 @@ export class JigLock implements Lock {
   typeNumber(): number {
     return LockType.CALLER;
   }
+
+  data(): Uint8Array {
+    return this.origin.toBytes();
+  }
 }

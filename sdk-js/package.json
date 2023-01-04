@@ -36,7 +36,8 @@
     "build:es": "node esbuild.js",
     "clean": "rimraf dist/* || true",
     "docs": "typedoc",
-    "test": "yarn build:ts && ava"
+    "test": "yarn build:ts && ava",
+    "vectors": "node scripts/vectorgen.js"
   },
   "packageManager": "yarn@3.2.3",
   "dependencies": {

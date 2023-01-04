@@ -34,7 +34,7 @@ const buildApp = () => {
   const serializeTxExec = (txExec) => {
     return {
       id: txExec.tx.id,
-      raw_tx: txExec.tx.toHex(),
+      rawtx: txExec.tx.toHex(),
       packages: txExec.deployments.map((packageId) => {
         const data = storage.getModule(packageId)
         return {
