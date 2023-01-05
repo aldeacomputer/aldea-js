@@ -47,10 +47,8 @@ esbuild.build({
   format: 'iife',
   platform: 'browser',
   target: 'es6',
-  minify: false,
+  minify: true,
   keepNames: true,
   sourcemap: true,
-  plugins: [
-    makeAllPackagesExternalPlugin
-  ]
+  target: 'esnext',
 })

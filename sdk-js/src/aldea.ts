@@ -1,5 +1,5 @@
 import { Abi } from '@aldea/compiler/abi';
-import ky, { AfterResponseHook, BeforeRequestHook, HTTPError } from 'ky-universal'
+import ky, { AfterResponseHook, BeforeRequestHook } from 'ky-universal'
 import { CBOR } from 'cbor-redux'
 import {
   ref,

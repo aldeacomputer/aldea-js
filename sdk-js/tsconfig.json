@@ -101,6 +101,8 @@
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
   },
   "exclude": [
-    "dist"
+    "dist",
+    "test",
+    "playwright.config.ts"
   ]
 }
