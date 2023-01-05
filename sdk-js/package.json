@@ -67,7 +67,7 @@
   "ava": {
     "concurrency": 4,
     "files": [
-      "test/**/*",
+      "test/**/*.test.js",
       "!test/browser"
     ]
   }

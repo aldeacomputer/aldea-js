@@ -70,6 +70,25 @@
           }
         ]
       }
+    },
+    {
+      "kind": 1,
+      "code": {
+        "name": "helloWorld",
+        "args": [
+          {
+            "name": "msg",
+            "type": {
+              "name": "string",
+              "args": []
+            }
+          }
+        ],
+        "rtype": {
+          "name": "string",
+          "args": []
+        }
+      }
     }
   ],
   "imports": [],

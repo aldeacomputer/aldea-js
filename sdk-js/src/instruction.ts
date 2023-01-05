@@ -7,6 +7,7 @@ import {
   NewInstruction, NewArgsSerializer,
   CallInstruction, CallArgsSerializer,
   ExecInstruction, ExecArgsSerializer,
+  ExecFuncInstruction, ExecFuncArgsSerializer,
   FundInstruction, FundArgsSerializer,
   LockInstruction, LockArgsSerializer,
   DeployInstruction, DeployArgsSerializer,
@@ -29,6 +30,7 @@ export enum OpCode {
   NEW = 0xB1,
   CALL = 0xB2,
   EXEC = 0xB3,
+  EXECFUNC = 0xB4,
   // Output
   FUND = 0xC1,
   LOCK = 0xC2,
@@ -132,6 +134,8 @@ export const InstructionSerializer: Serializable<Instruction> = {
         return args.read<CallInstruction>(CallArgsSerializer)
       case OpCode.EXEC:
         return args.read<ExecInstruction>(ExecArgsSerializer)
+      case OpCode.EXECFUNC:
+        return args.read<ExecFuncInstruction>(ExecFuncArgsSerializer)
       case OpCode.FUND:
         return args.read<FundInstruction>(FundArgsSerializer)
       case OpCode.LOCK:
@@ -167,6 +171,9 @@ export const InstructionSerializer: Serializable<Instruction> = {
         break
       case OpCode.EXEC:
         args.write<ExecInstruction>(ExecArgsSerializer, inst as ExecInstruction)
+        break
+      case OpCode.EXECFUNC:
+        args.write<ExecFuncInstruction>(ExecFuncArgsSerializer, inst as ExecFuncInstruction)
         break
       case OpCode.FUND:
         args.write<FundInstruction>(FundArgsSerializer, inst as FundInstruction)

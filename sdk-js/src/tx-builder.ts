@@ -18,6 +18,7 @@ import {
   InstructionRef,
   CallInstruction,
   ExecInstruction,
+  ExecFuncInstruction,
   FundInstruction,
   ImportInstruction,
   LoadInstruction,
@@ -163,7 +164,7 @@ export class TxBuilder {
           const func = findFunction(res.abi, funcName, `function not found: ${ funcName }`)
           const funcIdx = res.abi.exports.findIndex(e => e.code === func)
 
-          tx.push(new ExecInstruction(ref.idx, funcIdx, 0, args))
+          tx.push(new ExecFuncInstruction(ref.idx, funcIdx, args))
           return this.resultFromReturnType(res.abi, func.rtype)
 
         default:

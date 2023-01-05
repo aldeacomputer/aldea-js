@@ -11,13 +11,13 @@ import {
   base16,
 } from '../dist/aldea.bundle.mjs'
 
-test('Builds a tx with every opcode and encodes/decodes consistently', async t => {
+test.only('Builds a tx with every opcode and encodes/decodes consistently', async t => {
   const aldea = new Aldea('localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/package/0d1cf6b53ba774de8b1f063a93a5e93b016923aeee74ea3cbbb8bab610496fe3/abi.json', { file: 'test/mocks/txb.pkg.json', format: 'string' })
+    mock.get('http://localhost/package/a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701/abi.json', { file: 'test/mocks/txb.pkg.json', format: 'string' })
     mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
-    mock.get('http://localhost/output/ddf0b9045226da3ffbe5de25f22f76a5d00f01b1ee99e75e68d87bdce8cbc86d', { file: 'test/mocks/txb.coin.json', format: 'string' })
-    mock.get('http://localhost/output-by-origin/b31fa880f92288828fddc92bef6f191f651ef8b905bdeabc31c006849702a361_1', { file: 'test/mocks/txb.jig.json', format: 'string' })
+    mock.get('http://localhost/output/df4cf424923ad248766251066fa4a408930faf94fff66c77657e79f604d3120d', { file: 'test/mocks/txb.coin.json', format: 'string' })
+    mock.get('http://localhost/output-by-origin/675d72e2d567cbe2cb9ef3230cbc4c85e42bcd56ba537f6b65a51b9c6c855281_1', { file: 'test/mocks/txb.jig.json', format: 'string' })
   })
 
   const keys = KeyPair.fromRandom()
@@ -27,9 +27,9 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
     ['index.ts', 'export function helloWorld(msg: string): string { return `Hello ${msg}!` }']
   ])
 
-  const pkgId = '0d1cf6b53ba774de8b1f063a93a5e93b016923aeee74ea3cbbb8bab610496fe3'
-  const coinId = 'ddf0b9045226da3ffbe5de25f22f76a5d00f01b1ee99e75e68d87bdce8cbc86d'
-  const jigOrigin = 'b31fa880f92288828fddc92bef6f191f651ef8b905bdeabc31c006849702a361_1'
+  const pkgId = 'a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701'
+  const coinId = 'df4cf424923ad248766251066fa4a408930faf94fff66c77657e79f604d3120d'
+  const jigOrigin = '675d72e2d567cbe2cb9ef3230cbc4c85e42bcd56ba537f6b65a51b9c6c855281_1'
 
   const tx1 = await aldea.createTx((tx, ref) => {
     tx.import(pkgId)
@@ -40,6 +40,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
     tx.call(ref(1), 'send', [700, addr.hash])
     tx.call(ref(2), 'rename', ['bar'])
     tx.exec(ref(0), 'Badge.helloWorld', ['mum'])
+    tx.exec(ref(0), 'helloWorld', ['dad'])
   
     tx.fund(ref(1))
     tx.lock(ref(2), addr)
@@ -55,7 +56,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
   t.true(tx1 instanceof Tx)
   t.true(tx2 instanceof Tx)
 
-  t.is(tx2.instructions.length, 13)
+  t.is(tx2.instructions.length, 14)
   t.is(tx2.instructions[0].opcode, OpCode.IMPORT)
   t.deepEqual(tx2.instructions[0].pkgId, base16.decode(pkgId))
 
@@ -86,28 +87,33 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
   t.is(tx2.instructions[6].methodIdx, 2)
   t.deepEqual(tx2.instructions[6].args, ['mum'])
 
-  t.is(tx2.instructions[7].opcode, OpCode.FUND)
-  t.is(tx2.instructions[7].idx, 1)
+  t.is(tx2.instructions[7].opcode, OpCode.EXECFUNC)
+  t.is(tx2.instructions[7].idx, 0)
+  t.is(tx2.instructions[7].exportIdx, 1)
+  t.deepEqual(tx2.instructions[7].args, ['dad'])
 
-  t.is(tx2.instructions[8].opcode, OpCode.LOCK)
-  t.is(tx2.instructions[8].idx, 2)
-  t.deepEqual(tx2.instructions[8].pubkeyHash, addr.hash)
+  t.is(tx2.instructions[8].opcode, OpCode.FUND)
+  t.is(tx2.instructions[8].idx, 1)
 
   t.is(tx2.instructions[9].opcode, OpCode.LOCK)
-  t.is(tx2.instructions[9].idx, 3)
+  t.is(tx2.instructions[9].idx, 2)
   t.deepEqual(tx2.instructions[9].pubkeyHash, addr.hash)
 
-  t.is(tx2.instructions[10].opcode, OpCode.DEPLOY)
-  t.deepEqual(tx2.instructions[10].entry, ['index.ts'])
-  t.deepEqual(tx2.instructions[10].code, pkg)
+  t.is(tx2.instructions[10].opcode, OpCode.LOCK)
+  t.is(tx2.instructions[10].idx, 3)
+  t.deepEqual(tx2.instructions[10].pubkeyHash, addr.hash)
 
-  t.is(tx2.instructions[11].opcode, OpCode.SIGN)
-  t.is(tx2.instructions[11].sig.length, 64)
-  t.deepEqual(tx2.instructions[11].pubkey, keys.pubKey.toBytes())
+  t.is(tx2.instructions[11].opcode, OpCode.DEPLOY)
+  t.deepEqual(tx2.instructions[11].entry, ['index.ts'])
+  t.deepEqual(tx2.instructions[11].code, pkg)
 
-  t.is(tx2.instructions[12].opcode, OpCode.SIGNTO)
+  t.is(tx2.instructions[12].opcode, OpCode.SIGN)
   t.is(tx2.instructions[12].sig.length, 64)
   t.deepEqual(tx2.instructions[12].pubkey, keys.pubKey.toBytes())
+
+  t.is(tx2.instructions[13].opcode, OpCode.SIGNTO)
+  t.is(tx2.instructions[13].sig.length, 64)
+  t.deepEqual(tx2.instructions[13].pubkey, keys.pubKey.toBytes())
 })
 
 test('Aldea.commitTx() returns a created TX object', async t => {
