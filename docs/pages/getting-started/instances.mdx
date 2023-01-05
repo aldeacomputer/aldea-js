@@ -15,21 +15,21 @@ Your starter kit includes a script for creating two instances of a fighter, one 
 <CodeContainer lang="ts">
     ```
     const tx = await aldea.createTx((tx, ref) => {
-    const pkgRef  = tx.import(argv.pkg)
-    const coinRef = tx.load(coin.id)
+        const pkgRef  = tx.import(argv.pkg)
+        const coinRef = tx.load(coin.id)
 
-    const player1 = tx.new(pkgRef, 'Fighter', ['Scorpion'])
-    const player2 = tx.new(pkgRef, 'Fighter', ['Sub-Zero'])
+        const player1 = tx.new(pkgRef, 'Fighter', ['Scorpion'])
+        const player2 = tx.new(pkgRef, 'Fighter', ['Sub-Zero'])
 
-    const weapon  = tx.new(pkgRef, 'Weapon', ['Kunai Spear', 20])
-    tx.call(player1, 'equip', [weapon])
+        const weapon  = tx.new(pkgRef, 'Weapon', ['Kunai Spear', 20])
+        tx.call(player1, 'equip', [weapon])
 
-    tx.lock(player1, address)
-    tx.lock(player2, address)
+        tx.lock(player1, address)
+        tx.lock(player2, address)
 
-    tx.fund(coinRef)
-    tx.lock(coinRef, address)
-    tx.sign(keys.privKey)
+        tx.fund(coinRef)
+        tx.lock(coinRef, address)
+        tx.sign(keys.privKey)
     })
     ```
 </CodeContainer>
@@ -89,7 +89,7 @@ To execute the script, you will need the output ID of an unspent coin and the pa
 
 <CodeContainer lang="bash" lines={false}>
     ```
-    npm run create-fighters --coin <OUTPUT_ID> --pkg <PACKAGE_ID>
+    npm run create-fighters -- --coin <OUTPUT_ID> --pkg <PACKAGE_ID>
     ```
 </CodeContainer>
 

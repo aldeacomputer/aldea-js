@@ -44,7 +44,7 @@ The kit also includes a script for deploying packages. To use it, you will need 
 
 <CodeContainer lang="base" lines={false}>
     ```
-    npm run deploy fighter.ts --coin <OUTPUT_ID>
+    npm run deploy -- fighter.ts --coin <OUTPUT_ID>
     ```
 </CodeContainer>
 
@@ -87,16 +87,15 @@ Before moving on to the next section, let's examine the code in `scripts/deploy.
 
 <CodeContainer lang="ts">
     ```
-    const coin = await aldea.loadOutput(argv.coin)
-
-    const tx = await aldea.createTx(tx => {
-      const coinRef = tx.load(coin.ref)
+     const tx = await aldea.createTx(tx => {
+      const coinRef = tx.load(coin.id)
       tx.deploy(pkg)
-      tx.call(coinRef, "send", [coin.motos - 100, address])
+      tx.call(coinRef, 'send', [coin.props.motos - 100, address.hash])
       tx.fund(coinRef)
+      tx.sign(keys.privKey)
     })
 
-    await adea.commitTx(tx)
+    await aldea.commitTx(tx)
     ```
 </CodeContainer>
 
@@ -149,7 +148,7 @@ Here's what each line does:
     
     <CodeContainer lang="ts" lines={false}>
         ```
-        await adea.commitTx(tx)
+        await aldea.commitTx(tx)
         ```
     </CodeContainer>
     
