@@ -50,7 +50,7 @@
     "@scure/bip39": "^1.1.0",
     "cbor-redux": "^1.0.0-3",
     "cross-fetch": "^3.1.5",
-    "ky": "^0.32.2",
+    "ky": "^0.33.1",
     "ky-universal": "^0.11.0",
     "micro-ed25519-hdkey": "^0.1.2"
   },
