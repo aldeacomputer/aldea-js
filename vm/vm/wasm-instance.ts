@@ -122,6 +122,12 @@ const coinNode: ImportNode = {
   kind: 0
 }
 
+const jigNode: ImportNode = {
+  name: 'Jig',
+  origin: new Array(32).fill('0').join(''),
+  kind: 0
+}
+
 const lockStateAbiNode = {
   name: 'LockState',
   extends: null,
@@ -164,6 +170,7 @@ export class WasmInstance {
     abi.objects.push(utxoAbiNode)
     abi.objects.push(lockStateAbiNode)
     abi.imports.push(coinNode)
+    abi.imports.push(jigNode)
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
     this._currentExec = null
 
