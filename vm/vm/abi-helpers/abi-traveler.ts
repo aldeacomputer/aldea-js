@@ -1,4 +1,4 @@
-import {Abi, CodeKind, FieldNode, findClass} from "@aldea/compiler/abi";
+import {Abi, CodeKind, findClass, ImportNode, findImport, TypeNode, findObject} from "@aldea/compiler/abi";
 import {AbiVisitor} from "./abi-visitor.js";
 
 export class AbiTraveler {
@@ -7,7 +7,8 @@ export class AbiTraveler {
     this.abi = abi
   }
 
-  visitValue (typeName: string, visitor: AbiVisitor) {
+  acceptForType (typeNode: TypeNode, visitor: AbiVisitor) {
+    const typeName = typeNode.name
     switch (typeName) {
       case 'u8':
       case 'i8':
@@ -31,34 +32,38 @@ export class AbiTraveler {
       case 'string':
         visitor.visitString()
         return
+      case 'Array':
+        visitor.visitArray(typeNode.args[0])
+        return
+      case 'Set':
+        visitor.visitSet(typeNode.args[0])
+        return
+      case 'Map':
+        visitor.visitMap(typeNode.args[0], typeNode.args[1])
+        return
       default:
-        const classNode = findClass(this.abi, typeName)
-        if (!classNode) {
+        const exportClassNode = findClass(this.abi, typeName)
+        const importClassNode = findImport(this.abi, typeName)
+        const plainObjectNode = findObject(this.abi, typeName)
+
+        if (exportClassNode) {
+          this.acceptForClass(exportClassNode.name, visitor)
+        } else
+        if (importClassNode && importClassNode.kind === CodeKind.CLASS) {
+          const abiNode = importClassNode as ImportNode
+          visitor.visitImportedClass(abiNode.name, abiNode.origin)
+        } else
+        if (plainObjectNode) {
+          visitor.visitPlainObject(plainObjectNode, typeNode, this)
+        } else {
           throw new Error(`unknown type: ${typeName}`)
         }
-        this.visitClass(classNode.name, visitor)
+
     }
   }
 
-  private visitClass(className: string, visitor: AbiVisitor) {
+  private acceptForClass(className: string, visitor: AbiVisitor) {
     const classNode = findClass(this.abi, className, `${className} does not exist in current abi.`)
     visitor.visitExportedClass(classNode, this)
-    // classNode.fields.forEach((fieldNode: FieldNode) => {
-    //   const type = fieldNode.type
-    //   switch (type.name) {
-    //     case 'u8':
-    //     case 'i8':
-    //     case 'u16':
-    //     case 'i16':
-    //     case 'u32':
-    //     case 'i32':
-    //     case 'f32':
-    //     case 'f64':
-    //       visitor.visitSmallNumberField(fieldNode)
-    //       return
-    //     default:
-    //       throw new Error('unknown type')
-    //   }
-    // })
   }
 }
