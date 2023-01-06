@@ -70,70 +70,70 @@
  * An ambient class is a declared class without implementation.
  */
 export function isAmbient(flags: number): boolean {
-  return (flags & CommonFlags.AMBIENT) === CommonFlags.AMBIENT
+  return (flags & CommonFlags.Ambient) === CommonFlags.Ambient
 }
 
 /**
  * Returns true if the node is a constructor method.
  */
 export function isConst(flags: number): boolean {
-  return (flags & CommonFlags.CONST) === CommonFlags.CONST
+  return (flags & CommonFlags.Const) === CommonFlags.Const
 }
 
 /**
  * Returns true if the node is a constructor method.
  */
 export function isConstructor(flags: number): boolean {
-  return (flags & CommonFlags.CONSTRUCTOR) === CommonFlags.CONSTRUCTOR
+  return (flags & CommonFlags.Constructor) === CommonFlags.Constructor
 }
 
 /**
  * Returns true if the node exported from its module.
  */
 export function isExported(flags: number): boolean {
-  return (flags & CommonFlags.EXPORT) === CommonFlags.EXPORT
+  return (flags & CommonFlags.Export) === CommonFlags.Export
 }
 
 /**
  * Returns true if the node is a getter method.
  */
 export function isGetter(flags: number): boolean {
-  return (flags & CommonFlags.GET) === CommonFlags.GET
+  return (flags & CommonFlags.Get) === CommonFlags.Get
 }
 
 /**
  * Returns true if the node is a readonly method.
  */
 export function isReadonly(flags: number): boolean {
-  return (flags & CommonFlags.READONLY) === CommonFlags.READONLY
+  return (flags & CommonFlags.Readonly) === CommonFlags.Readonly
 }
 
 /**
  * Returns true if the node is a getter method.
  */
 export function isSetter(flags: number): boolean {
-  return (flags & CommonFlags.SET) === CommonFlags.SET
+  return (flags & CommonFlags.Set) === CommonFlags.Set
 }
 
 /**
  * Returns true if the node has a private modifier.
  */
 export function isPrivate(flags: number): boolean {
-  return (flags & CommonFlags.PRIVATE) === CommonFlags.PRIVATE
+  return (flags & CommonFlags.Private) === CommonFlags.Private
 }
 
 /**
  * Returns true if the node has a protected modifier.
  */
 export function isProtected(flags: number): boolean {
-  return (flags & CommonFlags.PROTECTED) === CommonFlags.PROTECTED
+  return (flags & CommonFlags.Protected) === CommonFlags.Protected
 }
 
 /**
  * Returns true if the node is a static method.
  */
 export function isStatic(flags: number): boolean {
-  return (flags & CommonFlags.STATIC) === CommonFlags.STATIC
+  return (flags & CommonFlags.Static) === CommonFlags.Static
 }
 
 /**
@@ -149,186 +149,186 @@ export function isStatic(flags: number): boolean {
   if (Array.isArray(node)) return node.forEach(n => filterAST(n, callback))
 
   switch (node.kind) {
-    case NodeKind.SOURCE:
+    case NodeKind.Source:
       filterAST((<Source>node).statements, callback)
       break
-    case NodeKind.NAMEDTYPE:
+    case NodeKind.NamedType:
       filterAST((<NamedTypeNode>node).name, callback)
       filterAST((<NamedTypeNode>node).typeArguments, callback)
       break
-    case NodeKind.FUNCTIONTYPE:
+    case NodeKind.FunctionType:
       filterAST((<FunctionTypeNode>node).parameters, callback)
       filterAST((<FunctionTypeNode>node).returnType, callback)
       filterAST((<FunctionTypeNode>node).explicitThisType, callback)
       break
-    case NodeKind.TYPENAME:
+    case NodeKind.TypeName:
       filterAST((<TypeName>node).identifier, callback)
       filterAST((<TypeName>node).next, callback)
       break
-    case NodeKind.TYPEPARAMETER:
+    case NodeKind.TypeParameter:
       filterAST((<TypeParameterNode>node).name, callback)
       filterAST((<TypeParameterNode>node).extendsType, callback)
       filterAST((<TypeParameterNode>node).defaultType, callback)
       break
-    case NodeKind.PARAMETER:
+    case NodeKind.Parameter:
       filterAST((<ParameterNode>node).name, callback)
       filterAST((<ParameterNode>node).type, callback)
       filterAST((<ParameterNode>node).initializer, callback)
       filterAST((<ParameterNode>node).implicitFieldDeclaration, callback)
       break;
-    case NodeKind.IDENTIFIER:
+    case NodeKind.Identifier:
       break
-    case NodeKind.ASSERTION:
+    case NodeKind.Assertion:
       filterAST((<AssertionExpression>node).expression, callback)
       filterAST((<AssertionExpression>node).toType, callback)
       break    
-    case NodeKind.BINARY:
+    case NodeKind.Binary:
       filterAST((<BinaryExpression>node).left, callback)
       filterAST((<BinaryExpression>node).right, callback)
       break
-    case NodeKind.CALL:
+    case NodeKind.Call:
       filterAST((<CallExpression>node).expression, callback)
       filterAST((<CallExpression>node).typeArguments, callback)
       filterAST((<CallExpression>node).args, callback)
       break
-    case NodeKind.CLASS:
+    case NodeKind.Class:
       filterAST((<ClassExpression>node).declaration, callback)
       break
-    case NodeKind.COMMA:
+    case NodeKind.Comma:
       filterAST((<CommaExpression>node).expressions, callback)
       break
-    case NodeKind.ELEMENTACCESS:
+    case NodeKind.ElementAccess:
       filterAST((<ElementAccessExpression>node).expression, callback)
       filterAST((<ElementAccessExpression>node).elementExpression, callback)
       break
-    case NodeKind.FALSE:
+    case NodeKind.False:
       break
-    case NodeKind.FUNCTION:
+    case NodeKind.Function:
       filterAST((<FunctionExpression>node).declaration, callback)
       break
-    case NodeKind.INSTANCEOF:
+    case NodeKind.InstanceOf:
       filterAST((<InstanceOfExpression>node).expression, callback)
       filterAST((<InstanceOfExpression>node).isType, callback)
       break
-    case NodeKind.LITERAL:
+    case NodeKind.Literal:
       break
-    case NodeKind.NEW:
+    case NodeKind.New:
       filterAST((<NewExpression>node).typeName, callback)
       filterAST((<NewExpression>node).typeArguments, callback)
       filterAST((<NewExpression>node).args, callback)
       break
-    case NodeKind.NULL:
+    case NodeKind.Null:
       break
-    case NodeKind.OMITTED:
+    case NodeKind.Omitted:
       break
-    case NodeKind.PARENTHESIZED:
+    case NodeKind.Parenthesized:
       filterAST((<ParenthesizedExpression>node).expression, callback)
       break
-    case NodeKind.PROPERTYACCESS:
+    case NodeKind.PropertyAccess:
       filterAST((<PropertyAccessExpression>node).expression, callback)
       filterAST((<PropertyAccessExpression>node).property, callback)
       break
-    case NodeKind.TERNARY:
+    case NodeKind.Ternary:
       filterAST((<TernaryExpression>node).condition, callback)
       filterAST((<TernaryExpression>node).ifThen, callback)
       filterAST((<TernaryExpression>node).ifElse, callback)
       break
-    case NodeKind.SUPER:
+    case NodeKind.Super:
       break
-    case NodeKind.THIS:
+    case NodeKind.This:
       break
-    case NodeKind.TRUE:
+    case NodeKind.True:
       break
-    case NodeKind.CONSTRUCTOR:
+    case NodeKind.Constructor:
       break
-    case NodeKind.UNARYPOSTFIX:
+    case NodeKind.UnaryPostfix:
       filterAST((<UnaryPostfixExpression>node).operand, callback)
       break
-    case NodeKind.UNARYPREFIX:
+    case NodeKind.UnaryPrefix:
       filterAST((<UnaryPrefixExpression>node).operand, callback)
       break
-    case NodeKind.COMPILED:
+    case NodeKind.Compiled:
       break
-    case NodeKind.BLOCK:
+    case NodeKind.Block:
       filterAST((<BlockStatement>node).statements, callback)
       break
-    case NodeKind.BREAK:
+    case NodeKind.Break:
       filterAST((<BreakStatement>node).label, callback)
       break
-    case NodeKind.CONTINUE:
+    case NodeKind.Continue:
       filterAST((<ContinueStatement>node).label, callback)
       break
-    case NodeKind.DO:
-      filterAST((<DoStatement>node).statement, callback)
+    case NodeKind.Do:
+      filterAST((<DoStatement>node).body, callback)
       filterAST((<DoStatement>node).condition, callback)
       break
-    case NodeKind.EMPTY:
+    case NodeKind.Empty:
       break
-    case NodeKind.EXPORT:
+    case NodeKind.Export:
       filterAST((<ExportStatement>node).members, callback)
       filterAST((<ExportStatement>node).path, callback)
       break
-    case NodeKind.EXPORTDEFAULT:
+    case NodeKind.ExportDefault:
       filterAST((<ExportDefaultStatement>node).declaration, callback)
       break
-    case NodeKind.EXPORTIMPORT:
+    case NodeKind.ExportImport:
       filterAST((<ExportImportStatement>node).name, callback)
       filterAST((<ExportImportStatement>node).externalName, callback)
       break
-    case NodeKind.EXPRESSION:
+    case NodeKind.Expression:
       filterAST((<ExpressionStatement>node).expression, callback)
       break
-    case NodeKind.FOR:
+    case NodeKind.For:
       filterAST((<ForStatement>node).initializer, callback)
       filterAST((<ForStatement>node).condition, callback)
       filterAST((<ForStatement>node).incrementor, callback)
-      filterAST((<ForStatement>node).statement, callback)
+      filterAST((<ForStatement>node).body, callback)
       break
-    case NodeKind.FOROF:
+    case NodeKind.ForOf:
       filterAST((<ForOfStatement>node).variable, callback)
       filterAST((<ForOfStatement>node).iterable, callback)
-      filterAST((<ForOfStatement>node).statement, callback)
+      filterAST((<ForOfStatement>node).body, callback)
       break
-    case NodeKind.IF:
+    case NodeKind.If:
       filterAST((<IfStatement>node).condition, callback)
       filterAST((<IfStatement>node).ifTrue, callback)
       filterAST((<IfStatement>node).ifFalse, callback)
       break
-    case NodeKind.IMPORT:
+    case NodeKind.Import:
       filterAST((<ImportStatement>node).declarations, callback)
       filterAST((<ImportStatement>node).namespaceName, callback)
       filterAST((<ImportStatement>node).path, callback)
       break
-    case NodeKind.RETURN:
+    case NodeKind.Return:
       filterAST((<ReturnStatement>node).value, callback)
       break
-    case NodeKind.SWITCH:
+    case NodeKind.Switch:
       filterAST((<SwitchStatement>node).condition, callback)
       filterAST((<SwitchStatement>node).cases, callback)
       break
-    case NodeKind.THROW:
+    case NodeKind.Throw:
       filterAST((<ThrowStatement>node).value, callback)
       break
-    case NodeKind.TRY:
-      filterAST((<TryStatement>node).statements, callback)
+    case NodeKind.Try:
+      filterAST((<TryStatement>node).bodyStatements, callback)
       filterAST((<TryStatement>node).catchVariable, callback)
       filterAST((<TryStatement>node).catchStatements, callback)
       filterAST((<TryStatement>node).finallyStatements, callback)
       break
-    case NodeKind.VARIABLE:
+    case NodeKind.Variable:
       filterAST((<VariableStatement>node).decorators, callback)
       filterAST((<VariableStatement>node).declarations, callback)
       break
-    case NodeKind.VOID:
+    case NodeKind.Void:
       filterAST((<VoidStatement>node).expression, callback)
       break
-    case NodeKind.WHILE:
+    case NodeKind.While:
       filterAST((<WhileStatement>node).condition, callback)
-      filterAST((<WhileStatement>node).statement, callback)
+      filterAST((<WhileStatement>node).body, callback)
       break
-    case NodeKind.MODULE:
+    case NodeKind.Module:
       break
-    case NodeKind.CLASSDECLARATION:
+    case NodeKind.ClassDeclaration:
       filterAST((<ClassDeclaration>node).name, callback)
       filterAST((<ClassDeclaration>node).decorators, callback)
       filterAST((<ClassDeclaration>node).typeParameters, callback)
@@ -336,33 +336,33 @@ export function isStatic(flags: number): boolean {
       filterAST((<ClassDeclaration>node).implementsTypes, callback)
       filterAST((<ClassDeclaration>node).members, callback)
       break
-    case NodeKind.ENUMDECLARATION:
+    case NodeKind.EnumDeclaration:
       filterAST((<EnumDeclaration>node).name, callback)
       filterAST((<EnumDeclaration>node).decorators, callback)
       filterAST((<EnumDeclaration>node).values, callback)
       break
-    case NodeKind.ENUMVALUEDECLARATION:
+    case NodeKind.EnumValueDeclaration:
       filterAST((<EnumValueDeclaration>node).name, callback)
       filterAST((<EnumValueDeclaration>node).initializer, callback)
       break
-    case NodeKind.FIELDDECLARATION:
+    case NodeKind.FieldDeclaration:
       filterAST((<FieldDeclaration>node).name, callback)
       filterAST((<FieldDeclaration>node).decorators, callback)
       filterAST((<FieldDeclaration>node).type, callback)
       filterAST((<FieldDeclaration>node).initializer, callback)
       break
-    case NodeKind.FUNCTIONDECLARATION:
+    case NodeKind.FunctionDeclaration:
       filterAST((<FunctionDeclaration>node).name, callback)
       filterAST((<FunctionDeclaration>node).decorators, callback)
       filterAST((<FunctionDeclaration>node).typeParameters, callback)
       filterAST((<FunctionDeclaration>node).signature, callback)
       filterAST((<FunctionDeclaration>node).body, callback)
       break
-    case NodeKind.IMPORTDECLARATION:
+    case NodeKind.ImportDeclaration:
       filterAST((<ImportDeclaration>node).name, callback)
       filterAST((<ImportDeclaration>node).foreignName, callback)
       break
-    case NodeKind.INTERFACEDECLARATION:
+    case NodeKind.InterfaceDeclaration:
       filterAST((<InterfaceDeclaration>node).name, callback)
       filterAST((<InterfaceDeclaration>node).decorators, callback)
       filterAST((<InterfaceDeclaration>node).typeParameters, callback)
@@ -370,47 +370,47 @@ export function isStatic(flags: number): boolean {
       filterAST((<InterfaceDeclaration>node).implementsTypes, callback)
       filterAST((<InterfaceDeclaration>node).members, callback)
       break
-    case NodeKind.METHODDECLARATION:
+    case NodeKind.MethodDeclaration:
       filterAST((<MethodDeclaration>node).name, callback)
       filterAST((<MethodDeclaration>node).decorators, callback)
       filterAST((<MethodDeclaration>node).typeParameters, callback)
       filterAST((<MethodDeclaration>node).signature, callback)
       filterAST((<MethodDeclaration>node).body, callback)
       break
-    case NodeKind.NAMESPACEDECLARATION:
+    case NodeKind.NamespaceDeclaration:
       filterAST((<NamespaceDeclaration>node).name, callback)
       filterAST((<NamespaceDeclaration>node).decorators, callback)
       filterAST((<NamespaceDeclaration>node).members, callback)
       break
-    case NodeKind.TYPEDECLARATION:
+    case NodeKind.TypeDeclaration:
       filterAST((<TypeDeclaration>node).name, callback)
       filterAST((<TypeDeclaration>node).decorators, callback)
       filterAST((<TypeDeclaration>node).typeParameters, callback)
       filterAST((<TypeDeclaration>node).type, callback)
       break
-    case NodeKind.VARIABLEDECLARATION:
+    case NodeKind.VariableDeclaration:
       filterAST((<VariableDeclaration>node).name, callback)
       filterAST((<VariableDeclaration>node).decorators, callback)
       filterAST((<VariableDeclaration>node).type, callback)
       filterAST((<VariableDeclaration>node).initializer, callback)
       break
-    case NodeKind.DECORATOR:
+    case NodeKind.Decorator:
       filterAST((<DecoratorNode>node).name, callback)
       filterAST((<DecoratorNode>node).args, callback)
       break
-    case NodeKind.EXPORTMEMBER:
+    case NodeKind.ExportMember:
       filterAST((<ExportMember>node).localName, callback)
       filterAST((<ExportMember>node).exportedName, callback)
       break
-    case NodeKind.SWITCHCASE:
+    case NodeKind.SwitchCase:
       filterAST((<SwitchCase>node).label, callback)
       filterAST((<SwitchCase>node).statements, callback)
       break
-    case NodeKind.INDEXSIGNATURE:
+    case NodeKind.IndexSignature:
       filterAST((<IndexSignatureNode>node).keyType, callback)
       filterAST((<IndexSignatureNode>node).valueType, callback)
       break
-    case NodeKind.COMMENT:
+    case NodeKind.Comment:
       break
 
     default:

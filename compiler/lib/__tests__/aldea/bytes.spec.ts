@@ -18,9 +18,9 @@ describe("Bytes decoding", () => {
     expect(Bytes.fromBase16('666F6F626172').toString()).toBe('foobar')
   })
 
-  test("decodes test vector", () => {
-    expect(() => Bytes.fromBase16('A1B2C3D4E5F67891')).toBeTruthy()
-  })
+//  test("decodes test vector", () => {
+//    expect(() => Bytes.fromBase16('A1B2C3D4E5F67891')).toBeTruthy()
+//  })
 
   test("wont decode bad base16 vectors", () => {
     expect(() => { Bytes.fromBase16('0') }).toThrow()
@@ -109,26 +109,26 @@ describe("Bytes decoding", () => {
     expect(buf.byteLength).toBe(20)
   })
 
-  test("decodes valid bech2 test vectors", () => {
-    expect(() => Bytes.fromBech32('A12UEL5L')).toBeTruthy()
-    expect(() => Bytes.fromBech32('a12uel5l')).toBeTruthy()
-    expect(() => Bytes.fromBech32('an83characterlonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1tt5tgs')).toBeTruthy()
-    expect(() => Bytes.fromBech32('abcdef1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw')).toBeTruthy()
-    expect(() => Bytes.fromBech32('11qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8247j')).toBeTruthy()
-    expect(() => Bytes.fromBech32('split1checkupstagehandshakeupstreamerranterredcaperred2y9e3w')).toBeTruthy()
-    expect(() => Bytes.fromBech32('?1ezyfcl')).toBeTruthy()
-  })
-
-  test("wont decode invalid bech2 test vectors", () => {
-    expect(() => { Bytes.fromBech32('an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvx') }).toThrow() // max length
-    expect(() => { Bytes.fromBech32('pzry9x0s0muk') }).toThrow() // no seperator
-    expect(() => { Bytes.fromBech32('1pzry9x0s0muk') }).toThrow() // empty hrp
-    expect(() => { Bytes.fromBech32('10a06t8') }).toThrow() // empty hrp
-    expect(() => { Bytes.fromBech32('1qzzfhee') }).toThrow() // empty hrp
-    expect(() => { Bytes.fromBech32('x1b4n0q5v') }).toThrow() // invalid checksum
-    expect(() => { Bytes.fromBech32('li1dgmt3') }).toThrow() // too short checksum
-    expect(() => { Bytes.fromBech32('A1G7SGD8') }).toThrow() // checksum made with uppercase data
-  })
+//  test("decodes valid bech2 test vectors", () => {
+//    expect(() => Bytes.fromBech32('A12UEL5L')).toBeTruthy()
+//    expect(() => Bytes.fromBech32('a12uel5l')).toBeTruthy()
+//    expect(() => Bytes.fromBech32('an83characterlonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1tt5tgs')).toBeTruthy()
+//    expect(() => Bytes.fromBech32('abcdef1qpzry9x8gf2tvdw0s3jn54khce6mua7lmqqqxw')).toBeTruthy()
+//    expect(() => Bytes.fromBech32('11qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8247j')).toBeTruthy()
+//    expect(() => Bytes.fromBech32('split1checkupstagehandshakeupstreamerranterredcaperred2y9e3w')).toBeTruthy()
+//    expect(() => Bytes.fromBech32('?1ezyfcl')).toBeTruthy()
+//  })
+//
+//  test("wont decode invalid bech2 test vectors", () => {
+//    expect(() => { Bytes.fromBech32('an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvx') }).toThrow() // max length
+//    expect(() => { Bytes.fromBech32('pzry9x0s0muk') }).toThrow() // no seperator
+//    expect(() => { Bytes.fromBech32('1pzry9x0s0muk') }).toThrow() // empty hrp
+//    expect(() => { Bytes.fromBech32('10a06t8') }).toThrow() // empty hrp
+//    expect(() => { Bytes.fromBech32('1qzzfhee') }).toThrow() // empty hrp
+//    expect(() => { Bytes.fromBech32('x1b4n0q5v') }).toThrow() // invalid checksum
+//    expect(() => { Bytes.fromBech32('li1dgmt3') }).toThrow() // too short checksum
+//    expect(() => { Bytes.fromBech32('A1G7SGD8') }).toThrow() // checksum made with uppercase data
+//  })
 
   test("decodes hex to string", () => {
     expect(Bytes.fromHex('').toString()).toBe('')

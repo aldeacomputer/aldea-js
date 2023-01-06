@@ -27,11 +27,11 @@ import { filterAST, isConst, isExported, isGetter, isPrivate, isProtected, isRea
 
 // Allowed top-level statements - everything else is an error!
 const allowedSrcStatements = [
-  NodeKind.IMPORT,
-  NodeKind.VARIABLE,
-  NodeKind.CLASSDECLARATION,
-  NodeKind.ENUMDECLARATION,
-  NodeKind.FUNCTIONDECLARATION,
+  NodeKind.Import,
+  NodeKind.Variable,
+  NodeKind.ClassDeclaration,
+  NodeKind.EnumDeclaration,
+  NodeKind.FunctionDeclaration,
 ]
 
 // Collection of blacklisted names
@@ -183,28 +183,28 @@ export class Validator {
     this.ctx.sources.forEach(src => {
       filterAST(src, (node: Node) => {
         switch (node.kind) {
-          case NodeKind.IDENTIFIER:
+          case NodeKind.Identifier:
             this.validateIdentifierNode(node as IdentifierExpression)
             break
-          case NodeKind.CALL:
+          case NodeKind.Call:
             this.validateCallNode(node as CallExpression)
             break
-          case NodeKind.NEW:
+          case NodeKind.New:
             this.validateNewExpressionNode(node as NewExpression)
             break
-          case NodeKind.PROPERTYACCESS:
+          case NodeKind.PropertyAccess:
             this.validatePropertyAccessNode(node as PropertyAccessExpression)
             break
-          case NodeKind.CLASSDECLARATION:
+          case NodeKind.ClassDeclaration:
             this.validateClassDeclarationNode(node as ClassDeclaration)
             break
-          case NodeKind.FUNCTIONDECLARATION:
+          case NodeKind.FunctionDeclaration:
             this.validateFunctionDeclarationNode(node as FunctionDeclaration)
             break
-          case NodeKind.VARIABLEDECLARATION:
+          case NodeKind.VariableDeclaration:
             this.validateVariableDeclarationNode(node as VariableDeclaration)
             break
-          case NodeKind.DECORATOR:
+          case NodeKind.Decorator:
             this.validateDecoratorNode(node as DecoratorNode)
             break
         }
@@ -220,7 +220,7 @@ export class Validator {
         !this.exposedClasses.map(n => n.name).includes(n.type.name)
       ) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
+          DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_method_type,
           [n.type.name, fn.name],
           (<FieldWrap>n).node.range
@@ -232,11 +232,11 @@ export class Validator {
   private validateCallNode(node: CallExpression): void {
     // Ensure no calls to blacklisted globals
     if (
-      node.expression.kind === NodeKind.IDENTIFIER &&
+      node.expression.kind === NodeKind.Identifier &&
       blacklist.globalFns.includes((<IdentifierExpression>node.expression).text)
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Illegal_access_global,
         [(<IdentifierExpression>node.expression).text],
         node.range
@@ -249,10 +249,10 @@ export class Validator {
     if (
       isExported(node.flags) &&
       !this.exportedClassNodes.includes(node) &&
-      node.range.source.sourceKind === SourceKind.USER_ENTRY
+      node.range.source.sourceKind === SourceKind.UserEntry
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Invalid_export,
         [],
         node.range
@@ -266,7 +266,7 @@ export class Validator {
       node.extendsType?.name.identifier.text === 'Jig'
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Invalid_jig_class,
         [node.name.text, 'must not'],
         node.range
@@ -275,18 +275,18 @@ export class Validator {
 
     node.members.forEach(n => {
       // Ensure no static properties
-      if (n.kind === NodeKind.FIELDDECLARATION && isStatic(n.flags)) {
+      if (n.kind === NodeKind.FieldDeclaration && isStatic(n.flags)) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
+          DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_class_member,
           ['Static properties'],
           n.range
         ))
       }
       // Ensure no readonly methods
-      if (n.kind === NodeKind.METHODDECLARATION && isReadonly(n.flags)) {
+      if (n.kind === NodeKind.MethodDeclaration && isReadonly(n.flags)) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
+          DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_class_member,
           ['Readonly methods'],
           n.range
@@ -301,9 +301,9 @@ export class Validator {
   }
 
   private validateDecoratorNode(node: DecoratorNode): void {
-    if (node.decoratorKind > DecoratorKind.CUSTOM) {
+    if (node.decoratorKind > DecoratorKind.Custom) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Invalid_decorator,
         [],
         node.range
@@ -319,7 +319,7 @@ export class Validator {
         !this.exposedClasses.map(n => n.name).includes(n.type.name)
       ) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
+          DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_field_type,
           [n.type.name, n.name],
           (<FieldWrap>n).node.range
@@ -333,10 +333,10 @@ export class Validator {
     if (
       isExported(node.flags) &&
       !this.exportedFunctionNodes.includes(node) &&
-      node.range.source.sourceKind === SourceKind.USER_ENTRY
+      node.range.source.sourceKind === SourceKind.UserEntry
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Invalid_export,
         [],
         node.range
@@ -348,7 +348,7 @@ export class Validator {
     // Ensure no double underscore identifiers
     if (node.text.startsWith('__')) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Illegal_identifier,
         [],
         node.range
@@ -360,7 +360,7 @@ export class Validator {
     // Ensure imported or exported object inherits from Jig
     if (!isJig(obj, this.ctx)) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Invalid_jig_class,
         [obj.name, 'must'],
         obj.node.range
@@ -373,11 +373,11 @@ export class Validator {
     obj.node.members.forEach(n => {
       // Ensure no getter/setter methods on jigs
       if (
-        n.kind === NodeKind.METHODDECLARATION &&
+        n.kind === NodeKind.MethodDeclaration &&
         (isGetter(n.flags) || isSetter(n.flags))
       ) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
+          DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_jig_member,
           ['Getter and setter methods'],
           n.range
@@ -385,11 +385,11 @@ export class Validator {
       }
       // Ensure no instance methods begin with underscore on jigs
       if (
-        n.kind === NodeKind.METHODDECLARATION &&
+        n.kind === NodeKind.MethodDeclaration &&
         n.name.text.startsWith('_')
       ) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
+          DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_jig_member,
           ['Underscore-prefixed method names'],
           n.range
@@ -400,7 +400,7 @@ export class Validator {
         (isPrivate(n.flags) || isProtected(n.flags))
       ) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.WARNING,
+          DiagnosticCategory.Warning,
           AldeaDiagnosticCode.Private_member,
           [],
           n.range
@@ -420,7 +420,7 @@ export class Validator {
     // Ensure no new expressions on blacklisted classes
     if (blacklist.constructors.includes(node.typeName.identifier.text)) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Illegal_access_global,
         [node.typeName.identifier.text],
         node.range
@@ -431,11 +431,11 @@ export class Validator {
   private validatePropertyAccessNode(node: PropertyAccessExpression): void {
     // Ensure no access to blacklisted namespaces
     if (
-        node.expression.kind === NodeKind.IDENTIFIER &&
+        node.expression.kind === NodeKind.Identifier &&
         blacklist.namespaces.includes((<IdentifierExpression>node.expression).text)
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Illegal_access_global,
         [(<IdentifierExpression>node.expression).text],
         node.range
@@ -443,11 +443,11 @@ export class Validator {
     }
     // Ensure no access to restricted property names
     if (
-      node.expression.kind === NodeKind.IDENTIFIER &&
+      node.expression.kind === NodeKind.Identifier &&
       blacklist.patterns[(<IdentifierExpression>node.expression).text]?.includes(node.property.text)
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Illegal_access_property,
         [node.property.text],
         node.range
@@ -463,7 +463,7 @@ export class Validator {
       !this.exposedClasses.map(n => n.name).includes(fn.rtype.name)
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Invalid_method_type,
         [fn.rtype.name, fn.name],
         (<TypeWrap>fn.rtype).node.range
@@ -476,19 +476,19 @@ export class Validator {
       // Ensure all source top-level statements are allowed
       if (!allowedSrcStatements.includes(n.kind)) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
+          DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_source_statement,
           [],
           n.range
         ))
       }
       // Ensure global variables are literal constants
-      const badVar = n.kind === NodeKind.VARIABLE && (<VariableStatement>n).declarations.find(d => {
+      const badVar = n.kind === NodeKind.Variable && (<VariableStatement>n).declarations.find(d => {
         return !isConst(d.flags) || !(isAllowedLiteral(d.initializer) || isAllowedLiteralOther(d.initializer))
       })
       if (badVar) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.ERROR,
+          DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_source_statement,
           [],
           badVar.range
@@ -500,7 +500,7 @@ export class Validator {
   private validateVariableDeclarationNode(node: VariableDeclaration): void {
     // Ensure no restricted globals and namespaces are reassigned
     if (
-      node.initializer && node.initializer.kind === NodeKind.IDENTIFIER && (
+      node.initializer && node.initializer.kind === NodeKind.Identifier && (
         blacklist.constructors.includes((<IdentifierExpression>node.initializer).text) ||
         blacklist.namespaces.includes((<IdentifierExpression>node.initializer).text) ||
         blacklist.globalFns.includes((<IdentifierExpression>node.initializer).text) ||
@@ -508,7 +508,7 @@ export class Validator {
       )
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.ERROR,
+        DiagnosticCategory.Error,
         AldeaDiagnosticCode.Illegal_assignment,
         [(<IdentifierExpression>node.initializer).text],
         node.range
@@ -531,12 +531,12 @@ class SimpleCache {
 // Returns true if node kind is a safe literal
 function isAllowedLiteral(node: Expression | null): Boolean {
   if (!node) return false
-  return node.kind === NodeKind.LITERAL && [
-    LiteralKind.FLOAT,
-    LiteralKind.INTEGER,
-    LiteralKind.STRING,
-    LiteralKind.TEMPLATE,
-    LiteralKind.REGEXP,
+  return node.kind === NodeKind.Literal && [
+    LiteralKind.Float,
+    LiteralKind.Integer,
+    LiteralKind.String,
+    LiteralKind.Template,
+    LiteralKind.RegExp,
   ].includes((<LiteralExpression>node).literalKind)
 }
 
@@ -544,9 +544,9 @@ function isAllowedLiteral(node: Expression | null): Boolean {
 function isAllowedLiteralOther(node: Expression | null): Boolean {
   if (!node) return false
   return [
-    NodeKind.TRUE,
-    NodeKind.FALSE,
-    NodeKind.NULL
+    NodeKind.True,
+    NodeKind.False,
+    NodeKind.Null
   ].includes(node.kind)
 }
 

@@ -48,7 +48,7 @@ export function afterParse(parser: Parser): void {
         createProxyMethods(code, $ctx)
         exportClassMethods(code, $ctx)
         // Remove the export flag
-        code.node.flags = code.node.flags & ~CommonFlags.EXPORT
+        code.node.flags = code.node.flags & ~CommonFlags.Export
         break
       case CodeKind.FUNCTION:
         break

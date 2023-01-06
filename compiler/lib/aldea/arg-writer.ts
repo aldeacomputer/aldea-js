@@ -12,8 +12,9 @@ export class ArgWriter {
   cursor: i32;
 
   constructor(length: i32) {
-    this.buffer = new ArrayBuffer(length)
-    this.view = new DataView(this.buffer)
+    const buffer = new ArrayBuffer(length)
+    this.buffer = buffer
+    this.view = new DataView(buffer)
     this.cursor = 0
   }
 

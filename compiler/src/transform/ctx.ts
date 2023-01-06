@@ -127,7 +127,7 @@ export class TransformCtx {
 function collectUserSources(sources: Source[]): Source[] {
   return sources
     .filter(s => {
-      return s.sourceKind <= SourceKind.USER_ENTRY && /^(?!~lib).+/.test(s.internalPath)
+      return s.sourceKind <= SourceKind.UserEntry && /^(?!~lib).+/.test(s.internalPath)
     })
     .sort((a, b) => { // Sort by source path name
       return a.range.source.normalizedPath.localeCompare(b.range.source.normalizedPath)
@@ -136,7 +136,7 @@ function collectUserSources(sources: Source[]): Source[] {
 
 // Collects user sources from the given list of sources
 function collectUserEntries(sources: Source[]): Source[] {
-  return sources.filter(s => s.sourceKind === SourceKind.USER_ENTRY)
+  return sources.filter(s => s.sourceKind === SourceKind.UserEntry)
 }
 
 // Collects exports from the given list of sources
@@ -146,11 +146,11 @@ function collectExports(sources: Source[]): ExportWrap[] {
   sources
     .flatMap(s => s.statements)
     .forEach(n => {
-      if (n.kind === NodeKind.CLASSDECLARATION && isExported((<ClassDeclaration>n).flags)) {
+      if (n.kind === NodeKind.ClassDeclaration && isExported((<ClassDeclaration>n).flags)) {
         exports.push(mapExport(CodeKind.CLASS, mapClass(n as ClassDeclaration)))
       }
   
-      if (n.kind === NodeKind.FUNCTIONDECLARATION && isExported((<FunctionDeclaration>n).flags)) {
+      if (n.kind === NodeKind.FunctionDeclaration && isExported((<FunctionDeclaration>n).flags)) {
         exports.push(mapExport(CodeKind.FUNCTION, mapFunction(n as FunctionDeclaration)))
       }
       
@@ -171,15 +171,15 @@ function collectImports(sources: Source[]): ImportWrap[] {
     .filter(n => isAmbient((<CodeDeclaration>n).flags))
     .forEach(n => {
       const importDecorator = (<CodeDeclaration>n).decorators
-        ?.filter(d => d.decoratorKind === DecoratorKind.CUSTOM)
+        ?.filter(d => d.decoratorKind === DecoratorKind.Custom)
         .map(d => mapDecorator(d))
         .find(d => d.name === 'imported')
 
-      if (importDecorator && n.kind === NodeKind.CLASSDECLARATION) {
+      if (importDecorator && n.kind === NodeKind.ClassDeclaration) {
         imports.push(mapImport(CodeKind.CLASS, mapClass(n as ClassDeclaration), importDecorator))
       }
   
-      if (importDecorator && n.kind === NodeKind.FUNCTIONDECLARATION) {
+      if (importDecorator && n.kind === NodeKind.FunctionDeclaration) {
         imports.push(mapImport(CodeKind.FUNCTION, mapFunction(n as FunctionDeclaration), importDecorator))
       }
     })
@@ -194,10 +194,10 @@ function collectObjects(sources: Source[], exports: ExportWrap[]): ObjectWrap[] 
   const checkedNodes: ClassDeclaration[] = []
   const possibleObjects: ObjectWrap[] = sources
     .flatMap(s => s.statements)
-    .filter(n => n.kind === NodeKind.CLASSDECLARATION && isAmbient((<ClassDeclaration>n).flags))
+    .filter(n => n.kind === NodeKind.ClassDeclaration && isAmbient((<ClassDeclaration>n).flags))
     .filter(n => {
       const importDecorator = (<CodeDeclaration>n).decorators
-        ?.filter(d => d.decoratorKind === DecoratorKind.CUSTOM)
+        ?.filter(d => d.decoratorKind === DecoratorKind.Custom)
         .map(d => mapDecorator(d))
         .find(d => d.name === 'imported')
       return !importDecorator
@@ -300,7 +300,7 @@ function mapClass(node: ClassDeclaration): ClassWrap {
   const obj = mapObject(node) as ClassWrap
 
   const methods = node.members.filter(n => {
-    return n.kind === NodeKind.METHODDECLARATION &&
+    return n.kind === NodeKind.MethodDeclaration &&
       !isPrivate(n.flags) &&
       !isProtected(n.flags)
   })
@@ -312,7 +312,7 @@ function mapClass(node: ClassDeclaration): ClassWrap {
 // Maps the given AST node to an ObjectNode
 function mapObject(node: ClassDeclaration): ObjectWrap {
   const fields = node.members.filter(n => {
-    return n.kind === NodeKind.FIELDDECLARATION && !isStatic(n.flags)
+    return n.kind === NodeKind.FieldDeclaration && !isStatic(n.flags)
   })
 
   return {
@@ -383,7 +383,7 @@ function mapType(node: NamedTypeNode): TypeWrap {
 // Maps the given AST node to a DecoratorTag
 function mapDecorator(node: DecoratorNode): DecoratorTag {
   const args = node.args
-    ?.filter(a => a.kind === NodeKind.LITERAL && (<LiteralExpression>a).literalKind === LiteralKind.STRING)
+    ?.filter(a => a.kind === NodeKind.Literal && (<LiteralExpression>a).literalKind === LiteralKind.String)
     .map(a => (<StringLiteralExpression>a).value)
 
   return {
