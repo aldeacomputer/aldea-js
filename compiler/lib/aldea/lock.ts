@@ -4,18 +4,18 @@ import { Jig, RemoteJig } from './jig'
 /**
  * Lock Types
  * 
- * - Destroyed  - can't be called; can't be locked; (can be loaded?)
- * - None       - can't be called; anyone can lock; (default type)
- * - PubkeyHash - requires sig to call; requires sig to lock;
- * - Caller     - caller must be parent; new lock must be set by parent;
- * - Anyone     - anyone can call; can't be locked; (must be set in own constructor)
+ * - Frozen   - can't be called; can't be locked; (can be loaded?)
+ * - None     - can't be called; anyone can lock; (default type)
+ * - Address  - requires sig to call; requires sig to lock;
+ * - Jig      - caller must be parent; new lock must be set by parent;
+ * - Public   - anyone can call; new lock must be set by self;
  */
 export enum LockType {
-  DESTROYED = -1,
+  FROZEN = -1,
   NONE,
-  PUBKEY_HASH,
-  CALLER,
-  ANYONE,
+  ADDRESS,
+  JIG,
+  PUBLIC,
 }
 
 /**
@@ -58,23 +58,27 @@ export class Lock {
     this.data = data
   }
 
-  toPubkeyHash(pubkeyHash: ArrayBuffer): void {
+  toAddress(pubkeyHash: ArrayBuffer): void {
     if (pubkeyHash.byteLength != 20) {
       throw new Error('invalid lock data. pubkeyHash must be 20 bytes')
     }
 
-    this.to(LockType.PUBKEY_HASH, pubkeyHash)
+    this.to(LockType.ADDRESS, pubkeyHash)
   }
 
   toCaller(): void {
-    this.to(LockType.CALLER)
+    this.to(LockType.JIG)
   }
 
   toAnyone(): void {
-    this.to(LockType.ANYONE)
+    this.to(LockType.PUBLIC)
   }
 
   unlock (): void {
     this.to(LockType.NONE)
+  }
+
+  freeze(): void {
+    this.to(LockType.FROZEN)
   }
 }

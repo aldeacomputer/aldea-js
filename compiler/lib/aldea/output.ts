@@ -29,10 +29,6 @@ export class Output {
     this.location = state.location
     this.motos = state.motos
   }
-
-  destroy(): void {
-    this._jig.$lock.to(LockType.DESTROYED)
-  }
 }
 
 /**
