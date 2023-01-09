@@ -34,6 +34,7 @@
     "build": "run-s clean build:ts build:es",
     "build:ts": "tsc",
     "build:es": "node esbuild.js",
+    "ci": "yarn test",
     "clean": "rimraf dist/* || true",
     "docs": "typedoc",
     "test": "run-s build test:browser && ava",

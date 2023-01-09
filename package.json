@@ -16,6 +16,7 @@
     "vm"
   ],
   "scripts": {
-    "build": "yarn workspaces foreach -ptv run build"
+    "build": "yarn workspaces foreach -ptv run build",
+    "ci": "yarn workspaces foreach -ptv run ci"
   }
 }
