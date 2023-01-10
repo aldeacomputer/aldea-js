@@ -27,6 +27,7 @@ export enum AldeaDiagnosticCode {
   Illegal_access_property,
   Illegal_assignment,
   Private_member = 420,
+  Private_member_warn,
 }
 
 /**
@@ -60,8 +61,9 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
     case AldeaDiagnosticCode.Illegal_assignment:
       return 'Illegal assignment. `{0}` cannot be reassigned.'
     
-
     case AldeaDiagnosticCode.Private_member:
+      return 'Private and protected members are not accessable on imported jigs.' // todo
+    case AldeaDiagnosticCode.Private_member_warn:
       return 'Private and protected members are only partially enforeced by Aldea. See https://xxxxx' // todo
 
     default: return 'Unrecognized error code.'

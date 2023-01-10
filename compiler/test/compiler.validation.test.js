@@ -18,6 +18,17 @@ function classMbrCode(code) {
   `.trim()
 }
 
+// template for adding imported class member
+function importedClassMbrCode(code) {
+  return `
+  export class A extends Jig {}
+  @imported('0000000000000000000000000000000000000000000000000000000000000000')
+  declare class Test extends Jig {
+    ${code}
+  }
+  `.trim()
+}
+
 // template for adding class members with plain object
 function classMbrWithDepCode(code) {
   return `
@@ -242,4 +253,32 @@ test('throws if assemblyscript decorator is used', async t => {
   const e = await t.throwsAsync(() => compile(stmtCode('@inline function foo(): u8 { return 1 }')))
   t.regex(e.stderr.toString(), /Invalid decorator/)
   t.regex(e.stderr.toString(), /@inline function foo\(\): u8/)
+})
+
+test('compiles if with valid imported class', async t => {
+  await t.notThrowsAsync(() => compile(importedClassMbrCode('a: string;')))
+})
+
+test('throws if imported class declares private property', async t => {
+  const e = await t.throwsAsync(() => compile(importedClassMbrCode('private a: string;')))
+  t.regex(e.stderr.toString(), /Private and protected members/)
+  t.regex(e.stderr.toString(), /private a: string;/)
+})
+
+test('throws if imported class declares protected property', async t => {
+  const e = await t.throwsAsync(() => compile(importedClassMbrCode('protected a: string;')))
+  t.regex(e.stderr.toString(), /Private and protected members/)
+  t.regex(e.stderr.toString(), /protected a: string;/)
+})
+
+test('throws if imported class declares private method', async t => {
+  const e = await t.throwsAsync(() => compile(importedClassMbrCode('private a(): string;')))
+  t.regex(e.stderr.toString(), /Private and protected members/)
+  t.regex(e.stderr.toString(), /private a\(\): string;/)
+})
+
+test('throws if imported class declares protected method', async t => {
+  const e = await t.throwsAsync(() => compile(importedClassMbrCode('protected a(): string;')))
+  t.regex(e.stderr.toString(), /Private and protected members/)
+  t.regex(e.stderr.toString(), /protected a\(\): string;/)
 })

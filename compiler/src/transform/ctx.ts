@@ -91,7 +91,15 @@ export class TransformCtx {
   get abi(): Abi {
     return {
       version: 1,
-      exports: this.exports,
+      exports: this.exports.map(ex => {
+        if (ex.kind === CodeKind.CLASS) {
+          (<ClassWrap>ex.code).methods = (<ClassWrap>ex.code).methods.filter(n => {
+            const flags = (<MethodWrap>n).node?.flags
+            return !flags || !(isPrivate(flags) || isProtected(flags))
+          })
+        }
+        return ex
+      }),
       imports: this.imports,
       objects: this.objects,
       typeIds: this.mapTypeIds(),
@@ -281,7 +289,7 @@ function collectExposedTypes(exports: ExportWrap[], objects: ObjectWrap[]): Map<
 function mapExport(kind: CodeKind, code: ClassWrap | FunctionWrap): ExportWrap {
   return {
     kind,
-    code
+    code,
   }
 }
 
@@ -299,12 +307,7 @@ function mapImport(kind: CodeKind, code: ClassWrap | FunctionWrap, decorator: De
 function mapClass(node: ClassDeclaration): ClassWrap {
   const obj = mapObject(node) as ClassWrap
 
-  const methods = node.members.filter(n => {
-    return n.kind === NodeKind.MethodDeclaration &&
-      !isPrivate(n.flags) &&
-      !isProtected(n.flags)
-  })
-
+  const methods = node.members.filter(n => n.kind === NodeKind.MethodDeclaration)
   obj.methods = methods.map(n => mapMethod(n as MethodDeclaration))
   return obj
 }
@@ -320,6 +323,8 @@ function mapObject(node: ClassDeclaration): ObjectWrap {
     name: node.name.text,
     extends: node.extendsType?.name.identifier.text || null,
     fields: fields.map(n => mapField(n as FieldDeclaration)),
+    // @ts-ignore
+    xyz: 123,
   }
 }
 

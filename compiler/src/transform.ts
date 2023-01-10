@@ -149,6 +149,7 @@ function createProxyClass(obj: ClassWrap, origin: string, ctx: TransformCtx): vo
     }, [])
 
   const methodCodes = (obj.methods as MethodWrap[])
+    .filter(n => !isPrivate(n.node.flags) && !isProtected(n.node.flags))
     .reduce((acc: string[], n: MethodWrap): string[] => {
       acc.push(writeRemoteProxyMethod(n, obj, origin))
       return acc

@@ -43,5 +43,12 @@
     "concat": "^1.0.3",
     "dts-generator": "^3.0.0",
     "typescript": "^4.9.4"
+  },
+  "ava": {
+    "concurrency": 4,
+    "files": [
+      "test/**/*.test.js",
+      "!test/support"
+    ]
   }
 }
