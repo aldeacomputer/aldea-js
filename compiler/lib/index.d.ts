@@ -35,10 +35,13 @@ declare module 'aldea/lock' {
 	    type: LockType;
 	    data: ArrayBuffer;
 	    constructor(jig: Jig, state?: LockState | null);
-	    to(type: LockType, data?: ArrayBuffer): void;
-	    toAddress(pubkeyHash: ArrayBuffer): void;
-	    toCaller(): void;
-	    toAnyone(): void;
+	    assertType(type: LockType): void;
+	    change(type: LockType, data?: ArrayBuffer): void;
+	    changeToAddressLock(pubkeyHash: ArrayBuffer): void;
+	    changeToCallerLock(): void;
+	    changeToAnyoneLock(): void;
+	    getAddressOrFail(): ArrayBuffer;
+	    getOriginOrFail(): ArrayBuffer;
 	    unlock(): void;
 	    freeze(): void;
 	}
