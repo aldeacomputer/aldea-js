@@ -1,16 +1,16 @@
-import { blake3 } from '@noble/hashes/blake3'
-import { bytesToHex as toHex } from '@noble/hashes/utils'
+import {blake3} from '@noble/hashes/blake3'
+import {bytesToHex as toHex} from '@noble/hashes/utils'
 import {
-  normalizeTypeName,
   FieldNode,
-  ObjectNode,
-  TypeNode,
   findClass,
   findImport,
-  findObject
+  findObject,
+  normalizeTypeName,
+  ObjectNode,
+  TypeNode
 } from '@aldea/compiler/abi'
-import { WasmInstance as Module } from './wasm-instance.js'
-import { JigRef } from "./jig-ref.js";
+import {WasmInstance as Module} from './wasm-instance.js'
+import {JigRef} from "./jig-ref.js";
 import {AnyTypedArray, Externref, Internref, MemoryLayout} from "./memory.js";
 
 
@@ -82,7 +82,7 @@ export class MemoryManager {
       case 'Uint64Array':
       case 'Float32Array':
       case 'Float64Array':
-        return this.liftTypedArray(mod, type, val as number >>> 0)
+        return this.liftTypedArray(mod, type, val as number)
       case 'Array':
         return this.liftArray(mod, type, val as number >>> 0)
       case 'StaticArray':
@@ -140,14 +140,16 @@ export class MemoryManager {
   }
 
   liftStaticArray(mod: Module, type: TypeNode, ptr: number): Array<any> {
+    const memU32 = new Uint32Array(mod.memory.buffer);
+    const start = ptr
     const elBytes = this.getTypeBytes(type.args[0])
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
-    const length = new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2] >>> align
+    const length = memU32[ptr - 4 >>> 2] >>> align
     const TypedArray = this.getTypedArrayConstructor(type.args[0])
     const values = new Array(length)
 
     for (let i = 0; i < length; ++i) {
-      const nextPos = ptr + ((i << align) >>> 0)
+      const nextPos = start + ((i << align) >>> 0)
       const nextPtr = new TypedArray(mod.memory.buffer)[nextPos >>> align]
       values[i] = this.liftValue(mod, type.args[0], nextPtr);
     }
@@ -344,8 +346,7 @@ export class MemoryManager {
 
     for (let i = 0; i < length; ++i) {
       const nextPos = buffer + ((i << align) >>> 0)
-      const nextPtr = this.lowerValue(mod, type.args[0], val[i])
-      new TypedArray(mod.memory.buffer)[nextPos >>> align] = nextPtr
+      new TypedArray(mod.memory.buffer)[nextPos >>> align] = this.lowerValue(mod, type.args[0], val[i])
     }
     mod.__unpin(buffer)
     mod.__unpin(header)
@@ -367,8 +368,7 @@ export class MemoryManager {
     } else {
       for (let i = 0; i < length; i++) {
         const nextPos = buffer + ((i << align) >>> 0)
-        const nextPtr = this.lowerValue(mod, type.args[0], val[i])
-        new TypedArray(mod.memory.buffer)[nextPos >>> align] = nextPtr
+        new TypedArray(mod.memory.buffer)[nextPos >>> align] = this.lowerValue(mod, type.args[0], val[i])
       }
     }
 

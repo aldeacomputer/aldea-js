@@ -1,5 +1,5 @@
 import {CBOR, Sequence} from 'cbor-redux'
-import {JigRef} from "./jig-ref.js";
+import {JigRef} from "./jig-ref.js"
 import {
   Abi,
   ArgNode,
@@ -31,6 +31,9 @@ import {ExecutionError} from "./errors.js";
 import {InternRefMap, MemoryManager} from "./memory-manager.js";
 import {Externref, Internref} from "./memory.js";
 import {WasmPointer} from "./arg-reader.js";
+import {LiftValueVisitor} from "./abi-helpers/lift-value-visitor.js";
+import {AbiTraveler} from "./abi-helpers/abi-traveler.js";
+import {LowerValueVisitor} from "./abi-helpers/lower-value-visitor.js";
 
 // enum AuthCheck {
 //   CALL,     // 0 - can the caller call a method?
@@ -53,7 +56,7 @@ export type Prop = {
   value: any;
 }
 
-export type MethodResult = {
+export type WasmValue = {
   node: TypeNode;
   mod: WasmInstance;
   value: any;
@@ -296,7 +299,7 @@ export class WasmInstance {
     return this.instance.exports as WasmExports
   }
 
-  staticCall (className: string, methodName: string, args: any[]): MethodResult {
+  staticCall (className: string, methodName: string, args: any[]): WasmValue {
     const fnName = `${className}_${methodName}`
     const abiObj = findClass(this.abi, className, `unknown class: ${className}`)
     const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
@@ -337,7 +340,7 @@ export class WasmInstance {
     return this.memMgr.liftInternref(this, objectNode, pointer)
   }
 
-  instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): MethodResult {
+  instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): WasmValue {
     const fnName = `${className}$${methodName}`
     const abiObj = findClass(this.abi, className, `unknown export: ${className}`)
     const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
@@ -382,7 +385,7 @@ export class WasmInstance {
    * The abi now exports plain functions - check this method is OK
    * The static call above should probably look like this too, no?
    */
-  functionCall (fnName: string, args: any[] = []): MethodResult {
+  functionCall (fnName: string, args: any[] = []): WasmValue {
     const abiFn = findFunction(this.abi, fnName, `unknown export: ${fnName}`)
 
     const ptrs = abiFn.args.map((argNode: ArgNode, i: number) => {
@@ -426,7 +429,22 @@ export class WasmInstance {
     )
   }
 
-  extractValue(ptr: WasmPointer, type: TypeNode): any {
-    return this.memMgr.liftValue(this, type, ptr)
+  extractValue(ptr: WasmPointer, type: TypeNode): WasmValue {
+    const visitor = new LiftValueVisitor(this, ptr)
+    const traveler = new AbiTraveler(this.abi)
+    traveler.acceptForType(type, visitor)
+
+    return {
+      mod: this,
+      value: visitor.value,
+      node: type
+    }
+  }
+
+  insertValue(value: any, type: TypeNode): WasmPointer {
+    const visitor = new LowerValueVisitor(this, value)
+    const traveler = new AbiTraveler(this.abi)
+    traveler.acceptForType(type, visitor)
+    return visitor.retPtr
   }
 }

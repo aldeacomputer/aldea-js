@@ -23,8 +23,10 @@ export class AbiTraveler {
         visitor.visitSmallNumberValue(typeName)
         return
       case 'u64':
+        visitor.visitUBigNumberValue()
+        return
       case 'i64':
-        visitor.visitBigNumberValue(typeName)
+        visitor.visitIBigNumberValue()
         return
       case 'bool':
         visitor.visitBoolean()
@@ -33,13 +35,31 @@ export class AbiTraveler {
         visitor.visitString()
         return
       case 'Array':
-        visitor.visitArray(typeNode.args[0])
+        visitor.visitArray(typeNode.args[0], this)
+        return
+      case 'StaticArray':
+        visitor.visitStaticArray(typeNode.args[0], this)
+        return
+      case 'ArrayBuffer':
+        visitor.visitArrayBuffer()
+        return;
+      case 'Int8Array':
+      case 'Int16Array':
+      case 'Int32Array':
+      case 'Int64Array':
+      case 'Uint8Array':
+      case 'Uint16Array':
+      case 'Uint32Array':
+      case 'Uint64Array':
+      case 'Float32Array':
+      case 'Float64Array':
+        visitor.visitTypedArray(typeName, this)
         return
       case 'Set':
-        visitor.visitSet(typeNode.args[0])
+        visitor.visitSet(typeNode.args[0], this)
         return
       case 'Map':
-        visitor.visitMap(typeNode.args[0], typeNode.args[1])
+        visitor.visitMap(typeNode.args[0], typeNode.args[1], this)
         return
       default:
         const exportClassNode = findClass(this.abi, typeName)
@@ -51,7 +71,7 @@ export class AbiTraveler {
         } else
         if (importClassNode && importClassNode.kind === CodeKind.CLASS) {
           const abiNode = importClassNode as ImportNode
-          visitor.visitImportedClass(abiNode.name, abiNode.origin)
+          visitor.visitImportedClass(typeNode, abiNode.origin)
         } else
         if (plainObjectNode) {
           visitor.visitPlainObject(plainObjectNode, typeNode, this)

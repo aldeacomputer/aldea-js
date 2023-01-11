@@ -5,7 +5,7 @@ import {UserLock} from "./locks/user-lock.js"
 import {NoLock} from "./locks/no-lock.js"
 import {JigState} from "./jig-state.js"
 import {VM} from "./vm.js";
-import {AuthCheck, LockType, MethodResult, Prop, WasmInstance} from "./wasm-instance.js";
+import {AuthCheck, LockType, WasmValue, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref} from "./memory.js";
 import {ArgNode, ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
@@ -214,7 +214,7 @@ class TxExecution {
     this.remoteLockHandler(childJigRef.origin, type, extraArg)
   }
 
-  remoteCallHandler (callerInstance: WasmInstance, origin: Pointer, className: string, methodName: string, argBuff: Uint8Array): MethodResult {
+  remoteCallHandler (callerInstance: WasmInstance, origin: Pointer, className: string, methodName: string, argBuff: Uint8Array): WasmValue {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
       jig = this.findJigByOrigin(origin)
@@ -227,10 +227,10 @@ class TxExecution {
     const args = method.args.map((n: ArgNode) => {
       const ptr = readType(argReader, n.type)
       const value = callerInstance.extractValue(ptr, n.type)  // liftValue(callerInstance, n.type, ptr)
-      if (value instanceof Externref) {
-        return this.getJigRefByOrigin(Pointer.fromBytes(value.originBuf))
-      } else if (value instanceof Internref) {
-        const jigRef = this.jigs.find(j => j.package === callerInstance && j.ref.equals(value))
+      if (value.value instanceof Externref) {
+        return this.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
+      } else if (value.value instanceof Internref) {
+        const jigRef = this.jigs.find(j => j.package === callerInstance && j.ref.equals(value.value))
         if (!jigRef) {
           throw new Error('should exist')
         }
@@ -243,7 +243,7 @@ class TxExecution {
     return this.callInstanceMethod(jig, methodName, args)
   }
 
-  remoteStaticExecHandler (srcModule: WasmInstance, targetModId: Uint8Array, fnStr: string, argBuffer: Uint8Array): MethodResult {
+  remoteStaticExecHandler (srcModule: WasmInstance, targetModId: Uint8Array, fnStr: string, argBuffer: Uint8Array): WasmValue {
     const targetMod = this.loadModule(targetModId)
 
     const [className, methodName] = fnStr.split('_')
@@ -499,7 +499,7 @@ class TxExecution {
     return this.statementResults.length - 1
   }
 
-  callInstanceMethod (jig: JigRef, methodName: string, args: any[]): MethodResult {
+  callInstanceMethod (jig: JigRef, methodName: string, args: any[]): WasmValue {
     const methodResult = jig.package.instanceCall(jig, jig.className(), methodName, args);
     let value = methodResult.value
     if (value instanceof Internref) {
