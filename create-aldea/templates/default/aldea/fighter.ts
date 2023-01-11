@@ -16,7 +16,7 @@ export class Fighter extends Jig {
 
   equip(item: Weapon): void {
     if (canLock(item)) {
-      item.$lock.toCaller()
+      item.$lock.changeToCallerLock()
       this.weapons.push(item)
     }
   }

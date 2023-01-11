@@ -12,7 +12,7 @@ export class Coin extends Jig {
     }
     this.motos -= amount
     const newCoin = new Coin(amount)
-    newCoin.$lock.toAddress(newOwner)
+    newCoin.$lock.changeToAddressLock(newOwner)
     return newCoin
 
   }

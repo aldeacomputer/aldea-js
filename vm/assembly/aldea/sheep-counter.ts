@@ -42,13 +42,13 @@ export class Shepherd extends Jig {
   constructor (aFlock: Flock) {
     super()
     this.flock = aFlock
-    this.flock.$lock.toCaller()
+    this.flock.$lock.changeToCallerLock()
   }
 
   replace (anotherFlock: Flock): Flock {
     if (this.flock.legCount() <= anotherFlock.legCount()) {
       const oldFlock = this.flock
-      anotherFlock.$lock.toCaller()
+      anotherFlock.$lock.changeToCallerLock()
       oldFlock.$lock.unlock()
       this.flock = anotherFlock
       return oldFlock
@@ -59,7 +59,7 @@ export class Shepherd extends Jig {
 
   replaceAndSendTo (anotherFlock: Flock, newOwner: ArrayBuffer): void {
     const oldFlock = this.replace(anotherFlock)
-    oldFlock.$lock.toAddress(newOwner)
+    oldFlock.$lock.changeToAddressLock(newOwner)
   }
 
   legCount (): u32 {
@@ -105,7 +105,7 @@ export function buildSomeSheepCounter (): SheepCounter {
 
 
 // @ts-ignore
-@imported('c68788b6400716754c9854729e6b3ff633fdb3b8dd9f0d0555d8034185816353')
+@imported('1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda')
 declare class Flock extends Jig {
   constructor();
   size: u32;
@@ -114,7 +114,7 @@ declare class Flock extends Jig {
 }
 
 // @ts-ignore
-@imported('c68788b6400716754c9854729e6b3ff633fdb3b8dd9f0d0555d8034185816353')
+@imported('1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda')
 declare class InternalFlockOperations extends Jig {
   static growFlock (aFlock: Flock): void
 }
