@@ -7,7 +7,7 @@ export class ForeverCounter extends Jig {
   }
 
   init (): void {
-    this.$lock.toAnyone()
+    this.$lock.changeToAnyoneLock()
     // Auth.lockToAnyone<ForeverCounter>(this)
   }
 

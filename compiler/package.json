@@ -24,6 +24,7 @@
     "build": "run-s clean build:ts",
     "build:ts": "tsc && node scripts/build-dts.js",
     "clean": "rimraf dist/* || true",
+    "ci": "yarn test:js",
     "test": "yarn build && yarn test:as && yarn test:js",
     "test:as": "asp --summary && yarn test:as:clean",
     "test:as:clean": "find lib/__tests__ -type f \\( -iname \\*.wasm -o -iname \\*.wat \\) -delete",
@@ -33,7 +34,7 @@
   "dependencies": {
     "@noble/hashes": "^1.1.5",
     "@scure/base": "^1.1.1",
-    "assemblyscript": "^0.25.2",
+    "assemblyscript": "^0.22.0",
     "cbor-redux": "^1.0.0-3",
     "commander": "^9.4.1"
   },

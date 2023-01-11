@@ -23,7 +23,7 @@ export class Flock extends Jig {
   }
 
   goToFridge (): void {
-    this.$output.destroy();
+    this.$lock.freeze();
   }
 
   returnSelf (): Flock {
@@ -57,7 +57,7 @@ export class FlockBag extends Jig {
   }
 
   addFlock (aFlock: Flock): void {
-    aFlock.$lock.toCaller()
+    aFlock.$lock.changeToCallerLock()
     this.flocks.push(aFlock)
   }
 

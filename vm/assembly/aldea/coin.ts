@@ -12,7 +12,7 @@ export class Coin extends Jig {
     }
     this.motos -= amount
     const newCoin = new Coin(amount)
-    newCoin.$lock.toPubkeyHash(newOwner)
+    newCoin.$lock.changeToAddressLock(newOwner)
     return newCoin
 
   }
@@ -27,7 +27,7 @@ export class Coin extends Jig {
 
   private combineInto(): void {
     this.motos = 0
-    this.$output.destroy()
+    this.$lock.freeze()
   }
 }
 

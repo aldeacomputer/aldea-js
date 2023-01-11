@@ -27,7 +27,7 @@ export class Weapon extends Jig {
   }
 
   incorporate(powerUp: PowerUp): void {
-    powerUp.$lock.toCaller()
+    powerUp.$lock.changeToCallerLock()
     this.powerUps.push(powerUp)
     this.power += powerUp.power
   }
@@ -39,6 +39,6 @@ export class Weapon extends Jig {
   }
 
   send (targetPubKey: ArrayBuffer): void {
-    this.$lock.toPubkeyHash(targetPubKey)
+    this.$lock.changeToAddressLock(targetPubKey)
   }
 }
