@@ -39,6 +39,6 @@ export class Weapon extends Jig {
   }
 
   send (targetPubKey: ArrayBuffer): void {
-    this.$lock.toPubkeyHash(targetPubKey)
+    this.$lock.toAddress(targetPubKey)
   }
 }

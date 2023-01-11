@@ -60,7 +60,7 @@
           },
           {
             "kind": 2,
-            "name": "merge",
+            "name": "combine",
             "args": [
               {
                 "name": "coins",
@@ -87,9 +87,10 @@
   "imports": [],
   "objects": [],
   "typeIds": {
-    "ArrayBuffer": 0,
-    "Coin": 3,
-    "LockState": 6,
-    "Array<Coin>": 12
+    "ArrayBuffer": 1,
+    "Coin": 4,
+    "Jig": 5,
+    "LockState": 7,
+    "Array<Coin>": 13
   }
 }

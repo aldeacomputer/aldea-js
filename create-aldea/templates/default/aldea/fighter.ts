@@ -30,7 +30,7 @@ export class Fighter extends Jig {
     this.health -= damage
     if (this.health < 0) {
       // todo - update to freeze when changes to compiler made
-      this.$output.destroy()
+      this.$lock.freeze()
     }
   }
 }

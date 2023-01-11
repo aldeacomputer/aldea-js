@@ -23,7 +23,7 @@ export class Flock extends Jig {
   }
 
   goToFridge (): void {
-    this.$output.destroy();
+    this.$lock.freeze();
   }
 
   returnSelf (): Flock {

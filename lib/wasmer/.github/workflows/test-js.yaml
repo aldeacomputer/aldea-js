@@ -1,4 +1,4 @@
-name: Runtime tests - JS
+name: Execute tests - JS
 
 env:
   RUST_BACKTRACE: 1

@@ -59,7 +59,7 @@ export class Shepherd extends Jig {
 
   replaceAndSendTo (anotherFlock: Flock, newOwner: ArrayBuffer): void {
     const oldFlock = this.replace(anotherFlock)
-    oldFlock.$lock.toPubkeyHash(newOwner)
+    oldFlock.$lock.toAddress(newOwner)
   }
 
   legCount (): u32 {
@@ -105,7 +105,7 @@ export function buildSomeSheepCounter (): SheepCounter {
 
 
 // @ts-ignore
-@imported('715fa9ea6974c387ad5839c697dcd1ee789fb0504b306d5452e6b08820bb8d1e')
+@imported('c68788b6400716754c9854729e6b3ff633fdb3b8dd9f0d0555d8034185816353')
 declare class Flock extends Jig {
   constructor();
   size: u32;
@@ -114,7 +114,7 @@ declare class Flock extends Jig {
 }
 
 // @ts-ignore
-@imported('715fa9ea6974c387ad5839c697dcd1ee789fb0504b306d5452e6b08820bb8d1e')
+@imported('c68788b6400716754c9854729e6b3ff633fdb3b8dd9f0d0555d8034185816353')
 declare class InternalFlockOperations extends Jig {
   static growFlock (aFlock: Flock): void
 }

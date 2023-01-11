@@ -415,7 +415,7 @@ export function isStatic(flags: number): boolean {
 
     default:
       console.warn('Unrecognised node kind', node.kind)
-      console.log(node)
+      // console.log(node)
   }
 
   return callback(node)

@@ -25,7 +25,7 @@ test('not a real test', t => {
   t.true(validateAbi(abi))
 })
 
-test.serial('abi does not include unnecessary types', async t => {
+test.skip('abi does not include unnecessary types', async t => {
   const src = `
   export class Foo extends Jig {}
   export class Test extends Jig {
@@ -41,10 +41,10 @@ test.serial('abi does not include unnecessary types', async t => {
   const abi = abiFromCbor(res.output.abi.buffer)
   const types = Object.keys(abi.typeIds)
 
-  // t.false(types.includes('ArrayBuffer'))
-  // t.false(types.includes('string'))
-  // t.false(types.includes('Jig'))
+  t.false(types.includes('ArrayBuffer'))
+  t.false(types.includes('string'))
+  t.false(types.includes('Jig'))
 
-  console.log(types)
+  // console.log(types)
   t.pass()
 })

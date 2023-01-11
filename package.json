@@ -17,6 +17,6 @@
   ],
   "scripts": {
     "build": "yarn workspaces foreach -ptv run build",
-    "ci": "yarn workspaces foreach -ptv run ci"
+    "ci": "yarn workspaces foreach -pv run ci"
   }
 }
