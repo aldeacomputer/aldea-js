@@ -46,7 +46,19 @@ export class Lock {
     }
   }
 
-  to(type: LockType, data: ArrayBuffer = new ArrayBuffer(0)): void {
+  assertType(type: LockType): void {
+    if (this.type !== type) {
+      const expected = LockType[type]
+      const actual = LockType[this.type]
+      throw new Error(`expected lock type: ${expected}, was: ${actual}`)
+    }
+  }
+
+  change(type: LockType, data: ArrayBuffer = new ArrayBuffer(0)): void {
+    if (data.byteLength != 0 && data.byteLength != 20) {
+      throw new Error('invalid lock data.')
+    }
+
     if (this._jig instanceof RemoteJig) {
       const rjig = this._jig as RemoteJig
       vm_remote_lock(rjig.origin, type, data)
@@ -58,27 +70,37 @@ export class Lock {
     this.data = data
   }
 
-  toAddress(pubkeyHash: ArrayBuffer): void {
+  changeToAddressLock(pubkeyHash: ArrayBuffer): void {
     if (pubkeyHash.byteLength != 20) {
       throw new Error('invalid lock data. pubkeyHash must be 20 bytes')
     }
 
-    this.to(LockType.ADDRESS, pubkeyHash)
+    this.change(LockType.ADDRESS, pubkeyHash)
   }
 
-  toCaller(): void {
-    this.to(LockType.JIG)
+  changeToCallerLock(): void {
+    this.change(LockType.JIG)
   }
 
-  toAnyone(): void {
-    this.to(LockType.PUBLIC)
+  changeToAnyoneLock(): void {
+    this.change(LockType.PUBLIC)
+  }
+
+  getAddressOrFail(): ArrayBuffer {
+    this.assertType(LockType.ADDRESS)
+    return this.data
+  }
+
+  getOriginOrFail(): ArrayBuffer {
+    this.assertType(LockType.JIG)
+    return this.data
   }
 
   unlock (): void {
-    this.to(LockType.NONE)
+    this.change(LockType.NONE)
   }
 
   freeze(): void {
-    this.to(LockType.FROZEN)
+    this.change(LockType.FROZEN)
   }
 }

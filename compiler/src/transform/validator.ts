@@ -146,6 +146,7 @@ export class Validator {
         case CodeKind.CLASS:
           this.validateJigInheritance(ex.code as ClassWrap)
           this.validateJigMembers(ex.code as ClassWrap)
+          this.validatePrivateMembers(ex.code as ClassWrap, true)
           this.validateClassTypes(ex.code as ClassWrap)
           break
         case CodeKind.FUNCTION:
@@ -163,6 +164,7 @@ export class Validator {
           // must not export from entry
           this.validateJigInheritance(im.code as ClassWrap)
           this.validateJigMembers(im.code as ClassWrap)
+          this.validatePrivateMembers(im.code as ClassWrap)
           this.validateClassTypes(im.code as ClassWrap)
           break
         case CodeKind.FUNCTION:
@@ -395,16 +397,27 @@ export class Validator {
           n.range
         ))
       }
-      // Warn about private or protected members
-      if (
-        (isPrivate(n.flags) || isProtected(n.flags))
-      ) {
-        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.Warning,
-          AldeaDiagnosticCode.Private_member,
-          [],
-          n.range
-        ))
+    })
+  }
+
+  private validatePrivateMembers(obj: ClassWrap, warn: boolean = false): void {
+    obj.node.members.forEach(n => {
+      if (isPrivate(n.flags) || isProtected(n.flags)) {
+        if (warn) {
+          this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+            DiagnosticCategory.Warning,
+            AldeaDiagnosticCode.Private_member_warn,
+            [],
+            n.range
+          ))
+        } else {
+          this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+            DiagnosticCategory.Error,
+            AldeaDiagnosticCode.Private_member,
+            [],
+            n.range
+          ))
+        }
       }
     })
   }

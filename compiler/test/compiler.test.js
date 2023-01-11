@@ -1,7 +1,6 @@
 import test from 'ava'
 import { compile } from '../dist/compiler.js'
 import { abiFromCbor } from '../dist/abi.js'
-import { sha256 } from '@noble/hashes/sha256'
 
 test('compiles single source', async t => {
   await t.notThrowsAsync(() => compile('export class Test extends Jig {}'))

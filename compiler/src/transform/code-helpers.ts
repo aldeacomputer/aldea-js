@@ -4,7 +4,6 @@ import { isExported, isPrivate, isProtected } from './filters.js'
 import { ClassWrap, FieldWrap, MethodWrap, ObjectWrap } from './nodes.js'
 import { normalizeTypeName } from '../abi.js'
 import { MethodKind, TypeNode } from '../abi/types.js'
-import { getTypeBytes } from '../vm/memory.js'
 
 /**
  * Writes a function exported from the entry module that simply calls the
@@ -194,4 +193,26 @@ export function writeMapPutter(type: TypeNode): string {
     map.set(key, val)
   }
   `.trim()
+}
+
+/**
+ * Returns the number of bytes for the given type.
+ */
+function getTypeBytes(type: TypeNode): number {
+  switch(type.name) {
+    case 'i8':
+    case 'u8':
+    case 'bool':
+    case 'null':
+      return 1
+    case 'i16':
+    case 'u16':
+      return 2
+    case 'i64':
+    case 'f64':
+    case 'u64':
+      return 8
+    default:
+      return 4
+  }
 }

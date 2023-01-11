@@ -21,8 +21,9 @@
     "assembly.json"
   ],
   "scripts": {
-    "build": "tsc && yarn build:dts",
-    "build:dts": "node scripts/build-dts.js",
+    "build": "run-s clean build:ts",
+    "build:ts": "tsc && node scripts/build-dts.js",
+    "clean": "rimraf dist/* || true",
     "ci": "yarn test:js",
     "test": "yarn build && yarn test:as && yarn test:js",
     "test:as": "asp --summary && yarn test:as:clean",
@@ -43,12 +44,15 @@
     "ava": "^5.1.0",
     "concat": "^1.0.3",
     "dts-generator": "^3.0.0",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^3.0.2",
     "typescript": "^4.9.4"
   },
   "ava": {
+    "concurrency": 4,
     "files": [
-      "test/**/*",
-      "!**/support/**/*"
+      "test/**/*.test.js",
+      "!test/support"
     ]
   }
 }

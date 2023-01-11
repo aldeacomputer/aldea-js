@@ -1,7 +1,7 @@
 import fs from 'fs'
-import { join, dirname, resolve, normalize } from 'path'
+import { join, dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import { Program, Options } from 'assemblyscript'
+import { Program, Options, SourceKind, NodeKind } from 'assemblyscript'
 import { libraryFiles, libraryPrefix } from 'assemblyscript/asc'
 
 const baseDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -20,12 +20,13 @@ class MockProgram {
   constructor(srcCode) {
     const opts = createCompilerOpts()
     this.pgm = new Program(opts)
+    this.parser = this.pgm.parser
 
     // Parse AS library files
     Object.keys(libraryFiles).forEach(libPath => {
       if (libPath.includes('/')) return;
       const path = libraryPrefix + libPath + ext
-      this.pgm.parser.parseFile(libraryFiles[libPath], path, false)
+      this.parser.parseFile(libraryFiles[libPath], path, false)
     })
 
     // Parse Aldea library files
@@ -35,19 +36,33 @@ class MockProgram {
         const libFile = fs.readFileSync(join(libDir, filename), 'utf8')
         const path = libraryPrefix + filename
         // libraryFiles[libPath.replace(extension_re, "")] = libText; ???
-        this.pgm.parser.parseFile(libFile, path, false)
+        this.parser.parseFile(libFile, path, false)
       })
 
     // Parse runtime first then user src
-    this.pgm.parser.parseFile(libraryFiles['rt/index-stub'], libraryPrefix + 'rt/index-stub.ts', true)
-    this.pgm.parser.parseFile(srcCode, './index.ts', true)
+    this.parser.parseFile(libraryFiles['rt/index-stub'], libraryPrefix + 'rt/index-stub.ts', true)
+    this.parser.parseFile(srcCode, './index.ts', true)
+  }
+
+  get source() {
+    return this.parser.sources.find(s => {
+      return s.sourceKind === SourceKind.UserEntry && /^(?!~lib).+/.test(s.internalPath)
+    })
+  }
+
+  get classes() {
+    return this.source.statements.filter(n => n.kind === NodeKind.ClassDeclaration)
+  }
+
+  get functions() {
+    return this.source.statements.filter(n => n.kind === NodeKind.FunctionDeclaration)
   }
 
   backlog() {
     const paths = []
     let internalPath
     while (true) {
-      internalPath = this.pgm.parser.nextFile()
+      internalPath = this.parser.nextFile()
       if (internalPath == null) break
       paths.push(internalPath)
     }
@@ -59,25 +74,25 @@ class MockProgram {
     while ((backlog = this.backlog()).length) {
       let files = []
       for (let internalPath of backlog) {
-        const dependee = this.pgm.parser.getDependee(internalPath);
+        const dependee = this.parser.getDependee(internalPath);
         files.push(getFile(internalPath, dependee)); // queue
       }
       files = await Promise.all(files)
       for (let i = 0, k = backlog.length; i < k; i++) {
         const file = files[i]
         if (file) {
-          this.pgm.parser.parseFile(file.sourceText, file.sourcePath, false)
+          this.parser.parseFile(file.sourceText, file.sourcePath, false)
         } else {
-          this.pgm.parser.parseFile(null, backlog[i] + ext, false)
+          this.parser.parseFile(null, backlog[i] + ext, false)
         }
       }
     }
   }
 }
 
-export function mockProgram(src) {
+export async function mockProgram(src) {
   const mock = new MockProgram(src)
-  mock.parse()
+  await mock.parse()
   return mock
 }
 
@@ -103,8 +118,6 @@ async function getFile(internalPath, dependeePath) {
   } else {
     const plainPath = join(libDir, plainName + ext)
     const indexPath = join(libDir, indexName + ext)
-    //console.log('?', plainPath, indexPath)
-    //console.log('>', fs.existsSync(plainPath), fs.existsSync(indexPath))
     if (fs.existsSync(plainPath)) {
       sourcePath = libraryPrefix + plainName + ext
       sourceText = fs.readFileSync(plainPath, 'utf8')
