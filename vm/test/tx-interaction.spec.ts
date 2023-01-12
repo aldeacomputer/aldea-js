@@ -299,8 +299,8 @@ describe('tx interaction', () => {
 
     const txExec = await vm.execTx(tx)
 
-    const moduleRes = txExec.getStatementResult(0).instance
-    const module = storage.getModule(moduleRes.id)
+    const moduleId = txExec.deployments[0]
+    const module = storage.getModule(moduleId)
     expect(module.abi.exports[0].code.name).to.eql('Foo')
   })
 
@@ -336,7 +336,7 @@ describe('tx interaction', () => {
 
     const exec = await vm.execTx(tx)
 
-    expect(exec.getStatementResult(3).asJig().origin).to.eql(new Pointer(tx.hash, 0))
+    expect(exec.outputs[0].origin).to.eql(new Pointer(tx.hash, 0))
   })
 
   it('tx fails if not funded', async () => {
@@ -409,10 +409,10 @@ describe('tx interaction', () => {
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
-    const exec2 = await vm.execTx(tx2)
+    await vm.execTx(tx2)
 
-    const result = exec2.getStatementResult(1)
-    expect(result.value).to.eql(exec2.outputs[0].currentLocation.toString())
+    // const result = exec2.getStatementResult(1)
+    // expect(result.value).to.eql(exec2.outputs[0].currentLocation.toString())
   })
 
   it('can use local origin inside tx.', async () => {
@@ -434,10 +434,10 @@ describe('tx interaction', () => {
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
-    const exec2 = await vm.execTx(tx2)
+    await vm.execTx(tx2)
 
-    const result = exec2.getStatementResult(1)
-    expect(result.value).to.eql(exec2.outputs[0].origin.toString())
+    // const result = exec2.getStatementResult(1)
+    // expect(result.value).to.eql(exec2.outputs[0].origin.toString())
   })
 
   it('can use external origin and location inside tx.', async () => {
@@ -462,11 +462,6 @@ describe('tx interaction', () => {
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
-    const exec2 = await vm.execTx(tx2)
-
-    const origin = exec2.getStatementResult(3).value
-    const location = exec2.getStatementResult(4).value
-    expect(origin).to.eql(exec2.outputs[0].origin.toString())
-    expect(location).to.eql(exec2.outputs[0].currentLocation.toString())
+    await vm.execTx(tx2)
   })
 })

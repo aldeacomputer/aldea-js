@@ -160,6 +160,10 @@ class TxExecution {
       // console.log(jigState.parsedState())
       this.outputs.push(jigState)
     })
+
+    this.wasms = new Map()
+    this.jigs = []
+    this.statementResults = []
   }
 
   private serializeJig (jig: JigRef): Uint8Array {
