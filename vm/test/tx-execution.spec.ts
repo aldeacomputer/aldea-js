@@ -389,9 +389,9 @@ describe('execute txs', () => {
     exec2.finalize()
 
     // const bagState = exec.outputs[1].parsedState()
-    expect(exec2.outputs).to.have.length(2) // because is loading the dependency
-    const parsedState = exec2.outputs[1].parsedState();
-    expect(parsedState).to.have.length(1) // because is loading the dependency
+    expect(exec2.outputs).to.have.length(1)
+    const parsedState = exec2.outputs[0].parsedState();
+    expect(parsedState).to.have.length(1)
     expect(parsedState[0]).to.eql({name: 'Flock', originBuf: exec.outputs[0].origin.toBytes()})
   })
 
