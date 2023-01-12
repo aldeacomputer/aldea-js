@@ -242,4 +242,8 @@ export class LowerValueVisitor implements AbiVisitor {
 
     return ptr
   }
+
+  visitVoid() {
+    this.retPtr = 0
+  }
 }

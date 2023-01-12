@@ -130,7 +130,7 @@ export class LiftValueVisitor implements AbiVisitor {
     this.value = map
   }
 
-  visitPlainObject(objNode: ObjectNode, typeNode: TypeNode, traveler: AbiTraveler): void {
+  visitPlainObject(objNode: ObjectNode, _typeNode: TypeNode, traveler: AbiTraveler): void {
     const mod = this.instance
     const ptr = Number(this.ptr)
     const offsets = getObjectMemLayout(objNode)
@@ -209,5 +209,9 @@ export class LiftValueVisitor implements AbiVisitor {
         ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2]
       )
     );
+  }
+
+  visitVoid() {
+    this.value = undefined
   }
 }

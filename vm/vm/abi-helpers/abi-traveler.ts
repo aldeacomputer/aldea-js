@@ -1,4 +1,14 @@
-import {Abi, CodeKind, findClass, ImportNode, findImport, TypeNode, findObject} from "@aldea/compiler/abi";
+import {
+  Abi,
+  CodeKind,
+  findClass,
+  ImportNode,
+  findImport,
+  TypeNode,
+  findObject,
+  ObjectNode,
+  FieldNode
+} from "@aldea/compiler/abi";
 import {AbiVisitor} from "./abi-visitor.js";
 
 export class AbiTraveler {
@@ -61,6 +71,9 @@ export class AbiTraveler {
       case 'Map':
         visitor.visitMap(typeNode.args[0], typeNode.args[1], this)
         return
+      case 'void':
+        visitor.visitVoid()
+        return
       default:
         const exportClassNode = findClass(this.abi, typeName)
         const importClassNode = findImport(this.abi, typeName)
@@ -85,5 +98,19 @@ export class AbiTraveler {
   private acceptForClass(className: string, visitor: AbiVisitor) {
     const classNode = findClass(this.abi, className, `${className} does not exist in current abi.`)
     visitor.visitExportedClass(classNode, this)
+  }
+
+  private acceptForArray(innerType: TypeNode, visitor: AbiVisitor) {
+    visitor.visitArrayStart(innerType)
+    visitor.visitArrayElements(innerType)
+    visitor.visitArrayFinish(innerType)
+  }
+
+  private acceptForPlainObject(node: ObjectNode, visitor: AbiVisitor) {
+    visitor.visitObjectStart(node)
+    node.fields((f: FieldNode) => {
+      visitor.visitObjectField(node, f.type)
+    })
+    visitor.visitObjectEnd(node)
   }
 }

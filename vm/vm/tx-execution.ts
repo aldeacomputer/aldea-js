@@ -163,13 +163,7 @@ class TxExecution {
   }
 
   private serializeJig (jig: JigRef): Uint8Array {
-    return jig.package.extractState(jig.ref, jig.classIdx, (newRef: Internref) => {
-      const childJig = this.jigs.find(j => j.package === jig.package && j.ref.equals(newRef))
-      if (!childJig) {
-        throw new ExecutionError('child jig should exist')
-      }
-      return childJig.asChildRef()
-    })
+    return jig.package.extractState(jig.ref, jig.classIdx)
   }
 
   loadModule (moduleId: Uint8Array): WasmInstance {
@@ -226,7 +220,7 @@ class TxExecution {
     const argReader = new ArgReader(argBuff)
     const args = method.args.map((n: ArgNode) => {
       const ptr = readType(argReader, n.type)
-      const value = callerInstance.extractValue(ptr, n.type)  // liftValue(callerInstance, n.type, ptr)
+      const value = callerInstance.extractValue(ptr, n.type).value
       if (value.value instanceof Externref) {
         return this.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
       } else if (value.value instanceof Internref) {
@@ -254,7 +248,7 @@ class TxExecution {
     const argReader = new ArgReader(argBuffer)
     const argValues = method.args.map((arg) => {
       const pointer = readType(argReader, arg.type)
-      return srcModule.extractValue(pointer, arg.type)
+      return srcModule.extractValue(pointer, arg.type).value
     }).map((value: any) => {
       if (value instanceof Externref) {
         return this.getJigRefByOrigin(Pointer.fromBytes(value.originBuf))
@@ -441,11 +435,17 @@ class TxExecution {
     return this.hydrateJigState(jigState)
   }
 
+  findJigByRef (ref: Internref): JigRef {
+    const existing = this.jigs.find(j => j.ref.equals(ref))
+    if (!existing) {
+      throw new Error('should exist')
+    }
+    return existing
+  }
+
   private hydrateJigState(state: JigState): JigRef {
     const module = this.loadModule(state.packageId)
-    const ref = module.hidrate(state.classIdx, state.stateBuf, (ref: Externref) => {
-      return this.findJigByOrigin(Pointer.fromBytes(ref.originBuf))
-    })
+    const ref = module.hidrate(state.classIdx, state.stateBuf)
     const lock = this.hidrateLock(state.serializedLock)
     const jigRef = new JigRef(ref, state.classIdx, module, state.origin, lock)
     this.addNewJigRef(jigRef)

@@ -34,6 +34,8 @@ import {WasmPointer} from "./arg-reader.js";
 import {LiftValueVisitor} from "./abi-helpers/lift-value-visitor.js";
 import {AbiTraveler} from "./abi-helpers/abi-traveler.js";
 import {LowerValueVisitor} from "./abi-helpers/lower-value-visitor.js";
+import {LiftJigStateVisitor} from "./abi-helpers/lift-jig-state-visitor.js";
+import {LowerJigStateVisitor} from "./abi-helpers/lower-jig-state-visitor.js";
 
 // enum AuthCheck {
 //   CALL,     // 0 - can the caller call a method?
@@ -310,34 +312,37 @@ export class WasmInstance {
 
     const fn = this.instance.exports[fnName] as Function;
     const retPtr = fn(...ptrs)
-    const retValue = methodName === 'constructor'
-      ? new Internref(className, retPtr)
-      : this.memMgr.liftValue(this, method.rtype, retPtr)
-
-    return {
-      node: method.rtype ? method.rtype : voidNode,
-      value: retValue,
-      mod: this
+    if (methodName === 'constructor') {
+      return {
+        node: method.rtype ? method.rtype : voidNode,
+        value: new Internref(className, retPtr),
+        mod: this
+      }
+    } else {
+      return this.extractValue(retPtr, method.rtype)
     }
   }
 
-  hidrate (classIdx: number, frozenState: Uint8Array, findJig: (ref: Externref) => JigRef): Internref {
+  hidrate (classIdx: number, frozenState: Uint8Array): Internref {
     const rawState = __decodeArgs(frozenState)
     const objectNode = this.abi.exports[classIdx].code as ClassNode //findClass(, className, `unknown class ${className}`)
 
     // const mgr = new MemoryManager()
-    this.memMgr.lowerInterRefFilter = (originBytes: Uint8Array): JigRef => {
-      const ptr = Pointer.fromBytes(originBytes)
-      return this.currentExec.findJigByOrigin(ptr)
-    }
-    this.memMgr.extRefFilter = (ref: Externref | JigRef) => {
-      if(ref instanceof JigRef) { return ref }
-      return findJig(ref)
-    }
-
-    const pointer = this.memMgr.lowerObject(this, objectNode, rawState)
+    // this.memMgr.lowerInterRefFilter = (originBytes: Uint8Array): JigRef => {
+    //   const ptr = Pointer.fromBytes(originBytes)
+    //   return this.currentExec.findJigByOrigin(ptr)
+    // }
+    // this.memMgr.extRefFilter = (ref: Externref | JigRef) => {
+    //   if(ref instanceof JigRef) { return ref }
+    //   return findJig(ref)
+    // }
+    const traveler = new AbiTraveler(this.abi)
+    const visitor = new LowerJigStateVisitor(this, rawState)
+    visitor.visitPlainObject(objectNode, { name: objectNode.name, args: [] }, traveler)
+    // const pointer = this.memMgr.lowerObject(this, objectNode, rawState)
+    const pointer = visitor.retPtr
     this.memMgr.reset()
-    return this.memMgr.liftInternref(this, objectNode, pointer)
+    return this.memMgr.liftInternref(this, objectNode, Number(pointer))
   }
 
   instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): WasmValue {
@@ -354,7 +359,8 @@ export class WasmInstance {
 
     const fn = this.instance.exports[fnName] as Function;
     const ptr = fn(...ptrs)
-    const result = this.memMgr.liftValue(this, method.rtype, ptr)
+    const result = this.extractValue(ptr, method.rtype).value
+    // this.memMgr.liftValue(this, method.rtype, ptr)
     return {
       mod: this,
       value: result,
@@ -394,7 +400,7 @@ export class WasmInstance {
 
     const fn = this.instance.exports[fnName] as Function;
     const ptr = fn(...ptrs)
-    const result = this.memMgr.liftValue(this, abiFn.rtype, ptr)
+    const result = this.extractValue(ptr, abiFn.rtype)
 
     return {
       mod: this,
@@ -418,18 +424,33 @@ export class WasmInstance {
     return __unpin(ptr)
   }
 
-  extractState(ref: Internref, classIdx: number, findJigOrigin: InternRefMap): Uint8Array {
+  extractState(ref: Internref, classIdx: number): Uint8Array {
+    // const abiObj = this.abi.exports[classIdx].code as ClassNode
+    // const mgr = new MemoryManager()
+    // mgr.liftInterRefMap = findJigOrigin
+    // const lifted = mgr.liftObject(this, abiObj, ref.ptr)
+    // mgr.reset()
+    // return __encodeArgs(
+    //   abiObj.fields.map((field: FieldNode) => lifted[field.name])
+    // )
+    const traveler = new AbiTraveler(this.abi)
     const abiObj = this.abi.exports[classIdx].code as ClassNode
-    const mgr = new MemoryManager()
-    mgr.liftInterRefMap = findJigOrigin
-    const lifted = mgr.liftObject(this, abiObj, ref.ptr)
-    mgr.reset()
+    const visitor = new LiftJigStateVisitor(this, ref.ptr)
+    visitor.visitPlainObject(
+      abiObj,
+      {name: abiObj.name, args: []},
+      traveler
+    )
+    const lifted = visitor.value
     return __encodeArgs(
       abiObj.fields.map((field: FieldNode) => lifted[field.name])
     )
   }
 
-  extractValue(ptr: WasmPointer, type: TypeNode): WasmValue {
+  extractValue(ptr: WasmPointer, type: TypeNode | null): WasmValue {
+    if (type === null) {
+      type = {  name: 'void', args: [] }
+    }
     const visitor = new LiftValueVisitor(this, ptr)
     const traveler = new AbiTraveler(this.abi)
     traveler.acceptForType(type, visitor)

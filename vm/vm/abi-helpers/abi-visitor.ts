@@ -21,4 +21,6 @@ export interface AbiVisitor {
   visitArrayBuffer(): void;
 
   visitUBigNumberValue(): void;
+
+  visitVoid(): void;
 }
