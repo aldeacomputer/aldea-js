@@ -162,7 +162,6 @@ class TxExecution {
       const origin = jigRef.origin || location
       const serialized = this.serializeJig(jigRef)
       const jigState = new JigState(origin, location , jigRef.classIdx, serialized, jigRef.package.id, jigRef.lock.serialize())
-      // console.log(jigState.parsedState())
       this.outputs.push(jigState)
     })
 

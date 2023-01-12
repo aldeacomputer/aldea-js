@@ -395,6 +395,28 @@ describe('execute txs', () => {
     expect(parsedState[0]).to.eql({name: 'Flock', originBuf: exec.outputs[0].origin.toBytes()})
   })
 
+  it('does not require re lock for address locked jigs.', () => {
+    exec.importModule(modIdFor('flock'))
+    exec.importModule(modIdFor('sheep-counter'))
+    const flockIndex = exec.instantiate(0, 'Flock', [])
+    exec.lockJigToUser(flockIndex, userAddr)
+    exec.markAsFunded()
+    exec.finalize()
+
+    storage.persist(exec)
+
+    const tx2 = new TxBuilder().sign(userPriv).build()
+    const exec2 = new TxExecution(tx2, vm)
+    const index = exec2.loadJigByOutputId(exec.outputs[0].id())
+    exec2.callInstanceMethodByIndex(index, 'grow', [])
+    exec2.markAsFunded()
+    exec2.finalize()
+
+    expect(exec2.outputs).to.have.length(1)
+    expect(exec2.outputs[0].serializedLock.type).to.eql(1)
+    expect(exec2.outputs[0].serializedLock.data).to.eql(userAddr.hash)
+  })
+
   it('can send instance method result as parameter', () => {
     exec.importModule(modIdFor('flock'))
     const flockIndex = exec.instantiate(0, 'Flock', [])
@@ -421,4 +443,6 @@ describe('execute txs', () => {
   it('fails if an import is tried to use as a jig')
   it('fails if a number statement result is tried to be use as a jig')
   it('fails if a jig statement result is tried to be used as an import')
+  it('can lock to a new address if there is a signature for the previous one')
+  it('cannot lock to a new address if there is no signature for the previous one')
 })
