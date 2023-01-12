@@ -41,6 +41,7 @@ import {
   isPrivate,
   isProtected,
   isStatic,
+  isInstance,
 } from './filters.js'
 
 import { Validator } from './validator.js'
@@ -54,6 +55,7 @@ import {
   TypeIds,
   TypeNode,
 } from '../abi/types.js'
+import { METHODS } from 'http';
 
 type CodeDeclaration = ClassDeclaration | FunctionDeclaration | InterfaceDeclaration
 
@@ -75,6 +77,7 @@ export class TransformCtx {
   objects: ObjectWrap[];
   exposedTypes: Map<string, TypeNode>;
   validator: Validator = new Validator(this);
+  #typeIds?: TypeIds;
 
   constructor(parser: Parser) {
     this.parser = parser
@@ -91,15 +94,7 @@ export class TransformCtx {
   get abi(): Abi {
     return {
       version: 1,
-      exports: this.exports.map(ex => {
-        if (ex.kind === CodeKind.CLASS) {
-          (<ClassWrap>ex.code).methods = (<ClassWrap>ex.code).methods.filter(n => {
-            const flags = (<MethodWrap>n).node?.flags
-            return !flags || !(isPrivate(flags) || isProtected(flags))
-          })
-        }
-        return ex
-      }),
+      exports: this.mapExports(),
       imports: this.imports,
       objects: this.objects,
       typeIds: this.mapTypeIds(),
@@ -121,13 +116,40 @@ export class TransformCtx {
 
   private mapTypeIds(): TypeIds {
     if (!this.program) return {}
+    if (!this.#typeIds) {
+      const whitelist = ['LockState', 'UtxoState', 'Coin', 'Jig']
+        .concat(...this.exports.filter(ex => ex.kind === CodeKind.CLASS).map(ex => ex.code.name))
+        .concat(...this.imports.filter(im => im.kind === CodeKind.CLASS).map(im => im.name))
+        .concat(...Array.from(this.exposedTypes.keys()))
 
-    const whitelist = Array.from(this.exposedTypes.keys()).concat('LockState', 'UtxoState', 'Coin', 'Jig')
-    return [...this.program.managedClasses].reduce((obj: TypeIds, [id, klass]) => {
-      const name = normalizeClassName(klass)
-      if (whitelist.includes(name)) { obj[name] = id }
-      return obj
-    }, {})
+      this.#typeIds = [...this.program.managedClasses].reduce((obj: TypeIds, [id, klass]) => {
+        const name = normalizeClassName(klass)
+        if (whitelist.includes(name)) { obj[name] = id }
+        return obj
+      }, {})
+    }
+    return this.#typeIds
+  }
+
+  // in generating the abi we need to strip private methods and ensure a constructor
+  private mapExports(): ExportWrap[] {
+    return this.exports.map(ex => {
+      if (ex.kind === CodeKind.CLASS) {
+        const code = ex.code as ClassWrap
+        code.methods = code.methods.filter(n => {
+          return ![MethodKind.PRIVATE, MethodKind.PROTECTED].includes(n.kind)
+        })
+        if (!code.methods.some(n => n.kind === MethodKind.CONSTRUCTOR)) {
+          code.methods.unshift({
+            kind: MethodKind.CONSTRUCTOR,
+            name: 'constructor',
+            args: [],
+            rtype: null
+          })
+        }
+      }
+      return ex
+    })
   }
 }
 
@@ -256,16 +278,20 @@ function collectObjects(sources: Source[], exports: ExportWrap[]): ObjectWrap[] 
 function collectExposedTypes(exports: ExportWrap[], objects: ObjectWrap[]): Map<string, TypeNode> {
   const map = new Map<string, TypeNode>()
 
+  const setType = ({ node: _, ...type }: TypeWrap) => {
+    map.set(normalizeTypeName(type), type)
+  }
+
   const applyClass = (obj: ClassWrap | ObjectWrap) => {
-    obj.fields.forEach(n => map.set(normalizeTypeName(n.type), n.type))
+    obj.fields.forEach(n => setType(n.type as TypeWrap))
     if ("methods" in obj) {
       obj.methods.forEach(n => applyFunction(n as MethodWrap))
     }
   }
 
   const applyFunction = (fn: FunctionWrap | MethodWrap) => {
-    fn.args.forEach(n => map.set(normalizeTypeName(n.type), n.type))
-    if (fn.rtype) { map.set(normalizeTypeName(fn.rtype), fn.rtype) }
+    fn.args.forEach(n => setType(n.type as TypeWrap))
+    if (fn.rtype) { setType(fn.rtype as TypeWrap) }
   }
 
   exports.forEach(ex => {
@@ -340,8 +366,24 @@ function mapFunction(node: FunctionDeclaration): FunctionWrap {
 
 // Maps the given AST node to a MethodNode
 function mapMethod(node: MethodDeclaration): MethodWrap {
-  const kind = isConstructor(node.flags) ? MethodKind.CONSTRUCTOR :
-    (isStatic(node.flags) ? MethodKind.STATIC : MethodKind.INSTANCE)
+  let kind: MethodKind;
+  switch (true) {
+    case isConstructor(node.flags):
+      kind = MethodKind.CONSTRUCTOR
+      break
+    case isStatic(node.flags):
+      kind = MethodKind.STATIC
+      break
+    case isPrivate(node.flags):
+      kind = MethodKind.PRIVATE
+      break
+    case isProtected(node.flags):
+      kind = MethodKind.PROTECTED
+      break
+    case isInstance(node.flags):
+    default:
+      kind = MethodKind.INSTANCE
+  }
 
   return {
     node,

@@ -137,6 +137,13 @@ export function isStatic(flags: number): boolean {
 }
 
 /**
+ * Returns true if the node is an instance method.
+ */
+export function isInstance(flags: number): boolean {
+  return (flags & CommonFlags.Instance) === CommonFlags.Instance
+}
+
+/**
  * Given an AST node element, will walk through all descendant and execute a
  * callback on each node in the tree. The callback provides a mechanism to
  * filter by specific node kinds.

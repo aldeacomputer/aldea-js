@@ -1,7 +1,7 @@
 import { blake3 } from '@noble/hashes/blake3'
 import { bytesToHex as toHex } from '@noble/hashes/utils'
 import { isExported, isPrivate, isProtected } from './filters.js'
-import { ClassWrap, FieldWrap, MethodWrap, ObjectWrap } from './nodes.js'
+import { ClassWrap, FieldWrap, FunctionWrap, MethodWrap, ObjectWrap } from './nodes.js'
 import { normalizeTypeName } from '../abi.js'
 import { MethodKind, TypeNode } from '../abi/types.js'
 
@@ -105,7 +105,7 @@ export function writeRemoteProxyGetter(field: FieldWrap, obj: ClassWrap): string
 }
 
 /**
- * Writes a method on a proxy class. Returns the result of `vm_call`.
+ * Writes a method on a proxy class. Returns the result of `vm_remote_call`.
  */
 export function writeRemoteProxyMethod(method: MethodWrap, obj: ObjectWrap, origin: string): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
@@ -122,6 +122,21 @@ export function writeRemoteProxyMethod(method: MethodWrap, obj: ObjectWrap, orig
   ${isStatic ? 'static ' : ''}${method.name}(${args.join(', ')})${isConstructor ? '' : `: ${rtype}`} {
     ${ writeArgWriter(method.args as FieldWrap[]) }
     ${prefix} ${caller}
+  }
+  `.trim()
+}
+
+/**
+ * Writes a proxy Function calling a static fuction on a remote package.
+ */
+export function writeRemoteProxyFunction(fn: FunctionWrap, origin: string): string {
+  const args = fn.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
+  const rtype = normalizeTypeName(fn.rtype)
+
+  return `
+  export function ${fn.name}(${args.join(', ')}): ${rtype} {
+    ${ writeArgWriter(fn.args as FieldWrap[]) }
+    return vm_remote_call_s<${rtype}>('${origin}', '${fn.name}', args.buffer)
   }
   `.trim()
 }
