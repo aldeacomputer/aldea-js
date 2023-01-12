@@ -443,4 +443,6 @@ describe('execute txs', () => {
   it('fails if an import is tried to use as a jig')
   it('fails if a number statement result is tried to be use as a jig')
   it('fails if a jig statement result is tried to be used as an import')
+  it('can lock to a new address if there is a signature for the previous one')
+  it('cannot lock to a new address if there is no signature for the previous one')
 })
