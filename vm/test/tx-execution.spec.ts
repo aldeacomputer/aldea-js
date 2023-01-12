@@ -70,9 +70,9 @@ describe('execute txs', () => {
     exec.lockJigToUser(weaponIndex, userAddr)
     exec.finalize()
 
-    const parsed = exec.outputs[0].objectState(exec.getImportedModule(moduleIndex))
-    expect(parsed.name).to.eql('Sable Corvo de San Martín')
-    expect(parsed.power).to.eql(100000)
+    const parsed = exec.outputs[0].parsedState()
+    expect(parsed[0]).to.eql('Sable Corvo de San Martín')
+    expect(parsed[1]).to.eql(100000)
   })
 
   it('can call methods on jigs', () => {
@@ -109,9 +109,9 @@ describe('execute txs', () => {
     exec.lockJigToUser(counterIndex, userAddr)
     exec.finalize()
 
-    const parsed = exec.outputs[1].objectState(exec.getImportedModule(counterWasmIndex))
-    expect(parsed.sheepCount).to.eql(1)
-    expect(parsed.legCount).to.eql(4)
+    const parsed = exec.outputs[1].parsedState()
+    expect(parsed[0]).to.eql(1)
+    expect(parsed[1]).to.eql(4)
   })
 
   it('after locking a jig in the code the state gets updated properly', () => {
