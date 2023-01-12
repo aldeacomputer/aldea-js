@@ -67,7 +67,7 @@ const buildApp = () => {
     const txid = req.params.txid
     const exec = storage.getTransaction(txid)
     if (!exec) {
-      throw new HttpNotFound(`unknown tx: ${txid}`)
+      throw new HttpNotFound(`unknown tx: ${txid}`, { txid })
     }
     res.status(200).send(serializeTxExec(exec))
   })
@@ -76,15 +76,15 @@ const buildApp = () => {
     const txid = req.params.txid
     const exec = storage.getTransaction(txid)
     if (!exec) {
-      throw new HttpNotFound(`unknown tx: ${txid}`)
+      throw new HttpNotFound(`unknown tx: ${txid}`, { txid })
     }
     res.set('content-type', 'application/octet-stream')
     res.status(200).send(Buffer.from(exec.tx.toBytes()))
   })
 
-  app.get('/state/:location', (req, res) => {
-    const location = req.params.location
-    const state = storage.getJigStateByOutputId(base16.decode(location), () => { throw new HttpNotFound(`state not found: ${location}`, { location })})
+  app.get('/state/:outputId', (req, res) => {
+    const outputId = req.params.outputId
+    const state = storage.getJigStateByOutputId(base16.decode(outputId), () => { throw new HttpNotFound(`state not found: ${outputId}`, { outputId })})
     const wasm = vm.createWasmInstance(state.packageId)
     res.send({
       state: state.objectState(wasm)
@@ -168,7 +168,7 @@ const buildApp = () => {
       res.status(statuses.BAD_REQUEST)
       res.send({
         message: err.message,
-        code: 'unknown error'
+        code: 'BAD_REQUEST'
       })
     }
   })
