@@ -1,5 +1,5 @@
 name: Run tests for js packages
-run-name: Aldea js CI
+run-name: Js CI
 
 on:
   push:
