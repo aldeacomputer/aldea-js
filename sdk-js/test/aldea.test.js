@@ -11,7 +11,7 @@ import {
   base16,
 } from '../dist/aldea.bundle.mjs'
 
-test.only('Builds a tx with every opcode and encodes/decodes consistently', async t => {
+test('Builds a tx with every opcode and encodes/decodes consistently', async t => {
   const aldea = new Aldea('localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/package/a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701/abi.json', { file: 'test/mocks/txb.pkg.json', format: 'string' })

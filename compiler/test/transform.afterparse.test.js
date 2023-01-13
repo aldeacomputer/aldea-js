@@ -74,7 +74,7 @@ test('afterParse() add proxy methods for public methods', async t => {
   )
 })
 
-test.only('afterParse() add proxy methods for private methods', async t => {
+test('afterParse() add proxy methods for private methods', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {
     a: u8;
