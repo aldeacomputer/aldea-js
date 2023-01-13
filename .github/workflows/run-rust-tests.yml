@@ -14,8 +14,13 @@ jobs:
 #    strategy:
 #      matrix:
 #        node-version: [ 18.x, 19.x ]
-    working-directory: rust-bench
+    defaults:
+      run:
+        shell: bash
+        working-directory: scripts
+
     steps:
+#      - run: rust-bench
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
