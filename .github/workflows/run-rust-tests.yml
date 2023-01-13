@@ -27,18 +27,18 @@ jobs:
         uses: actions/cache@v3
         with:
           path: $HOME/.cargo
-          key: ${{ runner.os }}-cargo-deps
+          key: cargo-deps-${{ runner.os }}-${{ hashFiles('cargo.toml')}}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
       - run: make install
       - run: make lint
       - run: make test
-      - name: Save Primes
+      - name: Save Cargo
         id: cache-primes-save
         uses: actions/cache/save@v3
         with:
           path: |
-            $HOME/.cargo
+            ~/.cargo
           key: ${{ steps.cache-cargo.outputs.cache-primary-key }}
 
