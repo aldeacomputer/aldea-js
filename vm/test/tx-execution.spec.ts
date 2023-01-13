@@ -432,6 +432,26 @@ describe('execute txs', () => {
     expect(bagState[0]).to.eql([exec.outputs[0].origin.toBytes()])
   })
 
+  it('does not add the extra items into the abi', () => {
+    const importIndex = exec.importModule(modIdFor('flock'))
+    const instanceIndex = exec.instantiate(importIndex, 'Flock', [0])
+    exec.lockJigToUser(instanceIndex, userAddr)
+    exec.finalize()
+
+    storage.persist(exec)
+
+    const mod = storage.getModule(modIdFor('flock'))
+
+    const utxoNode = mod.abi.exports.find(e => e.code.name === 'UtxoState')
+    const lockNode = mod.abi.exports.find(e => e.code.name === 'LockState')
+    const coinNode = mod.abi.imports.find(e => e.name === 'Coin')
+    const jigNode = mod.abi.imports.find(e => e.name === 'Jig')
+    expect(utxoNode).to.eql(undefined)
+    expect(coinNode).to.eql(undefined)
+    expect(jigNode).to.eql(undefined)
+    expect(lockNode).to.eql(undefined)
+  })
+
   it('can call top level functions')
   it('can create jigs inside jigs')
   it('can save numbers inside statement result')
