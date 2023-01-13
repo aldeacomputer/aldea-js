@@ -26,8 +26,8 @@ jobs:
         id: cache-cargo
         uses: actions/cache@v3
         with:
-          path: $HOME/.cargo
-          key: cargo-deps-${{ runner.os }}-${{ hashFiles('./rust-bench/cargo.toml')}}
+          path: ~/.cargo
+          key: cargo-deps-${{ runner.os }}-${{ hashFiles('./Cargo.toml')}}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
@@ -35,11 +35,10 @@ jobs:
       - run: cargo clippy --no-deps
       - run: cargo test -- --nocapture
       - name: Save Cargo
-        id: cache-primes-save
+        id: cache-cargo-save
         uses: actions/cache/save@v3
         with:
           path: |
             ~/.cargo
-            ./rust-bench/target
           key: ${{ steps.cache-cargo.outputs.cache-primary-key }}
 
