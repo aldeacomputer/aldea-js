@@ -1,0 +1,26 @@
+name: GitHub Actions Demo
+run-name: Aldea rust CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+#    strategy:
+#      matrix:
+#        node-version: [ 18.x, 19.x ]
+    working-directory: rust-bench
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: make install
+      - run: make lint
+      - run: make test
+
