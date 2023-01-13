@@ -164,13 +164,14 @@ export class WasmInstance {
   memMgr: MemoryManager;
 
   constructor (module: WebAssembly.Module, abi: Abi, id: Uint8Array) {
+    abi = { ...abi }
     this.memMgr = new MemoryManager()
     this.id = id
-    this.abi = abi
-    abi.objects.push(utxoAbiNode)
-    abi.objects.push(lockStateAbiNode)
-    abi.imports.push(coinNode)
-    abi.imports.push(jigNode)
+    this.abi = {
+      ...abi,
+      objects: [...abi.objects, utxoAbiNode, lockStateAbiNode],
+      imports: [...abi.imports, coinNode, jigNode]
+    }
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
     this._currentExec = null
 
