@@ -17,7 +17,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: scripts
+        working-directory: rust-bench
 
     steps:
 #      - run: rust-bench
