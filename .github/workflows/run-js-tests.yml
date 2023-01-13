@@ -36,4 +36,4 @@ jobs:
         with:
           path: |
             ./node_modules
-          key: ${{ steps.cache-yarn.outputs.cache-primary-key }}
+          key: yarn-deps-${{ runner.os }}-${{ hashFiles('./yarn.lock')}}

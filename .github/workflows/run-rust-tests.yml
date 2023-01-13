@@ -40,5 +40,5 @@ jobs:
         with:
           path: |
             ~/.cargo
-          key: ${{ steps.cache-cargo.outputs.cache-primary-key }}
+          key: cargo-deps-${{ runner.os }}-${{ hashFiles('./Cargo.toml')}}
 
