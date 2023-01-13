@@ -45,7 +45,7 @@ import {
 } from './filters.js'
 
 import { Validator } from './validator.js'
-import { normalizeTypeName } from '../abi.js';
+import { abiFromJson, normalizeTypeName } from '../abi.js';
 
 import {
   Abi,
@@ -92,13 +92,19 @@ export class TransformCtx {
   }
 
   get abi(): Abi {
-    return {
+    return abiFromJson(JSON.stringify({
       version: 1,
       exports: this.mapExports(),
       imports: this.imports,
       objects: this.objects,
       typeIds: this.mapTypeIds(),
-    }
+    }, function(key, val) {
+      if (key === 'node') {
+        delete this[key]
+        return
+      }
+      return val
+    }))
   }
 
   parse(code: string, path: string): Source {
@@ -385,12 +391,16 @@ function mapMethod(node: MethodDeclaration): MethodWrap {
       kind = MethodKind.INSTANCE
   }
 
+  const rtype = kind === MethodKind.CONSTRUCTOR ?
+    null :
+    mapType(node.signature.returnType as NamedTypeNode);
+
   return {
     node,
     kind,
     name: node.name.text,
     args: node.signature.parameters.map(n => mapArg(n as ParameterNode)),
-    rtype: mapType(node.signature.returnType as NamedTypeNode),
+    rtype,
   }
 }
 

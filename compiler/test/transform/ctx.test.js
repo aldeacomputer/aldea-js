@@ -139,3 +139,21 @@ test('ctx.abi exported classes contain only public methods', async t => {
     t.true(['constructor', 'a'].includes(f.name))
   })
 })
+
+test('ctx.abi class constructors have no return type', async t => {
+  const mock = await mockProgram(`
+  export class Test extends Jig {
+    a: u8;
+    constructor(a: u8) { this.a = a}
+    x2(): void { this.a =* 2}
+  }
+  }`)
+
+  const ctx = new TransformCtx(mock.parser)
+  afterParse(mock.parser)
+  await mock.compile()
+  ctx.program = mock.pgm
+
+  t.is(ctx.abi.exports[0].code.methods[0].name, 'constructor')
+  t.is(ctx.abi.exports[0].code.methods[0].rtype, null)
+})
