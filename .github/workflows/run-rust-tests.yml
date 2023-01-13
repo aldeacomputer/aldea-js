@@ -30,7 +30,7 @@ jobs:
           key: cargo-deps-${{ runner.os }}-${{ hashFiles('./cargo.toml')}}
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
       - run: make lint
       - run: make test
       - name: Save Cargo
