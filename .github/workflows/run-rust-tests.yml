@@ -31,8 +31,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
-      - run: make lint
-      - run: make test
+      - run: make install
+      - run: cargo check
+      - run: cargo test -- --nocapture
 #      - name: Save Cargo
 #        id: cache-primes-save
 #        uses: actions/cache/save@v3
