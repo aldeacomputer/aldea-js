@@ -194,7 +194,7 @@ describe('api', () => {
   })
 
 
-  describe('GET /state/:outputid', () => {
+  describe('when a tx already exists', () => {
     let outputs
     beforeEach(async () => {
       const coinId = await mint()
@@ -217,28 +217,125 @@ describe('api', () => {
       outputs = response.body.outputs
     })
 
-    it('returns parsed state', async () => {
-      const response = await request(app)
-        .get(`/state/${outputs[0].id}`)
-        .expect('Content-Type', /application\/json/)
-        .expect(200)
+    describe('GET /state/:outputid', () => {
+      it('returns parsed state', async () => {
+        const response = await request(app)
+          .get(`/state/${outputs[0].id}`)
+          .expect('Content-Type', /application\/json/)
+          .expect(200)
 
-      expect(response.body).to.eql({ state: { size: 0 } })
+        expect(response.body).to.eql({ state: { size: 0 } })
+      })
+
+      it('fails when output does not exists', async () => {
+        const response = await request(app)
+          .get(`/state/${Buffer.alloc(32).fill(0).toString('hex')}`)
+          .expect('Content-Type', /application\/json/)
+          .expect(404)
+
+        expect(response.body).to.have.keys(['code', 'message', 'data'])
+        expect(response.body.code).to.eql('NOT_FOUND')
+        expect(response.body.message).to.eql('state not found: 0000000000000000000000000000000000000000000000000000000000000000')
+        expect(response.body.data).to.eql({ outputId: '0000000000000000000000000000000000000000000000000000000000000000' })
+      })
     })
 
-    it('fails when output does not exists', async () => {
-      const response = await request(app)
-        .get(`/state/${Buffer.alloc(32).fill(0).toString('hex')}`)
-        .expect('Content-Type', /application\/json/)
-        .expect(404)
+    describe('GET /output/:id', function () {
+      it('returns the output', async () => {
+        const response = await request(app)
+          .get(`/output/${outputs[0].id}`)
+          .expect('Content-Type', /application\/json/)
+          .expect(200)
 
-      expect(response.body).to.have.keys(['code', 'message', 'data'])
-      expect(response.body.code).to.eql('NOT_FOUND')
-      expect(response.body.message).to.eql('state not found: 0000000000000000000000000000000000000000000000000000000000000000')
-      expect(response.body.data).to.eql({ outputId: '0000000000000000000000000000000000000000000000000000000000000000' })
+        expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state'])
+        expect(response.body.id).to.eql(outputs[0].id)
+        expect(response.body.origin).to.eql(outputs[0].origin)
+        expect(response.body.location).to.eql(outputs[0].location)
+        expect(response.body.class).to.eql(outputs[0].class)
+        expect(response.body.lock).to.eql(outputs[0].lock)
+        expect(response.body.state).to.eql(outputs[0].state)
+      })
+
+      it('returns not found when does not exists', async () => {
+        const response = await request(app)
+          .get(`/output/${new Array(64).fill('0').join('')}`)
+          .expect('Content-Type', /application\/json/)
+          .expect(404)
+
+        expect(response.body).to.have.keys(['code', 'message', 'data'])
+        expect(response.body.code).to.eql('NOT_FOUND')
+        expect(response.body.message).to.eql('0000000000000000000000000000000000000000000000000000000000000000 not found')
+        expect(response.body.data).to.eql({ outputId: '0000000000000000000000000000000000000000000000000000000000000000' })
+      })
+    });
+
+    describe('GET /output-by-origin/:origin', function () {
+      it('returns the output by origin', async () => {
+        const response = await request(app)
+          .get(`/output-by-origin/${outputs[0].origin}`)
+          .expect('Content-Type', /application\/json/)
+          .expect(200)
+
+        expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state'])
+        expect(response.body.id).to.eql(outputs[0].id)
+        expect(response.body.origin).to.eql(outputs[0].origin)
+        expect(response.body.location).to.eql(outputs[0].location)
+        expect(response.body.class).to.eql(outputs[0].class)
+        expect(response.body.lock).to.eql(outputs[0].lock)
+        expect(response.body.state).to.eql(outputs[0].state)
+      })
+
+      it('returns not found when does not exists', async () => {
+        let fakeTxid = new Array(64).fill('0').join('');
+        const response = await request(app)
+          .get(`/output-by-origin/${fakeTxid}_0`)
+          .expect('Content-Type', /application\/json/)
+          .expect(404)
+
+        expect(response.body).to.have.keys(['code', 'message', 'data'])
+        expect(response.body.code).to.eql('NOT_FOUND')
+        expect(response.body.message).to.eql('0000000000000000000000000000000000000000000000000000000000000000_0 not found')
+        expect(response.body.data).to.eql({ origin: '0000000000000000000000000000000000000000000000000000000000000000_0' })
+      })
     })
   })
 
+  describe('POST /mint', () => {
+    it('returns proper data', async () => {
+      const response = await request(app)
+        .post('/mint')
+        .send({ address: userAddr.toString(), amount: 1000 })
+        .expect(200)
+        .expect('Content-Type', /application\/json/)
+
+      expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state'])
+      expect(response.body.class).to.eql(`${new Array(64).fill('0').join('')}_0`)
+    })
+
+    it('fails address is not an address', async () => {
+      const response = await request(app)
+        .post('/mint')
+        .send({ address: 'notanaddress', amount: 1000 })
+        .expect(400)
+        .expect('Content-Type', /application\/json/)
+
+      expect(response.body).to.have.keys(['message', 'code'])
+      expect(response.body.code).to.eql('BAD_REQUEST')
+    })
+
+    it('fails when amount is not present', async () => {
+      const response = await request(app)
+        .post('/mint')
+        .send({ address: 'notanaddress' })
+        .expect(400)
+        .expect('Content-Type', /application\/json/)
+
+      expect(response.body).to.have.keys(['message', 'code'])
+      expect(response.body.code).to.eql('BAD_REQUEST')
+    })
+  })
+
+  describe('/')
 
   // describe('POST /tx', () => {
   //   let tx

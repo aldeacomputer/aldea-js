@@ -93,13 +93,18 @@ const buildApp = () => {
 
   app.get('/output/:outputId', (req, res) => {
     const outputId = req.params.outputId
-    const jigState = storage.getJigStateByOutputId(base16.decode(outputId), () => { throw new HttpNotFound(`${outputId} not found`, {location: outputId})})
+    const jigState = storage.getJigStateByOutputId(
+      base16.decode(outputId),
+      () => { throw new HttpNotFound(`${outputId} not found`, { outputId })}
+    )
     res.status(200).send(serializeJigState(jigState))
   })
 
   app.get('/output-by-origin/:origin', (req, res) => {
     const origin = req.params.origin
-    const jigState = storage.getJigStateByOrigin(Pointer.fromString(origin), () => { throw new HttpNotFound(`${origin} not found`, {location: origin})})
+    const jigState = storage.getJigStateByOrigin(
+      Pointer.fromString(origin),
+      () => { throw new HttpNotFound(`${origin} not found`, { origin })})
     res.status(200).send(serializeJigState(jigState))
   })
 
