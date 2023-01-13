@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import request from 'supertest'
 import { buildApp } from "../src/server.js"
-import { Pointer, base16, Tx, PrivKey, instructions } from "@aldea/sdk-js"
+import { Pointer, base16, Tx, PrivKey, instructions, ed25519 } from "@aldea/sdk-js"
 
 const {
   ImportInstruction,
@@ -335,7 +335,74 @@ describe('api', () => {
     })
   })
 
-  describe('/')
+  describe('GET /package/:packageId/abi.:format', () => {
+    const pkgId = '1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda'
+    it('when type is json returns a json', async () => {
+      const response = await request(app)
+        .get(`/package/${pkgId}/abi.json`)
+        .expect(200)
+        .expect('Content-Type', /application\/json/)
+
+      expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
+    })
+
+    it('when type is cbor returns a cbor', async () => {
+      await request(app)
+        .get(`/package/${pkgId}/abi.cbor`)
+        .expect(200)
+        .expect('Content-Type', /application\/cbor/)
+    })
+
+    it('returns not found when does not exist', async () => {
+      await request(app)
+        .get(`/package/${new Array(64).fill('1').join('')}/abi.json`)
+        .expect(404)
+        .expect('Content-Type', /application\/json/)
+    })
+
+    it('returns not found when does not exist and format is cbor', async () => {
+      await request(app)
+        .get(`/package/${new Array(64).fill('1').join('')}/abi.cbor`)
+        .expect(404)
+        .expect('Content-Type', /application\/json/)
+    })
+
+  })
+
+  describe('GET /package/:packageId/source', () => {
+    const pkgId = '1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda'
+    it('returns right data', async () => {
+      await request(app)
+        .get(`/package/${pkgId}/source`)
+        .expect(200)
+        .expect('Content-Type', /application\/cbor/)
+
+      // expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
+    })
+
+    it('not found when not found', async () => {
+      await request(app)
+        .get(`/package/${base16.encode(ed25519.randomBytes(32))})/source`)
+        .expect(404)
+        .expect('Content-Type', /application\/cbor/)
+
+      // expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
+    })
+
+  })
+
+  describe('GET /package/:packageId/wasm', () => {
+    const pkgId = '1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda'
+    it('returns right data', async () => {
+      await request(app)
+        .get(`/package/${pkgId}/source`)
+        .expect(200)
+        .expect('Content-Type', /application\/cbor-seq/)
+
+      // expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
+    })
+
+  })
 
   // describe('POST /tx', () => {
   //   let tx

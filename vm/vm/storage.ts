@@ -11,6 +11,10 @@ export type ModuleData = {
   sources: Map<string, string>
 }
 
+type OnNotFound = (pkgId: string) => ModuleData
+
+const throwNotFound = (idHex: string) => { throw new Error(`unknown module: ${idHex}`) }
+
 export class Storage {
   private statesPerLocation: Map<string, JigState>;
   private tips: Map<string, string>;
@@ -70,11 +74,11 @@ export class Storage {
     this.modules.set(base16.encode(id), { mod: module, abi, wasmBin, entries, sources })
   }
 
-  getModule (id: Uint8Array): ModuleData {
+  getModule (id: Uint8Array, onNotFound: OnNotFound = throwNotFound): ModuleData {
     const idHex = base16.encode(id)
     const module =  this.modules.get(idHex)
     if (!module) {
-      throw new Error(`unknown module: ${idHex}`)
+      return onNotFound(idHex)
     }
     return module
   }

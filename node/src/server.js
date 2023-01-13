@@ -116,15 +116,18 @@ const buildApp = () => {
 
   app.get('/package/:packageId/abi.:format', (req, res) => {
     const {packageId, format} = req.params
-    const data = storage.getModule(base16.decode(packageId))
+
+    const data = storage.getModule(base16.decode(packageId), (pkgId) => {
+      throw new HttpNotFound(`package with id ${pkgId} not found`, { package_id: packageId })
+    })
     if (!data) {
-      throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
+
     }
     if (format === 'json' || !format) {
-      res.set('application-type', 'application/json')
+      res.set('content-type', 'application/json')
       res.status(200).send(abiToJson(data.abi))
     } else if (format === 'cbor') {
-      res.set('application-type', 'application/cbor')
+      res.set('content-type', 'application/cbor')
       res.status(200).send(abiToCbor(data.abi))
     } else {
       throw new Error(`unknown format: ${format}`)
@@ -152,6 +155,13 @@ const buildApp = () => {
     res.send(Buffer.from(data.wasmBin))
   })
 
+  app.get('/', function(req, res) {
+    res.send('...')
+  });
+
+  app.get('*', function(req, res) {
+    res.send('...')
+  });
   app.use((err, req, res, _next) => {
     if (err instanceof HttpNotFound) {
       res.status(statuses.NOT_FOUND)
