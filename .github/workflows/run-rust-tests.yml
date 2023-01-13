@@ -22,22 +22,22 @@ jobs:
     steps:
 #      - run: rust-bench
       - uses: actions/checkout@v3
-      - name: Cache Cargo
-        id: cache-cargo
-        uses: actions/cache@v3
-        with:
-          path: $HOME/.cargo
-          key: cargo-deps-${{ runner.os }}-${{ hashFiles('./cargo.toml')}}
+#      - name: Cache Cargo
+#        id: cache-cargo
+#        uses: actions/cache@v3
+#        with:
+#          path: $HOME/.cargo
+#          key: cargo-deps-${{ runner.os }}-${{ hashFiles('./cargo.toml')}}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
       - run: make lint
       - run: make test
-      - name: Save Cargo
-        id: cache-primes-save
-        uses: actions/cache/save@v3
-        with:
-          path: |
-            ~/.cargo
-          key: ${{ steps.cache-cargo.outputs.cache-primary-key }}
+#      - name: Save Cargo
+#        id: cache-primes-save
+#        uses: actions/cache/save@v3
+#        with:
+#          path: |
+#            ~/.cargo
+#          key: ${{ steps.cache-cargo.outputs.cache-primary-key }}
 
