@@ -3,6 +3,7 @@ import {ClassNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {LowerValueVisitor} from "./lower-value-visitor.js";
 import {Pointer} from "@aldea/sdk-js";
+import {lowerBuffer} from "../memory.js";
 
 export class LowerJigStateVisitor extends LowerValueVisitor {
   visitExportedClass (node: ClassNode, _type: TypeNode, traveler: AbiTraveler): WasmPointer {
