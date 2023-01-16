@@ -7,7 +7,7 @@ import {
   TypeNode,
   findObject,
   ObjectNode,
-  FieldNode, ClassNode
+  ClassNode
 } from "@aldea/compiler/abi";
 import {AbiVisitor} from "./abi-visitor.js";
 
@@ -84,11 +84,11 @@ export class AbiTraveler {
   }
 
   private acceptForClass<T>(classNode: ClassNode, type: TypeNode, visitor: AbiVisitor<T>): T {
-    return visitor.visitExportedClass(classNode, type, visitor, this)
+    return visitor.visitExportedClass(classNode, type, this)
   }
 
   private acceptForPlainObject<T>(objNode: ObjectNode, type: TypeNode, visitor: AbiVisitor<T>): T {
-    return visitor.visitPlainObject(objNode, type, visitor, this)
+    return visitor.visitPlainObject(objNode, type, this)
 
   }
 }

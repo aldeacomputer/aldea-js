@@ -3,8 +3,14 @@ import {AbiTraveler} from "./abi-traveler.js";
 import {ClassNode, FieldNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmInstance} from "../wasm-instance.js";
 import {WasmPointer} from "../arg-reader.js";
-import {Externref, getTypeBytes, getTypedArrayConstructor, Internref, liftBuffer} from "../memory.js";
-import {getObjectMemLayout} from "../memory.js";
+import {
+  Externref,
+  getObjectMemLayout,
+  getTypeBytes,
+  getTypedArrayConstructor,
+  Internref,
+  liftBuffer
+} from "../memory.js";
 
 
 export class LiftValueVisitor implements AbiVisitor<any> {
@@ -45,9 +51,9 @@ export class LiftValueVisitor implements AbiVisitor<any> {
     const ptr = Number(this.ptr)
     const memU32 = new Uint32Array(mod.memory.buffer)
     const start = ptr
-    const length = memU32[ptr + 12 >>> 2]
     const elBytes = getTypeBytes(innerType)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
+    const length = memU32[ptr - 4 >>> 2] >>> align
     const TypedArray = getTypedArrayConstructor(innerType)
     const values = new Array(length)
 
@@ -60,11 +66,11 @@ export class LiftValueVisitor implements AbiVisitor<any> {
   }
 
   visitIBigNumberValue(): any {
-    return BigInt.asUintN(64, this.ptr as bigint)
+    return BigInt.asIntN(64, this.ptr as bigint)
   }
 
   visitUBigNumberValue(): any {
-    return BigInt.asIntN(64, this.ptr as bigint)
+    return BigInt.asUintN(64, this.ptr as bigint)
   }
 
   visitBoolean(): any {
@@ -202,23 +208,7 @@ export class LiftValueVisitor implements AbiVisitor<any> {
     return undefined
   }
 
-  visitExportedClassEnd(klass: ClassNode): any {
-    return new Internref(klass.name, Number(this.ptr))
-  }
-
-  visitExportedClassField(field: FieldNode, klass: ClassNode, traveller: AbiTraveler): void {
-  }
-
-  visitExportedClassStart(klass: ClassNode): void {
-  }
-
-  visitObjectEnd(node: ObjectNode): any {
-    return undefined;
-  }
-
-  visitObjectField(field: FieldNode, object: ObjectNode, traveler: AbiTraveler): void {
-  }
-
-  visitObjectStart(node: ObjectNode): void {
+  visitExportedClass(classNode: ClassNode, _type: TypeNode, traveler: AbiTraveler): any {
+    return new Internref(classNode.name, Number(this.ptr))
   }
 }

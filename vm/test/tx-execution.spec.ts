@@ -302,6 +302,7 @@ describe('execute txs', () => {
     expect(bagState[0]).to.eql([flockOutput.origin.toBytes()])
   })
 
+  // Should load from a different package
   it('can restore jigs that contain jigs of the same package', () => {
     exec.importModule(modIdFor('flock'))
     const flockIndex = exec.instantiate(0, 'Flock', [])
@@ -384,15 +385,16 @@ describe('execute txs', () => {
     const tx2 = new TxBuilder().sign(userPriv).build()
     const exec2 = new TxExecution(tx2, vm)
     const index = exec2.loadJigByOutputId(exec.outputs[1].id())
+    exec2.callInstanceMethodByIndex(0, 'legCount', [])
     exec2.lockJigToUser(index, userAddr)
     exec2.markAsFunded()
     exec2.finalize()
 
     // const bagState = exec.outputs[1].parsedState()
     expect(exec2.outputs).to.have.length(2) // because is loading the dependency
-    const parsedState = exec2.outputs[1].parsedState();
-    expect(parsedState).to.have.length(1) // because is loading the dependency
-    expect(parsedState[0]).to.eql({name: 'Flock', originBuf: exec.outputs[0].origin.toBytes()})
+    const parsedState = exec2.outputs[0].parsedState(); // the first one is the loaded jig
+    expect(parsedState).to.have.length(1)
+    expect(parsedState[0]).to.eql(exec.outputs[0].origin.toBytes())
   })
 
   it('can send instance method result as parameter', () => {

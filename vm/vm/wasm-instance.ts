@@ -10,7 +10,8 @@ import {
   findField,
   findFunction,
   findMethod,
-  findObject, ImportNode,
+  findObject,
+  ImportNode,
   TypeNode
 } from "@aldea/compiler/abi";
 // import {
@@ -28,8 +29,8 @@ import {
 import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
-import {InternRefMap, MemoryManager} from "./memory-manager.js";
-import {Externref, Internref} from "./memory.js";
+import {MemoryManager} from "./memory-manager.js";
+import {Internref} from "./memory.js";
 import {WasmPointer} from "./arg-reader.js";
 import {LiftValueVisitor} from "./abi-helpers/lift-value-visitor.js";
 import {AbiTraveler} from "./abi-helpers/abi-traveler.js";
@@ -327,21 +328,9 @@ export class WasmInstance {
     const rawState = __decodeArgs(frozenState)
     const objectNode = this.abi.exports[classIdx].code as ClassNode //findClass(, className, `unknown class ${className}`)
 
-    // const mgr = new MemoryManager()
-    // this.memMgr.lowerInterRefFilter = (originBytes: Uint8Array): JigRef => {
-    //   const ptr = Pointer.fromBytes(originBytes)
-    //   return this.currentExec.findJigByOrigin(ptr)
-    // }
-    // this.memMgr.extRefFilter = (ref: Externref | JigRef) => {
-    //   if(ref instanceof JigRef) { return ref }
-    //   return findJig(ref)
-    // }
     const traveler = new AbiTraveler(this.abi)
     const visitor = new LowerJigStateVisitor(this, rawState)
-    visitor.visitPlainObject(objectNode, { name: objectNode.name, args: [] }, traveler)
-    // const pointer = this.memMgr.lowerObject(this, objectNode, rawState)
-    const pointer = visitor.retPtr
-    this.memMgr.reset()
+    const pointer = visitor.visitPlainObject(objectNode, { name: objectNode.name, args: [] }, traveler)
     return this.memMgr.liftInternref(this, objectNode, Number(pointer))
   }
 
@@ -400,13 +389,7 @@ export class WasmInstance {
 
     const fn = this.instance.exports[fnName] as Function;
     const ptr = fn(...ptrs)
-    const result = this.extractValue(ptr, abiFn.rtype)
-
-    return {
-      mod: this,
-      value: result,
-      node: abiFn.rtype
-    }
+    return this.extractValue(ptr, abiFn.rtype)
   }
 
   __new (a: number, b: number): number {
@@ -436,12 +419,11 @@ export class WasmInstance {
     const traveler = new AbiTraveler(this.abi)
     const abiObj = this.abi.exports[classIdx].code as ClassNode
     const visitor = new LiftJigStateVisitor(this, ref.ptr)
-    visitor.visitPlainObject(
+    const lifted = visitor.visitPlainObject(
       abiObj,
       {name: abiObj.name, args: []},
       traveler
     )
-    const lifted = visitor.value
     return __encodeArgs(
       abiObj.fields.map((field: FieldNode) => lifted[field.name])
     )
@@ -453,11 +435,11 @@ export class WasmInstance {
     }
     const visitor = new LiftValueVisitor(this, ptr)
     const traveler = new AbiTraveler(this.abi)
-    traveler.acceptForType(type, visitor)
+    const value = traveler.acceptForType<any>(type, visitor)
 
     return {
       mod: this,
-      value: visitor.value,
+      value,
       node: type
     }
   }
@@ -465,7 +447,6 @@ export class WasmInstance {
   insertValue(value: any, type: TypeNode): WasmPointer {
     const visitor = new LowerValueVisitor(this, value)
     const traveler = new AbiTraveler(this.abi)
-    traveler.acceptForType(type, visitor)
-    return visitor.retPtr
+    return traveler.acceptForType(type, visitor)
   }
 }

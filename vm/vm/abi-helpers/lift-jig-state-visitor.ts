@@ -1,31 +1,27 @@
-import {AbiVisitor} from "./abi-visitor.js";
 import {AbiTraveler} from "./abi-traveler.js";
-import {ClassNode, FieldNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
-import {WasmInstance} from "../wasm-instance.js";
+import {ClassNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmPointer} from "../arg-reader.js";
-import {Externref, getTypeBytes, getTypedArrayConstructor, Internref, liftBuffer} from "../memory.js";
-import {getObjectMemLayout} from "../memory.js";
+import {Internref, liftBuffer} from "../memory.js";
 import {LiftValueVisitor} from "./lift-value-visitor.js";
-import {Pointer} from "@aldea/sdk-js";
-
 
 export class LiftJigStateVisitor extends LiftValueVisitor {
-  // constructor(inst: WasmInstance, ptr: WasmPointer) {
-  //   super()
-  // }
 
-  visitExportedClass (node: ClassNode, traveler: AbiTraveler): void {
+  visitExportedClass (node: ClassNode, _type: TypeNode, traveler: AbiTraveler): any {
     const intRef = new Internref(node.name, Number(this.ptr))
     const jigRef = this.instance.currentExec.findJigByRef(intRef)
-    this.value = jigRef
+    return jigRef.origin.toBytes()
   }
 
-  visitImportedClass(node: TypeNode, pkgId: string): void {
+  visitImportedClass(node: TypeNode, pkgId: string): any {
     const mod = this.instance;
     const ptr = Number(this.ptr)
     const bufPtr = new Uint32Array(mod.memory.buffer)[ptr >>> 2]
 
-    const origin = liftBuffer(this.instance, bufPtr)
-    this.value = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(origin))
+    return liftBuffer(this.instance, bufPtr)
+  }
+
+  liftValue(type: TypeNode, ptr: WasmPointer, traveler: AbiTraveler): any {
+    const childVisitor = new LiftJigStateVisitor(this.instance, ptr)
+    return traveler.acceptForType(type, childVisitor)
   }
 }
