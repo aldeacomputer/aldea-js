@@ -1,26 +1,26 @@
-import {ClassNode, ObjectNode, TypeNode} from "@aldea/compiler/abi";
+import {ClassNode, FieldNode, ObjectNode, TypeNode} from "@aldea/compiler/abi";
 import {AbiTraveler} from "./abi-traveler.js";
 
-export interface AbiVisitor {
-  visitExportedClass(node: ClassNode, traveler: AbiTraveler): void;
-  visitImportedClass(node: TypeNode, pkgId: string): void;
+export interface AbiVisitor<T> {
+  visitImportedClass(node: TypeNode, pkgId: string): T;
 
-  visitSmallNumberValue(typeName: string): void;
-  visitIBigNumberValue(): void;
-  visitBoolean(): void;
-  visitString(): void;
+  visitSmallNumberValue(typeName: string): T;
+  visitIBigNumberValue(): T;
+  visitBoolean(): T;
+  visitString(): T;
 
-  visitArray(innerType: TypeNode, traveler: AbiTraveler): void;
-  visitStaticArray(innerType: TypeNode, traveler: AbiTraveler): void;
-  visitSet(innerType: TypeNode, traveler: AbiTraveler): void;
-  visitMap(keyType: TypeNode, valueType: TypeNode, traveler: AbiTraveler): void;
+  visitArray(innerType: TypeNode, traveler: AbiTraveler): T;
+  visitStaticArray(innerType: TypeNode, traveler: AbiTraveler): T;
+  visitSet(innerType: TypeNode, traveler: AbiTraveler): T;
+  visitMap(keyType: TypeNode, valueType: TypeNode, traveler: AbiTraveler): T;
 
-  visitPlainObject(plainObjectNode: ObjectNode, typeNode: TypeNode, traveler: AbiTraveler): void;
+  visitTypedArray(typeName: string, param2: AbiTraveler): T;
+  visitArrayBuffer(): T;
 
-  visitTypedArray(typeName: string, param2: AbiTraveler): void;
-  visitArrayBuffer(): void;
+  visitUBigNumberValue(): T;
 
-  visitUBigNumberValue(): void;
+  visitVoid(): T;
 
-  visitVoid(): void;
+  visitExportedClass(classNode: ClassNode, type: TypeNode, traveler: AbiTraveler): T;
+  visitPlainObject(objNode: ObjectNode, type: TypeNode, traveler: AbiTraveler): T;
 }

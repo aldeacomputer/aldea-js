@@ -7,22 +7,16 @@ import {Externref, getTypeBytes, getTypedArrayConstructor, Internref, liftBuffer
 import {getObjectMemLayout} from "../memory.js";
 
 
-export class LiftValueVisitor implements AbiVisitor {
+export class LiftValueVisitor implements AbiVisitor<any> {
   instance: WasmInstance
   ptr: WasmPointer
-  value: any
 
   constructor(inst: WasmInstance, ptr: WasmPointer) {
     this.instance = inst
     this.ptr = ptr
-    this.value = null
   }
 
-  visitExportedClass (node: ClassNode, traveler: AbiTraveler): void {
-    this.value = new Internref(node.name, Number(this.ptr))
-  }
-
-  visitArray(innerType: TypeNode, traveler: AbiTraveler): void {
+  visitArray(innerType: TypeNode, traveler: AbiTraveler): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
     const memU32 = new Uint32Array(mod.memory.buffer)
@@ -36,14 +30,17 @@ export class LiftValueVisitor implements AbiVisitor {
     for (let i = 0; i < length; i++) {
       const nextPos = start + ((i << align) >>> 0)
       const nextPtr = new TypedArray(mod.memory.buffer)[nextPos >>> align]
-      const innerVisitor = new LiftValueVisitor(this.instance, nextPtr)
-      traveler.acceptForType(innerType, innerVisitor)
-      values[i] = innerVisitor.value
+      values[i] = this.liftValue(innerType, nextPtr, traveler)
     }
-    this.value = values
+    return values
   }
 
-  visitStaticArray(innerType: TypeNode, traveler: AbiTraveler): void {
+  liftValue (type: TypeNode, ptr: WasmPointer, traveler: AbiTraveler): any {
+    const childVisitor = new LiftValueVisitor(this.instance, ptr)
+    return traveler.acceptForType(type, childVisitor)
+  }
+
+  visitStaticArray(innerType: TypeNode, traveler: AbiTraveler): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
     const memU32 = new Uint32Array(mod.memory.buffer)
@@ -57,35 +54,33 @@ export class LiftValueVisitor implements AbiVisitor {
     for (let i = 0; i < length; i++) {
       const nextPos = start + ((i << align) >>> 0)
       const nextPtr = new TypedArray(mod.memory.buffer)[nextPos >>> align]
-      const innerVisitor = new LiftValueVisitor(this.instance, nextPtr)
-      traveler.acceptForType(innerType, innerVisitor)
-      values[i] = innerVisitor.value
+      values[i] = this.liftValue(innerType, nextPtr, traveler)
     }
-    this.value = values
+    return values
   }
 
-  visitIBigNumberValue(): void {
-    this.value = BigInt.asUintN(64, this.ptr as bigint)
+  visitIBigNumberValue(): any {
+    return BigInt.asUintN(64, this.ptr as bigint)
   }
 
-  visitUBigNumberValue() {
-    this.value = BigInt.asIntN(64, this.ptr as bigint)
+  visitUBigNumberValue(): any {
+    return BigInt.asIntN(64, this.ptr as bigint)
   }
 
-  visitBoolean(): void {
-    this.value = !!this.ptr
+  visitBoolean(): any {
+    return !!this.ptr
   }
 
-  visitImportedClass(node: TypeNode, pkgId: string): void {
+  visitImportedClass(node: TypeNode, pkgId: string): any {
     const mod = this.instance;
     const ptr = Number(this.ptr)
     const bufPtr = new Uint32Array(mod.memory.buffer)[ptr >>> 2]
 
     const origin = liftBuffer(this.instance, bufPtr)
-    this.value = new Externref(normalizeTypeName(node), origin)
+    return new Externref(normalizeTypeName(node), origin)
   }
 
-  visitMap(keyType: TypeNode, valueType: TypeNode, traveler: AbiTraveler): void {
+  visitMap(keyType: TypeNode, valueType: TypeNode, traveler: AbiTraveler): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
     const mem32 = new Uint32Array(mod.memory.buffer)
@@ -115,37 +110,31 @@ export class LiftValueVisitor implements AbiVisitor {
       const valPos = keyPos + krBytes
 
       const keyPtr = kEntries[keyPos >>> kAlign]
-      const keyVisitor = new LiftValueVisitor(this.instance, keyPtr)
-      traveler.acceptForType(keyTypeNode, keyVisitor)
-      const key = keyVisitor.value
+      const key = this.liftValue(keyTypeNode, keyPtr, traveler)
 
       const valPtr = vEntries[valPos >>> vAlign]
-      const valueVisitor = new LiftValueVisitor(this.instance, valPtr)
-      traveler.acceptForType(valueTypeNode, valueVisitor)
-      const val = valueVisitor.value
+      const val = this.liftValue(valueTypeNode, valPtr, traveler)
 
       map.set(key, val)
     }
 
-    this.value = map
+    return map
   }
 
-  visitPlainObject(objNode: ObjectNode, _typeNode: TypeNode, traveler: AbiTraveler): void {
+  visitPlainObject(objNode: ObjectNode, _typeNode: TypeNode, traveler: AbiTraveler): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
     const offsets = getObjectMemLayout(objNode)
-    this.value = objNode.fields.reduce((obj: any, n: FieldNode, _i) => {
+    return objNode.fields.reduce((obj: any, n: FieldNode, _i) => {
       const TypedArray = getTypedArrayConstructor(n.type)
       const { align, offset } = offsets[n.name]
       const nextPtr = new TypedArray(mod.memory.buffer)[ptr + offset >>> align]
-      const innerVisitor = new LiftValueVisitor(this.instance, nextPtr)
-      traveler.acceptForType(n.type, innerVisitor)
-      obj[n.name] = innerVisitor.value
+      obj[n.name] = this.liftValue(n.type, nextPtr, traveler)
       return obj
     }, {})
   }
 
-  visitSet(innerType: TypeNode, traveler: AbiTraveler): void {
+  visitSet(innerType: TypeNode, traveler: AbiTraveler): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
     const mem32 = new Uint32Array(mod.memory.buffer)
@@ -164,19 +153,17 @@ export class LiftValueVisitor implements AbiVisitor {
     for (let i = 0; i < size; i++) {
       const valPos = i * entrySize
       const valPtr = vEntries[valPos >>> vAlign]
-      const innerVisitor = new LiftValueVisitor(this.instance, valPtr)
-      traveler.acceptForType(innerType, innerVisitor)
-      const val = innerVisitor.value
+      const val = this.liftValue(innerType, valPtr, traveler)
       set.add(val)
     }
-    this.value = set
+    return set
   }
 
-  visitSmallNumberValue(typeName: string): void {
-    this.value = Number(this.ptr)
+  visitSmallNumberValue(typeName: string): any {
+    return Number(this.ptr)
   }
 
-  visitString(): void {
+  visitString(): any {
     const ptr = Number(this.ptr)
     const mod = this.instance
     const end = ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2] >>> 1
@@ -185,25 +172,25 @@ export class LiftValueVisitor implements AbiVisitor {
     while (end - start > 1024) {
       string += String.fromCharCode(...memU16.subarray(start, start += 1024))
     }
-    this.value = string + String.fromCharCode(...memU16.subarray(start, end))
+    return string + String.fromCharCode(...memU16.subarray(start, end))
   }
 
-  visitTypedArray(typeName: string, param2: AbiTraveler): void {
+  visitTypedArray(typeName: string, param2: AbiTraveler): any {
     const ptr = Number(this.ptr)
     const mod = this.instance
     const memU32 = new Uint32Array(mod.memory.buffer);
     const TypedArray = getTypedArrayConstructor({ name: typeName, args: [] })
-    this.value = new TypedArray(
+    return new TypedArray(
       mod.memory.buffer,
       memU32[ptr + 4 >>> 2],
       memU32[ptr + 8 >>> 2] / TypedArray.BYTES_PER_ELEMENT
     ).slice();
   }
 
-  visitArrayBuffer(): void {
+  visitArrayBuffer(): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
-    this.value = new Uint8Array(
+    return new Uint8Array(
       mod.memory.buffer.slice(
         ptr,
         ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2]
@@ -211,7 +198,27 @@ export class LiftValueVisitor implements AbiVisitor {
     );
   }
 
-  visitVoid() {
-    this.value = undefined
+  visitVoid(): any {
+    return undefined
+  }
+
+  visitExportedClassEnd(klass: ClassNode): any {
+    return new Internref(klass.name, Number(this.ptr))
+  }
+
+  visitExportedClassField(field: FieldNode, klass: ClassNode, traveller: AbiTraveler): void {
+  }
+
+  visitExportedClassStart(klass: ClassNode): void {
+  }
+
+  visitObjectEnd(node: ObjectNode): any {
+    return undefined;
+  }
+
+  visitObjectField(field: FieldNode, object: ObjectNode, traveler: AbiTraveler): void {
+  }
+
+  visitObjectStart(node: ObjectNode): void {
   }
 }

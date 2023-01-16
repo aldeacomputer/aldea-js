@@ -1,8 +1,18 @@
 import {AbiTraveler} from "../vm/abi-helpers/abi-traveler.js"
 import {expect} from 'chai'
 import {AbiVisitor} from "../vm/abi-helpers/abi-visitor.js";
-// import {Abi, ClassNode, FieldKind, FieldNode, MethodNode, TypeNode} from "@aldea/compiler/dist/abi/types";
-import {ExportNode, Abi, ClassNode, FieldKind, FieldNode, MethodNode, TypeNode, CodeKind, ImportNode, ObjectNode} from "@aldea/compiler/abi";
+import {
+  ExportNode,
+  Abi,
+  ClassNode,
+  FieldKind,
+  FieldNode,
+  MethodNode,
+  TypeNode,
+  CodeKind,
+  ImportNode,
+  ObjectNode
+} from "@aldea/compiler/abi";
 
 class TestAbiClassBuilder {
   fields: FieldNode[]
@@ -93,76 +103,90 @@ class TestAbiBuilder {
   }
 }
 
-class TestVisitor implements AbiVisitor {
-  basicValues: string[];
-  classNames: string[];
-  imports: string[];
-  typedArrayValues: string[];
+class TestVisitor implements AbiVisitor<string> {
+  classParts: string[]
+  objectParts: string[]
 
   constructor () {
-    this.basicValues = []
-    this.classNames = []
-    this.imports = []
-    this.typedArrayValues = []
+    this.classParts = []
+    this.objectParts = []
   }
 
-  visitSmallNumberValue(typeName: string): void {
-    this.basicValues.push(typeName)
+  visitSmallNumberValue(typeName: string): string {
+    return typeName
   }
 
-  visitIBigNumberValue(): void {
-    this.basicValues.push('i64')
+  visitIBigNumberValue(): string {
+    return 'i64'
   }
 
-  visitUBigNumberValue(): void {
-    this.basicValues.push('u64')
+  visitUBigNumberValue(): string {
+    return 'u64'
   }
 
-  visitBoolean(): void {
-    this.basicValues.push('bool')
+  visitBoolean(): string {
+    return 'bool'
   }
 
-  visitString(): void {
-    this.basicValues.push('string')
+  visitString(): string {
+    return 'string'
   }
 
-  visitExportedClass(node: ClassNode, traveler: AbiTraveler): void {
-    this.classNames.push(node.name)
-    node.fields.forEach(fieldNode => traveler.acceptForType(tn(fieldNode.type.name), this))
+  visitImportedClass(node: TypeNode, packageId: string): string {
+    return `${packageId}_${node.name}`
   }
 
-  visitImportedClass(node: TypeNode, packageId: string): void {
-    this.imports.push(`${packageId}_${node.name}`)
+  visitArray(innerType: TypeNode): string {
+    return `Array<${innerType.name}>`
   }
 
-  visitPlainObject(plainObjectNode: ObjectNode, typeNode: TypeNode, traveler: AbiTraveler): void {
-    this.classNames.push(plainObjectNode.name)
-    plainObjectNode.fields.forEach(fieldNode => traveler.acceptForType(fieldNode.type, this))
+  visitMap(keyType: TypeNode, valueType: TypeNode): string {
+    return `Map<${keyType.name}, ${valueType.name}>`
   }
 
-  visitArray(innerType: TypeNode): void {
-    this.basicValues.push(`Array<${innerType.name}>`)
+  visitSet(innerType: TypeNode): string {
+    return `Set<${innerType.name}>`
   }
 
-  visitMap(keyType: TypeNode, valueType: TypeNode): void {
-    this.basicValues.push(`Map<${keyType.name}, ${valueType.name}>`)
+  visitTypedArray(typeName: string, traveler: AbiTraveler): string {
+    return typeName
   }
 
-  visitSet(innerType: TypeNode): void {
-    this.basicValues.push(`Set<${innerType.name}>`)
+  visitStaticArray(innerType: TypeNode, traveler: AbiTraveler): string {
+    return `StaticArray<${innerType.name}>`
   }
 
-  visitTypedArray(typeName: string, param2: AbiTraveler): void {
-    this.basicValues.push(typeName)
-    this.typedArrayValues.push(typeName)
+  visitArrayBuffer(): string {
+    return 'ArrayBuffer'
   }
 
-  visitStaticArray(innerType: TypeNode, traveler: AbiTraveler): void {
-    this.basicValues.push(`StaticArray<${innerType.name}>`)
+  visitVoid(): string {
+    return 'void'
   }
 
-  visitArrayBuffer(): void {
-    this.basicValues.push('ArrayBuffer')
+  visitValue(type: TypeNode, traveler: AbiTraveler): string {
+    const childVisitor = new TestVisitor()
+    return traveler.acceptForType(type, childVisitor)
+  }
+
+  visitExportedClass(classNode: ClassNode, type: TypeNode, traveler: AbiTraveler): string {
+    const parts = classNode.fields.map(field => {
+      const value = this.visitValue(field.type, traveler)
+      return `${field.name}: ${value}`
+    })
+
+    return `${classNode.name}<${parts.join(', ')}>`
+  }
+
+  visitPlainObject(objNode: ObjectNode, type: TypeNode, traveler: AbiTraveler): string {
+    this.objectParts = [objNode.name]
+
+    const parts = objNode.fields.map((field: FieldNode) => {
+      const fieldType = this.visitValue(field.type, traveler)
+      return `${field.name}: ${fieldType}`
+    })
+
+    return `Object(${objNode.name})<${parts.join(', ')}>`
   }
 }
 
@@ -183,9 +207,8 @@ describe('AbiTraveler', () => {
         .build()
 
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('Foo'), testVisitor)
-      expect(testVisitor.classNames).to.eql(['Foo'])
-      expect(testVisitor.basicValues).to.eql([typeName])
+      const ret = traveler.acceptForType(tn('Foo'), testVisitor)
+      expect(ret).to.eql(`Foo<bar: ${typeName}>`)
     }
 
     it('visits u8 as small number', () => {
@@ -229,123 +252,126 @@ describe('AbiTraveler', () => {
     it('travels correctly u8', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('u8'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['u8'])
+      const typeName = traveler.acceptForType(tn('u8'), testVisitor)
+      expect(typeName).to.eql('u8')
     })
 
     it('travels correctly u16', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('u16'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['u16'])
+      const ret = traveler.acceptForType(tn('u16'), testVisitor)
+      expect(ret).to.eql('u16')
     })
 
     it('travels correctly u32', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('u32'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['u32'])
-    })
-
-    it('travels correctly i8', () => {
-      const abi = new TestAbiBuilder().build()
-      const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('i8'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['i8'])
+      const ret = traveler.acceptForType(tn('u32'), testVisitor)
+      expect(ret).to.eql('u32')
     })
 
     it('travels correctly i16', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('i16'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['i16'])
+      const ret = traveler.acceptForType(tn('i16'), testVisitor)
+      expect(ret).to.eql('i16')
     })
 
     it('travels correctly i32', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('i32'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['i32'])
+      const ret = traveler.acceptForType(tn('i32'), testVisitor)
+      expect(ret).to.eql('i32')
     })
 
     it('travels correctly usize', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('usize'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['usize'])
+      const ret = traveler.acceptForType(tn('usize'), testVisitor)
+      expect(ret).to.eql('usize')
     })
 
     it('travels correctly isize', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('isize'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['isize'])
+      const ret = traveler.acceptForType(tn('isize'), testVisitor)
+      expect(ret).to.eql('isize')
     })
 
     it('travels correctly f32', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('f32'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['f32'])
+      const ret = traveler.acceptForType(tn('f32'), testVisitor)
+      expect(ret).to.eql('f32')
     })
 
     it('travels correctly f64', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('f64'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['f64'])
+      const ret = traveler.acceptForType(tn('f64'), testVisitor)
+      expect(ret).to.eql('f64')
     })
 
     it('travels correctly u64', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('u64'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['u64'])
+      const ret = traveler.acceptForType(tn('u64'), testVisitor)
+      expect(ret).to.eql('u64')
     })
 
     it('travels correctly i64', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('i64'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['i64'])
+      const ret = traveler.acceptForType(tn('i64'), testVisitor)
+      expect(ret).to.eql('i64')
     })
 
     it('travels correctly bool values', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('bool'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['bool'])
+      const ret = traveler.acceptForType(tn('bool'), testVisitor)
+      expect(ret).to.eql('bool')
     })
 
     it('travels correctly string values', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('string'), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['string'])
+      const ret = traveler.acceptForType(tn('string'), testVisitor)
+      expect(ret).to.eql('string')
     })
-
+    //
     it('travels correctly array values with basic types', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('Array', ['u8']), testVisitor)
-      traveler.acceptForType(tn('Array', ['string']), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['Array<u8>', 'Array<string>'])
+      expect(
+        traveler.acceptForType(tn('Array', ['u8']), testVisitor)
+      ).to.eql('Array<u8>')
+
+      expect(
+        traveler.acceptForType(tn('Array', ['string']), testVisitor)
+      ).to.eql('Array<string>')
     })
 
     it('travels correctly sets values with basic types', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('Set', ['u8']), testVisitor)
-      traveler.acceptForType(tn('Set', ['string']), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['Set<u8>', 'Set<string>'])
+      expect (
+        traveler.acceptForType(tn('Set', ['u8']), testVisitor)
+      ).to.eql('Set<u8>')
+      expect (
+        traveler.acceptForType(tn('Set', ['string']), testVisitor)
+      ).to.eql('Set<string>')
     })
 
     it('travels correctly map values with basic types', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('Map', ['u8', 'string']), testVisitor)
-      traveler.acceptForType(tn('Map', ['string', 'f64']), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['Map<u8, string>', 'Map<string, f64>'])
+      expect(
+        traveler.acceptForType(tn('Map', ['u8', 'string']), testVisitor)
+      ).to.eql('Map<u8, string>')
+      expect(
+        traveler.acceptForType(tn('Map', ['string', 'f64']), testVisitor)
+      ).to.eql('Map<string, f64>')
     })
 
     it('works for array buffers', () => {
@@ -353,9 +379,9 @@ describe('AbiTraveler', () => {
       const traveler = new AbiTraveler(abi)
 
       const type = 'ArrayBuffer'
-      traveler.acceptForType(tn(type), testVisitor)
-
-      expect(testVisitor.basicValues).to.eql([type])
+      expect(
+        traveler.acceptForType(tn(type), testVisitor)
+      ).to.eql(type)
     })
 
     it('typed arrays', () => {
@@ -376,18 +402,18 @@ describe('AbiTraveler', () => {
       ]
 
       types.forEach(type => {
-        traveler.acceptForType(tn(type), testVisitor)
+        expect(
+          traveler.acceptForType(tn(type), testVisitor)
+        ).to.eql(type)
       })
-
-      expect(testVisitor.basicValues).to.eql(types)
-      expect(testVisitor.typedArrayValues).to.eql(types)
     })
 
     it('works for static arrays', () => {
       const abi = new TestAbiBuilder().build()
       const traveler = new AbiTraveler(abi)
-      traveler.acceptForType(tn('StaticArray', ['u8']), testVisitor)
-      expect(testVisitor.basicValues).to.eql(['StaticArray<u8>'])
+      expect(
+        traveler.acceptForType(tn('StaticArray', ['u8']), testVisitor)
+      ).to.eql('StaticArray<u8>')
     })
   })
 
@@ -397,8 +423,9 @@ describe('AbiTraveler', () => {
       .build()
 
     const traveler = new AbiTraveler(abi)
-    traveler.acceptForType(tn('Foo'), testVisitor)
-    expect(testVisitor.imports).to.eql(['someorigin_Foo'])
+    expect(
+      traveler.acceptForType(tn('Foo'), testVisitor)
+    ).to.eql('someorigin_Foo')
   })
 
   it('can be used to travel plain objets', () => {
@@ -411,7 +438,8 @@ describe('AbiTraveler', () => {
       .build()
 
     const traveler = new AbiTraveler(abi)
-    traveler.acceptForType(tn('Foo'), testVisitor)
-    expect(testVisitor.basicValues).to.eql(['u8', 'string', 'Array<f64>'])
+    expect(
+      traveler.acceptForType(tn('Foo'), testVisitor)
+    ).to.eql(`Object(Foo)<a: u8, b: string, c: Array<f64>>`)
   })
 })

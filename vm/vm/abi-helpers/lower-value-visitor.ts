@@ -15,22 +15,20 @@ function hasTypedArrayConstructor(type: TypeNode): boolean {
   ].includes(type.name)
 }
 
-export class LowerValueVisitor implements AbiVisitor {
+export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
   instance: WasmInstance
   value: any
-  retPtr: WasmPointer
 
   constructor(inst: WasmInstance, value: any) {
     this.instance = inst
     this.value = value
-    this.retPtr = -1
   }
 
-  visitExportedClass (node: ClassNode, traveler: AbiTraveler): void {
-    this.retPtr = this.value.ref.ptr
+  visitExportedClass (classNode: ClassNode, type: TypeNode, traveler: AbiTraveler): WasmPointer {
+    return this.value.ref.ptr
   }
 
-  visitArray(innerType: TypeNode, traveler: AbiTraveler): void {
+  visitArray(innerType: TypeNode, traveler: AbiTraveler): WasmPointer {
     const mod = this.instance
     const val = this.value as Array<any>
     const rtid = mod.abi.typeIds[normalizeTypeName({ name: 'Array', args: [innerType] })]

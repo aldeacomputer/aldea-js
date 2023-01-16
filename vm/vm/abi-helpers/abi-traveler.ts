@@ -7,7 +7,7 @@ import {
   TypeNode,
   findObject,
   ObjectNode,
-  FieldNode
+  FieldNode, ClassNode
 } from "@aldea/compiler/abi";
 import {AbiVisitor} from "./abi-visitor.js";
 
@@ -17,7 +17,7 @@ export class AbiTraveler {
     this.abi = abi
   }
 
-  acceptForType (typeNode: TypeNode, visitor: AbiVisitor) {
+  acceptForType<T> (typeNode: TypeNode, visitor: AbiVisitor<T>): T {
     const typeName = typeNode.name
     switch (typeName) {
       case 'u8':
@@ -30,29 +30,21 @@ export class AbiTraveler {
       case 'isize':
       case 'f32':
       case 'f64':
-        visitor.visitSmallNumberValue(typeName)
-        return
+        return visitor.visitSmallNumberValue(typeName)
       case 'u64':
-        visitor.visitUBigNumberValue()
-        return
+        return visitor.visitUBigNumberValue()
       case 'i64':
-        visitor.visitIBigNumberValue()
-        return
+        return visitor.visitIBigNumberValue()
       case 'bool':
-        visitor.visitBoolean()
-        return
+        return visitor.visitBoolean()
       case 'string':
-        visitor.visitString()
-        return
+        return visitor.visitString()
       case 'Array':
-        visitor.visitArray(typeNode.args[0], this)
-        return
+        return visitor.visitArray(typeNode.args[0], this)
       case 'StaticArray':
-        visitor.visitStaticArray(typeNode.args[0], this)
-        return
+        return visitor.visitStaticArray(typeNode.args[0], this)
       case 'ArrayBuffer':
-        visitor.visitArrayBuffer()
-        return;
+        return visitor.visitArrayBuffer()
       case 'Int8Array':
       case 'Int16Array':
       case 'Int32Array':
@@ -63,54 +55,40 @@ export class AbiTraveler {
       case 'Uint64Array':
       case 'Float32Array':
       case 'Float64Array':
-        visitor.visitTypedArray(typeName, this)
-        return
+        return visitor.visitTypedArray(typeName, this)
       case 'Set':
-        visitor.visitSet(typeNode.args[0], this)
-        return
+        return visitor.visitSet(typeNode.args[0], this)
       case 'Map':
-        visitor.visitMap(typeNode.args[0], typeNode.args[1], this)
-        return
+        return visitor.visitMap(typeNode.args[0], typeNode.args[1], this)
       case 'void':
-        visitor.visitVoid()
-        return
+        return visitor.visitVoid()
       default:
         const exportClassNode = findClass(this.abi, typeName)
         const importClassNode = findImport(this.abi, typeName)
         const plainObjectNode = findObject(this.abi, typeName)
 
         if (exportClassNode) {
-          this.acceptForClass(exportClassNode.name, visitor)
+          return this.acceptForClass(exportClassNode, typeNode, visitor)
         } else
         if (importClassNode && importClassNode.kind === CodeKind.CLASS) {
           const abiNode = importClassNode as ImportNode
-          visitor.visitImportedClass(typeNode, abiNode.origin)
+          return visitor.visitImportedClass(typeNode, abiNode.origin)
         } else
         if (plainObjectNode) {
-          visitor.visitPlainObject(plainObjectNode, typeNode, this)
+          return this.acceptForPlainObject<T>(plainObjectNode, typeNode, visitor)
         } else {
-          throw new Error(`unknown type: ${typeName}`)
+          break
         }
-
     }
+    throw new Error(`unknown type: ${typeName}`)
   }
 
-  private acceptForClass(className: string, visitor: AbiVisitor) {
-    const classNode = findClass(this.abi, className, `${className} does not exist in current abi.`)
-    visitor.visitExportedClass(classNode, this)
+  private acceptForClass<T>(classNode: ClassNode, type: TypeNode, visitor: AbiVisitor<T>): T {
+    return visitor.visitExportedClass(classNode, type, visitor, this)
   }
 
-  private acceptForArray(innerType: TypeNode, visitor: AbiVisitor) {
-    visitor.visitArrayStart(innerType)
-    visitor.visitArrayElements(innerType)
-    visitor.visitArrayFinish(innerType)
-  }
+  private acceptForPlainObject<T>(objNode: ObjectNode, type: TypeNode, visitor: AbiVisitor<T>): T {
+    return visitor.visitPlainObject(objNode, type, visitor, this)
 
-  private acceptForPlainObject(node: ObjectNode, visitor: AbiVisitor) {
-    visitor.visitObjectStart(node)
-    node.fields((f: FieldNode) => {
-      visitor.visitObjectField(node, f.type)
-    })
-    visitor.visitObjectEnd(node)
   }
 }
