@@ -129,7 +129,7 @@ export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
     val.forEach((v, k) => {
       const keyPtr = this.lowerValue(k, keyType, traveler)
       const valuePtr = this.lowerValue(v, valueType, traveler)
-      mod.exports[fnName](ptr, Number(keyPtr), Number(valuePtr))
+      mod.exports[fnName](ptr, keyPtr, valuePtr)
     })
 
     return ptr
@@ -168,7 +168,7 @@ export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
     const typeHash = blake3(normalizeTypeName(type), { dkLen: 4 })
     const fnName = `__put_set_entry_${ toHex(typeHash) }`
     val.forEach(v => {
-      mod.exports[fnName](ptr, Number(this.lowerValue(v, innerType, traveler)))
+      mod.exports[fnName](ptr, this.lowerValue(v, innerType, traveler))
     })
 
     return ptr

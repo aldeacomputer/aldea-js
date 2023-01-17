@@ -424,7 +424,7 @@ describe('execute txs', () => {
     exec.finalize()
   })
 
-  it('can receieve return types with multiple jigs', () => {
+  it('can return types with nested jigs', () => {
     exec.importModule(modIdFor('sheep'))
     const flockIndex = exec.instantiate(0, 'Flock', [])
     const sheep1Index = exec.instantiate(0, 'Sheep', ['sheep1', 'black'])
@@ -433,9 +433,7 @@ describe('execute txs', () => {
     exec.callInstanceMethodByIndex(flockIndex, 'add', [ref(sheep2Index)])
     const retIndex = exec.callInstanceMethodByIndex(flockIndex, 'orderedByLegs', [ref(sheep2Index)])
     const ret = exec.getStatementResult(retIndex).value
-    // exec.lockJigToUser(flockIndex, userAddr)
-    // exec.markAsFunded()
-    // exec.finalize()
+
     expect(Array.from(ret.keys())).to.eql([4])
     expect(Array.from(ret.values())).to.have.length(1)
     expect(Array.from(ret.get(4))).to.have.length(2)
