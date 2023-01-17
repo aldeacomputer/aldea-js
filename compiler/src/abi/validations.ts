@@ -9,7 +9,8 @@ import {
   MethodNode,
   TypeNode,
   CodeKind,
-  ClassNode
+  ClassNode,
+  InterfaceNode,
 } from './types.js'
 
 /**
@@ -33,8 +34,10 @@ function validateExportNode(obj: any): obj is ExportNode {
     case CodeKind.FUNCTION:
       validateCode = validateFunctionNode
       break
+    case CodeKind.INTERFACE:
+      validateCode = validateInterfaceNode
+      break
     default:
-      // todo - interfaces?
       validateCode = () => false
   }
 
@@ -67,6 +70,14 @@ function validateFunctionNode(obj: any): obj is FunctionNode {
   return "name" in obj &&
     Array.isArray(obj.args) && obj.args.every(validateArgNode) &&
     "rtype" in obj && validateTypeNode(obj.rtype)
+}
+
+// Validates the given object implements the InterfaceNode interface
+function validateInterfaceNode(obj: any): obj is InterfaceNode {
+  return "name" in obj &&
+    "extends" in obj &&
+    Array.isArray(obj.fields) && obj.fields.every(validateFieldNode) &&
+    Array.isArray(obj.methods) && obj.methods.every(validateFunctionNode)
 }
 
 // Validates the given object implements the MethodNode interface

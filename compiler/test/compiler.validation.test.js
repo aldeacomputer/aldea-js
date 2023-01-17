@@ -22,7 +22,7 @@ function classMbrCode(code) {
 function importedClassMbrCode(code) {
   return `
   export class A extends Jig {}
-  @imported('0000000000000000000000000000000000000000000000000000000000000000')
+  @imported('0000000000000000000000000000000000000000000000000000000000000000_0')
   declare class Test extends Jig {
     ${code}
   }
@@ -253,6 +253,12 @@ test('throws if assemblyscript decorator is used', async t => {
   const e = await t.throwsAsync(() => compile(stmtCode('@inline function foo(): u8 { return 1 }')))
   t.regex(e.stderr.toString(), /Invalid decorator/)
   t.regex(e.stderr.toString(), /@inline function foo\(\): u8/)
+})
+
+test('throws if invalid origin pointer is given', async t => {
+  const e = await t.throwsAsync(() => compile(stmtCode('@imported("not a pointer") declare function foo(): u8;')))
+  t.regex(e.stderr.toString(), /Invalid pointer/)
+  t.regex(e.stderr.toString(), /@imported\("not a pointer"\)/)
 })
 
 test('compiles if with valid imported class', async t => {

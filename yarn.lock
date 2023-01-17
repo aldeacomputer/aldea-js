@@ -9,6 +9,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/compiler@workspace:compiler"
   dependencies:
+    "@aldea/sdk-js": "workspace:^"
     "@as-pect/cli": ^7.0.8
     "@assemblyscript/loader": 0.22.0
     "@noble/hashes": ^1.1.5

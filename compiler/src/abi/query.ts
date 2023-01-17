@@ -4,9 +4,10 @@ import {
   CodeKind,
   FieldNode,
   FunctionNode,
-  ObjectNode,
-  MethodNode,
   ImportNode,
+  InterfaceNode,
+  MethodNode,
+  ObjectNode,
 } from "./types.js"
 
 /**
@@ -29,6 +30,17 @@ export function findFunction(abi: Abi, name: string, error: string): FunctionNod
 export function findFunction(abi: Abi, name: string, error?: string): FunctionNode | void {
   const exp = abi.exports.find(({ kind, code }) => kind === CodeKind.FUNCTION && code.name === name)
   return exp ? exp.code as FunctionNode : maybeThrow(error)
+}
+
+/**
+ * Finds an exported Interface from the given ABI by it's name.
+ * An error is thrown if an error message is given and no function is found.
+ */
+export function findInterface(abi: Abi, name: string): InterfaceNode | void;
+export function findInterface(abi: Abi, name: string, error: string): InterfaceNode;
+export function findInterface(abi: Abi, name: string, error?: string): InterfaceNode | void {
+  const exp = abi.exports.find(({ kind, code }) => kind === CodeKind.INTERFACE && code.name === name)
+  return exp ? exp.code as InterfaceNode : maybeThrow(error)
 }
 
 /**

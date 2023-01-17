@@ -43,7 +43,7 @@ export interface Abi {
  */
 export interface ExportNode {
   kind: CodeKind;
-  code: ClassNode | FunctionNode;
+  code: ClassNode | FunctionNode | InterfaceNode;
 }
 
 /**
@@ -70,7 +70,11 @@ export interface ClassNode {
  * 
  * As the Class interface, minus any methods.
  */
-export interface ObjectNode extends Omit<ClassNode, 'methods'> {}
+export interface ObjectNode {
+  name: string;
+  extends: string | null;
+  fields: FieldNode[];
+}
 
 /**
  * Function interface
@@ -82,13 +86,15 @@ export interface FunctionNode {
 }
 
 /**
- * Method interface
+ * Interface interafce (lol)
  * 
- * As the Function interface, with additional kind prop and rtype can be null/
+ * As the Class interfacem, but methods are Function interfaces
  */
-export interface MethodNode extends Omit<FunctionNode, 'rtype'> {
-  kind: MethodKind;
-  rtype: TypeNode | null;
+export interface InterfaceNode {
+  name: string;
+  extends: string | null;
+  fields: FieldNode[];
+  methods: FunctionNode[];
 }
 
 /**
@@ -101,11 +107,26 @@ export interface FieldNode {
 }
 
 /**
+ * Method interface
+ * 
+ * As the Function interface, with additional kind prop and rtype can be null
+ */
+export interface MethodNode {
+  kind: MethodKind;
+  name: string;
+  args: ArgNode[];
+  rtype: TypeNode | null;
+}
+
+/**
  * Arg interface
  * 
  * As the Field interface, minus the kind property.
  */
-export interface ArgNode extends Omit<FieldNode, 'kind'> { }
+export interface ArgNode {
+  name: string;
+  type: TypeNode;
+}
 
 /**
  * Type interface
@@ -130,7 +151,7 @@ export type AbiCbor = [number, ExportCbor[], ImportCbor[], ObjectCbor[], TypeIds
 /**
  * Export CBOR type
  */
-export type ExportCbor = [CodeKind, ClassCbor | FunctionCbor]
+export type ExportCbor = [CodeKind, ClassCbor | FunctionCbor | InterfaceCbor]
 
 /**
  * Import CBOR type
@@ -151,6 +172,11 @@ export type ObjectCbor = [string, string | null, FieldCbor[]]
  * Function CBOR type
  */
 export type FunctionCbor = [string, ArgCbor[], TypeCbor]
+
+/**
+ * Interface CBOR type
+ */
+export type InterfaceCbor = [string, string | null, FieldCbor[], FunctionCbor[]]
 
 /**
  * Method CBOR type

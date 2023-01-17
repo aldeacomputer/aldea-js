@@ -19,10 +19,12 @@ import {
   VariableStatement,
 } from 'assemblyscript'
 
+import { Pointer } from '@aldea/sdk-js'
+
 import { CodeKind } from '../abi.js'
 import { TransformCtx } from './ctx.js'
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
-import { ClassWrap, ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap } from './nodes.js'
+import { ClassWrap, ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap, ImportWrap } from './nodes.js'
 import { filterAST, isConst, isExported, isGetter, isPrivate, isProtected, isReadonly, isSetter, isStatic } from './filters.js'
 
 // Allowed top-level statements - everything else is an error!
@@ -159,6 +161,7 @@ export class Validator {
     })
 
     this.ctx.imports.forEach(im => {
+      this.validateImportOrigin(im)
       switch (im.kind) {
         case CodeKind.CLASS:
           // must not export from entry
@@ -358,6 +361,19 @@ export class Validator {
     }
   }
 
+  private validateImportOrigin(obj: ImportWrap): void {
+    try {
+      Pointer.fromString(obj.origin)
+    } catch(e) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.Error,
+        AldeaDiagnosticCode.Invalid_pointer,
+        [],
+        obj.code.node.range
+      ))
+    }
+  }
+
   private validateJigInheritance(obj: ClassWrap): void {
     // Ensure imported or exported object inherits from Jig
     if (!isJig(obj, this.ctx)) {
@@ -367,7 +383,6 @@ export class Validator {
         [obj.name, 'must'],
         obj.node.range
       ))
-    
     }
   }
 
