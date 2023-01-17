@@ -37,6 +37,7 @@ import {AbiTraveler} from "./abi-helpers/abi-traveler.js";
 import {LowerValueVisitor} from "./abi-helpers/lower-value-visitor.js";
 import {LiftJigStateVisitor} from "./abi-helpers/lift-jig-state-visitor.js";
 import {LowerJigStateVisitor} from "./abi-helpers/lower-jig-state-visitor.js";
+import {LowerArgumentVisitor} from "./abi-helpers/lower-argument-visitor.js";
 
 // enum AuthCheck {
 //   CALL,     // 0 - can the caller call a method?
@@ -342,7 +343,9 @@ export class WasmInstance {
     const ptrs = [
       this.memMgr.lowerInternref(ref),
       ...method.args.map((argNode: ArgNode, i: number) => {
-        return this.memMgr.lowerValue(this, argNode.type, args[i])
+        const traveler = new AbiTraveler(this.abi)
+        const visitor = new LowerArgumentVisitor(this, args[i])
+        return traveler.acceptForType(argNode.type, visitor)
       })
     ]
 
