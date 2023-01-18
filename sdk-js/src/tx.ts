@@ -1,12 +1,14 @@
-import { base16 } from './support/base.js'
-import { blake3 } from './support/hash.js'
-import { BufReader } from './buf-reader.js'
-import { BufWriter } from './buf-writer.js'
-import { Instruction, InstructionSerializer, OpCode } from './instruction.js'
-import { Serializable } from './serializable.js'
+import {base16} from './support/base.js'
+import {blake3} from './support/hash.js'
+import {BufReader} from './buf-reader.js'
+import {BufWriter} from './buf-writer.js'
+import {Instruction, InstructionSerializer, OpCode} from './instruction.js'
+import {Serializable} from './serializable.js'
 import {Address} from "./address.js";
 import {SignInstruction, SignToInstruction} from "./instructions/index.js";
 import {PubKey} from "./pubkey.js";
+import {PrivKey} from "./privkey.js";
+import {sign} from "./support/ed25519.js";
 
 const TX_VERSION = 1
 
@@ -68,6 +70,16 @@ export class Tx {
   push(instruction: Instruction): Tx {
     this.instructions.push(instruction)
     return this
+  }
+
+  /**
+   * Returns a valid signature for the current tx using the given key.
+   * @param privKey
+   * @param to
+   */
+  createSignature (privKey: PrivKey, to: number = -1): Uint8Array {
+    const msg = this.sighash(to)
+    return sign(msg, privKey)
   }
 
   /**

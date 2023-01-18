@@ -14,6 +14,8 @@ export enum MethodKind {
   STATIC,
   CONSTRUCTOR,
   INSTANCE,
+  PRIVATE,
+  PROTECTED,
 }
 
 /**

@@ -1,4 +1,6 @@
 import test from 'ava'
+import fs from 'fs'
+import { CBOR, Sequence } from 'cbor-redux'
 import {
   abiFromCbor,
   abiFromJson,

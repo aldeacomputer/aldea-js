@@ -6,8 +6,8 @@ import {
   OpCode,
   Serializable,
   refTagger,
-  refUntagger,
 } from '../internal.js'
+import {decodeCbor} from "./decode-cbor.js";
 
 /**
  * New Instruction.
@@ -37,9 +37,9 @@ export const NewArgsSerializer: Serializable<NewInstruction> = {
     const cborData = buf.readBytes(buf.remaining)
 
     const cborDataBuf = cborData.buffer.slice(cborData.byteOffset, cborData.byteOffset + cborData.byteLength)
-    const args = CBOR.decode(cborDataBuf, refUntagger, { mode: 'sequence' })
+    const args = decodeCbor(cborDataBuf) //  CBOR.decode(cborDataBuf, refUntagger, { mode: 'sequence' })
     
-    return new NewInstruction(idx, exportIdx, args.data)
+    return new NewInstruction(idx, exportIdx, args)
   },
 
   write(buf: BufWriter, instruction: NewInstruction): BufWriter {

@@ -129,6 +129,7 @@ class TxExecution {
   deployments: Uint8Array[];
   statementResults: StatementResult[]
   private funded: boolean;
+  private affectedJigs: Set<JigRef>
 
   constructor(tx: Tx, vm: VM) {
     this.tx = tx
@@ -140,6 +141,7 @@ class TxExecution {
     this.statementResults = []
     this.funded = false
     this.deployments = []
+    this.affectedJigs = new Set()
   }
 
   finalize () {
@@ -153,13 +155,19 @@ class TxExecution {
     })
 
     this.jigs.forEach((jigRef, index) => {
+      if (!this.affectedJigs.has(jigRef)) {
+        return
+      }
       const location = new Pointer(this.tx.hash, index)
       const origin = jigRef.origin || location
       const serialized = this.serializeJig(jigRef)
       const jigState = new JigState(origin, location , jigRef.classIdx, serialized, jigRef.package.id, jigRef.lock.serialize())
-      // console.log(jigState.parsedState())
       this.outputs.push(jigState)
     })
+
+    this.wasms = new Map()
+    this.jigs = []
+    this.statementResults = []
   }
 
   private serializeJig (jig: JigRef): Uint8Array {
@@ -295,6 +303,7 @@ class TxExecution {
     } else {
       throw new Error('not implemented yet')
     }
+    this.affectedJigs.add(childJigRef)
   }
 
   localCallStartHandler(wasmInstance: WasmInstance, jigPtr: number, fnName: string) {
@@ -310,6 +319,7 @@ class TxExecution {
         throw new PermissionError(`jig ${targetJig.origin.toString()} is not allowed to exec "${fnName}"`)
       }
     }
+    this.affectedJigs.add(targetJig)
     this.stack.push(targetJig.origin)
   }
 
@@ -396,6 +406,7 @@ class TxExecution {
         const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'motos').value
         if(amount < 100) throw new ExecutionError('not enough coins to fund the transaction')
         coinJig.changeLock(new FrozenLock())
+        this.affectedJigs.add(coinJig)
         this.markAsFunded()
       } else {
         throw new ExecutionError(`unknown instruction: ${inst.opcode}`)
@@ -493,7 +504,8 @@ class TxExecution {
     const result = instance.staticCall(className, 'constructor', args)
     this.stack.pop()
     const jigRef = this.jigs.find(j => j.package === instance && j.ref.ptr === result.value.ptr)
-    if (!jigRef) { throw new Error('jig should be created')}
+    if (!jigRef) { throw new Error('jig should had been created created')}
+    this.affectedJigs.add(jigRef)
 
     this.statementResults.push(new ValueStatementResult(result.node, jigRef, result.mod))
     return this.statementResults.length - 1
@@ -501,6 +513,7 @@ class TxExecution {
 
   callInstanceMethod (jig: JigRef, methodName: string, args: any[]): WasmValue {
     const methodResult = jig.package.instanceCall(jig, jig.className(), methodName, args);
+    this.affectedJigs.add(jig)
     let value = methodResult.value
     if (value instanceof Internref) {
       value = this.jigs.find(j => j.package === jig.package && j.ref.equals(value))
@@ -580,6 +593,7 @@ class TxExecution {
       throw new PermissionError(`no permission to remove lock from jig ${jigRef.origin}`)
     }
     jigRef.close(new UserLock(address))
+    this.affectedJigs.add(jigRef)
     this.statementResults.push(this.getStatementResult(jigIndex))
   }
 

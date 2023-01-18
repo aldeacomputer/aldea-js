@@ -71,9 +71,9 @@ describe('execute txs', () => {
     exec.lockJigToUser(weaponIndex, userAddr)
     exec.finalize()
 
-    const parsed = exec.outputs[0].objectState(exec.getImportedModule(moduleIndex))
-    expect(parsed.name).to.eql('Sable Corvo de San Martín')
-    expect(parsed.power).to.eql(100000)
+    const parsed = exec.outputs[0].parsedState()
+    expect(parsed[0]).to.eql('Sable Corvo de San Martín')
+    expect(parsed[1]).to.eql(100000)
   })
 
   it('can call methods on jigs', () => {
@@ -110,9 +110,9 @@ describe('execute txs', () => {
     exec.lockJigToUser(counterIndex, userAddr)
     exec.finalize()
 
-    const parsed = exec.outputs[1].objectState(exec.getImportedModule(counterWasmIndex))
-    expect(parsed.sheepCount).to.eql(1)
-    expect(parsed.legCount).to.eql(4)
+    const parsed = exec.outputs[1].parsedState()
+    expect(parsed[0]).to.eql(1)
+    expect(parsed[1]).to.eql(4)
   })
 
   it('after locking a jig in the code the state gets updated properly', () => {
@@ -392,10 +392,32 @@ describe('execute txs', () => {
     exec2.finalize()
 
     // const bagState = exec.outputs[1].parsedState()
-    expect(exec2.outputs).to.have.length(2) // because is loading the dependency
+    expect(exec2.outputs).to.have.length(1)
     const parsedState = exec2.outputs[0].parsedState(); // the first one is the loaded jig
     expect(parsedState).to.have.length(1)
     expect(parsedState[0]).to.eql(exec.outputs[0].origin.toBytes())
+  })
+
+  it('does not require re lock for address locked jigs.', () => {
+    exec.importModule(modIdFor('flock'))
+    exec.importModule(modIdFor('sheep-counter'))
+    const flockIndex = exec.instantiate(0, 'Flock', [])
+    exec.lockJigToUser(flockIndex, userAddr)
+    exec.markAsFunded()
+    exec.finalize()
+
+    storage.persist(exec)
+
+    const tx2 = new TxBuilder().sign(userPriv).build()
+    const exec2 = new TxExecution(tx2, vm)
+    const index = exec2.loadJigByOutputId(exec.outputs[0].id())
+    exec2.callInstanceMethodByIndex(index, 'grow', [])
+    exec2.markAsFunded()
+    exec2.finalize()
+
+    expect(exec2.outputs).to.have.length(1)
+    expect(exec2.outputs[0].serializedLock.type).to.eql(1)
+    expect(exec2.outputs[0].serializedLock.data).to.eql(userAddr.hash)
   })
 
   it('can send instance method result as parameter', () => {
@@ -439,6 +461,26 @@ describe('execute txs', () => {
     expect(Array.from(ret.get(4))).to.have.length(2)
   })
 
+  it('does not add the extra items into the abi', () => {
+    const importIndex = exec.importModule(modIdFor('flock'))
+    const instanceIndex = exec.instantiate(importIndex, 'Flock', [0])
+    exec.lockJigToUser(instanceIndex, userAddr)
+    exec.finalize()
+
+    storage.persist(exec)
+
+    const mod = storage.getModule(modIdFor('flock'))
+
+    const utxoNode = mod.abi.exports.find(e => e.code.name === 'UtxoState')
+    const lockNode = mod.abi.exports.find(e => e.code.name === 'LockState')
+    const coinNode = mod.abi.imports.find(e => e.name === 'Coin')
+    const jigNode = mod.abi.imports.find(e => e.name === 'Jig')
+    expect(utxoNode).to.eql(undefined)
+    expect(coinNode).to.eql(undefined)
+    expect(jigNode).to.eql(undefined)
+    expect(lockNode).to.eql(undefined)
+  })
+
   it('can call top level functions')
   it('can create jigs inside jigs')
   it('can save numbers inside statement result')
@@ -450,4 +492,6 @@ describe('execute txs', () => {
   it('fails if an import is tried to use as a jig')
   it('fails if a number statement result is tried to be use as a jig')
   it('fails if a jig statement result is tried to be used as an import')
+  it('can lock to a new address if there is a signature for the previous one')
+  it('cannot lock to a new address if there is no signature for the previous one')
 })

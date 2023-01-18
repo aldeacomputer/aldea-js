@@ -1,7 +1,7 @@
 import fs from 'fs'
 import { join, dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import { Program, Options, SourceKind, NodeKind } from 'assemblyscript'
+import { Compiler, Program, Options, SourceKind, NodeKind } from 'assemblyscript'
 import { libraryFiles, libraryPrefix } from 'assemblyscript/asc'
 
 const baseDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -58,6 +58,13 @@ class MockProgram {
     return this.source.statements.filter(n => n.kind === NodeKind.FunctionDeclaration)
   }
 
+  async compile() {
+    await this.parseBacklog()
+    this.pgm.initialize()
+    this.parser.finish()
+    return new Compiler(this.pgm).compile()
+  }
+
   backlog() {
     const paths = []
     let internalPath
@@ -69,7 +76,7 @@ class MockProgram {
     return(paths)
   }
 
-  async parse() {
+  async parseBacklog() {
     let backlog;
     while ((backlog = this.backlog()).length) {
       let files = []
@@ -92,7 +99,7 @@ class MockProgram {
 
 export async function mockProgram(src) {
   const mock = new MockProgram(src)
-  await mock.parse()
+  await mock.parseBacklog()
   return mock
 }
 

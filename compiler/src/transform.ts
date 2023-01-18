@@ -1,6 +1,7 @@
 import {
   BlockStatement,
   ClassDeclaration,
+  FunctionDeclaration,
   CommonFlags,
   Parser,
   Program,
@@ -9,7 +10,7 @@ import {
 
 import { CodeKind, MethodKind, MethodNode } from './abi/types.js'
 import { TransformCtx } from './transform/ctx.js'
-import { ClassWrap, FieldWrap, MethodWrap } from './transform/nodes.js'
+import { ClassWrap, FieldWrap, FunctionWrap, MethodWrap } from './transform/nodes.js'
 import { isPrivate, isProtected } from './transform/filters.js'
 
 import {
@@ -21,6 +22,7 @@ import {
   writeRemoteProxyClass,
   writeRemoteProxyGetter,
   writeRemoteProxyMethod,
+  writeRemoteProxyFunction,
   writeMapPutter,
   writeSetPutter,
 } from './transform/code-helpers.js'
@@ -61,12 +63,11 @@ export function afterParse(parser: Parser): void {
     switch (im.kind) {
       case CodeKind.CLASS:
         createProxyClass(im.code as ClassWrap, im.origin, $ctx)
-        // Remove user node
-        const source = im.code.node.range.source
-        const idx = source.statements.indexOf(im.code.node as Statement)
-        if (idx > -1) { source.statements.splice(idx, 1) }
+        dropNode(im.code.node)
         break
       case CodeKind.FUNCTION:
+        createProxyFunction(im.code as FunctionWrap, im.origin, $ctx)
+        dropNode(im.code.node)
         break
       case CodeKind.INTERFACE:
         break
@@ -117,7 +118,7 @@ function addConstructorHook(obj: ClassWrap, ctx: TransformCtx): void {
  */
 function createProxyMethods(obj: ClassWrap, ctx: TransformCtx): void {
   const methodCodes = (obj.methods as MethodWrap[])
-    .filter(n => n.kind === MethodKind.INSTANCE)
+    .filter(n => [MethodKind.INSTANCE, MethodKind.PRIVATE, MethodKind.PROTECTED].includes(n.kind))
     .reduce((acc: string[], n: MethodWrap): string[] => {
       n.node.name.text = `_${n.node.name.text}`
       acc.push(writeLocalProxyMethod(n, obj))
@@ -161,6 +162,18 @@ function createProxyClass(obj: ClassWrap, origin: string, ctx: TransformCtx): vo
   ])
 
   const source = obj.node.range.source
+  const src = ctx.parse(code, source.normalizedPath)
+  source.statements.push(...src.statements)
+}
+
+/**
+ * Transform imported object.
+ * 
+ * - Creates a proxy function calling the remote module.
+ */
+function createProxyFunction(fn: FunctionWrap, origin: string, ctx: TransformCtx): void {
+  const code = writeRemoteProxyFunction(fn, origin)
+  const source = fn.node.range.source
   const src = ctx.parse(code, source.normalizedPath)
   source.statements.push(...src.statements)
 }
@@ -211,4 +224,13 @@ function exportComplexSetters(ctx: TransformCtx): void {
     const src = ctx.parse(codes.join('\n'), ctx.entries[0].normalizedPath)
     ctx.entries[0].statements.push(...src.statements)
   }
+}
+
+/**
+ * Removes node from the source
+ */
+function dropNode(node: ClassDeclaration | FunctionDeclaration): void {
+  const source = node.range.source
+  const idx = source.statements.indexOf(node as Statement)
+  if (idx > -1) { source.statements.splice(idx, 1) }
 }
