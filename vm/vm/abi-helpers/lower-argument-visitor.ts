@@ -1,6 +1,5 @@
 import {LowerValueVisitor} from "./lower-value-visitor.js";
 import {ClassNode, TypeNode} from "@aldea/compiler/abi";
-import {AbiTraveler2} from "./abi-traveler2.js";
 import {WasmPointer} from "../arg-reader.js";
 import {InstructionRef} from "@aldea/sdk-js";
 

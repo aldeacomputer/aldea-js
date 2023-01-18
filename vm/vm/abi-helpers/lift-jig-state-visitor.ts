@@ -1,4 +1,3 @@
-import {AbiTraveler2} from "./abi-traveler2.js";
 import {ClassNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {Internref, liftBuffer} from "../memory.js";
