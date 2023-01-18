@@ -320,9 +320,9 @@ class TxExecution {
     if (!targetJig.lock.acceptsExecution(this)) {
       const stackTop = this.stackTop()
       if (stackTop) {
-        throw new PermissionError(`jig ${targetJig.origin.toString()} is not allowed to exec "${fnName}" called from ${this.stackTop().toString()}${targetJig.lock.constructor.name === 'FrozenLock' ? " because it's frozen" : ""}`)
+        throw new PermissionError(`jig ${targetJig.origin.toString()} is not allowed to exec "${fnName}" called from ${this.stackTop().toString()}${targetJig.lock.constructor === FrozenLock ? " because it's frozen" : ""}`)
       } else {
-        throw new PermissionError(`jig ${targetJig.origin.toString()} is not allowed to exec "${fnName}"${targetJig.lock.constructor.name === 'FrozenLock' ? " because it's frozen" : ""}`)
+        throw new PermissionError(`jig ${targetJig.origin.toString()} is not allowed to exec "${fnName}"${targetJig.lock.constructor === FrozenLock ? " because it's frozen" : ""}`)
       }
     }
     this.affectedJigs.add(targetJig)
