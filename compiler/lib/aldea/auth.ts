@@ -1,5 +1,5 @@
-import { vm_local_authcheck, vm_remote_authcheck } from './imports'
-import { Jig, RemoteJig } from './jig'
+import { vm_jig_authcheck } from './imports'
+import { Jig } from './jig'
 
 /**
  * AuthCheck type
@@ -16,22 +16,12 @@ export enum AuthCheck {
  * Check if the caller can call the given jig
  */
 export function canCall(jig: Jig): bool {
-  return authcheck(jig, AuthCheck.CALL)
+  return vm_jig_authcheck(jig.$output.origin, AuthCheck.CALL)
 }
 
 /**
  * Check if the caller can lock the given jig
  */
 export function canLock(jig: Jig): bool {
-  return authcheck(jig, AuthCheck.LOCK)
-}
-
-// Checks permissions from the VM for the given local or remote Jig.
-function authcheck(jig: Jig, check: AuthCheck): bool {
-  if (jig instanceof RemoteJig) {
-    const rjig = jig as RemoteJig
-    return vm_remote_authcheck(rjig.origin, check)
-  } else {
-    return vm_local_authcheck(jig, check)
-  }
+  return vm_jig_authcheck(jig.$output.origin, AuthCheck.LOCK)
 }

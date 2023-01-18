@@ -1,20 +1,19 @@
 import { AuthCheck } from './auth'
-import { Jig } from './jig'
+import { Jig, JigInitParams } from './jig'
 import { LockType } from './lock'
-import { OutputState } from './output'
 
 // Local stack tracing callbacks
 // * ===========================
 
-// @ts-ignore
-@external("vm", "vm_constructor")
-export declare function vm_constructor(jig: Jig, name: string): void;
 // @ts-ignore
 @external("vm", "vm_local_call_start")
 export declare function vm_local_call_start(jig: Jig, fn: string): void;
 // @ts-ignore
 @external("vm", "vm_local_call_end")
 export declare function vm_local_call_end(): void;
+// @ts-ignore
+@external("vm", "vm_constructor_end")
+export declare function vm_constructor_end(jig: Jig, name: string): void;
 
 // Remote method calls
 // * =================
@@ -24,33 +23,30 @@ export declare function vm_local_call_end(): void;
 export declare function vm_remote_call_i<T>(origin: ArrayBuffer, fn: string, args: ArrayBuffer): T;
 // @ts-ignore
 @external("vm", "vm_remote_call_s")
-export declare function vm_remote_call_s<T>(origin: string, fn: string, args: ArrayBuffer): T;
+export declare function vm_remote_call_s<T>(classPtr: string, fn: string, args: ArrayBuffer): T;
+// @ts-ignore
+@external("vm", "vm_remote_call_f")
+export declare function vm_remote_call_f<T>(classPtr: string, fn: string, args: ArrayBuffer): T;
 // @ts-ignore
 @external("vm", "vm_remote_prop")
 export declare function vm_remote_prop<T>(origin: ArrayBuffer, prop: string): T;
 
-// Lock API calls
-// * ============
+// Jig initialization hooks
+// * ======================
 
 // @ts-ignore
-@external("vm", "vm_local_authcheck")
-export declare function vm_local_authcheck(jig: Jig, check: AuthCheck): bool;
+@external("vm", "vm_jig_init")
+export declare function vm_jig_init(): JigInitParams;
 // @ts-ignore
-@external("vm", "vm_local_lock")
-export declare function vm_local_lock(jig: Jig, type: LockType, args: ArrayBuffer): void;
-// @ts-ignore
-@external("vm", "vm_remote_authcheck")
-export declare function vm_remote_authcheck(origin: ArrayBuffer, check: AuthCheck): bool;
-// @ts-ignore
-@external("vm", "vm_remote_lock")
-export declare function vm_remote_lock(origin: ArrayBuffer, type: LockType, args: ArrayBuffer): void;
+@external("vm", "vm_jig_link")
+export declare function vm_jig_link(jig: Jig, rtid: i32): ArrayBuffer;
 
-// Output API calls
-// * ==============
+// Jig auth
+// * ======
 
 // @ts-ignore
-@external("vm", "vm_local_state")
-export declare function vm_local_state(jig: Jig): OutputState;
+@external("vm", "vm_jig_lock")
+export declare function vm_jig_lock(origin: ArrayBuffer, type: LockType, args: ArrayBuffer): void;
 // @ts-ignore
-@external("vm", "vm_remote_state")
-export declare function vm_remote_state(origin: ArrayBuffer): OutputState;
+@external("vm", "vm_jig_authcheck")
+export declare function vm_jig_authcheck(origin: ArrayBuffer, check: AuthCheck): bool;

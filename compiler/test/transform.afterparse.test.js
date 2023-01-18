@@ -21,7 +21,7 @@ test('afterParse() adds hook to constructors', async t => {
   t.is(mock.classes[0].members[1].body.statements.length, 3)
   t.is(
     ASTBuilder.build(mock.classes[0].members[1].body.statements[2]),
-    'vm_constructor(this, "Test")'
+    'vm_constructor_end(this, "Test")'
   )
 })
 
@@ -39,7 +39,7 @@ test('afterParse() adds constructor if not defined', async t => {
     ASTBuilder.build(mock.classes[0].members[0]),
     'constructor() {\n'+
     '  super();\n'+
-    '  vm_constructor(this, "Test");\n'+
+    '  vm_constructor_end(this, "Test");\n'+
     '}'
   )
 })

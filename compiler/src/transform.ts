@@ -49,6 +49,10 @@ export function afterParse(parser: Parser): void {
         addConstructorHook(code, $ctx)
         createProxyMethods(code, $ctx)
         exportClassMethods(code, $ctx)
+        // Rename the parent class
+        if (code.node.extendsType?.name.identifier.text === 'Jig') {
+          code.node.extendsType.name.identifier.text = 'LocalJig'
+        }
         // Remove the export flag
         code.node.flags = code.node.flags & ~CommonFlags.Export
         break

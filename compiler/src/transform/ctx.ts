@@ -122,7 +122,7 @@ export class TransformCtx {
   private mapTypeIds(): TypeIds {
     if (!this.program) return {}
     if (!this.#typeIds) {
-      const whitelist = ['LockState', 'UtxoState', 'Coin', 'Jig']
+      const whitelist = ['Jig', 'JigInitParams', 'Output', 'Lock', 'Coin']
         .concat(...this.exports.filter(ex => ex.kind === CodeKind.CLASS).map(ex => ex.code.name))
         .concat(...this.imports.filter(im => im.kind === CodeKind.CLASS).map(im => im.name))
         .concat(...Array.from(this.exposedTypes.keys()))

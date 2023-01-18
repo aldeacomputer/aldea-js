@@ -94,9 +94,9 @@ test('ctx.abi has all the exports, imports and plain objects', async t => {
   t.true(ctx.abi.imports.some(im => im.code.name === 'a'))
   t.is(ctx.abi.objects.length, 1)
   t.true(ctx.abi.objects[0].name === 'D')
-  t.is(Object.keys(ctx.abi.typeIds).length, 6)
+  t.is(Object.keys(ctx.abi.typeIds).length, 9)
   Object.keys(ctx.abi.typeIds).forEach(key => {
-    t.true(['A', 'B', 'C', 'D', 'string', 'Jig'].includes(key))
+    t.true(['A', 'B', 'C', 'D', 'string', 'Jig', 'JigInitParams', 'Output', 'Lock'].includes(key))
   })
 })
 

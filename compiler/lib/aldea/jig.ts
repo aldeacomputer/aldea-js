@@ -1,34 +1,58 @@
-import { Lock } from './lock'
-import { getOutputState, Output } from './output'
+import { vm_jig_init, vm_jig_link } from './imports';
+import { Lock, LockType } from './lock'
+import { Output } from './output'
 
-const LOCK_CACHE = new Map<Jig, Lock>()
-const OUTPUT_CACHE = new Map<Jig, Output>()
-
-// Fetches state from the VM and caches the result
-function cacheState(jig: Jig): void {
-  const state = getOutputState(jig)
-  LOCK_CACHE.set(jig, new Lock(jig, state.lock))
-  OUTPUT_CACHE.set(jig, new Output(jig, state))
+/**
+ * Jig init params
+ */
+export class JigInitParams {
+  // @ts-ignore - typescript complains here but assemblyscript doesn't
+  origin: ArrayBuffer;
+  // @ts-ignore
+  location: ArrayBuffer;
+  // @ts-ignore
+  classPtr: ArrayBuffer;
+  // @ts-ignore
+  lockType: LockType;
+  // @ts-ignore
+  lockData: ArrayBuffer;
 }
 
 /**
  * Base Jig class
  */
 export class Jig {
-  get $lock(): Lock {
-    if (!LOCK_CACHE.has(this)) { cacheState(this) }
-    return LOCK_CACHE.get(this)
-  }
+  readonly $output: Output;
+  readonly $lock: Lock;
 
-  get $output(): Output {
-    if (!OUTPUT_CACHE.has(this)) { cacheState(this) }
-    return OUTPUT_CACHE.get(this)
+  constructor(params: JigInitParams) {
+    this.$output = {
+      origin:   params.origin,
+      location: params.location,
+      classPtr: params.classPtr,
+    }
+    this.$lock = new Lock(params.origin, params.lockType, params.lockData)
   }
 }
 
 /**
- * Remote Jig class - never extended from directly
+ * Local Jig class
  */
-export declare class RemoteJig extends Jig {
-  origin: ArrayBuffer;
+export class LocalJig extends Jig {
+  constructor() {
+    const params = vm_jig_init()
+    super(params)
+    const ptr = changetype<i32>(this)
+    const rtid = load<i32>(ptr-8)
+    this.$output.classPtr = vm_jig_link(this, rtid)
+  }
+}
+
+/**
+ * Remote Jig class
+ */
+export class RemoteJig extends Jig {
+  constructor(params: JigInitParams) {
+    super(params)
+  }
 }
