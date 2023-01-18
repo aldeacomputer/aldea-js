@@ -1,4 +1,4 @@
-import {AbiTraveler} from "./abi-traveler.js";
+import {AbiTraveler2} from "./abi-traveler2.js";
 import {ClassNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {LowerValueVisitor} from "./lower-value-visitor.js";
@@ -6,7 +6,7 @@ import {Pointer} from "@aldea/sdk-js";
 import {lowerBuffer} from "../memory.js";
 
 export class LowerJigStateVisitor extends LowerValueVisitor {
-  visitExportedClass (node: ClassNode, _type: TypeNode, traveler: AbiTraveler): WasmPointer {
+  visitExportedClass (node: ClassNode, _type: TypeNode): WasmPointer {
     const origin = this.value // it's a Uint8Array with the origin
     const jigRef = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(origin))
     return jigRef.ref.ptr
@@ -23,8 +23,8 @@ export class LowerJigStateVisitor extends LowerValueVisitor {
     return ptr
   }
 
-  lowerValue (value: any, type: TypeNode, traveler: AbiTraveler): WasmPointer {
-    const childVisitor = new LowerJigStateVisitor(this.instance, value)
-    return traveler.acceptForType(type, childVisitor)
+  lowerValue (value: any, type: TypeNode): WasmPointer {
+    const childVisitor = new LowerJigStateVisitor(this.abi, this.instance, value)
+    return childVisitor.travelFromType(type)
   }
 }

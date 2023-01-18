@@ -1,23 +1,45 @@
 import {
   Abi,
+  ClassNode,
   CodeKind,
   findClass,
-  ImportNode,
   findImport,
-  TypeNode,
   findObject,
+  ImportNode,
   ObjectNode,
-  ClassNode
+  TypeNode
 } from "@aldea/compiler/abi";
-import {AbiVisitor} from "./abi-visitor.js";
 
-export class AbiTraveler {
+export abstract class AbiTraveler<T> {
   abi: Abi
+
   constructor(abi: Abi) {
     this.abi = abi
   }
 
-  acceptForType<T> (typeNode: TypeNode, visitor: AbiVisitor<T>): T {
+  abstract visitImportedClass(node: TypeNode, pkgId: string): T;
+
+  abstract visitSmallNumberValue(typeName: string): T;
+  abstract visitIBigNumberValue(): T;
+  abstract visitBoolean(): T;
+  abstract visitString(): T;
+
+  abstract visitArray(innerType: TypeNode): T;
+  abstract visitStaticArray(innerType: TypeNode): T;
+  abstract visitSet(innerType: TypeNode): T;
+  abstract visitMap(keyType: TypeNode, valueType: TypeNode): T;
+
+  abstract visitTypedArray(typeName: string): T;
+  abstract visitArrayBuffer(): T;
+
+  abstract visitUBigNumberValue(): T;
+
+  abstract visitVoid(): T;
+
+  abstract visitExportedClass(classNode: ClassNode, type: TypeNode): T;
+  abstract visitPlainObject(objNode: ObjectNode, type: TypeNode): T;
+
+  travelFromType(typeNode: TypeNode): T {
     const typeName = typeNode.name
     switch (typeName) {
       case 'u8':
@@ -30,21 +52,21 @@ export class AbiTraveler {
       case 'isize':
       case 'f32':
       case 'f64':
-        return visitor.visitSmallNumberValue(typeName)
+        return this.visitSmallNumberValue(typeName)
       case 'u64':
-        return visitor.visitUBigNumberValue()
+        return this.visitUBigNumberValue()
       case 'i64':
-        return visitor.visitIBigNumberValue()
+        return this.visitIBigNumberValue()
       case 'bool':
-        return visitor.visitBoolean()
+        return this.visitBoolean()
       case 'string':
-        return visitor.visitString()
+        return this.visitString()
       case 'Array':
-        return visitor.visitArray(typeNode.args[0], this)
+        return this.visitArray(typeNode.args[0])
       case 'StaticArray':
-        return visitor.visitStaticArray(typeNode.args[0], this)
+        return this.visitStaticArray(typeNode.args[0])
       case 'ArrayBuffer':
-        return visitor.visitArrayBuffer()
+        return this.visitArrayBuffer()
       case 'Int8Array':
       case 'Int16Array':
       case 'Int32Array':
@@ -55,40 +77,31 @@ export class AbiTraveler {
       case 'Uint64Array':
       case 'Float32Array':
       case 'Float64Array':
-        return visitor.visitTypedArray(typeName, this)
+        return this.visitTypedArray(typeName)
       case 'Set':
-        return visitor.visitSet(typeNode.args[0], this)
+        return this.visitSet(typeNode.args[0])
       case 'Map':
-        return visitor.visitMap(typeNode.args[0], typeNode.args[1], this)
+        return this.visitMap(typeNode.args[0], typeNode.args[1])
       case 'void':
-        return visitor.visitVoid()
+        return this.visitVoid()
       default:
         const exportClassNode = findClass(this.abi, typeName)
         const importClassNode = findImport(this.abi, typeName)
         const plainObjectNode = findObject(this.abi, typeName)
 
         if (exportClassNode) {
-          return this.acceptForClass(exportClassNode, typeNode, visitor)
+          return this.visitExportedClass(exportClassNode, typeNode)
         } else
         if (importClassNode && importClassNode.kind === CodeKind.CLASS) {
           const abiNode = importClassNode as ImportNode
-          return visitor.visitImportedClass(typeNode, abiNode.origin)
+          return this.visitImportedClass(typeNode, abiNode.origin)
         } else
         if (plainObjectNode) {
-          return this.acceptForPlainObject<T>(plainObjectNode, typeNode, visitor)
+          return this.visitPlainObject(plainObjectNode, typeNode)
         } else {
           break
         }
     }
     throw new Error(`unknown type: ${typeName}`)
-  }
-
-  private acceptForClass<T>(classNode: ClassNode, type: TypeNode, visitor: AbiVisitor<T>): T {
-    return visitor.visitExportedClass(classNode, type, this)
-  }
-
-  private acceptForPlainObject<T>(objNode: ObjectNode, type: TypeNode, visitor: AbiVisitor<T>): T {
-    return visitor.visitPlainObject(objNode, type, this)
-
   }
 }

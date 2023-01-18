@@ -1,4 +1,4 @@
-import {AbiTraveler} from "./abi-traveler.js";
+import {AbiTraveler2} from "./abi-traveler2.js";
 import {ClassNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {Internref, liftBuffer} from "../memory.js";
@@ -6,7 +6,7 @@ import {LiftValueVisitor} from "./lift-value-visitor.js";
 
 export class LiftJigStateVisitor extends LiftValueVisitor {
 
-  visitExportedClass (node: ClassNode, _type: TypeNode, traveler: AbiTraveler): any {
+  visitExportedClass (node: ClassNode, _type: TypeNode): any {
     const intRef = new Internref(node.name, Number(this.ptr))
     const jigRef = this.instance.currentExec.findJigByRef(intRef)
     return jigRef.origin.toBytes()
@@ -20,8 +20,8 @@ export class LiftJigStateVisitor extends LiftValueVisitor {
     return liftBuffer(this.instance, bufPtr)
   }
 
-  liftValue(type: TypeNode, ptr: WasmPointer, traveler: AbiTraveler): any {
-    const childVisitor = new LiftJigStateVisitor(this.instance, ptr)
-    return traveler.acceptForType(type, childVisitor)
+  liftValue(type: TypeNode, ptr: WasmPointer): any {
+    const childVisitor = new LiftJigStateVisitor(this.abi, this.instance, ptr)
+    return childVisitor.travelFromType(type)
   }
 }

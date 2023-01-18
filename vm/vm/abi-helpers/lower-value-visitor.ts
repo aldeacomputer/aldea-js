@@ -1,6 +1,5 @@
-import {AbiVisitor} from "./abi-visitor.js";
 import {AbiTraveler} from "./abi-traveler.js";
-import {ClassNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
+import {Abi, ClassNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
 import {getElementBytes, getObjectMemLayout, getTypeBytes, getTypedArrayConstructor, lowerBuffer} from "../memory.js";
 import {WasmPointer} from "../arg-reader.js";
@@ -15,20 +14,21 @@ function hasTypedArrayConstructor(type: TypeNode): boolean {
   ].includes(type.name)
 }
 
-export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
+export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   instance: WasmInstance
   value: any
 
-  constructor(inst: WasmInstance, value: any) {
+  constructor(abi: Abi,inst: WasmInstance, value: any) {
+    super(abi)
     this.instance = inst
     this.value = value
   }
 
-  visitExportedClass (classNode: ClassNode, type: TypeNode, traveler: AbiTraveler): WasmPointer {
+  visitExportedClass (classNode: ClassNode, type: TypeNode): WasmPointer {
     return this.value.ref.ptr
   }
 
-  visitArray(innerType: TypeNode, traveler: AbiTraveler): WasmPointer {
+  visitArray(innerType: TypeNode): WasmPointer {
     const mod = this.instance
     const val = this.value as Array<any>
     const rtid = mod.abi.typeIds[normalizeTypeName({ name: 'Array', args: [innerType] })]
@@ -47,14 +47,14 @@ export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
 
     for (let i = 0; i < length; ++i) {
       const nextPos = buffer + ((i << align))
-      new TypedArray(mod.memory.buffer)[nextPos >>> align] = this.lowerValue(val[i], innerType, traveler)
+      new TypedArray(mod.memory.buffer)[nextPos >>> align] = this.lowerValue(val[i], innerType)
     }
     mod.__unpin(buffer)
     mod.__unpin(header)
     return header
   }
 
-  visitStaticArray(innerType: TypeNode, traveler: AbiTraveler): WasmPointer {
+  visitStaticArray(innerType: TypeNode): WasmPointer {
     const mod = this.instance
     const val = this.value
 
@@ -72,9 +72,7 @@ export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
     } else {
       for (let i = 0; i < length; i++) {
         const nextPos = buffer + ((i << align) >>> 0)
-        const innerVisitor = new LowerValueVisitor(this.instance, val[i])
-        traveler.acceptForType(innerType, innerVisitor)
-        new TypedArray(mod.memory.buffer)[nextPos >>> align] = this.lowerValue(val[i], innerType, traveler)
+        new TypedArray(mod.memory.buffer)[nextPos >>> align] = this.lowerValue(val[i], innerType)
       }
     }
 
@@ -82,9 +80,9 @@ export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
     return buffer;
   }
 
-  lowerValue (value: any, type: TypeNode, traveler: AbiTraveler): WasmPointer {
-    const childVisitor = new LowerValueVisitor(this.instance, value)
-    return traveler.acceptForType(type, childVisitor)
+  lowerValue (value: any, type: TypeNode): WasmPointer {
+    const childVisitor = new LowerValueVisitor(this.abi, this.instance, value)
+    return childVisitor.travelFromType(type)
   }
 
   visitIBigNumberValue(): WasmPointer {
@@ -110,7 +108,7 @@ export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
     return ptr
   }
 
-  visitMap(keyType: TypeNode, valueType: TypeNode, traveler: AbiTraveler): WasmPointer {
+  visitMap(keyType: TypeNode, valueType: TypeNode): WasmPointer {
     const mod = this.instance
     const val = this.value as Map<any, any>
     const type = { name: 'Map', args: [keyType, valueType] };
@@ -127,15 +125,15 @@ export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
     const typeHash = blake3(normalizeTypeName(type), { dkLen: 4 })
     const fnName = `__put_map_entry_${ toHex(typeHash) }`
     val.forEach((v, k) => {
-      const keyPtr = this.lowerValue(k, keyType, traveler)
-      const valuePtr = this.lowerValue(v, valueType, traveler)
+      const keyPtr = this.lowerValue(k, keyType)
+      const valuePtr = this.lowerValue(v, valueType)
       mod.exports[fnName](ptr, keyPtr, valuePtr)
     })
 
     return ptr
   }
 
-  visitPlainObject(objNode: ObjectNode, typeNode: TypeNode, traveler: AbiTraveler): WasmPointer {
+  visitPlainObject(objNode: ObjectNode, typeNode: TypeNode): WasmPointer {
     let vals = this.value
     const mod = this.instance
     if (!Array.isArray(vals)) { vals = Object.values(vals) }
@@ -152,12 +150,12 @@ export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
       const TypedArray = getTypedArrayConstructor(n.type)
       const mem = new TypedArray(mod.memory.buffer, ptr, bytes)
       const { align, offset } = offsets[n.name]
-      mem[offset >>> align] = this.lowerValue(vals[i], n.type, traveler)
+      mem[offset >>> align] = this.lowerValue(vals[i], n.type)
     })
     return ptr
   }
 
-  visitSet(innerType: TypeNode, traveler: AbiTraveler): WasmPointer {
+  visitSet(innerType: TypeNode): WasmPointer {
     const mod = this.instance
     const val = this.value as Set<any>
     const type = { name: 'Set', args: [innerType] }
@@ -168,7 +166,7 @@ export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
     const typeHash = blake3(normalizeTypeName(type), { dkLen: 4 })
     const fnName = `__put_set_entry_${ toHex(typeHash) }`
     val.forEach(v => {
-      mod.exports[fnName](ptr, this.lowerValue(v, innerType, traveler))
+      mod.exports[fnName](ptr, this.lowerValue(v, innerType))
     })
 
     return ptr
@@ -189,7 +187,7 @@ export class LowerValueVisitor implements AbiVisitor<WasmPointer> {
     return ptr
   }
 
-  visitTypedArray(typeName: string, param2: AbiTraveler): WasmPointer {
+  visitTypedArray(typeName: string): WasmPointer {
     const mod = this.instance
     const val = this.value
     const type = {name: typeName, args: []};

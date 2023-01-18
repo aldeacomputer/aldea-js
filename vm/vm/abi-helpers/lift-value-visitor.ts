@@ -1,6 +1,5 @@
-import {AbiVisitor} from "./abi-visitor.js";
 import {AbiTraveler} from "./abi-traveler.js";
-import {ClassNode, FieldNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
+import {Abi, ClassNode, FieldNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmInstance} from "../wasm-instance.js";
 import {WasmPointer} from "../arg-reader.js";
 import {
@@ -13,16 +12,17 @@ import {
 } from "../memory.js";
 
 
-export class LiftValueVisitor implements AbiVisitor<any> {
+export class LiftValueVisitor extends AbiTraveler<any> {
   instance: WasmInstance
   ptr: WasmPointer
 
-  constructor(inst: WasmInstance, ptr: WasmPointer) {
+  constructor(abi: Abi, inst: WasmInstance, ptr: WasmPointer) {
+    super(abi)
     this.instance = inst
     this.ptr = ptr
   }
 
-  visitArray(innerType: TypeNode, traveler: AbiTraveler): any {
+  visitArray(innerType: TypeNode): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
     const memU32 = new Uint32Array(mod.memory.buffer)
@@ -36,17 +36,17 @@ export class LiftValueVisitor implements AbiVisitor<any> {
     for (let i = 0; i < length; i++) {
       const nextPos = start + ((i << align) >>> 0)
       const nextPtr = new TypedArray(mod.memory.buffer)[nextPos >>> align]
-      values[i] = this.liftValue(innerType, nextPtr, traveler)
+      values[i] = this.liftValue(innerType, nextPtr)
     }
     return values
   }
 
-  liftValue (type: TypeNode, ptr: WasmPointer, traveler: AbiTraveler): any {
-    const childVisitor = new LiftValueVisitor(this.instance, ptr)
-    return traveler.acceptForType(type, childVisitor)
+  liftValue (type: TypeNode, ptr: WasmPointer): any {
+    const childVisitor = new LiftValueVisitor(this.abi, this.instance, ptr)
+    return childVisitor.travelFromType(type)
   }
 
-  visitStaticArray(innerType: TypeNode, traveler: AbiTraveler): any {
+  visitStaticArray(innerType: TypeNode): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
     const memU32 = new Uint32Array(mod.memory.buffer)
@@ -60,7 +60,7 @@ export class LiftValueVisitor implements AbiVisitor<any> {
     for (let i = 0; i < length; i++) {
       const nextPos = start + ((i << align) >>> 0)
       const nextPtr = new TypedArray(mod.memory.buffer)[nextPos >>> align]
-      values[i] = this.liftValue(innerType, nextPtr, traveler)
+      values[i] = this.liftValue(innerType, nextPtr)
     }
     return values
   }
@@ -86,7 +86,7 @@ export class LiftValueVisitor implements AbiVisitor<any> {
     return new Externref(normalizeTypeName(node), origin)
   }
 
-  visitMap(keyType: TypeNode, valueType: TypeNode, traveler: AbiTraveler): any {
+  visitMap(keyType: TypeNode, valueType: TypeNode): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
     const mem32 = new Uint32Array(mod.memory.buffer)
@@ -116,10 +116,10 @@ export class LiftValueVisitor implements AbiVisitor<any> {
       const valPos = keyPos + krBytes
 
       const keyPtr = kEntries[keyPos >>> kAlign]
-      const key = this.liftValue(keyTypeNode, keyPtr, traveler)
+      const key = this.liftValue(keyTypeNode, keyPtr)
 
       const valPtr = vEntries[valPos >>> vAlign]
-      const val = this.liftValue(valueTypeNode, valPtr, traveler)
+      const val = this.liftValue(valueTypeNode, valPtr)
 
       map.set(key, val)
     }
@@ -127,7 +127,7 @@ export class LiftValueVisitor implements AbiVisitor<any> {
     return map
   }
 
-  visitPlainObject(objNode: ObjectNode, _typeNode: TypeNode, traveler: AbiTraveler): any {
+  visitPlainObject(objNode: ObjectNode, _typeNode: TypeNode): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
     const offsets = getObjectMemLayout(objNode)
@@ -135,12 +135,12 @@ export class LiftValueVisitor implements AbiVisitor<any> {
       const TypedArray = getTypedArrayConstructor(n.type)
       const { align, offset } = offsets[n.name]
       const nextPtr = new TypedArray(mod.memory.buffer)[ptr + offset >>> align]
-      obj[n.name] = this.liftValue(n.type, nextPtr, traveler)
+      obj[n.name] = this.liftValue(n.type, nextPtr)
       return obj
     }, {})
   }
 
-  visitSet(innerType: TypeNode, traveler: AbiTraveler): any {
+  visitSet(innerType: TypeNode): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
     const mem32 = new Uint32Array(mod.memory.buffer)
@@ -159,7 +159,7 @@ export class LiftValueVisitor implements AbiVisitor<any> {
     for (let i = 0; i < size; i++) {
       const valPos = i * entrySize
       const valPtr = vEntries[valPos >>> vAlign]
-      const val = this.liftValue(innerType, valPtr, traveler)
+      const val = this.liftValue(innerType, valPtr)
       set.add(val)
     }
     return set
@@ -181,7 +181,7 @@ export class LiftValueVisitor implements AbiVisitor<any> {
     return string + String.fromCharCode(...memU16.subarray(start, end))
   }
 
-  visitTypedArray(typeName: string, param2: AbiTraveler): any {
+  visitTypedArray(typeName: string): any {
     const ptr = Number(this.ptr)
     const mod = this.instance
     const memU32 = new Uint32Array(mod.memory.buffer);
@@ -208,7 +208,7 @@ export class LiftValueVisitor implements AbiVisitor<any> {
     return undefined
   }
 
-  visitExportedClass(classNode: ClassNode, _type: TypeNode, traveler: AbiTraveler): any {
+  visitExportedClass(classNode: ClassNode, _type: TypeNode): any {
     return new Internref(classNode.name, Number(this.ptr))
   }
 }
