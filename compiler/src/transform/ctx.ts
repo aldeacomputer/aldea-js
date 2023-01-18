@@ -26,12 +26,12 @@ import {
   ClassWrap,
   ObjectWrap,
   FunctionWrap,
+  InterfaceWrap,
   MethodWrap,
   FieldWrap,
   ArgWrap,
   TypeWrap,
   DecoratorTag,
-
 } from './nodes.js'
 
 import {
@@ -55,7 +55,6 @@ import {
   TypeIds,
   TypeNode,
 } from '../abi/types.js'
-import { METHODS } from 'http';
 
 type CodeDeclaration = ClassDeclaration | FunctionDeclaration | InterfaceDeclaration
 
@@ -189,8 +188,11 @@ function collectExports(sources: Source[]): ExportWrap[] {
       if (n.kind === NodeKind.FunctionDeclaration && isExported((<FunctionDeclaration>n).flags)) {
         exports.push(mapExport(CodeKind.FUNCTION, mapFunction(n as FunctionDeclaration)))
       }
+
+      if (n.kind === NodeKind.InterfaceDeclaration && isExported((<InterfaceDeclaration>n).flags)) {
+        exports.push(mapExport(CodeKind.INTERFACE, mapInterface(n as InterfaceDeclaration)))
+      }
       
-      // todo - interface declerations - how interfaces work TBC
       // todo - export statements - need to resolve to actual class / function def
       // todo - export from statements - need to resolve to actual class / function def
     })
@@ -240,7 +242,7 @@ function collectObjects(sources: Source[], exports: ExportWrap[]): ObjectWrap[] 
     })
     .map(n => mapObject(n as ClassDeclaration))
 
-  function applyClass(obj: ClassWrap | ObjectWrap): void {
+  function applyClass(obj: ClassWrap | ObjectWrap | InterfaceWrap): void {
     if (!checkedNodes.includes(obj.node)) {
       checkedNodes.push(obj.node)
       obj.fields.forEach(n => applyType(n.type))
@@ -272,7 +274,7 @@ function collectObjects(sources: Source[], exports: ExportWrap[]): ObjectWrap[] 
         applyFunction(ex.code as FunctionWrap)
         break
       case CodeKind.INTERFACE:
-        // interafaces?
+        applyClass(ex.code as InterfaceWrap)
         break
     }
   })
@@ -318,7 +320,7 @@ function collectExposedTypes(exports: ExportWrap[], objects: ObjectWrap[]): Map<
 }
 
 // Maps the given parameters to an ExportNode
-function mapExport(kind: CodeKind, code: ClassWrap | FunctionWrap): ExportWrap {
+function mapExport(kind: CodeKind, code: ClassWrap | FunctionWrap | InterfaceWrap): ExportWrap {
   return {
     kind,
     code,
@@ -326,7 +328,7 @@ function mapExport(kind: CodeKind, code: ClassWrap | FunctionWrap): ExportWrap {
 }
 
 // Maps the given parameters to an ImportNode
-function mapImport(kind: CodeKind, code: ClassWrap | FunctionWrap, decorator: DecoratorTag): ImportWrap {
+function mapImport(kind: CodeKind, code: ClassWrap | FunctionWrap | InterfaceWrap, decorator: DecoratorTag): ImportWrap {
   return {
     kind,
     origin: decorator.args[0],
@@ -355,8 +357,6 @@ function mapObject(node: ClassDeclaration): ObjectWrap {
     name: node.name.text,
     extends: node.extendsType?.name.identifier.text || null,
     fields: fields.map(n => mapField(n as FieldDeclaration)),
-    // @ts-ignore
-    xyz: 123,
   }
 }
 
@@ -368,6 +368,15 @@ function mapFunction(node: FunctionDeclaration): FunctionWrap {
     args: node.signature.parameters.map(n => mapArg(n as ParameterNode)),
     rtype: mapType(node.signature.returnType as NamedTypeNode),
   }
+}
+
+// Maps the given AST node to an InterfaceNode
+function mapInterface(node: InterfaceDeclaration): InterfaceWrap {
+  const obj = mapObject(node) as InterfaceWrap
+
+  const methods = node.members.filter(n => n.kind === NodeKind.MethodDeclaration)
+  obj.methods = methods.map(n => mapFunction(n as MethodDeclaration))
+  return obj
 }
 
 // Maps the given AST node to a MethodNode
