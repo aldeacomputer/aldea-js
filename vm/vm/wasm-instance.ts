@@ -25,11 +25,6 @@ import {LiftJigStateVisitor} from "./abi-helpers/lift-jig-state-visitor.js";
 import {LowerJigStateVisitor} from "./abi-helpers/lower-jig-state-visitor.js";
 import {LowerArgumentVisitor} from "./abi-helpers/lower-argument-visitor.js";
 
-// enum AuthCheck {
-//   CALL,     // 0 - can the caller call a method?
-//   LOCK,     // 1 - can the called lock the jig?
-// }
-
 export enum LockType {
   FROZEN = -1,
   NONE,     // 0 - default, vm allows anyone to lock, but prevents function calls
@@ -37,8 +32,6 @@ export enum LockType {
   CALLER,   // 2 - vm requires parent is caller to call function or change lock
   ANYONE,   // 3 - can only be set in constructor, vm allows anyone to call function, but prevents lock change
 }
-
-// import {getObjectMemLayout, getTypedArrayConstructor, liftValue} from "@aldea/compiler/dist/vm/memory.js";
 
 export type Prop = {
   node: TypeNode;
@@ -57,11 +50,6 @@ export enum AuthCheck {
   LOCK
 }
 
-/**
- * TODO - Miguel to check
- * Expose the exports as need to access externall from memory functions
- * (for putting vals into stes/maps)
- */
 export interface WasmExports extends WebAssembly.Exports {
   [key: string]: (...args: WasmPointer[]) => number | void;
 }
