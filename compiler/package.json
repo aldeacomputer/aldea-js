@@ -8,7 +8,10 @@
   },
   "exports": {
     ".": "./dist/compiler.js",
-    "./abi": "./dist/abi.js",
+    "./abi": {
+      "default": "./dist/abi.js",
+      "types": "./dist/abi.d.ts"
+    },
     "./assembly.json": "./assembly.json"
   },
   "main": "./dist/compiler.js",

@@ -1,3 +1,6 @@
+import {WasmInstance as Module} from "./wasm-instance.js";
+import {TypeNode, ObjectNode} from "@aldea/compiler/abi";
+
 export class Internref {
   name: string;
   ptr: number;
@@ -34,5 +37,119 @@ export interface MemoryLayout {
   [field: string]: {
     align: 0 | 1 | 2 | 3;
     offset: number;
+  }
+}
+
+// export function liftImportedJig (mod: WasmInstance, ptr: WasmPointer) {
+//   ptr = Number(ptr)
+//   const bufPtr = new Uint32Array(mod.memory.buffer)[ptr >>> 2]
+//   const origin = this.liftBuffer(mod, bufPtr)
+//   return new Externref(normalizeTypeName(type), origin)
+// }
+
+
+export function liftBuffer(mod: Module, ptr: number): Uint8Array {
+  return new Uint8Array(mod.memory.buffer.slice(ptr, ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2]));
+}
+
+export function lowerBuffer(mod: Module, val: ArrayBuffer): number {
+  const ptr = mod.__new(val.byteLength, 0) >>> 0;
+  new Uint8Array(mod.memory.buffer).set(new Uint8Array(val), ptr);
+  return ptr;
+}
+
+export function getTypedArrayConstructor(type: TypeNode) {
+  switch (type.name) {
+    case 'i8':
+    case 'Int8Array':
+      return Int8Array
+    case 'i16':
+    case 'Int16Array':
+      return Int16Array
+    case 'i32':
+    case 'Int32Array':
+      return Int32Array
+    case 'i64':
+    case 'Int64Array':
+      return BigInt64Array
+    case 'f32':
+    case 'Float32Array':
+      return Float32Array
+    case 'f64':
+    case 'Float64Array':
+      return Float64Array
+    case 'u8':
+    case 'Uint8Array':
+      return Uint8Array
+    case 'u16':
+    case 'Uint16Array':
+      return Uint16Array
+    case 'u32':
+    case 'Uint32Array':
+      return Uint32Array
+    case 'u64':
+    case 'Uint64Array':
+      return BigUint64Array
+    default:
+      return Uint32Array
+  }
+}
+
+export function getTypeBytes(type: TypeNode): number {
+  switch (type.name) {
+    case 'i8':
+    case 'u8':
+    case 'bool':
+    case 'null':
+      return 1
+    case 'i16':
+    case 'u16':
+      return 2
+    case 'i64':
+    case 'f64':
+    case 'u64':
+      return 8
+    default:
+      return 4
+  }
+}
+
+export function getObjectMemLayout(object: ObjectNode): MemoryLayout {
+  return object.fields.reduce((obj: any, field, i, fields) => {
+    const thisBytes = getTypeBytes(field.type)
+    let offset = 0
+    let align = 0
+
+    if (i > 0) {
+      const prevField = fields[i-1]
+      const prevBytes = getTypeBytes(prevField.type)
+      const prevOffset = obj[prevField.name].offset
+      offset = Math.ceil((prevOffset + prevBytes) / thisBytes) * thisBytes
+    }
+
+    if (thisBytes > 1) {
+      align = Math.ceil(thisBytes / 3)
+    }
+
+    obj[field.name] = { offset, align }
+    return obj
+  }, {})
+}
+
+export function getElementBytes(type: TypeNode): number {
+  switch(type.name) {
+    case 'Int16Array':
+    case 'Uint16Array':
+      return 2;
+    case 'Int32Array':
+    case 'Uint32Array':
+    case 'Float32Array':
+      return 4;
+    case 'Int64Array':
+    case 'Uint64Array':
+    case 'Float64Array':
+      return 8;
+    default:
+      return 1
   }
 }
