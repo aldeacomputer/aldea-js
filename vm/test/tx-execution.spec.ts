@@ -258,7 +258,9 @@ describe('execute txs', () => {
 
     it('cannot be called methods', () => {
       exec.loadJigByOrigin(new Pointer(freezeTx.hash, 0))
-      expect(() => exec.callInstanceMethodByIndex(0, 'grow', [])).to.throw(PermissionError)
+      expect(() => exec.callInstanceMethodByIndex(0, 'grow', [])).to
+        .throw(PermissionError,
+          `jig ${freezeExec.outputs[0].currentLocation.toString()} is not allowed to exec "Flock$grow" because it\'s frozen`)
     })
 
     it('cannot be locked', () => {
