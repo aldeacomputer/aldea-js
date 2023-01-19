@@ -7,4 +7,8 @@ export class BasicMath extends Jig {
   static inc (aNumber: u32): u32 {
     return aNumber + 1
   }
+
+  static add (aNumber: u32, anotherNumber: u32): u32 {
+    return aNumber + anotherNumber
+  }
 }

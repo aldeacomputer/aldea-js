@@ -77,7 +77,7 @@ describe('tx interaction', () => {
       () => expect.fail('state should be present')
     )
 
-    expect(state.parsedState()[0]).to.eql({name: 'Flock', originBuf: new Pointer(tx.hash, 0).toBytes()})
+    expect(state.parsedState()[0]).to.eql(new Pointer(tx.hash, 0).toBytes())
   })
 
   it('can call a method in a tx', async () => {

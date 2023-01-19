@@ -5,7 +5,7 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
-import {base16, Pointer, PrivKey, Tx} from "@aldea/sdk-js";
+import {base16, Pointer, PrivKey, ref, Tx} from "@aldea/sdk-js";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
 import {LockType} from "../vm/wasm-instance.js";
 import {TxBuilder} from "./tx-builder.js";
@@ -34,10 +34,11 @@ describe('execute txs', () => {
       'ant',
       'basic-math',
       'flock',
+      'forever-counter',
       'nft',
+      'sheep',
       'sheep-counter',
-      'weapon',
-      'forever-counter'
+      'weapon'
     ]
 
     sources.forEach(src => {
@@ -304,6 +305,7 @@ describe('execute txs', () => {
     expect(bagState[0]).to.eql([flockOutput.origin.toBytes()])
   })
 
+  // Should load from a different package
   it('can restore jigs that contain jigs of the same package', () => {
     exec.importModule(modIdFor('flock'))
     const flockIndex = exec.instantiate(0, 'Flock', [])
@@ -386,15 +388,16 @@ describe('execute txs', () => {
     const tx2 = new TxBuilder().sign(userPriv).build()
     const exec2 = new TxExecution(tx2, vm)
     const index = exec2.loadJigByOutputId(exec.outputs[1].id())
+    exec2.callInstanceMethodByIndex(0, 'legCount', [])
     exec2.lockJigToUser(index, userAddr)
     exec2.markAsFunded()
     exec2.finalize()
 
     // const bagState = exec.outputs[1].parsedState()
     expect(exec2.outputs).to.have.length(1)
-    const parsedState = exec2.outputs[0].parsedState();
+    const parsedState = exec2.outputs[0].parsedState(); // the first one is the loaded jig
     expect(parsedState).to.have.length(1)
-    expect(parsedState[0]).to.eql({name: 'Flock', originBuf: exec.outputs[0].origin.toBytes()})
+    expect(parsedState[0]).to.eql(exec.outputs[0].origin.toBytes())
   })
 
   it('does not require re lock for address locked jigs.', () => {
@@ -432,6 +435,32 @@ describe('execute txs', () => {
 
     const bagState = exec.outputs[1].parsedState()
     expect(bagState[0]).to.eql([exec.outputs[0].origin.toBytes()])
+  })
+
+  it('can send complex nested parameters whith jigs', () => {
+    exec.importModule(modIdFor('sheep'))
+    const flockIndex = exec.instantiate(0, 'Flock', [])
+    const sheep1Index = exec.instantiate(0, 'Sheep', ['sheep1', 'black'])
+    const sheep2Index = exec.instantiate(0, 'Sheep', ['sheep2', 'black'])
+    exec.callInstanceMethodByIndex(flockIndex, 'addSheepsNested', [ [[ref(sheep1Index)], [ref(sheep2Index)]] ])
+    exec.lockJigToUser(flockIndex, userAddr)
+    exec.markAsFunded()
+    exec.finalize()
+  })
+
+  it('can return types with nested jigs', () => {
+    exec.importModule(modIdFor('sheep'))
+    const flockIndex = exec.instantiate(0, 'Flock', [])
+    const sheep1Index = exec.instantiate(0, 'Sheep', ['sheep1', 'black'])
+    const sheep2Index = exec.instantiate(0, 'Sheep', ['sheep2', 'white'])
+    exec.callInstanceMethodByIndex(flockIndex, 'add', [ref(sheep1Index)])
+    exec.callInstanceMethodByIndex(flockIndex, 'add', [ref(sheep2Index)])
+    const retIndex = exec.callInstanceMethodByIndex(flockIndex, 'orderedByLegs', [ref(sheep2Index)])
+    const ret = exec.getStatementResult(retIndex).value
+
+    expect(Array.from(ret.keys())).to.eql([4])
+    expect(Array.from(ret.values())).to.have.length(1)
+    expect(Array.from(ret.get(4))).to.have.length(2)
   })
 
   it('does not add the extra items into the abi', () => {
