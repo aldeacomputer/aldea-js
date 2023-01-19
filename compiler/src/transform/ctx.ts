@@ -196,6 +196,30 @@ function collectExports(sources: Source[]): ExportWrap[] {
       // todo - export statements - need to resolve to actual class / function def
       // todo - export from statements - need to resolve to actual class / function def
     })
+  
+  // Gather all the classes
+  const classes = exports
+    .filter(ex => ex.kind === CodeKind.CLASS)
+    .map(ex => ex.code as ClassWrap)
+
+  const findParent = (name: string) => classes.find(n => n.name === name)
+  
+  // Iterate over classes and remove dupe fields in descendents
+  for (const code of classes) {
+    const parentFields: string[] = []
+    let parent = findParent(code.extends)
+    
+    while (parent?.extends) {
+      parent.fields.forEach(n => parentFields.push(n.name))
+      parent = findParent(parent.extends)
+    }
+
+    code.fields.forEach((field, idx) => {
+      if (parentFields.includes(field.name)) {
+        code.fields.splice(idx, 1)
+      }
+    })
+  }
 
   return exports
 }

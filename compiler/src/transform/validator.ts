@@ -201,7 +201,7 @@ export class Validator {
             this.validatePropertyAccessNode(node as PropertyAccessExpression)
             break
           case NodeKind.ClassDeclaration:
-            this.validateClassDeclarationNode(node as ClassDeclaration)
+            this.validateClassDeclarationNode(node as ClassDeclaration, this.ctx)
             break
           case NodeKind.FunctionDeclaration:
             this.validateFunctionDeclarationNode(node as FunctionDeclaration)
@@ -249,7 +249,7 @@ export class Validator {
     }
   }
 
-  private validateClassDeclarationNode(node: ClassDeclaration): void {
+  private validateClassDeclarationNode(node: ClassDeclaration, ctx: TransformCtx): void {
     // Ensures sidekick and imported code is not exported from entry
     if (
       isExported(node.flags) &&
@@ -268,7 +268,11 @@ export class Validator {
     if (
       !this.exportedClassNodes.includes(node) &&
       !this.importedClassNodes.includes(node) &&
-      node.extendsType?.name.identifier.text === 'Jig'
+      node.extendsType && ctx.exports
+        .filter(ex => ex.kind === CodeKind.CLASS)
+        .map(ex => ex.code.name)
+        .concat('Jig')
+        .includes(node.extendsType.name.identifier.text)
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.Error,
@@ -579,13 +583,15 @@ function isAllowedLiteralOther(node: Expression | null): Boolean {
 }
 
 // Returns the greatest ancestor of the given object
-function isJig(obj: ObjectWrap, ctx: TransformCtx): boolean {
-  let extendsFrom: string | null = obj.extends
-  let parent: ObjectWrap | undefined = obj
+function isJig(obj: ClassWrap, ctx: TransformCtx): boolean {
+  let extendsFrom = obj.extends
+  let parent: ClassWrap | undefined = obj
 
   while (parent?.extends) {
     extendsFrom = parent.extends
-    parent = ctx.objects.find(o => o.name === extendsFrom)
+    parent = ctx.exports.find(ex => {
+      return ex.kind === CodeKind.CLASS && ex.code.name === extendsFrom
+    })?.code as ClassWrap | undefined
   }
   return extendsFrom === 'Jig'
 }

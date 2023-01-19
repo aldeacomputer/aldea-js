@@ -60,7 +60,7 @@ export interface ImportNode {
  */
 export interface ClassNode {
   name: string;
-  extends: string | null;
+  extends: string;
   fields: FieldNode[];
   methods: MethodNode[];
 }
@@ -161,7 +161,7 @@ export type ImportCbor = [CodeKind, string, ArrayBuffer]
 /**
  * Class CBOR type
  */
-export type ClassCbor = [string, string | null, FieldCbor[], MethodCbor[]]
+export type ClassCbor = [string, string, FieldCbor[], MethodCbor[]]
 
 /**
  * Object CBOR type
