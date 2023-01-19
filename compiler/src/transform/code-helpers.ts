@@ -99,7 +99,7 @@ export function writeRemoteProxyClass(obj: ClassWrap, members: string[]): string
 export function writeRemoteProxyGetter(field: FieldWrap, obj: ClassWrap): string {
   return `
   get ${field.name}(): ${field.type.name} {
-    return vm_remote_prop<${field.type.name}>(this.origin, '${obj.name}.${field.name}')
+    return vm_remote_prop<${field.type.name}>(this.$output.origin, '${obj.name}.${field.name}')
   }
   `.trim()
 }
@@ -114,7 +114,7 @@ export function writeRemoteProxyMethod(method: MethodWrap, obj: ObjectWrap, pkgI
   const args = method.args.map((f, i) => `a${i}: ${f.type.name}`)
   const rtype = isConstructor ? 'JigInitParams' : method.rtype?.name
   const callable = isInstance ?
-    `vm_remote_call_i<${rtype}>(this.origin, '${obj.name}$${method.name}', args.buffer)` :
+    `vm_remote_call_i<${rtype}>(this.$output.origin, '${obj.name}$${method.name}', args.buffer)` :
     `vm_remote_call_s<${rtype}>('${pkgId}', '${obj.name}_${method.name}', args.buffer)` ;
 
   if (isConstructor) {
@@ -170,7 +170,7 @@ export function writeArgWriter(fields: FieldWrap[]): string {
 export function writeArgWriterEncodeMethod(field: FieldWrap, i: number): string {
   switch(field.type.name) {
     case 'f32': return `writeF32(a${i})`
-    case 'i64': return `writeF64(a${i})`
+    case 'f64': return `writeF64(a${i})`
     case 'i8':  return `writeI8(a${i})`
     case 'i16': return `writeI16(a${i})`
     case 'i32': return `writeI32(a${i})`

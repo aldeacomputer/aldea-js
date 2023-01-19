@@ -30,11 +30,11 @@ export class Flock extends Jig {
     return this
   }
 
-  returnLocation (): string {
+  returnLocation (): ArrayBuffer {
     return this.$output.location
   }
 
-  returnOrigin (): string {
+  returnOrigin (): ArrayBuffer {
     return this.$output.origin
   }
 
@@ -75,7 +75,7 @@ export class InternalFlockOperations extends Jig {
 }
 
 // @ts-ignore
-@imported('8a5916340ec86825f6e9bd0013271e9081a96d1d7d57865ef16c932cbb8c412c')
+@imported('8a5916340ec86825f6e9bd0013271e9081a96d1d7d57865ef16c932cbb8c412c_0')
 declare class BasicMath extends Jig {
   static inc (n: u32): u32;
 }
