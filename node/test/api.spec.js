@@ -382,9 +382,9 @@ describe('api', () => {
 
     it('not found when not found', async () => {
       await request(app)
-        .get(`/package/${base16.encode(ed25519.randomBytes(32))})/source`)
+        .get(`/package/${base16.encode(ed25519.randomBytes(32))}/source`)
         .expect(404)
-        .expect('Content-Type', /application\/cbor/)
+        .expect('Content-Type', /application\/json/)
 
       // expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
     })

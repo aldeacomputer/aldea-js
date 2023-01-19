@@ -136,10 +136,9 @@ const buildApp = () => {
 
   app.get('/package/:packageId/source', (req, res) => {
     const {packageId} = req.params
-    const data = storage.getModule(base16.decode(packageId))
-    if (!data) {
+    const data = storage.getModule(base16.decode(packageId), () => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
-    }
+    })
     const cborData = CBOR.encode(new Sequence([data.entries, data.sources]));
     res.set('content-type', 'application/cbor-seq')
     res.send(Buffer.from(cborData))
@@ -147,21 +146,13 @@ const buildApp = () => {
 
   app.get('/package/:packageId/wasm', (req, res) => {
     const {packageId} = req.params
-    const data = storage.getModule(base16.decode(packageId))
-    if (!data) {
+    const data = storage.getModule(base16.decode(packageId), () => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
-    }
+    })
     res.set('content-type', 'application/wasm')
     res.send(Buffer.from(data.wasmBin))
   })
 
-  app.get('/', function(req, res) {
-    res.send('...')
-  });
-
-  app.get('*', function(req, res) {
-    res.send('...')
-  });
   app.use((err, req, res, _next) => {
     if (err instanceof HttpNotFound) {
       res.status(statuses.NOT_FOUND)
