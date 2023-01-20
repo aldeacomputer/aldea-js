@@ -52,7 +52,7 @@ export interface ExportNode {
 export interface ImportNode {
   kind: CodeKind;
   name: string;
-  origin: string;
+  pkg: string;
 }
 
 /**

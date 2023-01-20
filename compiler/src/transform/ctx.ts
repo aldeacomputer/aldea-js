@@ -355,7 +355,7 @@ function mapExport(kind: CodeKind, code: ClassWrap | FunctionWrap | InterfaceWra
 function mapImport(kind: CodeKind, code: ClassWrap | FunctionWrap | InterfaceWrap, decorator: DecoratorTag): ImportWrap {
   return {
     kind,
-    origin: decorator.args[0],
+    pkg: decorator.args[0],
     name: code.name,
     code,
   }

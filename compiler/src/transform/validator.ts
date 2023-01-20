@@ -19,8 +19,6 @@ import {
   VariableStatement,
 } from 'assemblyscript'
 
-import { Pointer } from '@aldea/sdk-js'
-
 import { CodeKind } from '../abi.js'
 import { TransformCtx } from './ctx.js'
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
@@ -161,7 +159,7 @@ export class Validator {
     })
 
     this.ctx.imports.forEach(im => {
-      this.validateImportOrigin(im)
+      this.validatePackageId(im)
       switch (im.kind) {
         case CodeKind.CLASS:
           // must not export from entry
@@ -365,14 +363,12 @@ export class Validator {
     }
   }
 
-  private validateImportOrigin(obj: ImportWrap): void {
-    try {
-      Pointer.fromString(obj.origin)
-    } catch(e) {
+  private validatePackageId(obj: ImportWrap): void {
+    if (!/^[a-f0-9]{64}$/i.test(obj.pkg)) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.Error,
-        AldeaDiagnosticCode.Invalid_pointer,
-        [],
+        AldeaDiagnosticCode.Invalid_package,
+        ['Must be 32 byte hex-encoded string.'],
         obj.code.node.range
       ))
     }
@@ -582,7 +578,7 @@ function isAllowedLiteralOther(node: Expression | null): Boolean {
   ].includes(node.kind)
 }
 
-// Returns the greatest ancestor of the given object
+// Returns true if the object inherits from Jig
 function isJig(obj: ClassWrap, ctx: TransformCtx): boolean {
   let extendsFrom = obj.extends
   let parent: ClassWrap | undefined = obj

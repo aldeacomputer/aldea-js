@@ -47,7 +47,7 @@ function validateExportNode(obj: any): obj is ExportNode {
 
 // Validates the given object implements the ImportNode interface
 function validateImportNode(obj: any): obj is ImportNode {
-  return "kind" in obj && "name" in obj && "origin" in obj
+  return "kind" in obj && "name" in obj && "pkg" in obj
 }
 
 // Validates the given object implements the ClassNode interface

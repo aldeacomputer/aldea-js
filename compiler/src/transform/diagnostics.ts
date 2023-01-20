@@ -22,7 +22,7 @@ export enum AldeaDiagnosticCode {
   Invalid_field_type,
   Invalid_method_type,
   Invalid_decorator,
-  Invalid_pointer,
+  Invalid_package,
   Illegal_identifier = 410,
   Illegal_access_global,
   Illegal_access_property,
@@ -52,8 +52,8 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
       return 'Invalid type. `{0}` type cannot be be passed to/from `{1}` method.'
     case AldeaDiagnosticCode.Invalid_decorator:
       return 'Invalid decorator. AssemblyScript decorators are not allowed.'
-    case AldeaDiagnosticCode.Invalid_pointer:
-      return 'Invalid pointer. Must be valid pointer string.'
+    case AldeaDiagnosticCode.Invalid_package:
+      return 'Invalid package. {0}'
 
     case AldeaDiagnosticCode.Illegal_identifier:
       return 'Illegal identifier. Double underscore-prefixed identifiers cannot be used.'

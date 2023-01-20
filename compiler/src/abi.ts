@@ -1,5 +1,5 @@
 import { CBOR, Sequence } from 'cbor-redux'
-import { Pointer } from '@aldea/sdk-js'
+import { hex } from '@scure/base'
 
 import {
   Abi,
@@ -86,7 +86,7 @@ export function abiToCbor(abi: Abi): ArrayBuffer {
  */
 export function abiToJson(abi: Abi, space: number = 0): string {
   const isImport = (val: any): boolean => {
-    return typeof val.kind === 'number' && typeof val.origin === 'string'
+    return typeof val.kind === 'number' && typeof val.pkg === 'string'
   }
 
   return JSON.stringify(abi, function(key, val) {
@@ -133,11 +133,11 @@ function cborFromExport({ kind, code }: ExportNode): ExportCbor {
 }
 
 // Casts an ImportNode object into an array for CBOR serialization
-function cborFromImport({ kind, name, origin }: ImportNode): ImportCbor {
+function cborFromImport({ kind, name, pkg }: ImportNode): ImportCbor {
   return [
     kind,
     name,
-    Pointer.fromString(origin).toBytes().buffer
+    hex.decode(pkg).buffer
   ]
 }
 
@@ -238,11 +238,11 @@ function cborToExport([kind, codeCbor]: ExportCbor): ExportNode {
 }
 
 // Casts the CBOR array to an ImportNode object.
-function cborToImport([kind, name, origin]: ImportCbor): ImportNode {
+function cborToImport([kind, name, pkg]: ImportCbor): ImportNode {
   return {
     kind,
     name,
-    origin: Pointer.fromBytes(new Uint8Array(origin)).toString()
+    pkg: hex.encode(new Uint8Array(pkg)),
   }
 }
 

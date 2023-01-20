@@ -66,11 +66,11 @@ export function afterParse(parser: Parser): void {
   $ctx.imports.forEach(im => {
     switch (im.kind) {
       case CodeKind.CLASS:
-        createProxyClass(im.code as ClassWrap, im.origin, $ctx)
+        createProxyClass(im.code as ClassWrap, im.pkg, $ctx)
         dropNode(im.code.node)
         break
       case CodeKind.FUNCTION:
-        createProxyFunction(im.code as FunctionWrap, im.origin, $ctx)
+        createProxyFunction(im.code as FunctionWrap, im.pkg, $ctx)
         dropNode(im.code.node)
         break
       case CodeKind.INTERFACE:
