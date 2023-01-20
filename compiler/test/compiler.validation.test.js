@@ -288,3 +288,25 @@ test('throws if imported class declares protected method', async t => {
   t.regex(e.stderr.toString(), /Private and protected members/)
   t.regex(e.stderr.toString(), /protected a\(\): string;/)
 })
+
+test('throws if Jig descendent is not exported', async t => {
+  const src = `
+  export class A extends Jig {}
+  export class B extends A {}
+  class C extends B {}
+  `.trim()
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Invalid class/)
+  t.regex(e.stderr.toString(), /class C extends B {}/)
+})
+
+test('throws if non Jig descendent is exported', async t => {
+  const src = `
+  class A {}
+  class B extends A {}
+  export class C extends B {}
+  `.trim()
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Invalid class/)
+  t.regex(e.stderr.toString(), /export class C extends B {}/)
+})
