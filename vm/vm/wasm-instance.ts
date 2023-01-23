@@ -167,15 +167,32 @@ export class WasmInstance {
         }
       },
       vm: {
-        vm_constructor: (jigPtr: number, classNamePtr: number): void => {
+        vm_constructor_end: (jigPtr: number, classNamePtr: number): void => {
           const className = this.liftString(classNamePtr)
           this.currentExec.constructorHandler(this, jigPtr, className)
+        },
+        vm_jig_init: (jigPtr: number, rtid: number): number => {
+          const nextOrigin = this.currentExec.createNextOrigin()
+          const className = Object.keys(this.abi.typeIds).find(key => this.abi.typeIds[key] === rtid)
+          if (!className) {
+            throw new Error('should exist')
+          }
+          const classNode = findClass(this.abi, className, 'should exist')
+
+          this.insertValue({
+            origin: nextOrigin,
+            location: nextOrigin,
+            classPtr: new Pointer();
+            lockType: LockType;
+            lockData: ArrayBuffer;
+          }, { name: '', args: [] })
+          return 0
         },
         vm_local_call_start: (jigPtr: number, fnNamePtr: number): void => {
           const fnName = this.liftString(fnNamePtr)
           this.currentExec.localCallStartHandler(this, jigPtr, fnName)
         },
-        vm_remote_authcheck: (originPtr: number, check: AuthCheck) => {
+        vm_jig_authcheck: (originPtr: number, check: AuthCheck) => {
           const origin = this.liftBuffer(originPtr)
           return this.currentExec.remoteAuthCheckHandler(Pointer.fromBytes(origin), check)
         },
@@ -200,6 +217,9 @@ export class WasmInstance {
           return Number(this.insertValue(result.value, result.node))
         },
 
+        vm_remote_call_f: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): number => {
+          return 0
+        },
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
           const targetOrigBuf = this.liftBuffer(targetOriginPtr)
           const propStr = this.liftString(propNamePtr)
@@ -207,25 +227,6 @@ export class WasmInstance {
 
           const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propName)
           return this.insertValue(prop.value, prop.node)
-        },
-        vm_local_authcheck: (targetJigPtr: number, check: AuthCheck) => {
-          return this.currentExec.localAuthCheckHandler(targetJigPtr, this, check)
-        },
-        vm_local_lock: (targetJigRefPtr: number, type: LockType, argsPtr: number): void => {
-          const argBuf = this.liftBuffer(argsPtr)
-          this.currentExec.localLockHandler(targetJigRefPtr, this, type, argBuf)
-        },
-        vm_local_state: (jigPtr: number): number => {
-          const jigRef = this.currentExec.findUtxoHandler(this, jigPtr)
-          const utxo = {
-            origin: jigRef.origin.toString(),
-            location: new Pointer(this.currentExec.tx.id, this.currentExec.outputIndexFor(jigRef)).toString(),
-            lock: {
-              type: jigRef.lock.typeNumber(),
-              data: jigRef.lock.data()
-            }
-          }
-          return Number(this.insertValue(utxo, { name: 'UtxoState', args: [] }))
         },
         vm_remote_state: (originPtr: number): number => {
           const originBuff = this.liftBuffer(originPtr)
@@ -240,7 +241,7 @@ export class WasmInstance {
           }
           return Number(this.insertValue(utxo, { name: 'UtxoState', args: [] }))
         },
-        vm_remote_lock: (originPtr: number, type: LockType, argsPtr: number) => {
+        vm_jig_lock: (originPtr: number, type: LockType, argsPtr: number) => {
           const argBuf = this.liftBuffer(argsPtr)
           const originBuf = this.liftBuffer(originPtr)
           this.currentExec.remoteLockHandler(Pointer.fromBytes(originBuf), type, argBuf)
