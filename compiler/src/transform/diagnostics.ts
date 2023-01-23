@@ -37,7 +37,7 @@ export enum AldeaDiagnosticCode {
 export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
   switch(code) {
     case AldeaDiagnosticCode.Invalid_source_statement:
-      return 'Illegal statement. Only classes, functions, enums and literal constants can be declared.'
+      return 'Illegal statement. Only classes, functions, interfaces, enums and literal constants can be declared.'
     case AldeaDiagnosticCode.Invalid_export:
       return 'Invalid export. Imported objects and functions must not be exported from the entry.'
     case AldeaDiagnosticCode.Invalid_jig_class:

@@ -7,6 +7,7 @@ import {
   Expression,
   FunctionDeclaration,
   IdentifierExpression,
+  InterfaceDeclaration,
   LiteralExpression,
   LiteralKind,
   NewExpression,
@@ -22,7 +23,7 @@ import {
 import { CodeKind } from '../abi.js'
 import { TransformCtx } from './ctx.js'
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
-import { ClassWrap, ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap, ImportWrap } from './nodes.js'
+import { ClassWrap, ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap, ImportWrap, InterfaceWrap } from './nodes.js'
 import { filterAST, isConst, isExported, isGetter, isPrivate, isProtected, isReadonly, isSetter, isStatic } from './filters.js'
 
 // Allowed top-level statements - everything else is an error!
@@ -32,6 +33,7 @@ const allowedSrcStatements = [
   NodeKind.ClassDeclaration,
   NodeKind.EnumDeclaration,
   NodeKind.FunctionDeclaration,
+  NodeKind.InterfaceDeclaration,
 ]
 
 // Collection of blacklisted names
@@ -114,14 +116,24 @@ export class Validator {
     })
   }
 
+  get exportedInterfaceNodes(): InterfaceDeclaration[] {
+    return this.cache.get<InterfaceDeclaration[]>('exportedInterfaceNodes', () => {
+      return this.ctx.exports
+        .filter(ex => ex.kind === CodeKind.INTERFACE)
+        .map(ex => (<InterfaceWrap>ex.code).node)
+    })
+  }
+
   get exposedClasses(): Array<ClassWrap | ObjectWrap> {
     return this.cache.get<Array<ClassWrap | ObjectWrap>>('exposedClasses', () => {
-      const classes: Array<ClassWrap | ObjectWrap> = []
-      this.ctx.exports.filter(ex => ex.kind === CodeKind.CLASS).forEach(ex => {
-        classes.push(ex.code as ClassWrap)
+      const classes: Array<ClassWrap | InterfaceWrap | ObjectWrap> = []
+      this.ctx.exports.forEach(ex => {
+        if (ex.kind === CodeKind.CLASS)     { classes.push(ex.code as ClassWrap) }
+        if (ex.kind === CodeKind.INTERFACE) { classes.push(ex.code as InterfaceWrap) }
       })
-      this.ctx.imports.filter(im => im.kind === CodeKind.CLASS).forEach(im => {
-        classes.push(im.code as ClassWrap)
+      this.ctx.imports.forEach(im => {
+        if (im.kind === CodeKind.CLASS)     { classes.push(im.code as ClassWrap) }
+        if (im.kind === CodeKind.INTERFACE) { classes.push(im.code as InterfaceWrap) }
       })
       classes.push(...this.ctx.objects)
       return classes

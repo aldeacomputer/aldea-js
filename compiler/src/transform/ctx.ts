@@ -126,10 +126,23 @@ export class TransformCtx {
         .concat(...this.exports.filter(ex => ex.kind === CodeKind.CLASS).map(ex => ex.code.name))
         .concat(...this.imports.filter(im => im.kind === CodeKind.CLASS).map(im => im.name))
         .concat(...Array.from(this.exposedTypes.keys()))
+      
+      const interfaceList = this.exports
+        .filter(ex => ex.kind === CodeKind.INTERFACE)
+        .concat(...this.imports.filter(im => im.kind === CodeKind.INTERFACE))
+        .map(n => n.code.name)
 
       this.#typeIds = [...this.program.managedClasses].reduce((obj: TypeIds, [id, klass]) => {
         const name = normalizeClassName(klass)
-        if (whitelist.includes(name)) { obj[name] = id }
+        if (whitelist.includes(name) && !interfaceList.includes(name)) {
+          obj[name] = id
+        }
+        // this is weird. We dont want the actual interface runtime id,
+        // instead we want the proxy class, but we remove the underscore name
+        if (/^_/.test(name)) {
+          const tname = name.replace(/^_/, '')
+          if (interfaceList.includes(tname)) { obj[tname] = id }
+        }
         return obj
       }, {})
     }
@@ -244,7 +257,11 @@ function collectImports(sources: Source[]): ImportWrap[] {
       if (importDecorator && n.kind === NodeKind.FunctionDeclaration) {
         imports.push(mapImport(CodeKind.FUNCTION, mapFunction(n as FunctionDeclaration), importDecorator))
       }
-    })
+
+      if (importDecorator && n.kind === NodeKind.InterfaceDeclaration) {
+        imports.push(mapImport(CodeKind.INTERFACE, mapInterface(n as InterfaceDeclaration), importDecorator))
+      }
+    })  
 
   return imports
 }
@@ -314,7 +331,7 @@ function collectExposedTypes(exports: ExportWrap[], objects: ObjectWrap[]): Map<
     map.set(normalizeTypeName(type), type)
   }
 
-  const applyClass = (obj: ClassWrap | ObjectWrap) => {
+  const applyClass = (obj: ClassWrap | ObjectWrap | InterfaceWrap) => {
     obj.fields.forEach(n => setType(n.type as TypeWrap))
     if ("methods" in obj) {
       obj.methods.forEach(n => applyFunction(n as MethodWrap))
@@ -335,7 +352,8 @@ function collectExposedTypes(exports: ExportWrap[], objects: ObjectWrap[]): Map<
         applyFunction(ex.code as FunctionWrap)
         break
       case CodeKind.INTERFACE:
-        // interafaces?
+        applyClass(ex.code as InterfaceWrap)
+        break
     }
   })
 

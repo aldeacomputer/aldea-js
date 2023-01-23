@@ -90,12 +90,6 @@ test('compiles if source root has const delcalration of literal', async t => {
   await t.notThrowsAsync(() => compile(stmtCode('const a = null')))
 })
 
-test('throws if source root has type interface declaration', async t => {
-  const e = await t.throwsAsync(() => compile(stmtCode('interface A {}')))
-  t.regex(e.stderr.toString(), /Illegal statement/)
-  t.regex(e.stderr.toString(), /interface A {}/)
-})
-
 test('throws if source root has namespace declaration', async t => {
   const e = await t.throwsAsync(() => compile(stmtCode('namespace A {}')))
   t.regex(e.stderr.toString(), /Illegal statement/)
