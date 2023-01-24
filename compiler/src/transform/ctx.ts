@@ -52,8 +52,8 @@ import {
   CodeKind,
   MethodKind,
   FieldKind,
-  TypeIds,
   TypeNode,
+  TypeIdNode,
 } from '../abi/types.js'
 
 type CodeDeclaration = ClassDeclaration | FunctionDeclaration | InterfaceDeclaration
@@ -76,7 +76,7 @@ export class TransformCtx {
   objects: ObjectWrap[];
   exposedTypes: Map<string, TypeNode>;
   validator: Validator = new Validator(this);
-  #typeIds?: TypeIds;
+  #typeIds?: TypeIdNode[];
 
   constructor(parser: Parser) {
     this.parser = parser
@@ -119,8 +119,8 @@ export class TransformCtx {
     this.validator.validate()
   }
 
-  private mapTypeIds(): TypeIds {
-    if (!this.program) return {}
+  private mapTypeIds(): TypeIdNode[] {
+    if (!this.program) return []
     if (!this.#typeIds) {
       const whitelist = ['Jig', 'JigInitParams', 'Output', 'Lock', 'Coin']
         .concat(...this.exports.filter(ex => ex.kind === CodeKind.CLASS).map(ex => ex.code.name))
@@ -132,19 +132,21 @@ export class TransformCtx {
         .concat(...this.imports.filter(im => im.kind === CodeKind.INTERFACE))
         .map(n => n.code.name)
 
-      this.#typeIds = [...this.program.managedClasses].reduce((obj: TypeIds, [id, klass]) => {
+      this.#typeIds = [...this.program.managedClasses].reduce((arr: TypeIdNode[], [id, klass]) => {
         const name = normalizeClassName(klass)
         if (whitelist.includes(name) && !interfaceList.includes(name)) {
-          obj[name] = id
+          arr.push({ id, name })
         }
         // this is weird. We dont want the actual interface runtime id,
         // instead we want the proxy class, but we remove the underscore name
         if (/^_/.test(name)) {
           const tname = name.replace(/^_/, '')
-          if (interfaceList.includes(tname)) { obj[tname] = id }
+          if (interfaceList.includes(tname)) {
+            arr.push({ id, name: tname })
+          }
         }
-        return obj
-      }, {})
+        return arr
+      }, []).sort((a, b) => a.id - b.id)
     }
     return this.#typeIds
   }
@@ -382,9 +384,10 @@ function mapImport(kind: CodeKind, code: ClassWrap | FunctionWrap | InterfaceWra
 // Maps the given AST node to a ClassNode
 function mapClass(node: ClassDeclaration): ClassWrap {
   const obj = mapObject(node) as ClassWrap
-
-  const methods = node.members.filter(n => n.kind === NodeKind.MethodDeclaration)
-  obj.methods = methods.map(n => mapMethod(n as MethodDeclaration))
+  obj.implements = (node.implementsTypes || []).map(n => mapType(n))
+  obj.methods = node.members
+    .filter(n => n.kind === NodeKind.MethodDeclaration)
+    .map(n => mapMethod(n as MethodDeclaration))
   return obj
 }
 

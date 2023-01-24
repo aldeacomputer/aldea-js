@@ -98,12 +98,11 @@ export function writeRemoteProxyClass(obj: ClassWrap, members: string[]): string
  * strings.
  */
 export function writeRemoteProxyInterfaceImpl(obj: InterfaceWrap, members: string[]): string {
-  //const prefix = isExported(obj.node.flags) ? 'export ' : ''
   return `
   class _${obj.name} extends RemoteJig implements ${obj.name} {
     ${ members.join('\n') }
   }
-  export function __${obj.name}(x: _${obj.name}): void {}
+  idof<_${obj.name}>() // added to ensure the class is compiled
   `.trim()
 }
 
@@ -113,7 +112,7 @@ export function writeRemoteProxyInterfaceImpl(obj: InterfaceWrap, members: strin
 export function writeRemoteProxyGetter(field: FieldWrap, obj: ClassWrap | InterfaceWrap): string {
   return `
   get ${field.name}(): ${field.type.name} {
-    return vm_remote_prop<${field.type.name}>(this.$output.origin, '${obj.name}.${field.name}')
+    return vm_remote_prop<${field.type.name}>(this.$output.origin, '${field.name}')
   }
   `.trim()
 }
@@ -128,7 +127,7 @@ export function writeRemoteProxyMethod(method: MethodWrap, obj: ClassWrap | Inte
   const args = method.args.map((f, i) => `a${i}: ${f.type.name}`)
   const rtype = isConstructor ? 'JigInitParams' : method.rtype?.name
   const callable = isInstance ?
-    `vm_remote_call_i<${rtype}>(this.$output.origin, '${obj.name}$${method.name}', args.buffer)` :
+    `vm_remote_call_i<${rtype}>(this.$output.origin, '${method.name}', args.buffer)` :
     `vm_remote_call_s<${rtype}>('${pkgId}', '${obj.name}_${method.name}', args.buffer)` ;
 
   if (isConstructor) {
@@ -159,7 +158,7 @@ export function writeRemoteProxyInstMethod(method: MethodWrap, obj: ClassWrap | 
   return `
   ${method.name}(${args.join(', ')}): ${rtype} {
     ${ writeArgWriter(method.args as FieldWrap[]) }
-    return vm_remote_call_i<${rtype}>(this.$output.origin, '${obj.name}$${method.name}', args.buffer)
+    return vm_remote_call_i<${rtype}>(this.$output.origin, '${method.name}', args.buffer)
   }
   `.trim()
 }

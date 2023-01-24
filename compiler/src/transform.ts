@@ -201,14 +201,16 @@ function createProxyFunction(fn: FunctionWrap, ctx: TransformCtx, pkg: string): 
  * - Adds proxy methods for each declared property and method
  */
 function createProxyInterfaceImpl(obj: InterfaceWrap, ctx: TransformCtx): void {
-  const fieldCodes = (obj.fields as FieldWrap[])
+  const fieldCodes = collectParentInterfaceFields(obj, ctx)
+    .concat(...obj.fields as FieldWrap[])
     .filter(n => !isPrivate(n.node.flags) && !isProtected(n.node.flags))
     .reduce((acc: string[], n: FieldWrap): string[] => {
       acc.push(writeRemoteProxyGetter(n, obj))
       return acc
     }, [])
 
-  const methodCodes = (obj.methods as MethodWrap[])
+  const methodCodes = collectParentInterfaceMethods(obj, ctx)
+    .concat(...(obj.methods as MethodWrap[]))
     .filter(n => !isConstructor(n.node.flags) && !isPrivate(n.node.flags) && !isProtected(n.node.flags))
     .reduce((acc: string[], n: MethodWrap): string[] => {
       acc.push(writeRemoteProxyInstMethod(n, obj))
@@ -280,4 +282,45 @@ function dropNode(node: ClassDeclaration | FunctionDeclaration): void {
   const source = node.range.source
   const idx = source.statements.indexOf(node as Statement)
   if (idx > -1) { source.statements.splice(idx, 1) }
+}
+
+/**
+ * Finds an Interafces parent interface (local or remote)
+ */
+function findParentInterface(child: InterfaceWrap, ctx: TransformCtx): InterfaceWrap | void {
+  if (!child.extends) return
+  return (
+    ctx.exports.find(ex => {
+      return ex.kind === CodeKind.INTERFACE && ex.code.name === child.extends
+    }) ||
+    ctx.imports.find(im => {
+      return im.kind === CodeKind.INTERFACE && im.code.name === child.extends
+    })
+  )?.code as InterfaceWrap
+}
+
+/**
+ * Collects an Interfaces parent fields
+ */
+function collectParentInterfaceFields(obj: InterfaceWrap, ctx: TransformCtx): FieldWrap[] {
+  const fields: FieldWrap[] = []
+  let parent = findParentInterface(obj, ctx)
+  while (parent) {
+    fields.unshift(...parent.fields as FieldWrap[])
+    parent = findParentInterface(parent, ctx)
+  }
+  return fields
+}
+
+/**
+ * Collects an Interfaces parent methods
+ */
+function collectParentInterfaceMethods(obj: InterfaceWrap, ctx: TransformCtx): MethodWrap[] {
+  const methods: MethodWrap[] = []
+  let parent = findParentInterface(obj, ctx)
+  while (parent) {
+    methods.unshift(...parent.methods as MethodWrap[])
+    parent = findParentInterface(parent, ctx)
+  }
+  return methods
 }

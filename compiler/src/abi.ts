@@ -25,6 +25,8 @@ import {
   ImportNode,
   InterfaceCbor,
   InterfaceNode,
+  TypeIdNode,
+  TypeIdCbor,
 } from './abi/types.js'
 
 import { validateAbi } from './abi/validations.js'
@@ -45,7 +47,7 @@ export function abiFromCbor(cbor: ArrayBuffer): Abi {
     exports: exports.map(cborToExport),
     imports: imports.map(cborToImport),
     objects: objects.map(cborToObject),
-    typeIds,
+    typeIds: typeIds.map(cborToTypeId),
   }
 
   if (validateAbi(abi)) {
@@ -76,7 +78,7 @@ export function abiToCbor(abi: Abi): ArrayBuffer {
     abi.exports.map(cborFromExport),
     abi.imports.map(cborFromImport),
     abi.objects.map(cborFromObject),
-    abi.typeIds,
+    abi.typeIds.map(cborFromTypeId),
   ])
   return CBOR.encode(seq)
 }
@@ -128,7 +130,7 @@ function cborFromExport({ kind, code }: ExportNode): ExportCbor {
 
   return [
     kind,
-    codeCbor
+    codeCbor,
   ]
 }
 
@@ -137,15 +139,16 @@ function cborFromImport({ kind, name, pkg }: ImportNode): ImportCbor {
   return [
     kind,
     name,
-    hex.decode(pkg).buffer
+    hex.decode(pkg).buffer,
   ]
 }
 
 // Casts a ClassNode object into an array for CBOR serialization
-function cborFromClass({ name, extends: ext, fields, methods }: ClassNode): ClassCbor {
+function cborFromClass({ name, extends: ext, implements: impl, fields, methods }: ClassNode): ClassCbor {
   return [
     name,
     ext,
+    impl.map(cborFromType),
     fields.map(cborFromField),
     methods.map(cborFromMethod),
   ]
@@ -156,7 +159,7 @@ function cborFromFunction({ name, args, rtype }: FunctionNode): FunctionCbor {
   return [
     name,
     args.map(cborFromArg),
-    cborFromType(rtype)
+    cborFromType(rtype),
   ]
 }
 
@@ -184,7 +187,7 @@ function cborFromField({ kind, name, type }: FieldNode): FieldCbor {
   return [
     kind,
     name,
-    cborFromType(type)
+    cborFromType(type),
   ]
 }
 
@@ -202,7 +205,7 @@ function cborFromMethod({ kind, name, args, rtype }: MethodNode): MethodCbor {
 function cborFromArg({ name, type }: ArgNode): ArgCbor {
   return [
     name,
-    cborFromType(type)
+    cborFromType(type),
   ]
 }
 
@@ -210,7 +213,15 @@ function cborFromArg({ name, type }: ArgNode): ArgCbor {
 function cborFromType({ name, args }: TypeNode): TypeCbor {
   return [
     name,
-    args.map(cborFromType)
+    args.map(cborFromType),
+  ]
+}
+
+// Casts a TypeNodeId object into an array for CBOR serialization
+function cborFromTypeId({ id, name }: TypeIdNode): TypeIdCbor {
+  return [
+    id,
+    name,
   ]
 }
 
@@ -247,10 +258,11 @@ function cborToImport([kind, name, pkg]: ImportCbor): ImportNode {
 }
 
 // Casts the CBOR array to a ClassNode object.
-function cborToClass([name, ext, fields, methods]: ClassCbor): ClassNode {
+function cborToClass([name, ext, impl, fields, methods]: ClassCbor): ClassNode {
   return {
     name,
     extends: ext,
+    implements: impl.map(cborToType),
     fields: fields.map(cborToField),
     methods: methods.map(cborToMethod),
   }
@@ -316,5 +328,13 @@ function cborToType([name, args]: TypeCbor): TypeNode {
   return {
     name,
     args: args.map(cborToType),
+  }
+}
+
+// Casts the CBOR array to a TypeIdNode object.
+function cborToTypeId([id, name]: TypeIdCbor): TypeIdNode {
+  return {
+    id,
+    name,
   }
 }

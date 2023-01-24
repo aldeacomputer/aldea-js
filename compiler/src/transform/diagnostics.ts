@@ -39,7 +39,7 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
     case AldeaDiagnosticCode.Invalid_source_statement:
       return 'Illegal statement. Only classes, functions, interfaces, enums and literal constants can be declared.'
     case AldeaDiagnosticCode.Invalid_export:
-      return 'Invalid export. Imported objects and functions must not be exported from the entry.'
+      return 'Invalid export. {0} must not be exported from the entry.'
     case AldeaDiagnosticCode.Invalid_jig_class:
       return 'Invalid class. {0} {1} inherit from `Jig`.'
     case AldeaDiagnosticCode.Invalid_class_member:

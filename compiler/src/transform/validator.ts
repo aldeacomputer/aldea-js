@@ -24,7 +24,7 @@ import { CodeKind } from '../abi.js'
 import { TransformCtx } from './ctx.js'
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
 import { ClassWrap, ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap, ImportWrap, InterfaceWrap } from './nodes.js'
-import { filterAST, isConst, isExported, isGetter, isPrivate, isProtected, isReadonly, isSetter, isStatic } from './filters.js'
+import { filterAST, isAmbient, isConst, isExported, isGetter, isPrivate, isProtected, isReadonly, isSetter, isStatic } from './filters.js'
 
 // Allowed top-level statements - everything else is an error!
 const allowedSrcStatements = [
@@ -166,6 +166,7 @@ export class Validator {
           this.validateReturnType(ex.code as FunctionWrap)
           break
         case CodeKind.INTERFACE:
+          //this.validateInterfaceInheritance(ex.code as InterfaceWrap)
           break
       }
     })
@@ -216,6 +217,9 @@ export class Validator {
           case NodeKind.FunctionDeclaration:
             this.validateFunctionDeclarationNode(node as FunctionDeclaration)
             break
+          case NodeKind.InterfaceDeclaration:
+            this.validateInterfaceDeclarationNode(node as InterfaceDeclaration)
+            break
           case NodeKind.VariableDeclaration:
             this.validateVariableDeclarationNode(node as VariableDeclaration)
             break
@@ -260,7 +264,21 @@ export class Validator {
   }
 
   private validateClassDeclarationNode(node: ClassDeclaration, ctx: TransformCtx): void {
-    // Ensures sidekick and imported code is not exported from entry
+    // Ensures class is not ambient and exported from entry
+    if (
+      isExported(node.flags) &&
+      isAmbient(node.flags) &&
+      node.range.source.sourceKind === SourceKind.UserEntry
+    ) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.Error,
+        AldeaDiagnosticCode.Invalid_export,
+        ['Ambient classes'],
+        node.range
+      ))
+    }
+
+    // Ensures sidekick code is not exported from entry
     if (
       isExported(node.flags) &&
       !this.exportedClassNodes.includes(node) &&
@@ -269,7 +287,7 @@ export class Validator {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.Error,
         AldeaDiagnosticCode.Invalid_export,
-        [],
+        ['Imported classes'],
         node.range
       ))
     }
@@ -357,7 +375,7 @@ export class Validator {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.Error,
         AldeaDiagnosticCode.Invalid_export,
-        [],
+        ['Imported functions'],
         node.range
       ))
     }
@@ -373,6 +391,39 @@ export class Validator {
         node.range
       ))
     }
+  }
+
+  private validateInterfaceDeclarationNode(node: InterfaceDeclaration): void {
+    // Ensures interface is not ambient and exported from entry
+    if (
+      isExported(node.flags) && isAmbient(node.flags) &&
+      node.range.source.sourceKind === SourceKind.UserEntry
+    ) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.Error,
+        AldeaDiagnosticCode.Invalid_export,
+        ['Ambient interfaces'],
+        node.range
+      ))
+    }
+
+    // Ensures sidekick and imported code is not exported from entry
+    if (
+      isExported(node.flags) &&
+      !this.exportedInterfaceNodes.includes(node) &&
+      node.range.source.sourceKind === SourceKind.UserEntry
+    ) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.Error,
+        AldeaDiagnosticCode.Invalid_export,
+        ['Imported interfaces'],
+        node.range
+      ))
+    }
+  }
+
+  private validateInterfaceInheritance(obj: InterfaceWrap): void {
+
   }
 
   private validatePackageId(obj: ImportWrap): void {

@@ -1,5 +1,5 @@
 import { ArgWriter } from './arg-writer'
-import { Jig, RemoteJig } from './jig'
+import { RemoteJig } from './jig'
 import { vm_remote_call_i, vm_remote_prop } from './imports'
 
 /**
@@ -17,7 +17,7 @@ export class Coin extends RemoteJig {
   get motos(): u64 {
     return vm_remote_prop<u64>(
       this.$output.origin,
-      'Coin.motos'
+      'motos'
     )
   }
 
@@ -28,7 +28,7 @@ export class Coin extends RemoteJig {
 
     return vm_remote_call_i<Coin>(
       this.$output.origin,
-      'Coin$send',
+      'send',
       args.buffer
     )
   }
@@ -39,7 +39,7 @@ export class Coin extends RemoteJig {
 
     return vm_remote_call_i<Coin>(
       this.$output.origin,
-      'Coin$combine',
+      'combine',
       args.buffer
     )
   }
