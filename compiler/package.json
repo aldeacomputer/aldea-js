@@ -35,7 +35,6 @@
   },
   "packageManager": "yarn@3.2.3",
   "dependencies": {
-    "@aldea/sdk-js": "workspace:^",
     "@noble/hashes": "^1.1.5",
     "@scure/base": "^1.1.1",
     "assemblyscript": "0.22.0",

@@ -7,6 +7,7 @@ import {
   Expression,
   FunctionDeclaration,
   IdentifierExpression,
+  InterfaceDeclaration,
   LiteralExpression,
   LiteralKind,
   NewExpression,
@@ -19,13 +20,11 @@ import {
   VariableStatement,
 } from 'assemblyscript'
 
-import { Pointer } from '@aldea/sdk-js'
-
 import { CodeKind } from '../abi.js'
 import { TransformCtx } from './ctx.js'
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
-import { ClassWrap, ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap, ImportWrap } from './nodes.js'
-import { filterAST, isConst, isExported, isGetter, isPrivate, isProtected, isReadonly, isSetter, isStatic } from './filters.js'
+import { ClassWrap, ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap, ImportWrap, InterfaceWrap } from './nodes.js'
+import { filterAST, isAmbient, isConst, isExported, isGetter, isPrivate, isProtected, isReadonly, isSetter, isStatic } from './filters.js'
 
 // Allowed top-level statements - everything else is an error!
 const allowedSrcStatements = [
@@ -34,6 +33,7 @@ const allowedSrcStatements = [
   NodeKind.ClassDeclaration,
   NodeKind.EnumDeclaration,
   NodeKind.FunctionDeclaration,
+  NodeKind.InterfaceDeclaration,
 ]
 
 // Collection of blacklisted names
@@ -116,14 +116,24 @@ export class Validator {
     })
   }
 
+  get exportedInterfaceNodes(): InterfaceDeclaration[] {
+    return this.cache.get<InterfaceDeclaration[]>('exportedInterfaceNodes', () => {
+      return this.ctx.exports
+        .filter(ex => ex.kind === CodeKind.INTERFACE)
+        .map(ex => (<InterfaceWrap>ex.code).node)
+    })
+  }
+
   get exposedClasses(): Array<ClassWrap | ObjectWrap> {
     return this.cache.get<Array<ClassWrap | ObjectWrap>>('exposedClasses', () => {
-      const classes: Array<ClassWrap | ObjectWrap> = []
-      this.ctx.exports.filter(ex => ex.kind === CodeKind.CLASS).forEach(ex => {
-        classes.push(ex.code as ClassWrap)
+      const classes: Array<ClassWrap | InterfaceWrap | ObjectWrap> = []
+      this.ctx.exports.forEach(ex => {
+        if (ex.kind === CodeKind.CLASS)     { classes.push(ex.code as ClassWrap) }
+        if (ex.kind === CodeKind.INTERFACE) { classes.push(ex.code as InterfaceWrap) }
       })
-      this.ctx.imports.filter(im => im.kind === CodeKind.CLASS).forEach(im => {
-        classes.push(im.code as ClassWrap)
+      this.ctx.imports.forEach(im => {
+        if (im.kind === CodeKind.CLASS)     { classes.push(im.code as ClassWrap) }
+        if (im.kind === CodeKind.INTERFACE) { classes.push(im.code as InterfaceWrap) }
       })
       classes.push(...this.ctx.objects)
       return classes
@@ -156,12 +166,13 @@ export class Validator {
           this.validateReturnType(ex.code as FunctionWrap)
           break
         case CodeKind.INTERFACE:
+          //this.validateInterfaceInheritance(ex.code as InterfaceWrap)
           break
       }
     })
 
     this.ctx.imports.forEach(im => {
-      this.validateImportOrigin(im)
+      this.validatePackageId(im)
       switch (im.kind) {
         case CodeKind.CLASS:
           // must not export from entry
@@ -205,6 +216,9 @@ export class Validator {
             break
           case NodeKind.FunctionDeclaration:
             this.validateFunctionDeclarationNode(node as FunctionDeclaration)
+            break
+          case NodeKind.InterfaceDeclaration:
+            this.validateInterfaceDeclarationNode(node as InterfaceDeclaration)
             break
           case NodeKind.VariableDeclaration:
             this.validateVariableDeclarationNode(node as VariableDeclaration)
@@ -250,7 +264,21 @@ export class Validator {
   }
 
   private validateClassDeclarationNode(node: ClassDeclaration, ctx: TransformCtx): void {
-    // Ensures sidekick and imported code is not exported from entry
+    // Ensures class is not ambient and exported from entry
+    if (
+      isExported(node.flags) &&
+      isAmbient(node.flags) &&
+      node.range.source.sourceKind === SourceKind.UserEntry
+    ) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.Error,
+        AldeaDiagnosticCode.Invalid_export,
+        ['Ambient classes'],
+        node.range
+      ))
+    }
+
+    // Ensures sidekick code is not exported from entry
     if (
       isExported(node.flags) &&
       !this.exportedClassNodes.includes(node) &&
@@ -259,7 +287,7 @@ export class Validator {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.Error,
         AldeaDiagnosticCode.Invalid_export,
-        [],
+        ['Imported classes'],
         node.range
       ))
     }
@@ -347,7 +375,7 @@ export class Validator {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.Error,
         AldeaDiagnosticCode.Invalid_export,
-        [],
+        ['Imported functions'],
         node.range
       ))
     }
@@ -365,14 +393,45 @@ export class Validator {
     }
   }
 
-  private validateImportOrigin(obj: ImportWrap): void {
-    try {
-      Pointer.fromString(obj.origin)
-    } catch(e) {
+  private validateInterfaceDeclarationNode(node: InterfaceDeclaration): void {
+    // Ensures interface is not ambient and exported from entry
+    if (
+      isExported(node.flags) && isAmbient(node.flags) &&
+      node.range.source.sourceKind === SourceKind.UserEntry
+    ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.Error,
-        AldeaDiagnosticCode.Invalid_pointer,
-        [],
+        AldeaDiagnosticCode.Invalid_export,
+        ['Ambient interfaces'],
+        node.range
+      ))
+    }
+
+    // Ensures sidekick and imported code is not exported from entry
+    if (
+      isExported(node.flags) &&
+      !this.exportedInterfaceNodes.includes(node) &&
+      node.range.source.sourceKind === SourceKind.UserEntry
+    ) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.Error,
+        AldeaDiagnosticCode.Invalid_export,
+        ['Imported interfaces'],
+        node.range
+      ))
+    }
+  }
+
+  private validateInterfaceInheritance(obj: InterfaceWrap): void {
+
+  }
+
+  private validatePackageId(obj: ImportWrap): void {
+    if (!/^[a-f0-9]{64}$/i.test(obj.pkg)) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.Error,
+        AldeaDiagnosticCode.Invalid_package,
+        ['Must be 32 byte hex-encoded string.'],
         obj.code.node.range
       ))
     }
@@ -582,7 +641,7 @@ function isAllowedLiteralOther(node: Expression | null): Boolean {
   ].includes(node.kind)
 }
 
-// Returns the greatest ancestor of the given object
+// Returns true if the object inherits from Jig
 function isJig(obj: ClassWrap, ctx: TransformCtx): boolean {
   let extendsFrom = obj.extends
   let parent: ClassWrap | undefined = obj

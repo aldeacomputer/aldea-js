@@ -51,3 +51,59 @@ test.serial('compiles multiple entries', async t => {
   t.is(abi.exports[0].code.name, 'test1')
   t.is(abi.exports[1].code.name, 'test2')
 })
+
+test.serial('child classes do not include fields of parents', async t => {
+  const src = `
+  export class A extends Jig {
+    a: string = 'a';
+  }
+  export class B extends A {
+    b: string = 'b';
+  }
+  export class C extends B {
+    a: string = 'c';
+  }
+  `.trim()
+  
+  const res = await compile(src)
+  const abi = abiFromCbor(res.output.abi.buffer)
+
+  t.is(abi.exports.length, 3)
+  t.is(abi.exports[0].code.name, 'A')
+  t.is(abi.exports[0].code.fields.length, 1)
+  t.is(abi.exports[0].code.fields[0].name, 'a')
+  t.is(abi.exports[1].code.name, 'B')
+  t.is(abi.exports[1].code.fields.length, 1)
+  t.is(abi.exports[1].code.fields[0].name, 'b')
+  t.is(abi.exports[2].code.name, 'C')
+  t.is(abi.exports[2].code.fields.length, 0)
+})
+
+test.serial('child classes do not include methods of parents unless overwritten', async t => {
+  const src = `
+  export class A extends Jig {
+    foo(): void {}
+  }
+  export class B extends A {
+    bar(): void {}
+  }
+  export class C extends B {
+    foo(): void {}
+  }
+  `.trim()
+  
+  const res = await compile(src)
+  const abi = abiFromCbor(res.output.abi.buffer)
+
+  t.is(abi.exports.length, 3)
+  t.is(abi.exports[0].code.name, 'A')
+  // constructor is always first method
+  t.is(abi.exports[0].code.methods.length, 2)
+  t.is(abi.exports[0].code.methods[1].name, 'foo')
+  t.is(abi.exports[1].code.name, 'B')
+  t.is(abi.exports[1].code.methods.length, 2)
+  t.is(abi.exports[1].code.methods[1].name, 'bar')
+  t.is(abi.exports[2].code.name, 'C')
+  t.is(abi.exports[2].code.methods.length, 2)
+  t.is(abi.exports[2].code.methods[1].name, 'foo')
+})

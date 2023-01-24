@@ -35,7 +35,7 @@ export interface Abi {
   exports: ExportNode[];
   imports: ImportNode[];
   objects: ObjectNode[];
-  typeIds: TypeIds;
+  typeIds: TypeIdNode[];
 }
 
 /**
@@ -52,7 +52,7 @@ export interface ExportNode {
 export interface ImportNode {
   kind: CodeKind;
   name: string;
-  origin: string;
+  pkg: string;
 }
 
 /**
@@ -61,6 +61,7 @@ export interface ImportNode {
 export interface ClassNode {
   name: string;
   extends: string;
+  implements: TypeNode[];
   fields: FieldNode[];
   methods: MethodNode[];
 }
@@ -139,14 +140,15 @@ export interface TypeNode {
 /**
  * Runtime type IDs
  */
-export interface TypeIds {
-  [type: string]: number;
+export interface TypeIdNode {
+  id: number;
+  name: string;
 }
 
 /**
  * ABI CBOR type
  */
-export type AbiCbor = [number, ExportCbor[], ImportCbor[], ObjectCbor[], TypeIds]
+export type AbiCbor = [number, ExportCbor[], ImportCbor[], ObjectCbor[], TypeIdCbor[]]
 
 /**
  * Export CBOR type
@@ -161,7 +163,7 @@ export type ImportCbor = [CodeKind, string, ArrayBuffer]
 /**
  * Class CBOR type
  */
-export type ClassCbor = [string, string, FieldCbor[], MethodCbor[]]
+export type ClassCbor = [string, string, TypeCbor[], FieldCbor[], MethodCbor[]]
 
 /**
  * Object CBOR type
@@ -197,3 +199,8 @@ export type FieldCbor = [FieldKind, string, TypeCbor]
  * Type CBOR type
  */
 export type TypeCbor = [string, TypeCbor[]]
+
+/**
+ * Type ID CBOR type
+ */
+export type TypeIdCbor = [number, string]

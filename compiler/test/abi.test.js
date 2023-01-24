@@ -14,7 +14,7 @@ const abi = {
   exports: [],
   imports: [],
   objects: [],
-  typeIds: {},
+  typeIds: [],
 }
 
 test('not a real test', t => {
