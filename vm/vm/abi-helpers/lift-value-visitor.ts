@@ -10,6 +10,7 @@ import {
   Internref,
   liftBuffer
 } from "../memory.js";
+import {outputTypeNode} from "./well-known-abi-nodes.js";
 
 
 export class LiftValueVisitor extends AbiTraveler<any> {
@@ -80,9 +81,11 @@ export class LiftValueVisitor extends AbiTraveler<any> {
   visitImportedClass(node: TypeNode, pkgId: string): any {
     const mod = this.instance;
     const ptr = Number(this.ptr)
-    const bufPtr = new Uint32Array(mod.memory.buffer)[ptr >>> 2]
+    const outputPtr = new Uint32Array(mod.memory.buffer)[ptr >>> 2]
 
-    const origin = liftBuffer(this.instance, bufPtr)
+    const output = this.liftValue(outputTypeNode, outputPtr)
+
+    const origin = output.origin
     return new Externref(normalizeTypeName(node), origin)
   }
 

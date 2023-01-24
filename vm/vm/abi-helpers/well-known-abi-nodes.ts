@@ -75,6 +75,14 @@ export const lockAbiNode: ObjectNode = {
   fields: [
     {
       kind: FieldKind.PUBLIC,
+      name: 'origin',
+      type: {
+        name: 'ArrayBuffer',
+        args: []
+      }
+    },
+    {
+      kind: FieldKind.PUBLIC,
       name: 'type',
       type: {
         name: 'usize',

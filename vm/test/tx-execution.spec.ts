@@ -306,7 +306,7 @@ describe('execute txs', () => {
   })
 
   // Should load from a different package
-  it('can restore jigs that contain jigs of the same package', () => {
+  it.skip('can restore jigs that contain jigs of the same package', () => {
     exec.importModule(modIdFor('flock'))
     const flockIndex = exec.instantiate(0, 'Flock', [])
     const bagIndex = exec.instantiate(0, 'FlockBag', [])

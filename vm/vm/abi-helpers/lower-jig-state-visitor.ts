@@ -2,7 +2,6 @@ import {ClassNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {LowerValueVisitor} from "./lower-value-visitor.js";
 import {Pointer} from "@aldea/sdk-js";
-import {lowerBuffer} from "../memory.js";
 
 export class LowerJigStateVisitor extends LowerValueVisitor {
   visitExportedClass (node: ClassNode, _type: TypeNode): WasmPointer {
@@ -12,14 +11,16 @@ export class LowerJigStateVisitor extends LowerValueVisitor {
   }
 
   visitImportedClass(node: TypeNode, pkgId: string): WasmPointer {
-    const val = this.value // it's an Uint8Array with the origin
-    const mod = this.instance
-    const buf = Buffer.from(val);
-    const bufferPtr = lowerBuffer(mod, buf)
-    const ptr = mod.__new(val.byteLength, mod.abi.typeIds[node.name]);
-    const memU32 = new Uint32Array(mod.memory.buffer)
-    memU32[ptr >>> 2] = bufferPtr
-    return ptr
+    this.value = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(this.value))
+    return super.visitImportedClass(node, pkgId)
+    // const val = this.value // it's an Uint8Array with the origin
+    // const mod = this.instance
+    // const buf = Buffer.from(val);
+    // const bufferPtr = lowerBuffer(mod, buf)
+    // const ptr = mod.__new(val.byteLength, mod.abi.typeIds[node.name]);
+    // const memU32 = new Uint32Array(mod.memory.buffer)
+    // memU32[ptr >>> 2] = bufferPtr
+    // return ptr
   }
 
   lowerValue (value: any, type: TypeNode): WasmPointer {

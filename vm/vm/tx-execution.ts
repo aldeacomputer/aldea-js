@@ -256,7 +256,8 @@ class TxExecution {
     const argReader = new ArgReader(argBuffer)
     const argValues = method.args.map((arg) => {
       const pointer = readType(argReader, arg.type)
-      return srcModule.extractValue(pointer, arg.type).value
+      const wasmValue = srcModule.extractValue(pointer, arg.type);
+      return wasmValue.value
     }).map((value: any) => {
       if (value instanceof Externref) {
         return this.getJigRefByOrigin(Pointer.fromBytes(value.originBuf))
@@ -456,7 +457,7 @@ class TxExecution {
 
   private hydrateJigState(state: JigState): JigRef {
     const module = this.loadModule(state.packageId)
-    const ref = module.hidrate(state.classIdx, state.stateBuf)
+    const ref = module.hidrate(state.classIdx, state)
     const lock = this.hidrateLock(state.serializedLock)
     const jigRef = new JigRef(ref, state.classIdx, module, state.origin, lock)
     this.addNewJigRef(jigRef)

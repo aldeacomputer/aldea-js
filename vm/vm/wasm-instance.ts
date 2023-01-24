@@ -27,6 +27,7 @@ import {
   voidNode,
 } from "./abi-helpers/well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-helpers/abi-access.js";
+import {JigState} from "./jig-state.js";
 
 export enum LockType {
   FROZEN = -1,
@@ -152,7 +153,7 @@ export class WasmInstance {
           return this.insertValue(methodResult.value, methodResult.node)
         },
         vm_remote_call_s: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
-          const moduleId = this.liftString(originPtr)
+          const moduleId = this.liftString(originPtr).split('_')[0]
           const fnStr = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
           const result = this.currentExec.remoteStaticExecHandler(this, base16.decode(moduleId), fnStr, argBuf)
@@ -183,7 +184,7 @@ export class WasmInstance {
           }
           return Number(this.insertValue(utxo, { name: 'UtxoState', args: [] }))
         },
-        vm_jig_lock: (originPtr: number, type: LockType, argsPtr: number) => {
+        vm_jig_lock: (originPtr: number, type: number, argsPtr: number) => {
           const argBuf = this.liftBuffer(argsPtr)
           const originBuf = this.liftBuffer(originPtr)
           this.currentExec.remoteLockHandler(Pointer.fromBytes(originBuf), type, argBuf)
@@ -238,10 +239,14 @@ export class WasmInstance {
     }
   }
 
-  hidrate (classIdx: number, frozenState: Uint8Array): Internref {
-    const rawState = __decodeArgs(frozenState)
-    const objectNode = this.abi.exports[classIdx].code as ClassNode //findClass(, className, `unknown class ${className}`)
-
+  hidrate (classIdx: number, jigState: JigState): Internref {
+    const frozenState = jigState.stateBuf
+    const rawState = [
+      jigState.outputObject(),
+      jigState.lockObject(),
+      ...__decodeArgs(frozenState)
+    ]
+    const objectNode = this.abi.classByIndex(classIdx)
     const visitor = new LowerJigStateVisitor(this.abi, this, rawState)
     const pointer = visitor.visitPlainObject(objectNode, {name: objectNode.name, args: []})
     return new Internref(objectNode.name, Number(pointer))

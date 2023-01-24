@@ -52,6 +52,7 @@ export class JigRef  {
 
   lockObject() {
     return {
+      origin: this.origin.toBytes(),
       type: this.lock.typeNumber(),
       data: this.lock.data()
     }
