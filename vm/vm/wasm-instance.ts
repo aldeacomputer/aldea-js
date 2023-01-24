@@ -11,6 +11,7 @@ import {
   findFunction,
   findMethod,
   ImportNode,
+  ObjectNode,
   TypeNode
 } from "@aldea/compiler/abi";
 
@@ -24,6 +25,7 @@ import {LowerValueVisitor} from "./abi-helpers/lower-value-visitor.js";
 import {LiftJigStateVisitor} from "./abi-helpers/lift-jig-state-visitor.js";
 import {LowerJigStateVisitor} from "./abi-helpers/lower-jig-state-visitor.js";
 import {LowerArgumentVisitor} from "./abi-helpers/lower-argument-visitor.js";
+import {NoLock} from "./locks/no-lock.js";
 
 export enum LockType {
   FROZEN = -1,
@@ -65,6 +67,28 @@ function __decodeArgs (data: Uint8Array): any[] {
 
 const voidNode = { name: '_void', args: [] }
 
+export const outputAbiNode: ObjectNode = {
+  name: 'Output',
+  extends: null,
+  fields: [
+    {
+      kind: FieldKind.PUBLIC,
+      name: 'origin',
+      type: {name: 'ArrayBuffer', args: []}
+    },
+    {
+      kind: FieldKind.PUBLIC,
+      name: 'location',
+      type: {name: 'ArrayBuffer', args: []}
+    },
+    {
+      kind: FieldKind.PUBLIC,
+      name: 'classPtr',
+      type: {name: 'ArrayBuffer', args: []}
+    }
+  ]
+}
+
 const utxoAbiNode = {
   name: 'UtxoState',
   extends: null,
@@ -97,20 +121,55 @@ const utxoAbiNode = {
   methods: []
 }
 
-const coinNode: ImportNode = {
-  name: 'Coin',
-  origin: new Array(32).fill('0').join(''),
-  kind: 0
+const jigInitParamsAbiNode: ObjectNode = {
+  name: 'JigInitParams',
+  extends: null,
+  fields: [
+    {
+      kind: FieldKind.PUBLIC,
+      name: 'origin',
+      type: {
+        name: 'ArrayBuffer',
+        args: []
+      }
+    },
+    {
+      kind: FieldKind.PUBLIC,
+      name: 'location',
+      type: {
+        name: 'ArrayBuffer',
+        args: []
+      }
+    },
+    {
+      kind: FieldKind.PUBLIC,
+      name: 'classPtr',
+      type: {
+        name: 'ArrayBuffer',
+        args: []
+      }
+    },
+    {
+      kind: FieldKind.PUBLIC,
+      name: 'lockType',
+      type: {
+        name: 'u8',
+        args: []
+      }
+    },
+    {
+      kind: FieldKind.PUBLIC,
+      name: 'lockData',
+      type: {
+        name: 'ArrayBuffer',
+        args: []
+      }
+    },
+  ]
 }
 
-const jigNode: ImportNode = {
-  name: 'Jig',
-  origin: new Array(32).fill('0').join(''),
-  kind: 0
-}
-
-const lockStateAbiNode = {
-  name: 'LockState',
+export const lockAbiNode: ObjectNode = {
+  name: 'Lock',
   extends: null,
   fields: [
     {
@@ -129,8 +188,20 @@ const lockStateAbiNode = {
         args: []
       }
     }
-  ],
-  methods: []
+  ]
+}
+
+
+const coinNode: ImportNode = {
+  name: 'Coin',
+  origin: new Array(32).fill('0').join(''),
+  kind: 0
+}
+
+const jigNode: ImportNode = {
+  name: 'Jig',
+  origin: new Array(32).fill('0').join(''),
+  kind: 0
 }
 
 export class WasmInstance {
@@ -146,7 +217,7 @@ export class WasmInstance {
     this.id = id
     this.abi = {
       ...abi,
-      objects: [...abi.objects, utxoAbiNode, lockStateAbiNode],
+      objects: [...abi.objects, utxoAbiNode, jigInitParamsAbiNode, outputAbiNode, lockAbiNode],
       imports: [...abi.imports, coinNode, jigNode]
     }
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
@@ -171,22 +242,35 @@ export class WasmInstance {
           const className = this.liftString(classNamePtr)
           this.currentExec.constructorHandler(this, jigPtr, className)
         },
-        vm_jig_init: (jigPtr: number, rtid: number): number => {
+        vm_jig_init: (): WasmPointer => {
+          const nextOrigin = this.currentExec.createNextOrigin()
+
+          return this.insertValue({
+            origin: nextOrigin,
+            location: nextOrigin,
+            classPtr: new ArrayBuffer(0),
+            lockType: LockType.NONE,
+            lockData: new ArrayBuffer(0),
+          }, { name: 'JigInitParams', args: [] })
+        },
+        vm_jig_link: (jigPtr: number, rtid: number): WasmPointer =>  {
           const nextOrigin = this.currentExec.createNextOrigin()
           const className = Object.keys(this.abi.typeIds).find(key => this.abi.typeIds[key] === rtid)
           if (!className) {
             throw new Error('should exist')
           }
           const classNode = findClass(this.abi, className, 'should exist')
+          const classIdx = this.abi.exports.findIndex(node => node.code.name === classNode.name)
 
-          this.insertValue({
-            origin: nextOrigin,
-            location: nextOrigin,
-            classPtr: new Pointer();
-            lockType: LockType;
-            lockData: ArrayBuffer;
-          }, { name: '', args: [] })
-          return 0
+          this.currentExec.addNewJigRef(new JigRef(
+            new Internref(className, jigPtr),
+            classIdx,
+            this,
+            nextOrigin,
+            new NoLock()
+          ))
+
+          return this.insertValue(new Pointer(this.id, classIdx).toBytes(), { name: 'ArrayBuffer', args: [] })
         },
         vm_local_call_start: (jigPtr: number, fnNamePtr: number): void => {
           const fnName = this.liftString(fnNamePtr)
@@ -387,7 +471,6 @@ export class WasmInstance {
     // const lifted = mgr.liftObject(this, abiObj, ref.ptr)
     // mgr.reset()
     // return __encodeArgs(
-    //   abiObj.fields.map((field: FieldNode) => lifted[field.name])
     // )
     const abiObj = this.abi.exports[classIdx].code as ClassNode
     const visitor = new LiftJigStateVisitor(this.abi, this, ref.ptr)

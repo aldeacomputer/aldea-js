@@ -1,10 +1,11 @@
 import {AbiTraveler} from "./abi-traveler.js";
 import {Abi, ClassNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
-import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
+import {outputAbiNode, WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
 import {getElementBytes, getObjectMemLayout, getTypeBytes, getTypedArrayConstructor, lowerBuffer} from "../memory.js";
 import {WasmPointer} from "../arg-reader.js";
 import {blake3} from "@noble/hashes/blake3";
 import {bytesToHex as toHex} from "@noble/hashes/utils";
+import {JigRef} from "../jig-ref.js";
 
 function hasTypedArrayConstructor(type: TypeNode): boolean {
   return [
@@ -98,14 +99,20 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   }
 
   visitImportedClass(node: TypeNode, pkgId: string): WasmPointer {
-    const val = this.value
+    const val = this.value as JigRef
     const mod = this.instance
-    const buf = Buffer.from(val.originBuf);
-    const bufferPtr = lowerBuffer(mod, buf)
-    const ptr = mod.__new(val.originBuf.byteLength, mod.abi.typeIds[val.className()]);
+    // const buf = Buffer.from(val.originBuf);
+    // const bufferPtr = lowerBuffer(mod, buf)
+
+    const outputPtr = this.lowerValue(val.outputObject(), { name: outputAbiNode.name, args: [] })
+    const lockPtr = this.lowerValue(val.lockObject(), { name: 'Lock', args: [] })
+
+    // this.lowerValue()
+    const objPtr = mod.__new(8, mod.abi.typeIds[val.className()]);
     const memU32 = new Uint32Array(mod.memory.buffer)
-    memU32[ptr >>> 2] = bufferPtr
-    return ptr
+    memU32[objPtr >>> 2] = Number(outputPtr)
+    memU32[(objPtr + 4) >>> 2] = Number(lockPtr)
+    return objPtr
   }
 
   visitMap(keyType: TypeNode, valueType: TypeNode): WasmPointer {

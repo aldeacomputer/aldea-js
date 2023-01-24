@@ -97,7 +97,7 @@ export abstract class AbiTraveler<T> {
           return this.visitImportedClass(typeNode, abiNode.origin)
         } else
         if (plainObjectNode) {
-          return this.visitPlainObject(plainObjectNode, typeNode)
+          return this.visitPlainObject(plainObjectNode, typeNode, 0)
         } else {
           break
         }
