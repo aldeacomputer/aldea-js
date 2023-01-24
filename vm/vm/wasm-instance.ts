@@ -4,15 +4,12 @@ import {
   Abi,
   ArgNode,
   ClassNode,
-  FieldKind,
   FieldNode,
   findClass,
   findField,
   findFunction,
   findMethod,
-  ImportNode,
-  ObjectNode,
-  TypeNode
+  TypeNode,
 } from "@aldea/compiler/abi";
 
 import {base16, Pointer} from "@aldea/sdk-js";
@@ -26,6 +23,10 @@ import {LiftJigStateVisitor} from "./abi-helpers/lift-jig-state-visitor.js";
 import {LowerJigStateVisitor} from "./abi-helpers/lower-jig-state-visitor.js";
 import {LowerArgumentVisitor} from "./abi-helpers/lower-argument-visitor.js";
 import {NoLock} from "./locks/no-lock.js";
+import {
+  voidNode,
+} from "./abi-helpers/well-known-abi-nodes.js";
+import {AbiAccess} from "./abi-helpers/abi-access.js";
 
 export enum LockType {
   FROZEN = -1,
@@ -65,145 +66,6 @@ function __decodeArgs (data: Uint8Array): any[] {
   return CBOR.decode(data.buffer, null, {mode: "sequence"}).data
 }
 
-const voidNode = { name: '_void', args: [] }
-
-export const outputAbiNode: ObjectNode = {
-  name: 'Output',
-  extends: null,
-  fields: [
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'origin',
-      type: {name: 'ArrayBuffer', args: []}
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'location',
-      type: {name: 'ArrayBuffer', args: []}
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'classPtr',
-      type: {name: 'ArrayBuffer', args: []}
-    }
-  ]
-}
-
-const utxoAbiNode = {
-  name: 'UtxoState',
-  extends: null,
-  fields: [
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'origin',
-      type: {
-        name: 'string',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'location',
-      type: {
-        name: 'string',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'lock',
-      type: {
-        name: 'LockState',
-        args: []
-      }
-    }
-  ],
-  methods: []
-}
-
-const jigInitParamsAbiNode: ObjectNode = {
-  name: 'JigInitParams',
-  extends: null,
-  fields: [
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'origin',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'location',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'classPtr',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'lockType',
-      type: {
-        name: 'u8',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'lockData',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
-    },
-  ]
-}
-
-export const lockAbiNode: ObjectNode = {
-  name: 'Lock',
-  extends: null,
-  fields: [
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'type',
-      type: {
-        name: 'u8',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'data',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
-    }
-  ]
-}
-
-
-const coinNode: ImportNode = {
-  name: 'Coin',
-  origin: new Array(32).fill('0').join(''),
-  kind: 0
-}
-
-const jigNode: ImportNode = {
-  name: 'Jig',
-  origin: new Array(32).fill('0').join(''),
-  kind: 0
-}
-
 export class WasmInstance {
   id: Uint8Array;
   memory: WebAssembly.Memory;
@@ -211,15 +73,11 @@ export class WasmInstance {
 
   private module: WebAssembly.Module;
   private instance: WebAssembly.Instance;
-  abi: Abi;
+  abi: AbiAccess;
 
   constructor (module: WebAssembly.Module, abi: Abi, id: Uint8Array) {
     this.id = id
-    this.abi = {
-      ...abi,
-      objects: [...abi.objects, utxoAbiNode, jigInitParamsAbiNode, outputAbiNode, lockAbiNode],
-      imports: [...abi.imports, coinNode, jigNode]
-    }
+    this.abi = new AbiAccess(abi)
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
     this._currentExec = null
 
@@ -246,8 +104,8 @@ export class WasmInstance {
           const nextOrigin = this.currentExec.createNextOrigin()
 
           return this.insertValue({
-            origin: nextOrigin,
-            location: nextOrigin,
+            origin: nextOrigin.toBytes(),
+            location: nextOrigin.toBytes(),
             classPtr: new ArrayBuffer(0),
             lockType: LockType.NONE,
             lockData: new ArrayBuffer(0),
@@ -259,7 +117,7 @@ export class WasmInstance {
           if (!className) {
             throw new Error('should exist')
           }
-          const classNode = findClass(this.abi, className, 'should exist')
+          const classNode = this.abi.classByName(className, 'should exist')
           const classIdx = this.abi.exports.findIndex(node => node.code.name === classNode.name)
 
           this.currentExec.addNewJigRef(new JigRef(
@@ -359,7 +217,7 @@ export class WasmInstance {
 
   staticCall (className: string, methodName: string, args: any[]): WasmValue {
     const fnName = `${className}_${methodName}`
-    const abiObj = findClass(this.abi, className, `unknown class: ${className}`)
+    const abiObj = this.abi.classByName(className, `unknown class: ${className}`)
     const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
 
     const ptrs = method.args.map((argNode: ArgNode, i: number) => {
@@ -414,7 +272,7 @@ export class WasmInstance {
   }
 
   getPropValue (ref: Internref, classIdx: number, fieldName: string): Prop {
-    const objNode = this.abi.exports[classIdx].code // findClass(this.abi, classIdx, `unknown export: ${classIdx}`)
+    const objNode = this.abi.classByIndex(classIdx)
     const classNode = objNode as ClassNode
     const field = findField(classNode, fieldName, `unknown field: ${fieldName}`)
 
@@ -472,14 +330,14 @@ export class WasmInstance {
     // mgr.reset()
     // return __encodeArgs(
     // )
-    const abiObj = this.abi.exports[classIdx].code as ClassNode
+    const abiObj =  this.abi.classByIndex(classIdx)
     const visitor = new LiftJigStateVisitor(this.abi, this, ref.ptr)
     const lifted = visitor.visitPlainObject(
       abiObj,
       {name: abiObj.name, args: []}
     )
     return __encodeArgs(
-      abiObj.fields.map((field: FieldNode) => lifted[field.name])
+      abiObj.nativeFields().map((field: FieldNode) => lifted[field.name])
     )
   }
 

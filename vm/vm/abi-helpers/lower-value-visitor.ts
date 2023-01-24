@@ -1,11 +1,12 @@
 import {AbiTraveler} from "./abi-traveler.js";
 import {Abi, ClassNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
-import {outputAbiNode, WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
-import {getElementBytes, getObjectMemLayout, getTypeBytes, getTypedArrayConstructor, lowerBuffer} from "../memory.js";
+import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
+import {getElementBytes, getObjectMemLayout, getTypeBytes, getTypedArrayConstructor} from "../memory.js";
 import {WasmPointer} from "../arg-reader.js";
 import {blake3} from "@noble/hashes/blake3";
 import {bytesToHex as toHex} from "@noble/hashes/utils";
 import {JigRef} from "../jig-ref.js";
+import {outputAbiNode} from "./well-known-abi-nodes.js";
 
 function hasTypedArrayConstructor(type: TypeNode): boolean {
   return [
