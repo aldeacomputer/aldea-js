@@ -33,7 +33,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   visitArray(innerType: TypeNode): WasmPointer {
     const mod = this.instance
     const val = this.value as Array<any>
-    const rtid = mod.abi.typeIds[normalizeTypeName({ name: 'Array', args: [innerType] })]
+    const rtid = mod.abi.rtidFromTypeNode({ name: 'Array', args: [innerType] })
     const elBytes = getTypeBytes(innerType)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
     const TypedArray = getTypedArrayConstructor(innerType)
@@ -60,7 +60,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     const mod = this.instance
     const val = this.value
 
-    const rtid = mod.abi.typeIds[normalizeTypeName({name: 'StaticArray', args: [innerType]})]
+    const rtid = mod.abi.rtidFromTypeNode({name: 'StaticArray', args: [innerType]})
     const elBytes = getTypeBytes(innerType)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
     const TypedArray = getTypedArrayConstructor(innerType)
@@ -109,7 +109,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     const lockPtr = this.lowerValue(val.lockObject(), { name: 'Lock', args: [] })
 
     // this.lowerValue()
-    const objPtr = mod.__new(8, mod.abi.typeIds[val.className()]);
+    const objPtr = mod.__new(8, mod.abi.rtidFromTypeNode(node));
     const memU32 = new Uint32Array(mod.memory.buffer)
     memU32[objPtr >>> 2] = Number(outputPtr)
     memU32[(objPtr + 4) >>> 2] = Number(lockPtr)
@@ -149,7 +149,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
       throw new Error(`invalid state for ${objNode.name}`)
     }
 
-    const rtid = mod.abi.typeIds[objNode.name]
+    const rtid = mod.abi.rtidFromTypeNode(typeNode)
     const bytes = objNode.fields.reduce((sum, n) => sum + getTypeBytes(n.type), 0)
     const ptr = mod.__new(bytes, rtid) >>> 0
     const offsets = getObjectMemLayout(objNode)
@@ -200,7 +200,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     const val = this.value
     const type = {name: typeName, args: []};
 
-    const rtid = mod.abi.typeIds[normalizeTypeName(type)]
+    const rtid = mod.abi.rtidFromTypeNode(type)
     const elBytes = getElementBytes(type)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
 
@@ -227,7 +227,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
 
 
   private lowerEmptySetOrMap(mod: Module, type: TypeNode, entrySize: number): number {
-    const rtid = mod.abi.typeIds[normalizeTypeName(type)]
+    const rtid = mod.abi.rtidFromTypeNode(type)
     const initCapacity = 4
     const buckets = mod.__new(initCapacity * 4, 0)
     const entries = mod.__new(initCapacity * entrySize, 0)

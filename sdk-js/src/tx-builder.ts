@@ -276,7 +276,7 @@ export class TxBuilder {
       return jigResult(abi, exportIdx)
     }
     if (imported) {
-      const remoteAbi = await this.aldea.getPackageAbi(imported.origin)
+      const remoteAbi = await this.aldea.getPackageAbi(imported.pkg)
       const klass = findClass(remoteAbi, imported.name, `class not found: ${ imported.name }`)
       const exportIdx = remoteAbi.exports.findIndex(e => e.code === klass)
       return jigResult(remoteAbi, exportIdx)

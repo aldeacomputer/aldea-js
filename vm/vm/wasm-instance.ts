@@ -114,7 +114,7 @@ export class WasmInstance {
         },
         vm_jig_link: (jigPtr: number, rtid: number): WasmPointer =>  {
           const nextOrigin = this.currentExec.createNextOrigin()
-          const className = Object.keys(this.abi.typeIds).find(key => this.abi.typeIds[key] === rtid)
+          const className = this.abi.nameFromRtid(rtid)
           if (!className) {
             throw new Error('should exist')
           }
@@ -144,12 +144,10 @@ export class WasmInstance {
         },
         vm_remote_call_i: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
           const targetOriginArrBuf = this.liftBuffer(targetOriginPtr)
-          const fnStr = this.liftString(fnNamePtr)
+          const methodName = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
 
-          const [className, methodName] = fnStr.split('$')
-
-          const methodResult = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), className, methodName, argBuf)
+          const methodResult = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), methodName, argBuf)
           return this.insertValue(methodResult.value, methodResult.node)
         },
         vm_remote_call_s: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
@@ -166,7 +164,7 @@ export class WasmInstance {
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
           const targetOrigBuf = this.liftBuffer(targetOriginPtr)
           const propStr = this.liftString(propNamePtr)
-          const propName = propStr.split('.')[1]
+          const propName = propStr
 
           const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propName)
           return this.insertValue(prop.value, prop.node)

@@ -104,13 +104,13 @@ export const voidNode = {name: '_void', args: []}
 
 export const coinNode: ImportNode = {
   name: 'Coin',
-  origin: new Array(32).fill('0').join(''),
+  pkg: new Array(32).fill('0').join(''),
   kind: 0
 }
 
 export const jigNode: ImportNode = {
   name: 'Jig',
-  origin: new Array(32).fill('0').join(''),
+  pkg: new Array(32).fill('0').join(''),
   kind: 0
 }
 

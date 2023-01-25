@@ -216,13 +216,13 @@ class TxExecution {
     this.remoteLockHandler(childJigRef.origin, type, extraArg)
   }
 
-  remoteCallHandler (callerInstance: WasmInstance, origin: Pointer, className: string, methodName: string, argBuff: Uint8Array): WasmValue {
+  remoteCallHandler (callerInstance: WasmInstance, origin: Pointer, methodName: string, argBuff: Uint8Array): WasmValue {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
       jig = this.findJigByOrigin(origin)
     }
 
-    const klassNode = findClass(jig.package.abi, className, 'could not find object')
+    const klassNode = jig.package.abi.classByIndex(jig.classIdx)
     const method = findMethod(klassNode, methodName, 'could not find method')
 
     const argReader = new ArgReader(argBuff)

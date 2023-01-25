@@ -1,4 +1,4 @@
-import {ClassNode, FieldKind, FieldNode, MethodNode} from "@aldea/compiler/abi";
+import {ClassNode, FieldKind, FieldNode, MethodNode, TypeNode} from "@aldea/compiler/abi";
 import {lockTypeNode, outputTypeNode} from "./well-known-abi-nodes.js";
 
 export class ClassNodeWrapper {
@@ -37,5 +37,9 @@ export class ClassNodeWrapper {
 
   get methods() : MethodNode[] {
     return this.node.methods
+  }
+
+  get implements(): TypeNode[] {
+    return this.node.implements
   }
 }

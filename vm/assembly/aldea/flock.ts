@@ -75,7 +75,7 @@ export class InternalFlockOperations extends Jig {
 }
 
 // @ts-ignore
-@imported('8a5916340ec86825f6e9bd0013271e9081a96d1d7d57865ef16c932cbb8c412c_0')
+@imported('8a5916340ec86825f6e9bd0013271e9081a96d1d7d57865ef16c932cbb8c412c')
 declare class BasicMath extends Jig {
   static inc (n: u32): u32;
 }

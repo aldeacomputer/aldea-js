@@ -1,4 +1,14 @@
-import {Abi, ClassNode, CodeKind, ExportNode, findClass, ImportNode, ObjectNode, TypeIds} from "@aldea/compiler/abi";
+import {
+  Abi,
+  ClassNode,
+  CodeKind,
+  ExportNode,
+  findClass,
+  ImportNode, normalizeTypeName,
+  ObjectNode,
+  TypeIdNode,
+  TypeNode
+} from "@aldea/compiler/abi";
 import {ClassNodeWrapper} from "./class-node-wrapper.js";
 import {jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "./well-known-abi-nodes.js";
 
@@ -33,7 +43,7 @@ export class AbiAccess {
       jigInitParamsAbiNode
     ]
   }
-  get typeIds(): TypeIds {
+  get typeIds(): TypeIdNode[] {
     return this.abi.typeIds
   }
 
@@ -44,5 +54,22 @@ export class AbiAccess {
     } else {
       throw new Error(`idx ${classIdx} does not belong to a class object.`)
     }
+  }
+
+  nameFromRtid(rtid: number): string {
+    const node = this.typeIds.find((rtidNode: TypeIdNode) => rtidNode.id === rtid)
+    if (!node) {
+      throw new Error(`unknonw rtid: ${rtid}`)
+    }
+    return node.name
+  }
+
+  rtidFromTypeNode(param: TypeNode): number {
+    const normalized = normalizeTypeName(param)
+    const node = this.typeIds.find((rtid: TypeIdNode) => rtid.name === normalized)
+    if (!node) {
+      throw new Error(`unknown type: ${normalized}`)
+    }
+    return node.id
   }
 }

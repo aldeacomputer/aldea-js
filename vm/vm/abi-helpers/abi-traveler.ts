@@ -94,7 +94,7 @@ export abstract class AbiTraveler<T> {
         } else
         if (importClassNode && importClassNode.kind === CodeKind.CLASS) {
           const abiNode = importClassNode as ImportNode
-          return this.visitImportedClass(typeNode, abiNode.origin)
+          return this.visitImportedClass(typeNode, abiNode.pkg)
         } else
         if (plainObjectNode) {
           return this.visitPlainObject(plainObjectNode, typeNode)

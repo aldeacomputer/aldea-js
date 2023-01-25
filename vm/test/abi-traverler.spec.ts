@@ -17,10 +17,12 @@ class TestAbiClassBuilder {
   fields: FieldNode[]
   methods: MethodNode[]
   name: string | null
+  implements: TypeNode[]
   constructor() {
     this.fields = []
     this.methods = []
     this.name = null
+    this.implements = []
   }
 
   withName (name: string): TestAbiClassBuilder {
@@ -45,7 +47,8 @@ class TestAbiClassBuilder {
       fields: this.fields,
       methods: [],
       name: this.name,
-      extends: null
+      extends: 'Jig',
+      implements: this.implements
     };
   }
 }
@@ -65,7 +68,7 @@ class TestAbiBuilder {
       exports: this.exports,
       imports: this.imports,
       objects: this.objects,
-      typeIds: {},
+      typeIds: [],
       version: 1
     }
   }
@@ -83,7 +86,7 @@ class TestAbiBuilder {
     this.imports.push({
       kind: CodeKind.CLASS,
       name: name,
-      origin: packageId
+      pkg: packageId
     })
     return this
   }
