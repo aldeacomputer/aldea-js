@@ -21,6 +21,17 @@ export class Sheep extends Jig {
   }
 }
 
+// class MutantSheep extends Sheep {
+//   constructor(name: string, color: string = 'white') {
+//     super(name, color)
+//     this.legCount = 7
+//   }
+//
+//   regenerateLeg (): void {
+//     this.legCount += 1
+//   }
+// }
+
 export class Flock extends Jig {
   sheeps: Sheep[]
   byColor: Map<string, Set<Sheep>>
@@ -84,4 +95,13 @@ export class Flock extends Jig {
       }
     }
   }
+}
+
+export function buildFlockWithNSheeps (n: u32): Flock {
+  const flock = new Flock()
+  for (let i: u32 = 0; i < n; i++) {
+    const aSheep = new Sheep(`sheep n: ${n}`, n % 2 === 0 ? 'black' : 'white')
+    flock.add(aSheep)
+  }
+  return flock
 }

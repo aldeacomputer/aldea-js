@@ -481,7 +481,15 @@ describe('execute txs', () => {
     expect(lockNode).to.eql(undefined)
   })
 
-  it('can call top level functions')
+  it('can call top level functions', () => {
+    const importIndex = exec.importModule(modIdFor('sheep'))
+    const fnResultIdx = exec.execExportedFnByIndex(importIndex, 'buildFlockWithNSheeps', [3])
+    exec.lockJigToUser(fnResultIdx, userAddr)
+    exec.finalize()
+
+    expect(exec.outputs).to.have.length(4)
+  })
+
   it('can create jigs inside jigs')
   it('can save numbers inside statement result')
   it('can save strings inside statement result')

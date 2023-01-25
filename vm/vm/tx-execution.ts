@@ -528,13 +528,6 @@ class TxExecution {
   callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {
     const jigRef = this.getStatementResult(jigIndex).asJig()
     const methodResult = this.callInstanceMethod(jigRef, methodName, args)
-    // let value = methodResult.value
-    // if (value instanceof Internref) {
-    //   value = this.jigs.find(j => j.package === jigRef.package && j.ref.equals(value))
-    // }
-    // if (value instanceof Externref) {
-    //   value = this.jigs.find(j => j.origin.equals(Pointer.fromBytes(value.originBuf)))
-    // }
     this.statementResults.push(new ValueStatementResult(methodResult.node, methodResult.value, methodResult.mod))
     return this.statementResults.length - 1
   }
@@ -573,6 +566,30 @@ class TxExecution {
     this.statementResults.push(result)
     return this.statementResults.length - 1
   }
+
+  execExportedFnByIndex (moduleIndex: number, fnName: string, args: any[]): number {
+    const wasm = this.getStatementResult(moduleIndex).instance
+
+    let {node, value, mod} = wasm.functionCall(fnName, args)
+
+    if (value instanceof Internref) {
+      value = this.jigs.find(j => j.ref.equals(value))
+    }
+
+    if (value instanceof Externref) {
+      value = this.jigs.find(j => j.origin.equals(Pointer.fromBytes(value.originBuf)))
+    }
+
+    const coso = new ValueStatementResult(
+      node,
+      value,
+      mod
+    )
+
+    this.statementResults.push(coso)
+    return this.statementResults.length - 1
+  }
+
 
   createNextOrigin () {
     return new Pointer(this.tx.hash, this.jigs.length)
