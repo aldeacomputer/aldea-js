@@ -64,8 +64,8 @@ export class AbiAccess {
     return node.name
   }
 
-  rtidFromTypeNode(param: TypeNode): number {
-    const normalized = normalizeTypeName(param)
+  rtidFromTypeNode(type: TypeNode): number {
+    const normalized = normalizeTypeName(type)
     const node = this.typeIds.find((rtid: TypeIdNode) => rtid.name === normalized)
     if (!node) {
       throw new Error(`unknown type: ${normalized}`)

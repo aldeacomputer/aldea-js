@@ -1,5 +1,5 @@
 import {AbiTraveler} from "./abi-traveler.js";
-import {Abi, ClassNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
+import {Abi, ClassNode, FieldNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
 import {getElementBytes, getObjectMemLayout, getTypeBytes, getTypedArrayConstructor} from "../memory.js";
 import {WasmPointer} from "../arg-reader.js";
@@ -150,11 +150,11 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     }
 
     const rtid = mod.abi.rtidFromTypeNode(typeNode)
-    const bytes = objNode.fields.reduce((sum, n) => sum + getTypeBytes(n.type), 0)
+    const bytes = objNode.fields.reduce((sum: number, n: FieldNode) => sum + getTypeBytes(n.type), 0)
     const ptr = mod.__new(bytes, rtid) >>> 0
     const offsets = getObjectMemLayout(objNode)
 
-    objNode.fields.forEach((n, i) => {
+    objNode.fields.forEach((n: FieldNode, i: number) => {
       const TypedArray = getTypedArrayConstructor(n.type)
       const mem = new TypedArray(mod.memory.buffer, ptr, bytes)
       const { align, offset } = offsets[n.name]
