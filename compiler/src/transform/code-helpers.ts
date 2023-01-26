@@ -198,7 +198,7 @@ export function writeArgWriter(fields: FieldWrap[]): string {
 export function writeArgWriterEncodeMethod(field: FieldWrap, i: number): string {
   switch(field.type.name) {
     case 'f32': return `writeF32(a${i})`
-    case 'i64': return `writeF64(a${i})`
+    case 'f64': return `writeF64(a${i})`
     case 'i8':  return `writeI8(a${i})`
     case 'i16': return `writeI16(a${i})`
     case 'i32': return `writeI32(a${i})`

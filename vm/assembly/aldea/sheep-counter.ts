@@ -79,11 +79,11 @@ export class Shepherd extends Jig {
   }
 
 
-  flockOrigin (): string {
+  flockOrigin (): ArrayBuffer {
     return this.flock.$output.origin
   }
 
-  flockLocation (): string {
+  flockLocation (): ArrayBuffer {
     return this.flock.$output.location
   }
 
@@ -105,7 +105,7 @@ export function buildSomeSheepCounter (): SheepCounter {
 
 
 // @ts-ignore
-@imported('1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda')
+@imported('559c91270e7b4aa7eafc973c4c10caecc9b08665fa5e47f1329cb311bcf8132d')
 declare class Flock extends Jig {
   constructor();
   size: u32;
@@ -114,7 +114,7 @@ declare class Flock extends Jig {
 }
 
 // @ts-ignore
-@imported('1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda')
+@imported('559c91270e7b4aa7eafc973c4c10caecc9b08665fa5e47f1329cb311bcf8132d')
 declare class InternalFlockOperations extends Jig {
   static growFlock (aFlock: Flock): void
 }

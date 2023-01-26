@@ -13,3 +13,4 @@ node_modules
 # generated files
 build
 tsc
+tsconfig.tsbuildinfo
