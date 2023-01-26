@@ -273,7 +273,10 @@ function exportComplexSetters(ctx: TransformCtx): void {
   ctx.exposedTypes.forEach(pushComplexSetters)
 
   if (codes.length) {
-    const src = ctx.parse(codes.join('\n'), ctx.entries[0].normalizedPath)
+    const src = ctx.parse(
+      codes.filter((v, i, a) => a.indexOf(v) === i).join('\n'),
+      ctx.entries[0].normalizedPath
+    )
     ctx.entries[0].statements.push(...src.statements)
   }
 }
