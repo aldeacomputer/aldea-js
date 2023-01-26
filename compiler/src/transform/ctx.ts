@@ -125,16 +125,14 @@ export class TransformCtx {
       const whitelist = ['Jig', 'JigInitParams', 'Output', 'Lock', 'Coin']
         .concat(...this.exports.filter(ex => ex.kind === CodeKind.CLASS).map(ex => ex.code.name))
         .concat(...this.imports.filter(im => im.kind === CodeKind.CLASS).map(im => im.name))
-        //.concat(...Array.from(this.exposedTypes.keys()))
 
       function whiteListType(type: TypeNode): void {
-        whitelist.push(normalizeTypeName(type))
+        const name = normalizeTypeName(type)
+        if (!whitelist.includes(name)) { whitelist.push(name) }
         type.args.forEach(whiteListType)
       }
 
       this.exposedTypes.forEach(whiteListType)
-
-      
       
       const interfaceList = this.exports
         .filter(ex => ex.kind === CodeKind.INTERFACE)
