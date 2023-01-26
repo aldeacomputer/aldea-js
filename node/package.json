@@ -5,10 +5,11 @@
   "main": "src/index.js",
   "packageManager": "yarn@3.2.3",
   "scripts": {
-    "start": "node .",
+    "ci": "yarn test",
+    "dev": "nodemon yarn start",
     "lint": "standard --fix",
-    "test": "./test/test.sh",
-    "dev": "nodemon yarn start"
+    "start": "node .",
+    "test": "mocha"
   },
   "author": "",
   "license": "ISC",
