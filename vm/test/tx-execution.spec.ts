@@ -435,7 +435,7 @@ describe('execute txs', () => {
     expect(bagState[0]).to.eql([exec.outputs[0].origin.toBytes()])
   })
 
-  it.skip('can send complex nested parameters whith jigs', () => {
+  it('can send complex nested parameters whith jigs', () => {
     exec.importModule(modIdFor('sheep'))
     const flockIndex = exec.instantiate(0, 'Flock', [])
     const sheep1Index = exec.instantiate(0, 'Sheep', ['sheep1', 'black'])
