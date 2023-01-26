@@ -8,7 +8,7 @@ import {
   Statement,
 } from 'assemblyscript'
 
-import { CodeKind, MethodKind, MethodNode } from './abi/types.js'
+import { CodeKind, MethodKind, MethodNode, TypeNode } from './abi/types.js'
 import { TransformCtx } from './transform/ctx.js'
 import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './transform/nodes.js'
 import { isConstructor, isPrivate, isProtected } from './transform/filters.js'
@@ -264,10 +264,13 @@ function exportClassMethods(obj: ClassWrap, ctx: TransformCtx): void {
 function exportComplexSetters(ctx: TransformCtx): void {
   const codes: string[] = []
 
-  ctx.exposedTypes.forEach(type => {
+  function pushComplexSetters(type: TypeNode) {
     if (type.name === 'Map') { codes.push(writeMapPutter(type)) }
     if (type.name === 'Set') { codes.push(writeSetPutter(type)) }
-  })
+    type.args.forEach(pushComplexSetters)
+  }
+
+  ctx.exposedTypes.forEach(pushComplexSetters)
 
   if (codes.length) {
     const src = ctx.parse(codes.join('\n'), ctx.entries[0].normalizedPath)

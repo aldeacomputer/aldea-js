@@ -12,3 +12,6 @@ declare class Coin extends Jig {
   send(motos: u64, pubkeyHash: ArrayBuffer): Coin;
   combine(coins: Coin[]): Coin;
 }
+
+/** Global caller instance */
+declare const caller: typeof import('aldea/caller').caller;
