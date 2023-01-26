@@ -1,16 +1,6 @@
 import {CBOR, Sequence} from 'cbor-redux'
 import {JigRef} from "./jig-ref.js"
-import {
-  Abi,
-  ArgNode,
-  ClassNode,
-  FieldNode,
-  findClass,
-  findField,
-  findFunction,
-  findMethod,
-  TypeNode,
-} from "@aldea/compiler/abi";
+import {Abi, ArgNode, ClassNode, FieldNode, findField, findFunction, findMethod, TypeNode,} from "@aldea/compiler/abi";
 
 import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
@@ -23,9 +13,7 @@ import {LiftJigStateVisitor} from "./abi-helpers/lift-jig-state-visitor.js";
 import {LowerJigStateVisitor} from "./abi-helpers/lower-jig-state-visitor.js";
 import {LowerArgumentVisitor} from "./abi-helpers/lower-argument-visitor.js";
 import {NoLock} from "./locks/no-lock.js";
-import {
-  voidNode,
-} from "./abi-helpers/well-known-abi-nodes.js";
+import {voidNode,} from "./abi-helpers/well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
 
@@ -164,9 +152,7 @@ export class WasmInstance {
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
           const targetOrigBuf = this.liftBuffer(targetOriginPtr)
           const propStr = this.liftString(propNamePtr)
-          const propName = propStr
-
-          const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propName)
+          const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propStr)
           return this.insertValue(prop.value, prop.node)
         },
         vm_remote_state: (originPtr: number): number => {
@@ -251,9 +237,9 @@ export class WasmInstance {
   }
 
   instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): WasmValue {
-    const fnName = `${className}$${methodName}`
-    const abiObj = findClass(this.abi, className, `unknown export: ${className}`)
-    const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
+    const classNode = this.abi.classByName(className, `unknown export: ${className}`)
+    const method = classNode.methodByName(methodName)
+    const fnName = `${method.className()}$${method.name}`
 
     const ptrs = [
       ref.ref.ptr,
@@ -326,13 +312,6 @@ export class WasmInstance {
   }
 
   extractState(ref: Internref, classIdx: number): Uint8Array {
-    // const abiObj = this.abi.exports[classIdx].code as ClassNode
-    // const mgr = new MemoryManager()
-    // mgr.liftInterRefMap = findJigOrigin
-    // const lifted = mgr.liftObject(this, abiObj, ref.ptr)
-    // mgr.reset()
-    // return __encodeArgs(
-    // )
     const abiObj =  this.abi.classByIndex(classIdx)
     const visitor = new LiftJigStateVisitor(this.abi, this, ref.ptr)
     const lifted = visitor.visitPlainObject(

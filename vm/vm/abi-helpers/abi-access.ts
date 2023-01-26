@@ -18,9 +18,9 @@ export class AbiAccess {
     this.abi = abi
   }
 
-  classByName (name: string, errorMsg: string): ClassNode {
+  classByName (name: string, errorMsg: string): ClassNodeWrapper {
     const abiNode = findClass(this, name, errorMsg)
-    return new ClassNodeWrapper(abiNode)
+    return new ClassNodeWrapper(abiNode, this)
   }
 
   get version(): number {
@@ -50,7 +50,7 @@ export class AbiAccess {
   classByIndex(classIdx: number): ClassNodeWrapper {
     const node = this.exports[classIdx]
     if (node.kind === CodeKind.CLASS) {
-      return new ClassNodeWrapper(node.code as ClassNode)
+      return new ClassNodeWrapper(node.code as ClassNode, this)
     } else {
       throw new Error(`idx ${classIdx} does not belong to a class object.`)
     }

@@ -21,16 +21,19 @@ export class Sheep extends Jig {
   }
 }
 
-// class MutantSheep extends Sheep {
-//   constructor(name: string, color: string = 'white') {
-//     super(name, color)
-//     this.legCount = 7
-//   }
-//
-//   regenerateLeg (): void {
-//     this.legCount += 1
-//   }
-// }
+export class MutantSheep extends Sheep {
+  radiation: u32
+  constructor(name: string, color: string = 'white') {
+    super(name, color)
+    this.legCount = 7
+    this.radiation = 0
+  }
+
+  regenerateLeg (): void {
+    this.legCount += 1
+    this.radiation += 10
+  }
+}
 
 export class Flock extends Jig {
   sheeps: Sheep[]
