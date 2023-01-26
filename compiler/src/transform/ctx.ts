@@ -125,7 +125,16 @@ export class TransformCtx {
       const whitelist = ['Jig', 'JigInitParams', 'Output', 'Lock', 'Coin']
         .concat(...this.exports.filter(ex => ex.kind === CodeKind.CLASS).map(ex => ex.code.name))
         .concat(...this.imports.filter(im => im.kind === CodeKind.CLASS).map(im => im.name))
-        .concat(...Array.from(this.exposedTypes.keys()))
+        //.concat(...Array.from(this.exposedTypes.keys()))
+
+      function whiteListType(type: TypeNode): void {
+        whitelist.push(normalizeTypeName(type))
+        type.args.forEach(whiteListType)
+      }
+
+      this.exposedTypes.forEach(whiteListType)
+
+      
       
       const interfaceList = this.exports
         .filter(ex => ex.kind === CodeKind.INTERFACE)
@@ -506,16 +515,13 @@ function mapDecorator(node: DecoratorNode): DecoratorTag {
 
 // Normalizes class name to match normalized type name
 function normalizeClassName(klass: Class): string {
-  const normalizeName = (n: string) => n === 'String' ? n.toLowerCase() : n
   const name = klass.name.replace(/^(\w+)<.*>$/, '$1')
+  const args = klass.typeArguments?.map(t => {
+    return t.classReference ? normalizeClassName(t.classReference) : t.toString()
+  })
 
-  if (klass.typeArguments) {
-    const args = klass.typeArguments.map(n => {
-      const arg = n.classReference?.name || n.toString()
-      return normalizeName(arg)
-    })
-    return name + `<${ args.join(',') }>`
-  } else {
-    return normalizeName(name)
-  }
+  return normalizeName(name) +  (args ? `<${ args.join(',') }>` : '')
 }
+
+// Lower case string to match our typeings
+const normalizeName = (n: string) => n === 'String' ? n.toLowerCase() : n

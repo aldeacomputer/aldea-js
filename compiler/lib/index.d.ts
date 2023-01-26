@@ -120,6 +120,45 @@ declare module 'aldea/coin' {
 	}
 
 }
+declare module 'aldea/caller' {
+	import { Output } from 'aldea/output';
+	export namespace caller {
+	    /**
+	     * Returns true if the caller is an instance of the given generic type.
+	     *
+	     * When the `exact` option is false (default) it behaves like the `instanceof`
+	     * keyword and returns true if the caller is and instance of, or a descendent
+	     * of, the generic type. When `exact` is true it only matches against the
+	     * exact type.
+	     */
+	    function is<T>(exact?: bool): bool;
+	    /**
+	     * Returns true if the caller has an output.
+	     */
+	    function hasOutput(): bool;
+	    /**
+	     * Returns the Output object of the caller, or throws an error when the caller
+	     * has no output.
+	     */
+	    function getOutputOrFail(): Output;
+	    /**
+	     * Returns the Output origin of the caller, or throws an error when the caller
+	     * has no output.
+	     */
+	    function getOriginOrFail(): ArrayBuffer;
+	    /**
+	     * Returns the Output location of the caller, or throws an error when the
+	     * caller has no output.
+	     */
+	    function getLocationOrFail(): ArrayBuffer;
+	    /**
+	     * Returns the Output class (pointer) of the caller, or throws an error when
+	     * the caller has no output.
+	     */
+	    function getClassOrFail(): ArrayBuffer;
+	}
+
+}
 declare module 'aldea/bytes' {
 	/**
 	 * Bytes class
@@ -218,3 +257,6 @@ declare class Coin extends Jig {
   send(motos: u64, pubkeyHash: ArrayBuffer): Coin;
   combine(coins: Coin[]): Coin;
 }
+
+/** Global caller instance */
+declare const caller: typeof import('aldea/caller').caller;
