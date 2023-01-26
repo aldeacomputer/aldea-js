@@ -39,7 +39,7 @@
     "docs": "typedoc",
     "test": "run-s build test:browser && ava",
     "test:browser": "playwright test",
-    "test:local": "ava",
+    "test:local": "ava --only",
     "vectors": "node scripts/vectorgen.js"
   },
   "packageManager": "yarn@3.2.3",
