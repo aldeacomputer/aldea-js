@@ -41,4 +41,20 @@ export class JigRef  {
   asExtRef() {
     return new Externref(this.className(), this.origin.toBytes());
   }
+
+  outputObject(): any {
+    return {
+      origin: this.origin.toBytes(),
+      location: this.origin.toBytes(),
+      classPtr: new Pointer(this.package.id, this.classIdx).toBytes()
+    }
+  }
+
+  lockObject() {
+    return {
+      origin: this.origin.toBytes(),
+      type: this.lock.typeNumber(),
+      data: this.lock.data()
+    }
+  }
 }

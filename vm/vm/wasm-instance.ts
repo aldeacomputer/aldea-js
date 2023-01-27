@@ -1,18 +1,6 @@
 import {CBOR, Sequence} from 'cbor-redux'
 import {JigRef} from "./jig-ref.js"
-import {
-  Abi,
-  ArgNode,
-  ClassNode,
-  FieldKind,
-  FieldNode,
-  findClass,
-  findField,
-  findFunction,
-  findMethod,
-  ImportNode,
-  TypeNode
-} from "@aldea/compiler/abi";
+import {Abi, ArgNode, ClassNode, FieldNode, findField, findFunction, findMethod, TypeNode,} from "@aldea/compiler/abi";
 
 import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
@@ -24,6 +12,10 @@ import {LowerValueVisitor} from "./abi-helpers/lower-value-visitor.js";
 import {LiftJigStateVisitor} from "./abi-helpers/lift-jig-state-visitor.js";
 import {LowerJigStateVisitor} from "./abi-helpers/lower-jig-state-visitor.js";
 import {LowerArgumentVisitor} from "./abi-helpers/lower-argument-visitor.js";
+import {NoLock} from "./locks/no-lock.js";
+import {voidNode,} from "./abi-helpers/well-known-abi-nodes.js";
+import {AbiAccess} from "./abi-helpers/abi-access.js";
+import {JigState} from "./jig-state.js";
 
 export enum LockType {
   FROZEN = -1,
@@ -63,76 +55,6 @@ function __decodeArgs (data: Uint8Array): any[] {
   return CBOR.decode(data.buffer, null, {mode: "sequence"}).data
 }
 
-const voidNode = { name: '_void', args: [] }
-
-const utxoAbiNode = {
-  name: 'UtxoState',
-  extends: null,
-  fields: [
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'origin',
-      type: {
-        name: 'string',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'location',
-      type: {
-        name: 'string',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'lock',
-      type: {
-        name: 'LockState',
-        args: []
-      }
-    }
-  ],
-  methods: []
-}
-
-const coinNode: ImportNode = {
-  name: 'Coin',
-  origin: new Array(32).fill('0').join(''),
-  kind: 0
-}
-
-const jigNode: ImportNode = {
-  name: 'Jig',
-  origin: new Array(32).fill('0').join(''),
-  kind: 0
-}
-
-const lockStateAbiNode = {
-  name: 'LockState',
-  extends: null,
-  fields: [
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'type',
-      type: {
-        name: 'u8',
-        args: []
-      }
-    },
-    {
-      kind: FieldKind.PUBLIC,
-      name: 'data',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
-    }
-  ],
-  methods: []
-}
-
 export class WasmInstance {
   id: Uint8Array;
   memory: WebAssembly.Memory;
@@ -140,15 +62,11 @@ export class WasmInstance {
 
   private module: WebAssembly.Module;
   private instance: WebAssembly.Instance;
-  abi: Abi;
+  abi: AbiAccess;
 
   constructor (module: WebAssembly.Module, abi: Abi, id: Uint8Array) {
     this.id = id
-    this.abi = {
-      ...abi,
-      objects: [...abi.objects, utxoAbiNode, lockStateAbiNode],
-      imports: [...abi.imports, coinNode, jigNode]
-    }
+    this.abi = new AbiAccess(abi)
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
     this._currentExec = null
 
@@ -167,15 +85,45 @@ export class WasmInstance {
         }
       },
       vm: {
-        vm_constructor: (jigPtr: number, classNamePtr: number): void => {
+        vm_constructor_end: (jigPtr: number, classNamePtr: number): void => {
           const className = this.liftString(classNamePtr)
           this.currentExec.constructorHandler(this, jigPtr, className)
+        },
+        vm_jig_init: (): WasmPointer => {
+          const nextOrigin = this.currentExec.createNextOrigin()
+
+          return this.insertValue({
+            origin: nextOrigin.toBytes(),
+            location: nextOrigin.toBytes(),
+            classPtr: new ArrayBuffer(0),
+            lockType: LockType.NONE,
+            lockData: new ArrayBuffer(0),
+          }, { name: 'JigInitParams', args: [] })
+        },
+        vm_jig_link: (jigPtr: number, rtid: number): WasmPointer =>  {
+          const nextOrigin = this.currentExec.createNextOrigin()
+          const className = this.abi.nameFromRtid(rtid)
+          if (!className) {
+            throw new Error('should exist')
+          }
+          const classNode = this.abi.classByName(className, 'should exist')
+          const classIdx = this.abi.exports.findIndex(node => node.code.name === classNode.name)
+
+          this.currentExec.addNewJigRef(new JigRef(
+            new Internref(className, jigPtr),
+            classIdx,
+            this,
+            nextOrigin,
+            new NoLock()
+          ))
+
+          return this.insertValue(new Pointer(this.id, classIdx).toBytes(), { name: 'ArrayBuffer', args: [] })
         },
         vm_local_call_start: (jigPtr: number, fnNamePtr: number): void => {
           const fnName = this.liftString(fnNamePtr)
           this.currentExec.localCallStartHandler(this, jigPtr, fnName)
         },
-        vm_remote_authcheck: (originPtr: number, check: AuthCheck) => {
+        vm_jig_authcheck: (originPtr: number, check: AuthCheck) => {
           const origin = this.liftBuffer(originPtr)
           return this.currentExec.remoteAuthCheckHandler(Pointer.fromBytes(origin), check)
         },
@@ -184,48 +132,28 @@ export class WasmInstance {
         },
         vm_remote_call_i: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
           const targetOriginArrBuf = this.liftBuffer(targetOriginPtr)
-          const fnStr = this.liftString(fnNamePtr)
+          const methodName = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
 
-          const [className, methodName] = fnStr.split('$')
-
-          const methodResult = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), className, methodName, argBuf)
+          const methodResult = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), methodName, argBuf)
           return this.insertValue(methodResult.value, methodResult.node)
         },
         vm_remote_call_s: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
-          const moduleId = this.liftString(originPtr)
+          const moduleId = this.liftString(originPtr).split('_')[0]
           const fnStr = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
           const result = this.currentExec.remoteStaticExecHandler(this, base16.decode(moduleId), fnStr, argBuf)
           return Number(this.insertValue(result.value, result.node))
         },
 
+        vm_remote_call_f: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): number => {
+          return 0
+        },
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
           const targetOrigBuf = this.liftBuffer(targetOriginPtr)
           const propStr = this.liftString(propNamePtr)
-          const propName = propStr.split('.')[1]
-
-          const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propName)
+          const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propStr)
           return this.insertValue(prop.value, prop.node)
-        },
-        vm_local_authcheck: (targetJigPtr: number, check: AuthCheck) => {
-          return this.currentExec.localAuthCheckHandler(targetJigPtr, this, check)
-        },
-        vm_local_lock: (targetJigRefPtr: number, type: LockType, argsPtr: number): void => {
-          const argBuf = this.liftBuffer(argsPtr)
-          this.currentExec.localLockHandler(targetJigRefPtr, this, type, argBuf)
-        },
-        vm_local_state: (jigPtr: number): number => {
-          const jigRef = this.currentExec.findUtxoHandler(this, jigPtr)
-          const utxo = {
-            origin: jigRef.origin.toString(),
-            location: new Pointer(this.currentExec.tx.id, this.currentExec.outputIndexFor(jigRef)).toString(),
-            lock: {
-              type: jigRef.lock.typeNumber(),
-              data: jigRef.lock.data()
-            }
-          }
-          return Number(this.insertValue(utxo, { name: 'UtxoState', args: [] }))
         },
         vm_remote_state: (originPtr: number): number => {
           const originBuff = this.liftBuffer(originPtr)
@@ -240,7 +168,7 @@ export class WasmInstance {
           }
           return Number(this.insertValue(utxo, { name: 'UtxoState', args: [] }))
         },
-        vm_remote_lock: (originPtr: number, type: LockType, argsPtr: number) => {
+        vm_jig_lock: (originPtr: number, type: number, argsPtr: number) => {
           const argBuf = this.liftBuffer(argsPtr)
           const originBuf = this.liftBuffer(originPtr)
           this.currentExec.remoteLockHandler(Pointer.fromBytes(originBuf), type, argBuf)
@@ -274,7 +202,7 @@ export class WasmInstance {
 
   staticCall (className: string, methodName: string, args: any[]): WasmValue {
     const fnName = `${className}_${methodName}`
-    const abiObj = findClass(this.abi, className, `unknown class: ${className}`)
+    const abiObj = this.abi.classByName(className, `unknown class: ${className}`)
     const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
 
     const ptrs = method.args.map((argNode: ArgNode, i: number) => {
@@ -295,19 +223,23 @@ export class WasmInstance {
     }
   }
 
-  hidrate (classIdx: number, frozenState: Uint8Array): Internref {
-    const rawState = __decodeArgs(frozenState)
-    const objectNode = this.abi.exports[classIdx].code as ClassNode //findClass(, className, `unknown class ${className}`)
-
+  hidrate (classIdx: number, jigState: JigState): Internref {
+    const frozenState = jigState.stateBuf
+    const rawState = [
+      jigState.outputObject(),
+      jigState.lockObject(),
+      ...__decodeArgs(frozenState)
+    ]
+    const objectNode = this.abi.classByIndex(classIdx)
     const visitor = new LowerJigStateVisitor(this.abi, this, rawState)
     const pointer = visitor.visitPlainObject(objectNode, {name: objectNode.name, args: []})
     return new Internref(objectNode.name, Number(pointer))
   }
 
   instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): WasmValue {
-    const fnName = `${className}$${methodName}`
-    const abiObj = findClass(this.abi, className, `unknown export: ${className}`)
-    const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
+    const classNode = this.abi.classByName(className, `unknown export: ${className}`)
+    const method = classNode.methodByName(methodName)
+    const fnName = `${method.className()}$${method.name}`
 
     const ptrs = [
       ref.ref.ptr,
@@ -329,7 +261,7 @@ export class WasmInstance {
   }
 
   getPropValue (ref: Internref, classIdx: number, fieldName: string): Prop {
-    const objNode = this.abi.exports[classIdx].code // findClass(this.abi, classIdx, `unknown export: ${classIdx}`)
+    const objNode = this.abi.classByIndex(classIdx)
     const classNode = objNode as ClassNode
     const field = findField(classNode, fieldName, `unknown field: ${fieldName}`)
 
@@ -380,22 +312,14 @@ export class WasmInstance {
   }
 
   extractState(ref: Internref, classIdx: number): Uint8Array {
-    // const abiObj = this.abi.exports[classIdx].code as ClassNode
-    // const mgr = new MemoryManager()
-    // mgr.liftInterRefMap = findJigOrigin
-    // const lifted = mgr.liftObject(this, abiObj, ref.ptr)
-    // mgr.reset()
-    // return __encodeArgs(
-    //   abiObj.fields.map((field: FieldNode) => lifted[field.name])
-    // )
-    const abiObj = this.abi.exports[classIdx].code as ClassNode
+    const abiObj =  this.abi.classByIndex(classIdx)
     const visitor = new LiftJigStateVisitor(this.abi, this, ref.ptr)
     const lifted = visitor.visitPlainObject(
       abiObj,
       {name: abiObj.name, args: []}
     )
     return __encodeArgs(
-      abiObj.fields.map((field: FieldNode) => lifted[field.name])
+      abiObj.nativeFields().map((field: FieldNode) => lifted[field.name])
     )
   }
 

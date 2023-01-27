@@ -1,5 +1,4 @@
-import { vm_local_lock, vm_remote_lock } from './imports'
-import { Jig, RemoteJig } from './jig'
+import { vm_jig_lock } from './imports'
 
 /**
  * Lock Types
@@ -19,31 +18,19 @@ export enum LockType {
 }
 
 /**
- * Lock State struct
- * 
- * Data is either pubkey hash, origin, or empty bufer, depending on lock type.
- */
-export declare class LockState {
-  type: LockType;
-  data: ArrayBuffer;
-}
-
-/**
  * Lock API
  * 
  * Never instantiated directly - only accessed via jig, eg: `jig.$lock`.
  */
 export class Lock {
-  private _jig: Jig;
-  type: LockType = LockType.NONE;
-  data: ArrayBuffer = new ArrayBuffer(0);
+  readonly origin: ArrayBuffer;
+  type: LockType;
+  data: ArrayBuffer;
 
-  constructor(jig: Jig, state: LockState | null = null) {
-    this._jig = jig
-    if (state) {
-      this.type = state.type
-      this.data = state.data
-    }
+  constructor(origin: ArrayBuffer, type: LockType, data: ArrayBuffer) {
+    this.origin = origin
+    this.type = type
+    this.data = data
   }
 
   assertType(type: LockType): void {
@@ -59,13 +46,7 @@ export class Lock {
       throw new Error('invalid lock data.')
     }
 
-    if (this._jig instanceof RemoteJig) {
-      const rjig = this._jig as RemoteJig
-      vm_remote_lock(rjig.origin, type, data)
-    } else {
-      vm_local_lock(this._jig, type, data)
-    }
-
+    vm_jig_lock(this.origin, type, data)
     this.type = type
     this.data = data
   }

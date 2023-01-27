@@ -30,11 +30,11 @@ export class Flock extends Jig {
     return this
   }
 
-  returnLocation (): string {
+  returnLocation (): ArrayBuffer {
     return this.$output.location
   }
 
-  returnOrigin (): string {
+  returnOrigin (): ArrayBuffer {
     return this.$output.origin
   }
 

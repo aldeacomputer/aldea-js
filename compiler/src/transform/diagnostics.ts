@@ -22,6 +22,7 @@ export enum AldeaDiagnosticCode {
   Invalid_field_type,
   Invalid_method_type,
   Invalid_decorator,
+  Invalid_package,
   Illegal_identifier = 410,
   Illegal_access_global,
   Illegal_access_property,
@@ -36,9 +37,9 @@ export enum AldeaDiagnosticCode {
 export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
   switch(code) {
     case AldeaDiagnosticCode.Invalid_source_statement:
-      return 'Illegal statement. Only classes, functions, enums and literal constants can be declared.'
+      return 'Illegal statement. Only classes, functions, interfaces, enums and literal constants can be declared.'
     case AldeaDiagnosticCode.Invalid_export:
-      return 'Invalid export. Imported objects and functions must not be exported from the entry.'
+      return 'Invalid export. {0} must not be exported from the entry.'
     case AldeaDiagnosticCode.Invalid_jig_class:
       return 'Invalid class. {0} {1} inherit from `Jig`.'
     case AldeaDiagnosticCode.Invalid_class_member:
@@ -51,6 +52,8 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
       return 'Invalid type. `{0}` type cannot be be passed to/from `{1}` method.'
     case AldeaDiagnosticCode.Invalid_decorator:
       return 'Invalid decorator. AssemblyScript decorators are not allowed.'
+    case AldeaDiagnosticCode.Invalid_package:
+      return 'Invalid package. {0}'
 
     case AldeaDiagnosticCode.Illegal_identifier:
       return 'Illegal identifier. Double underscore-prefixed identifiers cannot be used.'

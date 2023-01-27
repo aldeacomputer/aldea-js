@@ -56,4 +56,20 @@ export class JigState {
     bufW.writeBytes(this.stateBuf)
     return blake3(bufW.data)
   }
+
+  outputObject(): any {
+    return {
+      origin: this.origin.toBytes(),
+      location: this.currentLocation.toBytes(),
+      classPtr: new Pointer(this.packageId, this.classIdx).toBytes()
+    }
+  }
+
+  lockObject() {
+    return {
+      origin: this.origin.toBytes(),
+      type: this.serializedLock.type,
+      data: this.serializedLock.data
+    }
+  }
 }

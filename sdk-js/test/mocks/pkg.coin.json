@@ -6,6 +6,7 @@
       "code": {
         "name": "Coin",
         "extends": "Jig",
+        "implements": [],
         "fields": [
           {
             "kind": 0,
@@ -29,10 +30,7 @@
                 }
               }
             ],
-            "rtype": {
-              "name": "",
-              "args": []
-            }
+            "rtype": null
           },
           {
             "kind": 2,
@@ -86,10 +84,34 @@
   ],
   "imports": [],
   "objects": [],
-  "typeIds": {
-    "Coin": 3,
-    "LockState": 6,
-    "Array<Coin>": 12,
-    "ArrayBuffer": 0
-  }
+  "typeIds": [
+    {
+      "id": 0,
+      "name": "ArrayBuffer"
+    },
+    {
+      "id": 3,
+      "name": "Coin"
+    },
+    {
+      "id": 5,
+      "name": "Jig"
+    },
+    {
+      "id": 6,
+      "name": "Output"
+    },
+    {
+      "id": 7,
+      "name": "Lock"
+    },
+    {
+      "id": 8,
+      "name": "JigInitParams"
+    },
+    {
+      "id": 9,
+      "name": "Array<Coin>"
+    }
+  ]
 }

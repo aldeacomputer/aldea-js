@@ -1,5 +1,4 @@
 declare module 'aldea/lock' {
-	import { Jig } from 'aldea/jig';
 	/**
 	 * Lock Types
 	 *
@@ -17,24 +16,15 @@ declare module 'aldea/lock' {
 	    PUBLIC = 3
 	}
 	/**
-	 * Lock State struct
-	 *
-	 * Data is either pubkey hash, origin, or empty bufer, depending on lock type.
-	 */
-	export class LockState {
-	    type: LockType;
-	    data: ArrayBuffer;
-	}
-	/**
 	 * Lock API
 	 *
 	 * Never instantiated directly - only accessed via jig, eg: `jig.$lock`.
 	 */
 	export class Lock {
-	    private _jig;
+	    readonly origin: ArrayBuffer;
 	    type: LockType;
 	    data: ArrayBuffer;
-	    constructor(jig: Jig, state?: LockState | null);
+	    constructor(origin: ArrayBuffer, type: LockType, data: ArrayBuffer);
 	    assertType(type: LockType): void;
 	    change(type: LockType, data?: ArrayBuffer): void;
 	    changeToAddressLock(pubkeyHash: ArrayBuffer): void;
@@ -48,50 +38,48 @@ declare module 'aldea/lock' {
 
 }
 declare module 'aldea/output' {
-	import { Jig } from 'aldea/jig';
-	import { LockState } from 'aldea/lock';
 	/**
-	 * Output State struct
-	 */
-	export class OutputState {
-	    origin: string;
-	    location: string;
-	    motos: u64;
-	    lock: LockState;
-	}
-	/**
-	 * Output API
-	 *
-	 * Never instantiated directly - only accessed via jig, eg: `jig.$output`.
+	 * Output object
 	 */
 	export class Output {
-	    private _jig;
-	    origin: string;
-	    location: string;
-	    motos: u64;
-	    constructor(jig: Jig, state: OutputState);
+	    readonly origin: ArrayBuffer;
+	    readonly location: ArrayBuffer;
+	    classPtr: ArrayBuffer;
 	}
-	/**
-	 * Fetches the output state from the VM for the given local or remote Jig.
-	 */
-	export function getOutputState(jig: Jig): OutputState;
 
 }
 declare module 'aldea/jig' {
-	import { Lock } from 'aldea/lock';
+	import { Lock, LockType } from 'aldea/lock';
 	import { Output } from 'aldea/output';
+	/**
+	 * Jig init params
+	 */
+	export class JigInitParams {
+	    origin: ArrayBuffer;
+	    location: ArrayBuffer;
+	    classPtr: ArrayBuffer;
+	    lockType: LockType;
+	    lockData: ArrayBuffer;
+	}
 	/**
 	 * Base Jig class
 	 */
 	export class Jig {
-	    get $lock(): Lock;
-	    get $output(): Output;
+	    readonly $output: Output;
+	    readonly $lock: Lock;
+	    constructor(params: JigInitParams);
 	}
 	/**
-	 * Remote Jig class - never extended from directly
+	 * Local Jig class
+	 */
+	export class LocalJig extends Jig {
+	    constructor();
+	}
+	/**
+	 * Remote Jig class
 	 */
 	export class RemoteJig extends Jig {
-	    origin: ArrayBuffer;
+	    constructor(params: JigInitParams);
 	}
 
 }
@@ -122,13 +110,52 @@ declare module 'aldea/coin' {
 	/**
 	 * Coin class
 	 *
-	 * Built in RemoteJig that proxies calls to the VM for handling.
+	 * Built in Jig that proxies calls to the VM for handling.
 	 */
 	export class Coin extends RemoteJig {
 	    constructor();
 	    get motos(): u64;
 	    send(motos: u64, to: ArrayBuffer): Coin;
 	    combine(coins: Coin[]): Coin;
+	}
+
+}
+declare module 'aldea/caller' {
+	import { Output } from 'aldea/output';
+	export namespace caller {
+	    /**
+	     * Returns true if the caller is an instance of the given generic type.
+	     *
+	     * When the `exact` option is false (default) it behaves like the `instanceof`
+	     * keyword and returns true if the caller is and instance of, or a descendent
+	     * of, the generic type. When `exact` is true it only matches against the
+	     * exact type.
+	     */
+	    function is<T>(exact?: bool): bool;
+	    /**
+	     * Returns true if the caller has an output.
+	     */
+	    function hasOutput(): bool;
+	    /**
+	     * Returns the Output object of the caller, or throws an error when the caller
+	     * has no output.
+	     */
+	    function getOutputOrFail(): Output;
+	    /**
+	     * Returns the Output origin of the caller, or throws an error when the caller
+	     * has no output.
+	     */
+	    function getOriginOrFail(): ArrayBuffer;
+	    /**
+	     * Returns the Output location of the caller, or throws an error when the
+	     * caller has no output.
+	     */
+	    function getLocationOrFail(): ArrayBuffer;
+	    /**
+	     * Returns the Output class (pointer) of the caller, or throws an error when
+	     * the caller has no output.
+	     */
+	    function getClassOrFail(): ArrayBuffer;
 	}
 
 }
@@ -220,18 +247,16 @@ declare module 'aldea/bytes' {
 
 /** Base Jig class */
 declare class Jig {
-  get $lock(): import('aldea/lock').Lock;
-  get $output(): import('aldea/output').Output;
-}
-
-/** RemoteJig class */
-declare class RemoteJig extends Jig {
-  origin: ArrayBuffer;
+  $lock: import('aldea/lock').Lock;
+  $output: import('aldea/output').Output;
 }
 
 /** Built in Coin remote jig */
-declare class Coin extends RemoteJig {
+declare class Coin extends Jig {
   get motos(): u64;
   send(motos: u64, pubkeyHash: ArrayBuffer): Coin;
   combine(coins: Coin[]): Coin;
 }
+
+/** Global caller instance */
+declare const caller: typeof import('aldea/caller').caller;

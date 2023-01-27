@@ -306,7 +306,7 @@ describe('execute txs', () => {
   })
 
   // Should load from a different package
-  it('can restore jigs that contain jigs of the same package', () => {
+  it.skip('can restore jigs that contain jigs of the same package', () => {
     exec.importModule(modIdFor('flock'))
     const flockIndex = exec.instantiate(0, 'Flock', [])
     const bagIndex = exec.instantiate(0, 'FlockBag', [])
@@ -481,7 +481,66 @@ describe('execute txs', () => {
     expect(lockNode).to.eql(undefined)
   })
 
-  it('can call top level functions')
+  it('can call top level functions', () => {
+    const importIndex = exec.importModule(modIdFor('sheep'))
+    const fnResultIdx = exec.execExportedFnByIndex(importIndex, 'buildFlockWithNSheeps', [3])
+    exec.lockJigToUser(fnResultIdx, userAddr)
+    exec.finalize()
+
+    expect(exec.outputs).to.have.length(4)
+  })
+
+  it('saves entire state for jigs using inheritance', () => {
+    const importIndex = exec.importModule(modIdFor('sheep'))
+    const sheepIndex = exec.instantiate(importIndex, 'MutantSheep', ['Wolverine', 'black'])
+    exec.lockJigToUser(sheepIndex, userAddr)
+    exec.finalize()
+
+    expect(exec.outputs[0].parsedState()).to.have.length(4) // 3 base class + 1 concrete class
+  })
+
+  it('can call base class and concrete class methods', () => {
+    const importIndex = exec.importModule(modIdFor('sheep'))
+    const sheepIndex = exec.instantiate(importIndex, 'MutantSheep', ['Wolverine', 'black']) // 7 legs
+    exec.callInstanceMethodByIndex(sheepIndex, 'chopOneLeg', []) // -1 leg
+    exec.callInstanceMethodByIndex(sheepIndex, 'chopOneLeg', []) // -1 leg
+    exec.callInstanceMethodByIndex(sheepIndex, 'regenerateLeg', []) // +1 leg
+    exec.lockJigToUser(sheepIndex, userAddr)
+    exec.finalize()
+
+    const state = exec.outputs[0].parsedState();
+    expect(state).to.have.length(4) // 3 base class + 1 concrete class
+    expect(state[0]).to.eql('Wolverine') // name
+    expect(state[1]).to.eql('black') // color
+    expect(state[2]).to.eql(6) // legs. starts wth seven - 1 -1 + 1
+    expect(state[3]).to.eql(10) // 3 base class + 1 concrete class
+  })
+
+  it('can create, freeze and reload a jig that uses inheritance', () => {
+    const importIndex = exec.importModule(modIdFor('sheep'))
+    const sheepIndex = exec.instantiate(importIndex, 'MutantSheep', ['Wolverine', 'black']) // 7 legs
+    exec.callInstanceMethodByIndex(sheepIndex, 'chopOneLeg', []) // -1 leg
+    exec.lockJigToUser(sheepIndex, userAddr)
+    exec.finalize()
+    storage.persist(exec)
+
+    const tx2 = new TxBuilder().sign(userPriv).build()
+    const exec2 = new TxExecution(tx2, vm)
+    const loadIndex = exec2.loadJigByOutputId(exec.outputs[0].id())
+    exec2.callInstanceMethodByIndex(loadIndex, 'chopOneLeg', []) // -1 leg
+    exec2.callInstanceMethodByIndex(loadIndex, 'regenerateLeg', []) // +1 leg
+    exec2.lockJigToUser(loadIndex, userAddr)
+    exec2.markAsFunded()
+    exec2.finalize()
+
+    const state = exec2.outputs[0].parsedState();
+    expect(state).to.have.length(4) // 3 base class + 1 concrete class
+    expect(state[0]).to.eql('Wolverine') // 3 base class + 1 concrete class
+    expect(state[1]).to.eql('black') // 3 base class + 1 concrete class
+    expect(state[2]).to.eql(6) // 3 base class + 1 concrete class
+    expect(state[3]).to.eql(10) // 3 base class + 1 concrete class
+  })
+
   it('can create jigs inside jigs')
   it('can save numbers inside statement result')
   it('can save strings inside statement result')

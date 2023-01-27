@@ -9,7 +9,9 @@ import {
   MethodNode,
   TypeNode,
   CodeKind,
-  ClassNode
+  ClassNode,
+  InterfaceNode,
+  TypeIdNode,
 } from './types.js'
 
 /**
@@ -20,7 +22,7 @@ export function validateAbi(obj: any): obj is Abi {
     Array.isArray(obj.exports) && obj.exports.every(validateExportNode) &&
     Array.isArray(obj.imports) && obj.imports.every(validateImportNode) &&
     Array.isArray(obj.objects) && obj.objects.every(validateObjectNode) &&
-    Object.entries(obj.typeIds).every(validateTypeId)
+    Array.isArray(obj.typeIds) && obj.typeIds.every(validateTypeIdNode)
 }
 
 // Validates the given object implements the ExportNode interface
@@ -33,8 +35,10 @@ function validateExportNode(obj: any): obj is ExportNode {
     case CodeKind.FUNCTION:
       validateCode = validateFunctionNode
       break
+    case CodeKind.INTERFACE:
+      validateCode = validateInterfaceNode
+      break
     default:
-      // todo - interfaces?
       validateCode = () => false
   }
 
@@ -44,13 +48,14 @@ function validateExportNode(obj: any): obj is ExportNode {
 
 // Validates the given object implements the ImportNode interface
 function validateImportNode(obj: any): obj is ImportNode {
-  return "kind" in obj && "name" in obj && "origin" in obj
+  return "kind" in obj && "name" in obj && "pkg" in obj
 }
 
 // Validates the given object implements the ClassNode interface
 function validateClassNode(obj: any): obj is ClassNode {
   return "name" in obj &&
     "extends" in obj &&
+    Array.isArray(obj.implements) && obj.implements.every(validateTypeNode) &&
     Array.isArray(obj.fields) && obj.fields.every(validateFieldNode) &&
     Array.isArray(obj.methods) && obj.methods.every(validateMethodNode)
 }
@@ -67,6 +72,14 @@ function validateFunctionNode(obj: any): obj is FunctionNode {
   return "name" in obj &&
     Array.isArray(obj.args) && obj.args.every(validateArgNode) &&
     "rtype" in obj && validateTypeNode(obj.rtype)
+}
+
+// Validates the given object implements the InterfaceNode interface
+function validateInterfaceNode(obj: any): obj is InterfaceNode {
+  return "name" in obj &&
+    "extends" in obj &&
+    Array.isArray(obj.fields) && obj.fields.every(validateFieldNode) &&
+    Array.isArray(obj.methods) && obj.methods.every(validateFunctionNode)
 }
 
 // Validates the given object implements the MethodNode interface
@@ -97,6 +110,6 @@ function validateTypeNode(obj: any): obj is TypeNode {
 }
 
 // Validates the given entry is a valid TypeId
-function validateTypeId([key, val]: [string, any]): boolean {
-  return typeof key === 'string' && typeof val === 'number'
+function validateTypeIdNode(obj: any): obj is TypeIdNode {
+  return "id" in obj && "name" in obj
 }

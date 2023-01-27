@@ -26,12 +26,12 @@ import {
   ClassWrap,
   ObjectWrap,
   FunctionWrap,
+  InterfaceWrap,
   MethodWrap,
   FieldWrap,
   ArgWrap,
   TypeWrap,
   DecoratorTag,
-
 } from './nodes.js'
 
 import {
@@ -52,10 +52,9 @@ import {
   CodeKind,
   MethodKind,
   FieldKind,
-  TypeIds,
   TypeNode,
+  TypeIdNode,
 } from '../abi/types.js'
-import { METHODS } from 'http';
 
 type CodeDeclaration = ClassDeclaration | FunctionDeclaration | InterfaceDeclaration
 
@@ -77,7 +76,7 @@ export class TransformCtx {
   objects: ObjectWrap[];
   exposedTypes: Map<string, TypeNode>;
   validator: Validator = new Validator(this);
-  #typeIds?: TypeIds;
+  #typeIds?: TypeIdNode[];
 
   constructor(parser: Parser) {
     this.parser = parser
@@ -120,19 +119,41 @@ export class TransformCtx {
     this.validator.validate()
   }
 
-  private mapTypeIds(): TypeIds {
-    if (!this.program) return {}
+  private mapTypeIds(): TypeIdNode[] {
+    if (!this.program) return []
     if (!this.#typeIds) {
-      const whitelist = ['LockState', 'UtxoState', 'Coin', 'Jig']
+      const whitelist = ['Jig', 'JigInitParams', 'Output', 'Lock', 'Coin']
         .concat(...this.exports.filter(ex => ex.kind === CodeKind.CLASS).map(ex => ex.code.name))
         .concat(...this.imports.filter(im => im.kind === CodeKind.CLASS).map(im => im.name))
-        .concat(...Array.from(this.exposedTypes.keys()))
 
-      this.#typeIds = [...this.program.managedClasses].reduce((obj: TypeIds, [id, klass]) => {
+      function whiteListType(type: TypeNode): void {
+        const name = normalizeTypeName(type)
+        if (!whitelist.includes(name)) { whitelist.push(name) }
+        type.args.forEach(whiteListType)
+      }
+
+      this.exposedTypes.forEach(whiteListType)
+      
+      const interfaceList = this.exports
+        .filter(ex => ex.kind === CodeKind.INTERFACE)
+        .concat(...this.imports.filter(im => im.kind === CodeKind.INTERFACE))
+        .map(n => n.code.name)
+
+      this.#typeIds = [...this.program.managedClasses].reduce((arr: TypeIdNode[], [id, klass]) => {
         const name = normalizeClassName(klass)
-        if (whitelist.includes(name)) { obj[name] = id }
-        return obj
-      }, {})
+        if (whitelist.includes(name) && !interfaceList.includes(name)) {
+          arr.push({ id, name })
+        }
+        // this is weird. We dont want the actual interface runtime id,
+        // instead we want the proxy class, but we remove the underscore name
+        if (/^_/.test(name)) {
+          const tname = name.replace(/^_/, '')
+          if (interfaceList.includes(tname)) {
+            arr.push({ id, name: tname })
+          }
+        }
+        return arr
+      }, []).sort((a, b) => a.id - b.id)
     }
     return this.#typeIds
   }
@@ -189,11 +210,38 @@ function collectExports(sources: Source[]): ExportWrap[] {
       if (n.kind === NodeKind.FunctionDeclaration && isExported((<FunctionDeclaration>n).flags)) {
         exports.push(mapExport(CodeKind.FUNCTION, mapFunction(n as FunctionDeclaration)))
       }
+
+      if (n.kind === NodeKind.InterfaceDeclaration && isExported((<InterfaceDeclaration>n).flags)) {
+        exports.push(mapExport(CodeKind.INTERFACE, mapInterface(n as InterfaceDeclaration)))
+      }
       
-      // todo - interface declerations - how interfaces work TBC
       // todo - export statements - need to resolve to actual class / function def
       // todo - export from statements - need to resolve to actual class / function def
     })
+  
+  // Gather all the classes
+  const classes = exports
+    .filter(ex => ex.kind === CodeKind.CLASS)
+    .map(ex => ex.code as ClassWrap)
+
+  const findParent = (name: string) => classes.find(n => n.name === name)
+  
+  // Iterate over classes and remove dupe fields in descendents
+  for (const code of classes) {
+    const parentFields: string[] = []
+    let parent = findParent(code.extends)
+    
+    while (parent?.extends) {
+      parent.fields.forEach(n => parentFields.push(n.name))
+      parent = findParent(parent.extends)
+    }
+
+    code.fields.forEach((field, idx) => {
+      if (parentFields.includes(field.name)) {
+        code.fields.splice(idx, 1)
+      }
+    })
+  }
 
   return exports
 }
@@ -218,7 +266,11 @@ function collectImports(sources: Source[]): ImportWrap[] {
       if (importDecorator && n.kind === NodeKind.FunctionDeclaration) {
         imports.push(mapImport(CodeKind.FUNCTION, mapFunction(n as FunctionDeclaration), importDecorator))
       }
-    })
+
+      if (importDecorator && n.kind === NodeKind.InterfaceDeclaration) {
+        imports.push(mapImport(CodeKind.INTERFACE, mapInterface(n as InterfaceDeclaration), importDecorator))
+      }
+    })  
 
   return imports
 }
@@ -240,7 +292,7 @@ function collectObjects(sources: Source[], exports: ExportWrap[]): ObjectWrap[] 
     })
     .map(n => mapObject(n as ClassDeclaration))
 
-  function applyClass(obj: ClassWrap | ObjectWrap): void {
+  function applyClass(obj: ClassWrap | ObjectWrap | InterfaceWrap): void {
     if (!checkedNodes.includes(obj.node)) {
       checkedNodes.push(obj.node)
       obj.fields.forEach(n => applyType(n.type))
@@ -272,7 +324,7 @@ function collectObjects(sources: Source[], exports: ExportWrap[]): ObjectWrap[] 
         applyFunction(ex.code as FunctionWrap)
         break
       case CodeKind.INTERFACE:
-        // interafaces?
+        applyClass(ex.code as InterfaceWrap)
         break
     }
   })
@@ -288,7 +340,7 @@ function collectExposedTypes(exports: ExportWrap[], objects: ObjectWrap[]): Map<
     map.set(normalizeTypeName(type), type)
   }
 
-  const applyClass = (obj: ClassWrap | ObjectWrap) => {
+  const applyClass = (obj: ClassWrap | ObjectWrap | InterfaceWrap) => {
     obj.fields.forEach(n => setType(n.type as TypeWrap))
     if ("methods" in obj) {
       obj.methods.forEach(n => applyFunction(n as MethodWrap))
@@ -309,7 +361,8 @@ function collectExposedTypes(exports: ExportWrap[], objects: ObjectWrap[]): Map<
         applyFunction(ex.code as FunctionWrap)
         break
       case CodeKind.INTERFACE:
-        // interafaces?
+        applyClass(ex.code as InterfaceWrap)
+        break
     }
   })
 
@@ -318,7 +371,7 @@ function collectExposedTypes(exports: ExportWrap[], objects: ObjectWrap[]): Map<
 }
 
 // Maps the given parameters to an ExportNode
-function mapExport(kind: CodeKind, code: ClassWrap | FunctionWrap): ExportWrap {
+function mapExport(kind: CodeKind, code: ClassWrap | FunctionWrap | InterfaceWrap): ExportWrap {
   return {
     kind,
     code,
@@ -326,10 +379,10 @@ function mapExport(kind: CodeKind, code: ClassWrap | FunctionWrap): ExportWrap {
 }
 
 // Maps the given parameters to an ImportNode
-function mapImport(kind: CodeKind, code: ClassWrap | FunctionWrap, decorator: DecoratorTag): ImportWrap {
+function mapImport(kind: CodeKind, code: ClassWrap | FunctionWrap | InterfaceWrap, decorator: DecoratorTag): ImportWrap {
   return {
     kind,
-    origin: decorator.args[0],
+    pkg: decorator.args[0],
     name: code.name,
     code,
   }
@@ -338,9 +391,10 @@ function mapImport(kind: CodeKind, code: ClassWrap | FunctionWrap, decorator: De
 // Maps the given AST node to a ClassNode
 function mapClass(node: ClassDeclaration): ClassWrap {
   const obj = mapObject(node) as ClassWrap
-
-  const methods = node.members.filter(n => n.kind === NodeKind.MethodDeclaration)
-  obj.methods = methods.map(n => mapMethod(n as MethodDeclaration))
+  obj.implements = (node.implementsTypes || []).map(n => mapType(n))
+  obj.methods = node.members
+    .filter(n => n.kind === NodeKind.MethodDeclaration)
+    .map(n => mapMethod(n as MethodDeclaration))
   return obj
 }
 
@@ -355,8 +409,6 @@ function mapObject(node: ClassDeclaration): ObjectWrap {
     name: node.name.text,
     extends: node.extendsType?.name.identifier.text || null,
     fields: fields.map(n => mapField(n as FieldDeclaration)),
-    // @ts-ignore
-    xyz: 123,
   }
 }
 
@@ -368,6 +420,15 @@ function mapFunction(node: FunctionDeclaration): FunctionWrap {
     args: node.signature.parameters.map(n => mapArg(n as ParameterNode)),
     rtype: mapType(node.signature.returnType as NamedTypeNode),
   }
+}
+
+// Maps the given AST node to an InterfaceNode
+function mapInterface(node: InterfaceDeclaration): InterfaceWrap {
+  const obj = mapObject(node) as InterfaceWrap
+
+  const methods = node.members.filter(n => n.kind === NodeKind.MethodDeclaration)
+  obj.methods = methods.map(n => mapFunction(n as MethodDeclaration))
+  return obj
 }
 
 // Maps the given AST node to a MethodNode
@@ -452,16 +513,13 @@ function mapDecorator(node: DecoratorNode): DecoratorTag {
 
 // Normalizes class name to match normalized type name
 function normalizeClassName(klass: Class): string {
-  const normalizeName = (n: string) => n === 'String' ? n.toLowerCase() : n
   const name = klass.name.replace(/^(\w+)<.*>$/, '$1')
+  const args = klass.typeArguments?.map(t => {
+    return t.classReference ? normalizeClassName(t.classReference) : t.toString()
+  })
 
-  if (klass.typeArguments) {
-    const args = klass.typeArguments.map(n => {
-      const arg = n.classReference?.name || n.toString()
-      return normalizeName(arg)
-    })
-    return name + `<${ args.join(',') }>`
-  } else {
-    return normalizeName(name)
-  }
+  return normalizeName(name) +  (args ? `<${ args.join(',') }>` : '')
 }
+
+// Lower case string to match our typeings
+const normalizeName = (n: string) => n === 'String' ? n.toLowerCase() : n

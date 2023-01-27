@@ -12,6 +12,8 @@ const {
   SignInstruction
 } = instructions
 
+const FLOCK_PKG_ID = '559c91270e7b4aa7eafc973c4c10caecc9b08665fa5e47f1329cb311bcf8132d'
+
 describe('api', () => {
   let app
   let vm
@@ -50,7 +52,7 @@ describe('api', () => {
     it('returns correct data when the tx goes trough', async () => {
       const coinId = await mint()
       const tx = new Tx()
-        .push(new ImportInstruction(base16.decode('1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda')))
+        .push(new ImportInstruction(base16.decode(FLOCK_PKG_ID)))
         .push(new NewInstruction(0, 0, []))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
@@ -104,7 +106,7 @@ describe('api', () => {
     beforeEach(async () => {
       const coinId = await mint()
       const tx = new Tx()
-        .push(new ImportInstruction(base16.decode('1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda')))
+        .push(new ImportInstruction(base16.decode(FLOCK_PKG_ID)))
         .push(new NewInstruction(0, 0, []))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
@@ -154,7 +156,7 @@ describe('api', () => {
     beforeEach(async () => {
       const coinId = await mint()
       tx = new Tx()
-        .push(new ImportInstruction(base16.decode('1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda')))
+        .push(new ImportInstruction(base16.decode(FLOCK_PKG_ID)))
         .push(new NewInstruction(0, 0, []))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
@@ -199,7 +201,7 @@ describe('api', () => {
     beforeEach(async () => {
       const coinId = await mint()
       const tx = new Tx()
-        .push(new ImportInstruction(base16.decode('1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda')))
+        .push(new ImportInstruction(base16.decode(FLOCK_PKG_ID)))
         .push(new NewInstruction(0, 0, []))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
@@ -336,7 +338,7 @@ describe('api', () => {
   })
 
   describe('GET /package/:packageId/abi.:format', () => {
-    const pkgId = '1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda'
+    const pkgId = FLOCK_PKG_ID
     it('when type is json returns a json', async () => {
       const response = await request(app)
         .get(`/package/${pkgId}/abi.json`)
@@ -370,7 +372,7 @@ describe('api', () => {
   })
 
   describe('GET /package/:packageId/source', () => {
-    const pkgId = '1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda'
+    const pkgId = FLOCK_PKG_ID
     it('returns right data', async () => {
       await request(app)
         .get(`/package/${pkgId}/source`)
@@ -392,7 +394,7 @@ describe('api', () => {
   })
 
   describe('GET /package/:packageId/wasm', () => {
-    const pkgId = '1c5b14e355d72b5bad40959442e7b5764147c7be72c01069770bb2afd23f1eda'
+    const pkgId = FLOCK_PKG_ID
     it('returns right data', async () => {
       await request(app)
         .get(`/package/${pkgId}/source`)

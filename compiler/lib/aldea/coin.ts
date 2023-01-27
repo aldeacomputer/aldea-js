@@ -5,19 +5,19 @@ import { vm_remote_call_i, vm_remote_prop } from './imports'
 /**
  * Coin class
  * 
- * Built in RemoteJig that proxies calls to the VM for handling.
+ * Built in Jig that proxies calls to the VM for handling.
  */
 @final
 export class Coin extends RemoteJig {
+  // @ts-ignore
   constructor() {
-    super()
     throw new Error('coins cannot be instantiated from constructor')
   }
 
   get motos(): u64 {
     return vm_remote_prop<u64>(
-      this.origin,
-      'Coin.motos'
+      this.$output.origin,
+      'motos'
     )
   }
 
@@ -27,8 +27,8 @@ export class Coin extends RemoteJig {
     args.writeU32(changetype<usize>(to))
 
     return vm_remote_call_i<Coin>(
-      this.origin,
-      'Coin$send',
+      this.$output.origin,
+      'send',
       args.buffer
     )
   }
@@ -38,8 +38,8 @@ export class Coin extends RemoteJig {
     args.writeU32(changetype<usize>(coins))
 
     return vm_remote_call_i<Coin>(
-      this.origin,
-      'Coin$combine',
+      this.$output.origin,
+      'combine',
       args.buffer
     )
   }

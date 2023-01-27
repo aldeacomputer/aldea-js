@@ -14,7 +14,6 @@ export class Coin extends Jig {
     const newCoin = new Coin(amount)
     newCoin.$lock.changeToAddressLock(newOwner)
     return newCoin
-
   }
 
   combine(coins: Coin[]): Coin {

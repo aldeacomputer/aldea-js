@@ -1,7 +1,7 @@
 import { blake3 } from '@noble/hashes/blake3'
 import { bytesToHex as toHex } from '@noble/hashes/utils'
 import { isExported, isPrivate, isProtected } from './filters.js'
-import { ClassWrap, FieldWrap, FunctionWrap, MethodWrap, ObjectWrap } from './nodes.js'
+import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap, ObjectWrap } from './nodes.js'
 import { normalizeTypeName } from '../abi.js'
 import { MethodKind, TypeNode } from '../abi/types.js'
 
@@ -45,7 +45,7 @@ export function writeConstructor(obj: ClassWrap): string {
  * Writes a VM constructor hook method call.
  */
 export function writeConstructorHook(obj: ClassWrap): string {
-  return `vm_constructor(this, '${obj.name}')`
+  return `vm_constructor_end(this, '${obj.name}')`
 }
 
 /**
@@ -85,43 +85,80 @@ export function writeLocalProxyClass(obj: ClassWrap, members: string[]): string 
  * strings.
  */
 export function writeRemoteProxyClass(obj: ClassWrap, members: string[]): string {
-  const prefix = isExported(obj.node.flags) ? 'export ' : ''
+  //const prefix = isExported(obj.node.flags) ? 'export ' : ''
   return `
-  ${prefix}class ${obj.name} extends RemoteJig {
+  class ${obj.name} extends RemoteJig {
     ${ members.join('\n') }
   }
   `.trim()
 }
 
 /**
+ * Writes a proxy class wrapper for a specific Interface, around the given member
+ * strings.
+ */
+export function writeRemoteProxyInterfaceImpl(obj: InterfaceWrap, members: string[]): string {
+  return `
+  class _${obj.name} extends RemoteJig implements ${obj.name} {
+    ${ members.join('\n') }
+  }
+  idof<_${obj.name}>() // added to ensure the class is compiled
+  `.trim()
+}
+
+/**
  * Writes a getter on a proxy class. Returns the result of `vm_remote_prop`.
  */
-export function writeRemoteProxyGetter(field: FieldWrap, obj: ClassWrap): string {
+export function writeRemoteProxyGetter(field: FieldWrap, obj: ClassWrap | InterfaceWrap): string {
   return `
   get ${field.name}(): ${field.type.name} {
-    return vm_remote_prop<${field.type.name}>(this.origin, '${obj.name}.${field.name}')
+    return vm_remote_prop<${field.type.name}>(this.$output.origin, '${field.name}')
   }
   `.trim()
 }
 
 /**
- * Writes a method on a proxy class. Returns the result of `vm_remote_call`.
+ * Writes a method on a proxy class.
  */
-export function writeRemoteProxyMethod(method: MethodWrap, obj: ObjectWrap, origin: string): string {
+export function writeRemoteProxyMethod(method: MethodWrap, obj: ClassWrap | InterfaceWrap, pkgId: string): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
   const isStatic = method.kind === MethodKind.STATIC
   const args = method.args.map((f, i) => `a${i}: ${f.type.name}`)
-  const rtype = isConstructor ? 'ArrayBuffer' : method.rtype?.name
-  const prefix = isConstructor ? 'this.origin =' : 'return'
-  const caller = isInstance ?
-    `vm_remote_call_i<${rtype}>(this.origin, '${obj.name}$${method.name}', args.buffer)` :
-    `vm_remote_call_s<${rtype}>('${origin}', '${obj.name}_${method.name}', args.buffer)` ;
+  const rtype = isConstructor ? 'JigInitParams' : method.rtype?.name
+  const callable = isInstance ?
+    `vm_remote_call_i<${rtype}>(this.$output.origin, '${method.name}', args.buffer)` :
+    `vm_remote_call_s<${rtype}>('${pkgId}', '${obj.name}_${method.name}', args.buffer)` ;
+
+  if (isConstructor) {
+    return `
+    constructor(${args.join(', ')}) {
+      ${ writeArgWriter(method.args as FieldWrap[]) }
+      const params = ${callable}
+      super(params)
+    }
+    `.trim()
+  } else {
+    return `
+    ${isStatic ? 'static ' : ''}${method.name}(${args.join(', ')}): ${rtype} {
+      ${ writeArgWriter(method.args as FieldWrap[]) }
+      return ${callable}
+    }
+    `.trim()
+  }
+}
+
+/**
+ * Writes a method on a proxy class.
+ */
+export function writeRemoteProxyInstMethod(method: MethodWrap, obj: ClassWrap | InterfaceWrap): string {
+  const args = method.args.map((f, i) => `a${i}: ${f.type.name}`)
+  const rtype = method.rtype?.name
 
   return `
-  ${isStatic ? 'static ' : ''}${method.name}(${args.join(', ')})${isConstructor ? '' : `: ${rtype}`} {
+  ${method.name}(${args.join(', ')}): ${rtype} {
     ${ writeArgWriter(method.args as FieldWrap[]) }
-    ${prefix} ${caller}
+    return vm_remote_call_i<${rtype}>(this.$output.origin, '${method.name}', args.buffer)
   }
   `.trim()
 }
@@ -129,14 +166,14 @@ export function writeRemoteProxyMethod(method: MethodWrap, obj: ObjectWrap, orig
 /**
  * Writes a proxy Function calling a static fuction on a remote package.
  */
-export function writeRemoteProxyFunction(fn: FunctionWrap, origin: string): string {
+export function writeRemoteProxyFunction(fn: FunctionWrap, pkgId: string): string {
   const args = fn.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
   const rtype = normalizeTypeName(fn.rtype)
 
   return `
   export function ${fn.name}(${args.join(', ')}): ${rtype} {
     ${ writeArgWriter(fn.args as FieldWrap[]) }
-    return vm_remote_call_s<${rtype}>('${origin}', '${fn.name}', args.buffer)
+    return vm_remote_call_f<${rtype}>('${pkgId}', '${fn.name}', args.buffer)
   }
   `.trim()
 }
@@ -161,7 +198,7 @@ export function writeArgWriter(fields: FieldWrap[]): string {
 export function writeArgWriterEncodeMethod(field: FieldWrap, i: number): string {
   switch(field.type.name) {
     case 'f32': return `writeF32(a${i})`
-    case 'i64': return `writeF64(a${i})`
+    case 'f64': return `writeF64(a${i})`
     case 'i8':  return `writeI8(a${i})`
     case 'i16': return `writeI16(a${i})`
     case 'i32': return `writeI32(a${i})`

@@ -90,12 +90,6 @@ test('compiles if source root has const delcalration of literal', async t => {
   await t.notThrowsAsync(() => compile(stmtCode('const a = null')))
 })
 
-test('throws if source root has type interface declaration', async t => {
-  const e = await t.throwsAsync(() => compile(stmtCode('interface A {}')))
-  t.regex(e.stderr.toString(), /Illegal statement/)
-  t.regex(e.stderr.toString(), /interface A {}/)
-})
-
 test('throws if source root has namespace declaration', async t => {
   const e = await t.throwsAsync(() => compile(stmtCode('namespace A {}')))
   t.regex(e.stderr.toString(), /Illegal statement/)
@@ -255,6 +249,12 @@ test('throws if assemblyscript decorator is used', async t => {
   t.regex(e.stderr.toString(), /@inline function foo\(\): u8/)
 })
 
+test('throws if invalid origin pointer is given', async t => {
+  const e = await t.throwsAsync(() => compile(stmtCode('@imported("not a pointer") declare function foo(): u8;')))
+  t.regex(e.stderr.toString(), /Invalid package/)
+  t.regex(e.stderr.toString(), /@imported\("not a pointer"\)/)
+})
+
 test('compiles if with valid imported class', async t => {
   await t.notThrowsAsync(() => compile(importedClassMbrCode('a: string;')))
 })
@@ -281,4 +281,26 @@ test('throws if imported class declares protected method', async t => {
   const e = await t.throwsAsync(() => compile(importedClassMbrCode('protected a(): string;')))
   t.regex(e.stderr.toString(), /Private and protected members/)
   t.regex(e.stderr.toString(), /protected a\(\): string;/)
+})
+
+test('throws if Jig descendent is not exported', async t => {
+  const src = `
+  export class A extends Jig {}
+  export class B extends A {}
+  class C extends B {}
+  `.trim()
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Invalid class/)
+  t.regex(e.stderr.toString(), /class C extends B {}/)
+})
+
+test('throws if non Jig descendent is exported', async t => {
+  const src = `
+  class A {}
+  class B extends A {}
+  export class C extends B {}
+  `.trim()
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Invalid class/)
+  t.regex(e.stderr.toString(), /export class C extends B {}/)
 })

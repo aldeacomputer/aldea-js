@@ -216,13 +216,13 @@ class TxExecution {
     this.remoteLockHandler(childJigRef.origin, type, extraArg)
   }
 
-  remoteCallHandler (callerInstance: WasmInstance, origin: Pointer, className: string, methodName: string, argBuff: Uint8Array): WasmValue {
+  remoteCallHandler (callerInstance: WasmInstance, origin: Pointer, methodName: string, argBuff: Uint8Array): WasmValue {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
       jig = this.findJigByOrigin(origin)
     }
 
-    const klassNode = findClass(jig.package.abi, className, 'could not find object')
+    const klassNode = jig.package.abi.classByIndex(jig.classIdx)
     const method = findMethod(klassNode, methodName, 'could not find method')
 
     const argReader = new ArgReader(argBuff)
@@ -256,7 +256,8 @@ class TxExecution {
     const argReader = new ArgReader(argBuffer)
     const argValues = method.args.map((arg) => {
       const pointer = readType(argReader, arg.type)
-      return srcModule.extractValue(pointer, arg.type).value
+      const wasmValue = srcModule.extractValue(pointer, arg.type);
+      return wasmValue.value
     }).map((value: any) => {
       if (value instanceof Externref) {
         return this.getJigRefByOrigin(Pointer.fromBytes(value.originBuf))
@@ -456,7 +457,7 @@ class TxExecution {
 
   private hydrateJigState(state: JigState): JigRef {
     const module = this.loadModule(state.packageId)
-    const ref = module.hidrate(state.classIdx, state.stateBuf)
+    const ref = module.hidrate(state.classIdx, state)
     const lock = this.hidrateLock(state.serializedLock)
     const jigRef = new JigRef(ref, state.classIdx, module, state.origin, lock)
     this.addNewJigRef(jigRef)
@@ -527,13 +528,6 @@ class TxExecution {
   callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {
     const jigRef = this.getStatementResult(jigIndex).asJig()
     const methodResult = this.callInstanceMethod(jigRef, methodName, args)
-    // let value = methodResult.value
-    // if (value instanceof Internref) {
-    //   value = this.jigs.find(j => j.package === jigRef.package && j.ref.equals(value))
-    // }
-    // if (value instanceof Externref) {
-    //   value = this.jigs.find(j => j.origin.equals(Pointer.fromBytes(value.originBuf)))
-    // }
     this.statementResults.push(new ValueStatementResult(methodResult.node, methodResult.value, methodResult.mod))
     return this.statementResults.length - 1
   }
@@ -572,6 +566,30 @@ class TxExecution {
     this.statementResults.push(result)
     return this.statementResults.length - 1
   }
+
+  execExportedFnByIndex (moduleIndex: number, fnName: string, args: any[]): number {
+    const wasm = this.getStatementResult(moduleIndex).instance
+
+    let {node, value, mod} = wasm.functionCall(fnName, args)
+
+    if (value instanceof Internref) {
+      value = this.jigs.find(j => j.ref.equals(value))
+    }
+
+    if (value instanceof Externref) {
+      value = this.jigs.find(j => j.origin.equals(Pointer.fromBytes(value.originBuf)))
+    }
+
+    const coso = new ValueStatementResult(
+      node,
+      value,
+      mod
+    )
+
+    this.statementResults.push(coso)
+    return this.statementResults.length - 1
+  }
+
 
   createNextOrigin () {
     return new Pointer(this.tx.hash, this.jigs.length)

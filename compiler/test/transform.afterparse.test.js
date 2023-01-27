@@ -21,7 +21,7 @@ test('afterParse() adds hook to constructors', async t => {
   t.is(mock.classes[0].members[1].body.statements.length, 3)
   t.is(
     ASTBuilder.build(mock.classes[0].members[1].body.statements[2]),
-    'vm_constructor(this, "Test")'
+    'vm_constructor_end(this, "Test")'
   )
 })
 
@@ -39,7 +39,7 @@ test('afterParse() adds constructor if not defined', async t => {
     ASTBuilder.build(mock.classes[0].members[0]),
     'constructor() {\n'+
     '  super();\n'+
-    '  vm_constructor(this, "Test");\n'+
+    '  vm_constructor_end(this, "Test");\n'+
     '}'
   )
 })
@@ -216,7 +216,7 @@ test('afterParse() adds getters to all imported class properties', async t => {
   t.is(
     ASTBuilder.build(mock.classes[0].members[0]),
     'get a(): u32 {\n'+
-    '  return vm_remote_prop<u32>(this.origin, "Test.a");\n'+
+    '  return vm_remote_prop<u32>(this.$output.origin, "a");\n'+
     '}'
   )
 })
@@ -238,7 +238,7 @@ test('afterParse() adds proxy methods to imported static and instance methods', 
     'a(a0: u8): u8 {\n'+
     '  const args = new ArgWriter(1);\n'+
     '  args.writeU8(a0);\n'+
-    '  return vm_remote_call_i<u8>(this.origin, "Test$a", args.buffer);\n'+
+    '  return vm_remote_call_i<u8>(this.$output.origin, "a", args.buffer);\n'+
     '}'
   )
   t.is(

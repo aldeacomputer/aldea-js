@@ -40,22 +40,9 @@ export interface MemoryLayout {
   }
 }
 
-// export function liftImportedJig (mod: WasmInstance, ptr: WasmPointer) {
-//   ptr = Number(ptr)
-//   const bufPtr = new Uint32Array(mod.memory.buffer)[ptr >>> 2]
-//   const origin = this.liftBuffer(mod, bufPtr)
-//   return new Externref(normalizeTypeName(type), origin)
-// }
-
 
 export function liftBuffer(mod: Module, ptr: number): Uint8Array {
   return new Uint8Array(mod.memory.buffer.slice(ptr, ptr + new Uint32Array(mod.memory.buffer)[ptr - 4 >>> 2]));
-}
-
-export function lowerBuffer(mod: Module, val: ArrayBuffer): number {
-  const ptr = mod.__new(val.byteLength, 0) >>> 0;
-  new Uint8Array(mod.memory.buffer).set(new Uint8Array(val), ptr);
-  return ptr;
 }
 
 export function getTypedArrayConstructor(type: TypeNode) {
