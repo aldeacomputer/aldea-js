@@ -206,7 +206,7 @@ class TxExecution {
       existingRef.ref.name = className
       return
     }
-    const jigRef = new JigRef(new Internref(className, jigPtr), classIdx, source, origin, new NoLock())
+    const jigRef = new JigRef(new Internref(className, jigPtr), classIdx, source, origin, origin, new NoLock())
     this.addNewJigRef(jigRef)
   }
 
@@ -352,14 +352,7 @@ class TxExecution {
   findUtxoHandler(wasm: WasmInstance, jigPtr: number): JigRef {
     const jigRef = this.jigs.find(ref => ref.package === wasm && ref.ref.ptr === jigPtr)
     if (!jigRef) {
-      let origin = this.createNextOrigin();
-      return this.addNewJigRef(new JigRef(
-        new Internref('', jigPtr),
-        -1,
-        wasm,
-        origin,
-        new NoLock()
-      ))
+      throw new Error('jig ref should be present')
     }
     return jigRef
   }
@@ -467,7 +460,7 @@ class TxExecution {
     const module = this.loadModule(state.packageId)
     const ref = module.hidrate(state.classIdx, state)
     const lock = this.hidrateLock(state.serializedLock)
-    const jigRef = new JigRef(ref, state.classIdx, module, state.origin, lock)
+    const jigRef = new JigRef(ref, state.classIdx, module, state.origin, state.currentLocation, lock)
     this.addNewJigRef(jigRef)
     return jigRef
   }

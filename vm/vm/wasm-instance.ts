@@ -52,6 +52,7 @@ export function __encodeArgs (args: any[]): Uint8Array {
 }
 
 function __decodeArgs (data: Uint8Array): any[] {
+  if (data.length === 0) { return [] }
   return CBOR.decode(data.buffer, null, {mode: "sequence"}).data
 }
 
@@ -114,6 +115,7 @@ export class WasmInstance {
             classIdx,
             this,
             nextOrigin,
+            nextOrigin,
             new NoLock()
           ))
 
@@ -149,6 +151,7 @@ export class WasmInstance {
         vm_remote_call_f: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): number => {
           return 0
         },
+
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
           const targetOrigBuf = this.liftBuffer(targetOriginPtr)
           const propStr = this.liftString(propNamePtr)
@@ -225,7 +228,7 @@ export class WasmInstance {
             buf = callerJig.origin.toBytes()
           } else
           if (propName === 'location') {
-            buf = callerJig.origin.toBytes()
+            buf = callerJig.latestLocation.toBytes()
           } else
           if (propName === 'class') {
             buf = callerJig.classPtr().toBytes()
