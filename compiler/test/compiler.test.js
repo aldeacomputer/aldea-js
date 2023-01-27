@@ -2,7 +2,7 @@ import test from 'ava'
 import { compile } from '../dist/compiler.js'
 import { abiFromCbor } from '../dist/abi.js'
 
-test('compiles single source', async t => {
+test.serial('compiles single source', async t => {
   await t.notThrowsAsync(() => compile('export class Test extends Jig {}'))
   await t.notThrowsAsync(() => compile('export function test(): void {}'))
 })

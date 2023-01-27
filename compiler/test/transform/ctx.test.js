@@ -2,7 +2,11 @@ import test from 'ava'
 import { ASTBuilder } from 'assemblyscript'
 import { mockProgram } from '../support/mock-program.js'
 import { TransformCtx } from '../../dist/transform/ctx.js'
-import { afterParse, afterInitialize } from '../../dist/transform.js'
+import Transform from '../../dist/transform.js'
+
+test.beforeEach(t => {
+  t.context.transform = new Transform()
+})
 
 test('ctx collects user sources and entries', async t => {
   const mock = await mockProgram(`
@@ -81,7 +85,7 @@ test('ctx.abi has all the exports, imports and plain objects', async t => {
   class NotExported {}
   }`)
   const ctx = new TransformCtx(mock.parser)
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   await mock.compile()
   ctx.program = mock.pgm
 
@@ -110,7 +114,7 @@ test('ctx.abi exported classes contain public and private fields', async t => {
   }`)
 
   const ctx = new TransformCtx(mock.parser)
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   await mock.compile()
   ctx.program = mock.pgm
 
@@ -130,7 +134,7 @@ test('ctx.abi exported classes contain only public methods', async t => {
   }`)
 
   const ctx = new TransformCtx(mock.parser)
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   await mock.compile()
   ctx.program = mock.pgm
 
@@ -150,7 +154,7 @@ test('ctx.abi class constructors have no return type', async t => {
   }`)
 
   const ctx = new TransformCtx(mock.parser)
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   await mock.compile()
   ctx.program = mock.pgm
 

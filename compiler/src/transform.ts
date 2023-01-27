@@ -1,13 +1,16 @@
 import {
+  ASTBuilder,
   BlockStatement,
   ClassDeclaration,
   FunctionDeclaration,
   CommonFlags,
+  Module,
   Parser,
   Program,
   Statement,
 } from 'assemblyscript'
 
+import { abiToCbor, abiToJson } from './abi.js'
 import { CodeKind, MethodKind, MethodNode, TypeNode } from './abi/types.js'
 import { TransformCtx } from './transform/ctx.js'
 import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './transform/nodes.js'
@@ -29,77 +32,98 @@ import {
   writeSetPutter,
 } from './transform/code-helpers.js'
 
-
-// Set global scope for ctx - meh, does the job
-let $ctx: TransformCtx
-
 /**
- * Hook to access the current Transform Context.
+ * TODO
  */
-export function useCtx(): TransformCtx { return $ctx }
+export default class Transform {
+  $ctx?: TransformCtx
 
-/**
- * Called when parsing is complete, and the AST is ready.
- */
-export function afterParse(parser: Parser): void {
-  $ctx = new TransformCtx(parser)
+  /**
+   * Called when parsing is complete, and the AST is ready.
+   */
+  afterParse(parser: Parser): void {
+    const $ctx = new TransformCtx(parser)
+    this.$ctx = $ctx
+  
+    $ctx.exports.forEach(ex => {
+      let code: ClassWrap | FunctionWrap | InterfaceWrap
+      switch (ex.kind) {
+        case CodeKind.CLASS:
+          code = ex.code as ClassWrap
+          addConstructorHook(code, $ctx)
+          createProxyMethods(code, $ctx)
+          exportClassMethods(code, $ctx)
+          // Rename the parent class
+          if (code.node.extendsType?.name.identifier.text === 'Jig') {
+            code.node.extendsType.name.identifier.text = 'LocalJig'
+          }
+          // Remove the export flag
+          code.node.flags = code.node.flags & ~CommonFlags.Export
+          break
+        case CodeKind.FUNCTION:
+          break
+        case CodeKind.INTERFACE:
+          code = ex.code as InterfaceWrap
+          createProxyInterfaceImpl(code, $ctx)
+          // Remove the export flag
+          code.node.flags = code.node.flags & ~CommonFlags.Export
+          break
+      }
+    })
+  
+    $ctx.imports.forEach(im => {
+      let code: ClassWrap | FunctionWrap | InterfaceWrap
+      switch (im.kind) {
+        case CodeKind.CLASS:
+          code = im.code as ClassWrap
+          createProxyClass(code, $ctx, im.pkg)
+          dropNode(code.node)
+          break
+        case CodeKind.FUNCTION:
+          code = im.code as FunctionWrap
+          createProxyFunction(code, $ctx, im.pkg)
+          dropNode(code.node)
+          break
+        case CodeKind.INTERFACE:
+          code = im.code as InterfaceWrap
+          createProxyInterfaceImpl(code, $ctx)
+          break
+      }
+    })
+  
+    exportComplexSetters($ctx)
+  }
 
-  $ctx.exports.forEach(ex => {
-    let code: ClassWrap | FunctionWrap | InterfaceWrap
-    switch (ex.kind) {
-      case CodeKind.CLASS:
-        code = ex.code as ClassWrap
-        addConstructorHook(code, $ctx)
-        createProxyMethods(code, $ctx)
-        exportClassMethods(code, $ctx)
-        // Rename the parent class
-        if (code.node.extendsType?.name.identifier.text === 'Jig') {
-          code.node.extendsType.name.identifier.text = 'LocalJig'
-        }
-        // Remove the export flag
-        code.node.flags = code.node.flags & ~CommonFlags.Export
-        break
-      case CodeKind.FUNCTION:
-        break
-      case CodeKind.INTERFACE:
-        code = ex.code as InterfaceWrap
-        createProxyInterfaceImpl(code, $ctx)
-        // Remove the export flag
-        code.node.flags = code.node.flags & ~CommonFlags.Export
-        break
+  /**
+   * Called once the program is initialized, before it is being compiled.
+   * 
+   * We simply attach the program to the Transform Context so we can use it later.
+   */
+  afterInitialize(program: Program): void {
+    if (this.$ctx) this.$ctx.program = program
+  }
+
+  /**
+   * Called with the resulting module before it is being emitted.
+   * 
+   * We write the ABI files here and log the transformed code to sdtout
+   */
+  async afterCompile(_module: Module): Promise<void> {
+    // @ts-ignore
+    const log = (line: string): void => { this.stdout.write(line + '\n') }
+    const write = async (filename: string, contents: string | Uint8Array): Promise<void> => {
+      // @ts-ignore
+      await this.writeFile(filename, contents, this.baseDir)
     }
-  })
 
-  $ctx.imports.forEach(im => {
-    let code: ClassWrap | FunctionWrap | InterfaceWrap
-    switch (im.kind) {
-      case CodeKind.CLASS:
-        code = im.code as ClassWrap
-        createProxyClass(code, $ctx, im.pkg)
-        dropNode(code.node)
-        break
-      case CodeKind.FUNCTION:
-        code = im.code as FunctionWrap
-        createProxyFunction(code, $ctx, im.pkg)
-        dropNode(code.node)
-        break
-      case CodeKind.INTERFACE:
-        code = im.code as InterfaceWrap
-        createProxyInterfaceImpl(code, $ctx)
-        break
+    if (this.$ctx) {
+      await write('abi.cbor', new Uint8Array(abiToCbor(this.$ctx.abi)))
+      await write('abi.json', abiToJson(this.$ctx.abi, 2))
+      log('»»» TRANSFORMED «««')
+      log('*******************')
+      this.$ctx.entries.forEach(entry => { log(ASTBuilder.build(entry)) })
     }
-  })
-
-  exportComplexSetters($ctx)
-}
-
-/**
- * Called once the program is initialized, before it is being compiled.
- * 
- * We simply attach the program to the Transform Context so we can use it later.
- */
-export function afterInitialize(program: Program): void {
-  $ctx.program = program
+  }
 }
 
 /**
