@@ -12,15 +12,26 @@ import {
 import {ClassNodeWrapper} from "./class-node-wrapper.js";
 import {jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "./well-known-abi-nodes.js";
 
+const classNotFound = (className: string): ClassNodeWrapper => {
+  throw new Error(`Class with name "${className}" not found.`)
+}
+
 export class AbiAccess {
   private abi: Abi;
   constructor(abi: Abi) {
     this.abi = abi
   }
 
-  classByName (name: string, errorMsg: string): ClassNodeWrapper {
-    const abiNode = findClass(this, name, errorMsg)
+  classByName (name: string, onNotFound: (a: string) => ClassNodeWrapper = classNotFound): ClassNodeWrapper {
+    const abiNode = findClass(this, name)
+    if (!abiNode) {
+      return onNotFound(name)
+    }
     return new ClassNodeWrapper(abiNode, this)
+  }
+
+  findExportIndex (exportName: string) {
+    return this.abi.exports.findIndex(e => e.code.name === exportName)
   }
 
   get version(): number {
@@ -71,5 +82,21 @@ export class AbiAccess {
       throw new Error(`unknown type: ${normalized}`)
     }
     return node.id
+  }
+
+  typeFromRtid(rtid: number): TypeNode {
+    const node = this.abi.typeIds.find(typeId => typeId.id === rtid)
+    if (!node) {
+      throw new Error(`unknown rtid: ${rtid}`)
+    }
+    return { name: node.name, args: [] }
+  }
+
+  findImportedIndex(name: string) {
+    return this.abi.imports.findIndex(imported => imported.name === name)
+  }
+
+  importedByIndex(importedIndex: number): ImportNode {
+    return this.abi.imports[importedIndex]
   }
 }

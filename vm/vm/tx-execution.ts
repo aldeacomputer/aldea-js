@@ -183,6 +183,14 @@ class TxExecution {
     return wasmInstance
   }
 
+  getLoadedModule (pkgId: string): WasmInstance {
+    const wasm = this.wasms.get(pkgId)
+    if (!wasm) {
+      throw new Error(`Package with id ${pkgId} was expected to be loaded but it's not.`)
+    }
+    return wasm
+  }
+
   findRemoteUtxoHandler (origin: ArrayBuffer): JigRef {
     const jigRef = this.jigs.find(j => Buffer.from(j.originBuf).equals(Buffer.from(origin)))
     if(!jigRef) { throw new Error('should exist')}
@@ -598,6 +606,14 @@ class TxExecution {
   stackTop () {
     return this.stack[this.stack.length - 1]
   }
+
+  stackPreviousToTop (): null | Pointer {
+    if (this.stack.length < 2) {
+      return null
+    }
+    return this.stack[this.stack.length - 2]
+  }
+
 
   getStatementResult (index: number): StatementResult {
     const result = this.statementResults[index]

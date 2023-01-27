@@ -44,7 +44,7 @@ export class ClassNodeWrapper {
     const fields: FieldNode[][] = []
     while (current.extends !== 'Jig') {
       fields.push(current.node.fields)
-      current = this.abi.classByName(current.extends, 'should exist') as ClassNodeWrapper
+      current = this.abi.classByName(current.extends) as ClassNodeWrapper
     }
     fields.push(current.node.fields)
     return fields.reverse().flat()
@@ -64,7 +64,7 @@ export class ClassNodeWrapper {
       throw new Error(`unknown method ${name} for class ${this.name}`)
     }
     if (!methodOrNull) {
-      const parent = this.abi.classByName(this.extends, `parent class ${this.extends} does not exist`)
+      const parent = this.abi.classByName(this.extends)
       return parent.methodByName(name)
     }
     return new MethodNodeWrapper(this, methodOrNull)

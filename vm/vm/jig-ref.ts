@@ -46,8 +46,12 @@ export class JigRef  {
     return {
       origin: this.origin.toBytes(),
       location: this.origin.toBytes(),
-      classPtr: new Pointer(this.package.id, this.classIdx).toBytes()
+      classPtr: this.classPtr().toBytes()
     }
+  }
+
+  classPtr(): Pointer {
+    return new Pointer(this.package.id, this.classIdx)
   }
 
   lockObject() {
