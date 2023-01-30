@@ -5,8 +5,8 @@ import {Abi, ArgNode, ClassNode, FieldNode, findField, findFunction, findMethod,
 import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
-import {getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
-import {WasmPointer} from "./arg-reader.js";
+import {Externref, getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
+import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {LiftValueVisitor} from "./abi-helpers/lift-value-visitor.js";
 import {LowerValueVisitor} from "./abi-helpers/lower-value-visitor.js";
 import {LiftJigStateVisitor} from "./abi-helpers/lift-jig-state-visitor.js";
@@ -148,8 +148,15 @@ export class WasmInstance {
           return Number(this.insertValue(result.value, result.node))
         },
 
-        vm_remote_call_f: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): number => {
-          return 0
+        vm_remote_call_f: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): WasmPointer => {
+          const pkgId = this.liftString(pkgIdStrPtr)
+          const fnName = this.liftString(fnNamePtr)
+          const argsBuf = this.liftBuffer(argsBufPtr)
+          const targetPkg = this.currentExec.loadModule(base16.decode(pkgId))
+          const functionNode = targetPkg.abi.functionByName(fnName)
+          const result = targetPkg.functionCall(fnName, this.liftArguments(argsBuf, functionNode.args))
+
+          return this.insertValue(result.value, result.node)
         },
 
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
@@ -426,5 +433,20 @@ export class WasmInstance {
   private liftBuffer(ptr: number): Uint8Array {
     const visitor = new LiftValueVisitor(this.abi, this, ptr)
     return visitor.visitArrayBuffer()
+  }
+
+  private liftArguments (argBuffer: Uint8Array, args: ArgNode[]): any[] {
+    const argReader = new ArgReader(argBuffer)
+    return args.map((n: ArgNode) => {
+      const ptr = readType(argReader, n.type)
+      const value = this.extractValue(ptr, n.type).value
+      if (value.value instanceof Externref) {
+        return this.currentExec.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
+      } else if (value.value instanceof Internref) {
+        return this.currentExec.jigByInternRef(value.value)
+      } else {
+        return value
+      }
+    })
   }
 }

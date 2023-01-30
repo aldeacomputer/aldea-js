@@ -652,6 +652,14 @@ class TxExecution {
   outputIndexFor(jigRef: JigRef): number {
     return this.jigs.findIndex(j => j === jigRef)
   }
+
+  jigByInternRef(ref: Internref): JigRef {
+    const jig = this.jigs.find((j: JigRef) => j.ref.equals(ref))
+    if (!jig) {
+      throw new Error('jig should exist')
+    }
+    return jig
+  }
 }
 
 export { TxExecution }

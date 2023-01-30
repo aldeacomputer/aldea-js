@@ -3,11 +3,12 @@ import {
   ClassNode,
   CodeKind,
   ExportNode,
-  findClass,
+  findClass, FunctionNode,
   ImportNode, normalizeTypeName,
   ObjectNode,
   TypeIdNode,
-  TypeNode
+  TypeNode,
+  findFunction
 } from "@aldea/compiler/abi";
 import {ClassNodeWrapper} from "./class-node-wrapper.js";
 import {JIG_TOP_CLASS_NAME, jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "./well-known-abi-nodes.js";
@@ -113,5 +114,9 @@ export class AbiAccess {
     }
 
     return true
+  }
+
+  functionByName(fnName: string): FunctionNode {
+    return findFunction(this.abi, fnName, `Function ${fnName} was not found.`)
   }
 }
