@@ -27,6 +27,7 @@ import {
   InterfaceNode,
   TypeIdNode,
   TypeIdCbor,
+  MethodKind,
 } from './abi/types.js'
 
 import { validateAbi } from './abi/validations.js'
@@ -98,6 +99,23 @@ export function abiToJson(abi: Abi, space: number = 0): string {
       return val
     }
   }, space)
+}
+
+/**
+ * Normalizes an ABI node name. Can optionally be passed it's parent ClassNode.
+ */
+export function normalizeNodeName(
+  node: ClassNode | FunctionNode | InterfaceNode | FieldNode | MethodNode,
+  parent?: ClassNode | InterfaceNode
+): string {
+  if (parent && parent.fields.includes(node as FieldNode)) {
+    return `${parent.name}.${node.name}`
+  } else if (parent && parent.methods.includes(node as MethodNode & FunctionNode)) {
+    const delim = (<MethodNode>node).kind === MethodKind.INSTANCE ? '$' : '_'
+    return parent.name + delim + node.name
+  } else {
+    return node.name
+  }
 }
 
 /**

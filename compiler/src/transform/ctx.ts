@@ -98,10 +98,7 @@ export class TransformCtx {
       objects: this.objects,
       typeIds: this.mapTypeIds(),
     }, function(key, val) {
-      if (key === 'node') {
-        delete this[key]
-        return
-      }
+      if (key === 'node') { return undefined }
       return val
     }))
   }

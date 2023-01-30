@@ -1,14 +1,14 @@
 import fs from 'fs'
-import { basename, dirname, join, relative } from 'path'
+import { basename, dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
-import { ASTBuilder } from 'assemblyscript'
 import asc from 'assemblyscript/asc'
 import { Command } from 'commander'
-import { useCtx } from './transform.js'
-import { abiToCbor, abiToJson } from './abi.js'
-import { TransformCtx } from './transform/ctx.js'
+import Transform from './transform.js'
 
-const baseDir = join(dirname(fileURLToPath(import.meta.url)), '..')
+const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+
+const extension = '.ts'
+const extension_re_except_d = new RegExp('^(?!.*\\.d\\' + extension + '$).*\\' + extension + '$')
 
 const baseOpts = [
   '--debug', // delete eventually
@@ -18,8 +18,8 @@ const baseOpts = [
   '--importMemory',
   '--exportRuntime',
   '--exportStart',
-  '--lib', './'+relative(process.cwd(), join(baseDir, 'lib')),
-  '--transform', './'+relative(process.cwd(), join(baseDir, 'dist/transform.js'))
+  '--lib', join(rootDir, 'lib'),
+  '--transform', join(rootDir, 'dist/transform.js')
 ]
 
 export interface CompiledOutput {
@@ -40,31 +40,38 @@ export interface CompilerResult {
  * This method is a Command action, designed to be called from Commander.
  */
 export async function compileCommand(src: string, opts: any, cmd: Command): Promise<void> {
-  const srcPath = relative(process.cwd(), src)
-  const outPath = opts.output ?
-    relative(process.cwd(), opts.output as string) :
-    join(dirname(srcPath), basename(srcPath).replace(/\.\w+$/, '')+'.wasm')
+  const baseDir = resolve(process.cwd(), dirname(src))
+  const srcFile = basename(src)
+  const outFile = srcFile.replace(/\.\w+$/, '.wasm')
 
-  if (!fs.existsSync(srcPath)) {
+  if (!fs.existsSync(join(baseDir, srcFile))) {
     cmd.error(`file does not exist: ${src}`)
   }
 
   const argv = [
-    srcPath,
-    '--outFile', outPath,
-    '--textFile', outPath.replace('.wasm', '.wat'),
+    srcFile,
+    '--baseDir', baseDir,
+    '--outFile', outFile,
+    '--textFile', outFile.replace('.wasm', '.wat'),
     '--sourceMap', // delete eventually
   ].concat(baseOpts)
 
-  const { error, stdout, stderr, stats } = await asc.main(argv)
+  const { error, stdout, stderr, stats } = await asc.main(argv, {
+    listFiles(dirname, baseDir) {
+      return fs.readdirSync(resolve(baseDir, dirname)).filter(file => {
+        return extension_re_except_d.test(file)
+      })
+    },
+    writeFile(filename, contents, baseDir) {
+      if (/^(abi|docs)\.(cbor|json)$/.test(filename)) {
+        filename = outFile.replace(/wasm$/, filename)
+      }
+      fs.mkdirSync(resolve(baseDir, dirname(filename)), { recursive: true })
+      fs.writeFileSync(join(baseDir, filename), contents)
+    },
+  })
 
   if (!error) {
-    const ctx = useCtx()
-    writeAbi(outPath, ctx)
-    console.log('»»» TRANSFORMED «««')
-    console.log('*******************')
-    ctx.entries.forEach(entry => { console.log(ASTBuilder.build(entry)) })
-    console.log(stderr.toString())
     console.log("Compilation success: ")
     console.log(stats.toString())
     console.log(stdout.toString())
@@ -110,38 +117,38 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
   ]).concat(baseOpts)
 
   const { error, stdout, stderr, stats } = await asc.main(argv, {
-    readFile(filename, basedir) {
-      // todo - this is a hack to not read the generated .d.ts files
-      // they must be put in a non root location in the lib path
-      if (/\.d\.ts$/.test(filename)) return ''
+    readFile(filename, baseDir) {
       if (input[filename]) return input[filename]
       try {
-        return fs.readFileSync(join(basedir, filename), 'utf8')
+        return fs.readFileSync(join(baseDir, filename), 'utf8')
       } catch(e) {
         return null
       }
     },
     writeFile(filename, content) {
+      if (filename === 'abi.json') { return }
+      if (filename === 'abi.cbor') { filename = 'abi' }
+      if (filename === 'docs.cbor') { filename = 'docs' }
       // @ts-ignore
       output[filename] = content
     },
-    listFiles(dirname, basedir) {
-      return fs.readdirSync(join(basedir, dirname)).filter(dir => /\.ts$/.test(dir))
+    listFiles(dirname, baseDir) {
+      return fs.readdirSync(resolve(baseDir, dirname)).filter(file => {
+        return extension_re_except_d.test(file)
+      })
     }
   })
 
-  if (error) {
-    const compileError = new CompileError(error.message, stderr)
-    compileError.stack = error.stack
-    throw compileError
-  } else {
-    const ctx = useCtx()
-    output.abi = new Uint8Array(abiToCbor(ctx.abi))
+  if (!error) {
     return {
       output: output as CompiledOutput,
       stats,
       stdout,
     }
+  } else {
+    const compileError = new CompileError(error.message, stderr)
+    compileError.stack = error.stack
+    throw compileError
   }
 }
 
@@ -155,16 +162,4 @@ export class CompileError extends Error {
     super(message)
     this.stderr = stderr
   }
-}
-
-// Writes the ABI to the given path
-function writeAbi(outPath: string, ctx: TransformCtx) {
-  fs.writeFileSync(
-    join(dirname(outPath), basename(outPath).replace(/\.\w+$/, '')+'.abi.cbor'),
-    Buffer.from(abiToCbor(ctx.abi))
-  )
-  fs.writeFileSync(
-    join(dirname(outPath), basename(outPath).replace(/\.\w+$/, '')+'.abi.json'),
-    abiToJson(ctx.abi, 2)
-  )
 }

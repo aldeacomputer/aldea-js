@@ -1,8 +1,12 @@
 import test from 'ava'
 import { ASTBuilder, NodeKind } from 'assemblyscript'
 import { mockProgram } from './support/mock-program.js'
-import { afterParse } from '../dist/transform.js'
+import Transform from '../dist/transform.js'
 import { isAmbient, isPrivate, isProtected } from '../dist/transform/filters.js'
+
+test.beforeEach(t => {
+  t.context.transform = new Transform()
+})
 
 test('afterParse() adds hook to constructors', async t => {
   const mock = await mockProgram(`
@@ -17,7 +21,7 @@ test('afterParse() adds hook to constructors', async t => {
   // Initially two statements in contructor
   t.is(mock.classes[0].members[1].body.statements.length, 2)
 
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.classes[0].members[1].body.statements.length, 3)
   t.is(
     ASTBuilder.build(mock.classes[0].members[1].body.statements[2]),
@@ -33,7 +37,7 @@ test('afterParse() adds constructor if not defined', async t => {
   // Initially one memeber in class
   t.is(mock.classes[0].members.length, 0)
 
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.classes[0].members.length, 1)
   t.is(
     ASTBuilder.build(mock.classes[0].members[0]),
@@ -60,7 +64,7 @@ test('afterParse() add proxy methods for public methods', async t => {
   // Initially three memebers in class
   t.is(mock.classes[0].members.length, 3)
 
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.classes[0].members.length, 4)
   // adds prefix to origin method name
   t.is(mock.classes[0].members[2].name.text, '_changeA')
@@ -91,7 +95,7 @@ test('afterParse() add proxy methods for private methods', async t => {
   // Initially four memebers in class
   t.is(mock.classes[0].members.length, 4)
 
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.classes[0].members.length, 6)
   // adds prefix to origin method name
   t.is(mock.classes[0].members[2].name.text, '_add')
@@ -116,7 +120,7 @@ test('afterParse() does not add proxy methods for static methods', async t => {
   }`)
 
   t.is(mock.classes[0].members.length, 2)
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.classes[0].members.length, 2)
 })
 
@@ -126,7 +130,7 @@ test('afterParse() adds exported constructors methods', async t => {
   }`)
 
   t.is(mock.functions.length, 0)
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.functions.length, 1)
   t.is(
     ASTBuilder.build(mock.functions[0]),
@@ -143,7 +147,7 @@ test('afterParse() adds exported static methods', async t => {
   }`)
 
   t.is(mock.functions.length, 0)
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.functions.length, 2)
   t.is(
     ASTBuilder.build(mock.functions[1]),
@@ -160,7 +164,7 @@ test('afterParse() adds exported public instance methods', async t => {
   }`)
 
   t.is(mock.functions.length, 0)
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.functions.length, 2)
   t.is(
     ASTBuilder.build(mock.functions[1]),
@@ -177,7 +181,7 @@ test('afterParse() does not add exported private instance methods', async t => {
   }`)
 
   t.is(mock.functions.length, 0)
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.functions.length, 1)
 })
 
@@ -192,7 +196,7 @@ test('afterParse() replaces imported ambient class with concrete implementation'
   t.is(mock.source.statements.length, 2)
   t.true(isAmbient(mock.classes[0].flags))
   
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   // after parse ambiant class is replaced with concrete implementation
   t.is(mock.source.statements.length, 2)
   t.false(isAmbient(mock.classes[0].flags))
@@ -212,7 +216,7 @@ test('afterParse() adds getters to all imported class properties', async t => {
   }
   `)
   
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(
     ASTBuilder.build(mock.classes[0].members[0]),
     'get a(): u32 {\n'+
@@ -232,7 +236,7 @@ test('afterParse() adds proxy methods to imported static and instance methods', 
   }
   `)
   
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(
     ASTBuilder.build(mock.classes[0].members[0]),
     'a(a0: u8): u8 {\n'+
@@ -256,7 +260,7 @@ test('afterParse() by default add no complex setters', async t => {
   export function test(t: u8): void {}
   `)
 
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.functions.length, 1)
 })
 
@@ -265,7 +269,7 @@ test('afterParse() adds Map setter if required', async t => {
   export function test(m: Map<string, string>): void {}
   `)
 
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.functions.length, 2)
   t.regex(
     ASTBuilder.build(mock.functions[1]),
@@ -278,7 +282,7 @@ test('afterParse() adds Set setter if required', async t => {
   export function test(m: Set<string>): void {}
   `)
 
-  afterParse(mock.parser)
+  t.context.transform.afterParse(mock.parser)
   t.is(mock.functions.length, 2)
   t.regex(
     ASTBuilder.build(mock.functions[1]),

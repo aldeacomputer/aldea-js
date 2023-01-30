@@ -28,8 +28,8 @@ declare module 'aldea/lock' {
 	    assertType(type: LockType): void;
 	    change(type: LockType, data?: ArrayBuffer): void;
 	    changeToAddressLock(pubkeyHash: ArrayBuffer): void;
-	    changeToCallerLock(): void;
-	    changeToAnyoneLock(): void;
+	    changeToJigLock(): void;
+	    changeToPublicLock(): void;
 	    getAddressOrFail(): ArrayBuffer;
 	    getOriginOrFail(): ArrayBuffer;
 	    unlock(): void;
