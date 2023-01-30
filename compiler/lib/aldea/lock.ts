@@ -59,11 +59,11 @@ export class Lock {
     this.change(LockType.ADDRESS, pubkeyHash)
   }
 
-  changeToCallerLock(): void {
+  changeToJigLock(): void {
     this.change(LockType.JIG)
   }
 
-  changeToAnyoneLock(): void {
+  changeToPublicLock(): void {
     this.change(LockType.PUBLIC)
   }
 
