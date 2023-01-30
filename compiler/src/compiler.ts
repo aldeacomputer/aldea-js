@@ -63,7 +63,7 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
       })
     },
     writeFile(filename, contents, baseDir) {
-      if (/^abi\.(cbor|json)$/.test(filename)) {
+      if (/^(abi|docs)\.(cbor|json)$/.test(filename)) {
         filename = outFile.replace(/wasm$/, filename)
       }
       fs.mkdirSync(resolve(baseDir, dirname(filename)), { recursive: true })
@@ -128,6 +128,7 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
     writeFile(filename, content) {
       if (filename === 'abi.json') { return }
       if (filename === 'abi.cbor') { filename = 'abi' }
+      if (filename === 'docs.cbor') { filename = 'docs' }
       // @ts-ignore
       output[filename] = content
     },

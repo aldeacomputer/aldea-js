@@ -13,6 +13,7 @@ import {
 import { abiToCbor, abiToJson } from './abi.js'
 import { CodeKind, MethodKind, MethodNode, TypeNode } from './abi/types.js'
 import { TransformCtx } from './transform/ctx.js'
+import { createDocs } from './transform/docs.js'
 import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './transform/nodes.js'
 import { isConstructor, isPrivate, isProtected } from './transform/filters.js'
 
@@ -119,6 +120,7 @@ export default class Transform {
     if (this.$ctx) {
       await write('abi.cbor', new Uint8Array(abiToCbor(this.$ctx.abi)))
       await write('abi.json', abiToJson(this.$ctx.abi, 2))
+      await write('docs.json', JSON.stringify(createDocs(this.$ctx), null, 2))
       log('»»» TRANSFORMED «««')
       log('*******************')
       this.$ctx.entries.forEach(entry => { log(ASTBuilder.build(entry)) })
