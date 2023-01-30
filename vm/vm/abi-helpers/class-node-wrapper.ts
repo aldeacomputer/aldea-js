@@ -1,5 +1,5 @@
 import {ClassNode, FieldKind, FieldNode, findMethod, MethodNode, TypeNode} from "@aldea/compiler/abi";
-import {lockTypeNode, outputTypeNode} from "./well-known-abi-nodes.js";
+import {JIG_TOP_CLASS_NAME, lockTypeNode, outputTypeNode} from "./well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-access.js";
 import {MethodNodeWrapper} from "./method-node-wrapper.js";
 
@@ -42,9 +42,9 @@ export class ClassNodeWrapper {
   allNativeFields (): FieldNode[] {
     let current: ClassNodeWrapper = this
     const fields: FieldNode[][] = []
-    while (current.extends !== 'Jig') {
+    while (current.extends !== JIG_TOP_CLASS_NAME) {
       fields.push(current.node.fields)
-      current = this.abi.classByName(current.extends, 'should exist') as ClassNodeWrapper
+      current = this.abi.classByName(current.extends) as ClassNodeWrapper
     }
     fields.push(current.node.fields)
     return fields.reverse().flat()
@@ -60,11 +60,11 @@ export class ClassNodeWrapper {
 
   methodByName (name: string): MethodNodeWrapper {
     const methodOrNull = findMethod(this.node, name)
-    if (!methodOrNull && this.extends === 'Jig') {
+    if (!methodOrNull && this.extends === JIG_TOP_CLASS_NAME) {
       throw new Error(`unknown method ${name} for class ${this.name}`)
     }
     if (!methodOrNull) {
-      const parent = this.abi.classByName(this.extends, `parent class ${this.extends} does not exist`)
+      const parent = this.abi.classByName(this.extends)
       return parent.methodByName(name)
     }
     return new MethodNodeWrapper(this, methodOrNull)

@@ -16,6 +16,7 @@ describe('JigRef', function () {
       1,
       wasm,
       new Pointer(new Uint8Array([0,0,0]), 0),
+      new Pointer(new Uint8Array([0,0,0]), 0),
       new PublicLock()
     )
 

@@ -8,13 +8,15 @@ export class JigRef  {
   classIdx: number;
   package: WasmInstance;
   origin: Pointer;
+  latestLocation: Pointer;
   lock: Lock;
 
-  constructor (ref: Internref, classIdx: number, module: WasmInstance, origin: Pointer, lock: Lock) {
+  constructor (ref: Internref, classIdx: number, module: WasmInstance, origin: Pointer, latestLocation: Pointer, lock: Lock) {
     this.ref = ref
     this.classIdx = classIdx
     this.package = module
     this.origin = origin
+    this.latestLocation = latestLocation
     this.lock = lock
   }
 
@@ -45,9 +47,13 @@ export class JigRef  {
   outputObject(): any {
     return {
       origin: this.origin.toBytes(),
-      location: this.origin.toBytes(),
-      classPtr: new Pointer(this.package.id, this.classIdx).toBytes()
+      location: this.latestLocation.toBytes(),
+      classPtr: this.classPtr().toBytes()
     }
+  }
+
+  classPtr(): Pointer {
+    return new Pointer(this.package.id, this.classIdx)
   }
 
   lockObject() {

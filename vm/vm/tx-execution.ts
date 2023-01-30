@@ -183,6 +183,14 @@ class TxExecution {
     return wasmInstance
   }
 
+  getLoadedModule (pkgId: string): WasmInstance {
+    const wasm = this.wasms.get(pkgId)
+    if (!wasm) {
+      throw new Error(`Package with id ${pkgId} was expected to be loaded but it's not.`)
+    }
+    return wasm
+  }
+
   findRemoteUtxoHandler (origin: ArrayBuffer): JigRef {
     const jigRef = this.jigs.find(j => Buffer.from(j.originBuf).equals(Buffer.from(origin)))
     if(!jigRef) { throw new Error('should exist')}
@@ -198,7 +206,7 @@ class TxExecution {
       existingRef.ref.name = className
       return
     }
-    const jigRef = new JigRef(new Internref(className, jigPtr), classIdx, source, origin, new NoLock())
+    const jigRef = new JigRef(new Internref(className, jigPtr), classIdx, source, origin, origin, new NoLock())
     this.addNewJigRef(jigRef)
   }
 
@@ -344,14 +352,7 @@ class TxExecution {
   findUtxoHandler(wasm: WasmInstance, jigPtr: number): JigRef {
     const jigRef = this.jigs.find(ref => ref.package === wasm && ref.ref.ptr === jigPtr)
     if (!jigRef) {
-      let origin = this.createNextOrigin();
-      return this.addNewJigRef(new JigRef(
-        new Internref('', jigPtr),
-        -1,
-        wasm,
-        origin,
-        new NoLock()
-      ))
+      throw new Error('jig ref should be present')
     }
     return jigRef
   }
@@ -459,7 +460,7 @@ class TxExecution {
     const module = this.loadModule(state.packageId)
     const ref = module.hidrate(state.classIdx, state)
     const lock = this.hidrateLock(state.serializedLock)
-    const jigRef = new JigRef(ref, state.classIdx, module, state.origin, lock)
+    const jigRef = new JigRef(ref, state.classIdx, module, state.origin, state.currentLocation, lock)
     this.addNewJigRef(jigRef)
     return jigRef
   }
@@ -598,6 +599,14 @@ class TxExecution {
   stackTop () {
     return this.stack[this.stack.length - 1]
   }
+
+  stackPreviousToTop (): null | Pointer {
+    if (this.stack.length < 2) {
+      return null
+    }
+    return this.stack[this.stack.length - 2]
+  }
+
 
   getStatementResult (index: number): StatementResult {
     const result = this.statementResults[index]

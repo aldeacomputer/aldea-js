@@ -1,5 +1,7 @@
 import {FieldKind, ImportNode, ObjectNode, TypeNode} from "@aldea/compiler/abi";
 
+export const arrayBufferTypeNode: TypeNode = {name: 'ArrayBuffer', args: []}
+
 export const outputAbiNode: ObjectNode = {
   name: 'Output',
   extends: null,
@@ -7,17 +9,17 @@ export const outputAbiNode: ObjectNode = {
     {
       kind: FieldKind.PUBLIC,
       name: 'origin',
-      type: {name: 'ArrayBuffer', args: []}
+      type: arrayBufferTypeNode
     },
     {
       kind: FieldKind.PUBLIC,
       name: 'location',
-      type: {name: 'ArrayBuffer', args: []}
+      type: arrayBufferTypeNode
     },
     {
       kind: FieldKind.PUBLIC,
       name: 'classPtr',
-      type: {name: 'ArrayBuffer', args: []}
+      type: arrayBufferTypeNode
     }
   ]
 }
@@ -29,26 +31,17 @@ export const jigInitParamsAbiNode: ObjectNode = {
     {
       kind: FieldKind.PUBLIC,
       name: 'origin',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
+      type: arrayBufferTypeNode
     },
     {
       kind: FieldKind.PUBLIC,
       name: 'location',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
+      type: arrayBufferTypeNode
     },
     {
       kind: FieldKind.PUBLIC,
       name: 'classPtr',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
+      type: arrayBufferTypeNode
     },
     {
       kind: FieldKind.PUBLIC,
@@ -61,10 +54,7 @@ export const jigInitParamsAbiNode: ObjectNode = {
     {
       kind: FieldKind.PUBLIC,
       name: 'lockData',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
+      type: arrayBufferTypeNode
     },
   ]
 }
@@ -76,10 +66,7 @@ export const lockAbiNode: ObjectNode = {
     {
       kind: FieldKind.PUBLIC,
       name: 'origin',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
+      type: arrayBufferTypeNode
     },
     {
       kind: FieldKind.PUBLIC,
@@ -92,10 +79,7 @@ export const lockAbiNode: ObjectNode = {
     {
       kind: FieldKind.PUBLIC,
       name: 'data',
-      type: {
-        name: 'ArrayBuffer',
-        args: []
-      }
+      type: arrayBufferTypeNode
     }
   ]
 }
@@ -116,3 +100,4 @@ export const jigNode: ImportNode = {
 
 export const outputTypeNode: TypeNode = { name: 'Output', args: [] }
 export const lockTypeNode: TypeNode = { name: 'Lock', args: [] }
+export const JIG_TOP_CLASS_NAME = 'Jig'

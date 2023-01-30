@@ -13,7 +13,7 @@ import {LiftJigStateVisitor} from "./abi-helpers/lift-jig-state-visitor.js";
 import {LowerJigStateVisitor} from "./abi-helpers/lower-jig-state-visitor.js";
 import {LowerArgumentVisitor} from "./abi-helpers/lower-argument-visitor.js";
 import {NoLock} from "./locks/no-lock.js";
-import {voidNode,} from "./abi-helpers/well-known-abi-nodes.js";
+import {arrayBufferTypeNode, outputTypeNode, voidNode,} from "./abi-helpers/well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
 
@@ -52,6 +52,7 @@ export function __encodeArgs (args: any[]): Uint8Array {
 }
 
 function __decodeArgs (data: Uint8Array): any[] {
+  if (data.length === 0) { return [] }
   return CBOR.decode(data.buffer, null, {mode: "sequence"}).data
 }
 
@@ -106,13 +107,14 @@ export class WasmInstance {
           if (!className) {
             throw new Error('should exist')
           }
-          const classNode = this.abi.classByName(className, 'should exist')
+          const classNode = this.abi.classByName(className)
           const classIdx = this.abi.exports.findIndex(node => node.code.name === classNode.name)
 
           this.currentExec.addNewJigRef(new JigRef(
             new Internref(className, jigPtr),
             classIdx,
             this,
+            nextOrigin,
             nextOrigin,
             new NoLock()
           ))
@@ -149,6 +151,7 @@ export class WasmInstance {
         vm_remote_call_f: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): number => {
           return 0
         },
+
         vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
           const targetOrigBuf = this.liftBuffer(targetOriginPtr)
           const propStr = this.liftString(propNamePtr)
@@ -172,6 +175,79 @@ export class WasmInstance {
           const argBuf = this.liftBuffer(argsPtr)
           const originBuf = this.liftBuffer(originPtr)
           this.currentExec.remoteLockHandler(Pointer.fromBytes(originBuf), type, argBuf)
+        },
+        vm_caller_typecheck: (rtid: number, exact: boolean): boolean => {
+          const type = this.abi.typeFromRtid(rtid)
+          const callerOrigin = this.currentExec.stackPreviousToTop()
+
+          if (!callerOrigin) {
+            return false
+          }
+
+          const callerRef = this.currentExec.getJigRefByOrigin(callerOrigin)
+
+          // check if it's an exported class
+          const exportedIndex = this.abi.findExportIndex(type.name)
+
+          // Case when exported and exact, check is exactly the class
+          if (exportedIndex > -1 && exact) {
+            return callerRef.classPtr().equals(new Pointer(this.id, exportedIndex))
+          }
+
+          // Case when exported and not exact, check inheritance chain
+          if (exportedIndex > -1 && !exact) {
+            // both classes belong to the same package. We check if caller is subclass of exportedIndex
+            return this.abi.isSubclassByIndex(callerRef.classIdx, exportedIndex)
+            // return callerRef.classPtr().equals(new Pointer(this.id, exportedIndex))
+          }
+
+
+          // check if imported class
+          const importedIndex = this.abi.findImportedIndex(type.name)
+          if (importedIndex === -1) {
+            return false
+          }
+          const imported = this.abi.importedByIndex(importedIndex)
+          const module = this.currentExec.getLoadedModule(imported.pkg)
+          const externalExportedIndex = module.abi.findExportIndex(type.name)
+          return callerRef.classPtr().equals(new Pointer(imported.pkg, externalExportedIndex))
+        },
+        vm_caller_outputcheck: (): boolean => {
+          const callerOrigin = this.currentExec.stackPreviousToTop()
+
+          return !!callerOrigin
+        },
+        vm_caller_output: (): WasmPointer => {
+          const callerOrigin = this.currentExec.stackPreviousToTop()
+          if (!callerOrigin) {
+            throw new ExecutionError('caller function executed from top level')
+          }
+          const callerJig = this.currentExec.findJigByOrigin(callerOrigin)
+          const outputObject = callerJig.outputObject();
+          return this.insertValue(outputObject, outputTypeNode)
+        },
+        vm_caller_output_val: (keyPtr: number): WasmPointer => {
+          const callerOrigin = this.currentExec.stackPreviousToTop()
+          if (!callerOrigin) {
+            throw new ExecutionError('caller function executed from top level')
+          }
+          const callerJig = this.currentExec.findJigByOrigin(callerOrigin)
+
+          const propName = this.liftString(keyPtr)
+          let buf
+          if (propName === 'origin') {
+            buf = callerJig.origin.toBytes()
+          } else
+          if (propName === 'location') {
+            buf = callerJig.latestLocation.toBytes()
+          } else
+          if (propName === 'class') {
+            buf = callerJig.classPtr().toBytes()
+          } else {
+            throw new Error(`umnown caller property: ${propName}`)
+          }
+
+          return this.insertValue(buf, arrayBufferTypeNode)
         }
       }
     }
@@ -202,7 +278,7 @@ export class WasmInstance {
 
   staticCall (className: string, methodName: string, args: any[]): WasmValue {
     const fnName = `${className}_${methodName}`
-    const abiObj = this.abi.classByName(className, `unknown class: ${className}`)
+    const abiObj = this.abi.classByName(className)
     const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
 
     const ptrs = method.args.map((argNode: ArgNode, i: number) => {
@@ -237,7 +313,7 @@ export class WasmInstance {
   }
 
   instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): WasmValue {
-    const classNode = this.abi.classByName(className, `unknown export: ${className}`)
+    const classNode = this.abi.classByName(className)
     const method = classNode.methodByName(methodName)
     const fnName = `${method.className()}$${method.name}`
 
