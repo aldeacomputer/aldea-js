@@ -307,7 +307,7 @@ describe('tx interaction', () => {
   it('can exec static methods', async () => {
     const tx = new TxBuilder()
       .import(modIdFor('flock'))
-      .exec(0, 0, 9, [10])
+      .exec(0, 0, 10, [10])
       .call(1, 1, [])
       .lock(1, userAddr)
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
