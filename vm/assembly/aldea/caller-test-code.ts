@@ -1,8 +1,11 @@
-import {Output} from "aldea/output";
 
 export class Receiver extends Jig {
   checkCallerType (): bool {
     return caller.is<RightCaller>()
+  }
+
+  checkCallerTypeStrict (): bool {
+    return caller.is<RightCaller>(true)
   }
 
   checkCallerDataConsistency (): bool {
@@ -62,6 +65,10 @@ export class RightCaller extends Jig {
     return target.checkCallerType()
   }
 
+  doTheCallExact (target: Receiver): bool {
+    return target.checkCallerTypeStrict()
+  }
+
   doIHaveOutput (target: Receiver): bool {
     return target.callerHasOutput()
   }
@@ -92,6 +99,8 @@ export class RightCaller extends Jig {
     return target.checkCallerDataConsistency()
   }
 }
+
+export class SubclassCaller extends RightCaller {}
 
 
 export class AnotherCaller extends Jig {

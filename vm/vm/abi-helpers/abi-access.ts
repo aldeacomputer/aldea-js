@@ -10,7 +10,7 @@ import {
   TypeNode
 } from "@aldea/compiler/abi";
 import {ClassNodeWrapper} from "./class-node-wrapper.js";
-import {jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "./well-known-abi-nodes.js";
+import {JIG_TOP_CLASS_NAME, jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "./well-known-abi-nodes.js";
 
 const classNotFound = (className: string): ClassNodeWrapper => {
   throw new Error(`Class with name "${className}" not found.`)
@@ -98,5 +98,20 @@ export class AbiAccess {
 
   importedByIndex(importedIndex: number): ImportNode {
     return this.abi.imports[importedIndex]
+  }
+
+  isSubclassByIndex(childClassIndex: number, parentClassIndex: number) {
+    let child = this.classByIndex(childClassIndex)
+    const parent = this.classByIndex(parentClassIndex)
+
+    // Need to travers inheritance chain until find parent or top class
+    while (child.name !== parent.name) {
+      if (child.extends === JIG_TOP_CLASS_NAME) {
+        return false
+      }
+      child = this.classByName(child.extends)
+    }
+
+    return true
   }
 }

@@ -100,3 +100,4 @@ export const jigNode: ImportNode = {
 
 export const outputTypeNode: TypeNode = { name: 'Output', args: [] }
 export const lockTypeNode: TypeNode = { name: 'Lock', args: [] }
+export const JIG_TOP_CLASS_NAME = 'Jig'

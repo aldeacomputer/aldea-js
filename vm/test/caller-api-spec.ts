@@ -53,49 +53,84 @@ describe('execute txs', () => {
 
 
   describe('#is<T>', function () {
-    it('returns true when the caller is the right caller', () => {
-      const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiate(modIdx, 'RightCaller', [])
-      const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
+    describe('when exact is true', function () {
+      it('returns true when the caller is the right caller', () => {
+        const exec = emptyExec()
+        const modIdx = exec.importModule(modIdFor('caller-test-code'))
+        const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
+        const senderIdx = exec.instantiate(modIdx, 'RightCaller', [])
+        const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+        expect(exec.getStatementResult(resultIdx).value).to.eql(true)
 
-      exec.lockJigToUser(receiverIdx, userAddr)
-      exec.lockJigToUser(senderIdx, userAddr)
-      exec.finalize()
-    })
+        exec.lockJigToUser(receiverIdx, userAddr)
+        exec.lockJigToUser(senderIdx, userAddr)
+        exec.finalize()
+      })
 
-    it('returns false when the caller is the right caller', () => {
-      const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiate(modIdx, 'AnotherCaller', [])
-      const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
+      it('returns false when the caller is the right caller', () => {
+        const exec = emptyExec()
+        const modIdx = exec.importModule(modIdFor('caller-test-code'))
+        const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
+        const senderIdx = exec.instantiate(modIdx, 'AnotherCaller', [])
+        const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(false)
+        expect(exec.getStatementResult(resultIdx).value).to.eql(false)
 
-      exec.lockJigToUser(receiverIdx, userAddr)
-      exec.lockJigToUser(senderIdx, userAddr)
-      exec.finalize()
-    })
+        exec.lockJigToUser(receiverIdx, userAddr)
+        exec.lockJigToUser(senderIdx, userAddr)
+        exec.finalize()
+      })
 
-    it('returns false when the caller is at top level', () => {
-      const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-      const resultIdx = exec.callInstanceMethodByIndex(receiverIdx, 'checkCallerType', [])
+      it('returns false when the caller is at top level', () => {
+        const exec = emptyExec()
+        const modIdx = exec.importModule(modIdFor('caller-test-code'))
+        const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
+        const resultIdx = exec.callInstanceMethodByIndex(receiverIdx, 'checkCallerType', [])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(false)
+        expect(exec.getStatementResult(resultIdx).value).to.eql(false)
 
-      exec.lockJigToUser(receiverIdx, userAddr)
-      exec.finalize()
-    })
+        exec.lockJigToUser(receiverIdx, userAddr)
+        exec.finalize()
+      })
 
-    // This case makes no sense with no interfaces
-    it.skip('returns true for when an external class is the right one', () => {
+      // This case makes no sense with no interfaces
+      it.skip('returns true for when an external class is the right one', () => {
 
+      })
+
+      it('returns false when called from subclass', () => {
+        const exec = emptyExec()
+        const modIdx = exec.importModule(modIdFor('caller-test-code'))
+        const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
+        const senderIdx = exec.instantiate(modIdx, 'SubclassCaller', [])
+        const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
+
+        expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+
+        exec.lockJigToUser(receiverIdx, userAddr)
+        exec.lockJigToUser(senderIdx, userAddr)
+        exec.finalize()
+      })
+    });
+
+
+    describe('when exact is false', () => {
+      it('true false when called from subclass', () => {
+        const exec = emptyExec()
+        const modIdx = exec.importModule(modIdFor('caller-test-code'))
+        const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
+        const senderIdx = exec.instantiate(modIdx, 'SubclassCaller', [])
+        const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
+
+        expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+
+        exec.lockJigToUser(receiverIdx, userAddr)
+        exec.lockJigToUser(senderIdx, userAddr)
+        exec.finalize()
+      })
+
+      it('should return true for subclasses of imported classes') // This again requires interfaces.
     })
   });
 

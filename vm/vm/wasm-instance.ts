@@ -188,9 +188,20 @@ export class WasmInstance {
 
           // check if it's an exported class
           const exportedIndex = this.abi.findExportIndex(type.name)
-          if (exportedIndex > -1) {
+
+          // Case when exported and exact, check is exactly the class
+          if (exportedIndex > -1 && exact) {
             return callerRef.classPtr().equals(new Pointer(this.id, exportedIndex))
           }
+
+          // Case when exported and not exact, check inheritance chain
+          if (exportedIndex > -1 && !exact) {
+            // both classes belong to the same package. We check if caller is subclass of exportedIndex
+            return this.abi.isSubclassByIndex(callerRef.classIdx, exportedIndex)
+            // return callerRef.classPtr().equals(new Pointer(this.id, exportedIndex))
+          }
+
+
           // check if imported class
           const importedIndex = this.abi.findImportedIndex(type.name)
           if (importedIndex === -1) {
