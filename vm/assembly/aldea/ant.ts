@@ -9,7 +9,7 @@ export class Ant extends Jig {
   }
 
   addChildren (ant: Ant): void {
-    ant.$lock.changeToCallerLock()
+    ant.$lock.changeToJigLock()
     this.children.push(ant)
   }
 

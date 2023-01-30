@@ -61,7 +61,7 @@ export class FlockBag extends Jig {
   }
 
   addFlock (aFlock: Flock): void {
-    aFlock.$lock.changeToCallerLock()
+    aFlock.$lock.changeToJigLock()
     this.flocks.push(aFlock)
   }
 

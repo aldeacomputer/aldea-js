@@ -42,13 +42,13 @@ export class Shepherd extends Jig {
   constructor (aFlock: Flock) {
     super()
     this.flock = aFlock
-    this.flock.$lock.changeToCallerLock()
+    this.flock.$lock.changeToJigLock()
   }
 
   replace (anotherFlock: Flock): Flock {
     if (this.flock.legCount() <= anotherFlock.legCount()) {
       const oldFlock = this.flock
-      anotherFlock.$lock.changeToCallerLock()
+      anotherFlock.$lock.changeToJigLock()
       oldFlock.$lock.unlock()
       this.flock = anotherFlock
       return oldFlock

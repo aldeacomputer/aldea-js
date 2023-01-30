@@ -27,7 +27,7 @@ export class Weapon extends Jig {
   }
 
   incorporate(powerUp: PowerUp): void {
-    powerUp.$lock.changeToCallerLock()
+    powerUp.$lock.changeToJigLock()
     this.powerUps.push(powerUp)
     this.power += powerUp.power
   }

@@ -46,7 +46,7 @@ export class Flock extends Jig {
   }
 
   add (aSheep: Sheep): void {
-    aSheep.$lock.changeToCallerLock()
+    aSheep.$lock.changeToJigLock()
     this.sheeps.push(aSheep)
     if (this.byColor.has(aSheep.color)) {
       const existing = this.byColor.get(aSheep.color)
