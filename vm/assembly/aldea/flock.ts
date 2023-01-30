@@ -14,6 +14,10 @@ export class Flock extends Jig {
     this.size = BasicMath.inc(this.size);
   }
 
+  groWithExternalFunction (): void {
+    this.size = fAddOne(this.size);
+  }
+
   growMany (amount: u32): void {
     this.size += amount;
   }
@@ -75,7 +79,11 @@ export class InternalFlockOperations extends Jig {
 }
 
 // @ts-ignore
-@imported('8a5916340ec86825f6e9bd0013271e9081a96d1d7d57865ef16c932cbb8c412c')
+@imported('a4fa4b025b480f2f3f40217716893e4e64bfa519330335b4347ee3d41743208d')
 declare class BasicMath extends Jig {
   static inc (n: u32): u32;
 }
+
+// @ts-ignore
+@imported('a4fa4b025b480f2f3f40217716893e4e64bfa519330335b4347ee3d41743208d')
+declare function fAddOne (n: u32): u32;

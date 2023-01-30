@@ -12,3 +12,7 @@ export class BasicMath extends Jig {
     return aNumber + anotherNumber
   }
 }
+
+export function fAddOne(n: u32): u32 {
+  return n + 1
+}
