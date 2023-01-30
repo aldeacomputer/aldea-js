@@ -490,6 +490,16 @@ describe('execute txs', () => {
     expect(exec.outputs).to.have.length(4)
   })
 
+  it('can call exported functions from inside jigs', () => {
+    const importIndex = exec.importModule(modIdFor('flock'))
+    const flockIndex = exec.instantiate(importIndex, 'Flock', [])
+    exec.callInstanceMethodByIndex(flockIndex, 'groWithExternalFunction', [])
+    exec.lockJigToUser(flockIndex, userAddr)
+    exec.finalize()
+
+    expect(exec.outputs[0].parsedState()[0]).eql(1)
+  })
+
   it('saves entire state for jigs using inheritance', () => {
     const importIndex = exec.importModule(modIdFor('sheep'))
     const sheepIndex = exec.instantiate(importIndex, 'MutantSheep', ['Wolverine', 'black'])
