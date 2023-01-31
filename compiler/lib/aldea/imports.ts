@@ -67,3 +67,6 @@ export declare function vm_caller_output(): Output;
 // @ts-ignore
 @external("vm", "vm_caller_output_val")
 export declare function vm_caller_output_val(key: string): ArrayBuffer;
+// @ts-ignore
+@external("vm", "vm_debug_str")
+export declare function vm_debug_str(msg: string): void;

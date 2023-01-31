@@ -6,6 +6,7 @@ export {
   vm_remote_call_s,
   vm_remote_call_f,
   vm_remote_prop,
+  vm_debug_str
 } from './aldea/imports'
 
 export { Jig, LocalJig, RemoteJig, JigInitParams } from './aldea/jig'
