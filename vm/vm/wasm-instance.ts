@@ -255,6 +255,10 @@ export class WasmInstance {
           }
 
           return this.insertValue(buf, arrayBufferTypeNode)
+        },
+        vm_debug_str: (strPtr: number): void => {
+          const msg = this.liftString(strPtr)
+          console.log(`debug [pkg=${base16.encode(this.id).slice(0, 6)}...]: ${msg}`)
         }
       }
     }
