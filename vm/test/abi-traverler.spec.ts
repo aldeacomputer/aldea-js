@@ -2,7 +2,6 @@ import {expect} from 'chai'
 import {AbiTraveler} from "../vm/abi-helpers/abi-traveler.js";
 import {
   ExportNode,
-  Abi,
   ClassNode,
   FieldKind,
   FieldNode,
@@ -10,8 +9,10 @@ import {
   TypeNode,
   CodeKind,
   ImportNode,
-  ObjectNode
+  ObjectNode,
+  InterfaceNode
 } from "@aldea/compiler/abi";
+import {AbiAccess} from "../vm/abi-helpers/abi-access.js";
 
 class TestAbiClassBuilder {
   fields: FieldNode[]
@@ -63,14 +64,14 @@ class TestAbiBuilder {
     this.objects = []
   }
 
-  build (): Abi {
-    return {
+  build (): AbiAccess {
+    return new AbiAccess({
       exports: this.exports,
       imports: this.imports,
       objects: this.objects,
       typeIds: [],
       version: 1
-    }
+    })
   }
 
   addExportedClass (clsName: string, fn: (b: TestAbiClassBuilder) => void): TestAbiBuilder {
@@ -109,10 +110,14 @@ class TestTraveller extends AbiTraveler<string> {
   classParts: string[]
   objectParts: string[]
 
-  constructor (abi: Abi) {
+  constructor (abi: AbiAccess) {
     super(abi)
     this.classParts = []
     this.objectParts = []
+  }
+
+  visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): string {
+    return "";
   }
 
   visitSmallNumberValue(typeName: string): string {

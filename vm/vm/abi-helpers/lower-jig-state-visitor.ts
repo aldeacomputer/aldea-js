@@ -1,7 +1,7 @@
-import {ClassNode, TypeNode} from "@aldea/compiler/abi";
+import {ClassNode, InterfaceNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {LowerValueVisitor} from "./lower-value-visitor.js";
-import {Pointer} from "@aldea/sdk-js";
+import {base16, Pointer} from "@aldea/sdk-js";
 
 export class LowerJigStateVisitor extends LowerValueVisitor {
   visitExportedClass (node: ClassNode, _type: TypeNode): WasmPointer {
@@ -13,14 +13,18 @@ export class LowerJigStateVisitor extends LowerValueVisitor {
   visitImportedClass(node: TypeNode, pkgId: string): WasmPointer {
     this.value = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(this.value))
     return super.visitImportedClass(node, pkgId)
-    // const val = this.value // it's an Uint8Array with the origin
-    // const mod = this.instance
-    // const buf = Buffer.from(val);
-    // const bufferPtr = lowerBuffer(mod, buf)
-    // const ptr = mod.__new(val.byteLength, mod.abi.typeIds[node.name]);
-    // const memU32 = new Uint32Array(mod.memory.buffer)
-    // memU32[ptr >>> 2] = bufferPtr
-    // return ptr
+  }
+
+  visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
+    const jig = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(this.value))
+    const className = jig.className();
+    const typenode = {name: className, args: [] };
+    if (jig.package === this.instance) {
+      const classNode = this.abi.classByName(className)
+      return this.visitExportedClass(classNode, typenode)
+    } else {
+      return this.visitImportedClass(typenode, base16.encode(jig.package.id))
+    }
   }
 
   lowerValue (value: any, type: TypeNode): WasmPointer {

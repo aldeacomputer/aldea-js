@@ -1,5 +1,5 @@
 import {AbiTraveler} from "./abi-traveler.js";
-import {Abi, ClassNode, FieldNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
+import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
 import {getElementBytes, getObjectMemLayout, getTypeBytes, getTypedArrayConstructor} from "../memory.js";
 import {WasmPointer} from "../arg-reader.js";
@@ -7,6 +7,8 @@ import {blake3} from "@noble/hashes/blake3";
 import {bytesToHex as toHex} from "@noble/hashes/utils";
 import {JigRef} from "../jig-ref.js";
 import {outputAbiNode} from "./well-known-abi-nodes.js";
+import {base16} from "@aldea/sdk-js";
+import {AbiAccess} from "./abi-access.js";
 
 const STRING_RTID = 1;
 const BUFFER_RTID = 0;
@@ -23,7 +25,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   instance: WasmInstance
   value: any
 
-  constructor(abi: Abi,inst: WasmInstance, value: any) {
+  constructor(abi: AbiAccess,inst: WasmInstance, value: any) {
     super(abi)
     this.instance = inst
     this.value = value
@@ -249,5 +251,17 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
 
   visitVoid(): WasmPointer {
     return 0
+  }
+
+  visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
+    const jig = this.value as JigRef
+    const className = jig.className();
+    const typenode = {name: className, args: [] };
+    if (jig.package === this.instance) {
+      const classNode = this.abi.classByName(className)
+      return this.visitExportedClass(classNode, typenode)
+    } else {
+      return this.visitImportedClass(typenode, base16.encode(jig.package.id))
+    }
   }
 }

@@ -1,5 +1,5 @@
 import {AbiTraveler} from "./abi-traveler.js";
-import {Abi, ClassNode, FieldNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
+import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmInstance} from "../wasm-instance.js";
 import {WasmPointer} from "../arg-reader.js";
 import {
@@ -11,13 +11,15 @@ import {
   liftBuffer
 } from "../memory.js";
 import {outputTypeNode} from "./well-known-abi-nodes.js";
+import {AbiAccess} from "./abi-access.js";
+import {base16} from "@aldea/sdk-js";
 
 
 export class LiftValueVisitor extends AbiTraveler<any> {
   instance: WasmInstance
   ptr: WasmPointer
 
-  constructor(abi: Abi, inst: WasmInstance, ptr: WasmPointer) {
+  constructor(abi: AbiAccess, inst: WasmInstance, ptr: WasmPointer) {
     super(abi)
     this.instance = inst
     this.ptr = ptr
@@ -142,6 +144,19 @@ export class LiftValueVisitor extends AbiTraveler<any> {
       return obj
     }, {})
   }
+
+  visitInterface(anInterface: InterfaceNode, _typeNode: TypeNode): any {
+    const jig = this.instance.currentExec.findJigByPtr(this.ptr, this.instance)
+    const className = jig.className()
+    const clsTypeNode = { name: className, args: [] }
+    if (jig.package === this.instance) {
+      const classNode = this.abi.classByName(className)
+      return this.visitExportedClass(classNode, clsTypeNode)
+    } else {
+      return this.visitImportedClass(clsTypeNode, base16.encode(jig.classPtr().idBuf))
+    }
+  }
+
 
   visitSet(innerType: TypeNode): any {
     const mod = this.instance

@@ -10,7 +10,7 @@ import {Lock} from "./locks/lock.js";
 import {Externref, Internref} from "./memory.js";
 import {ArgNode, ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
 import {Address, base16, InstructionRef, instructions, Pointer, Tx} from '@aldea/sdk-js';
-import {ArgReader, readType} from "./arg-reader.js";
+import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 
@@ -450,6 +450,14 @@ class TxExecution {
 
   findJigByRef (ref: Internref): JigRef {
     const existing = this.jigs.find(j => j.ref.equals(ref))
+    if (!existing) {
+      throw new Error('should exist')
+    }
+    return existing
+  }
+
+  findJigByPtr (ptr: WasmPointer, instance: WasmInstance): JigRef {
+    const existing = this.jigs.find(j => j.ref.ptr === ptr && j.package === instance)
     if (!existing) {
       throw new Error('should exist')
     }

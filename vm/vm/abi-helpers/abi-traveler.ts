@@ -1,19 +1,20 @@
 import {
-  Abi,
   ClassNode,
   CodeKind,
   findClass,
   findImport,
   findObject,
-  ImportNode,
+  ImportNode, InterfaceNode,
   ObjectNode,
-  TypeNode
+  TypeNode,
+  findInterface
 } from "@aldea/compiler/abi";
+import {AbiAccess} from "./abi-access.js";
 
 export abstract class AbiTraveler<T> {
-  abi: Abi
+  abi: AbiAccess
 
-  constructor(abi: Abi) {
+  constructor(abi: AbiAccess) {
     this.abi = abi
   }
 
@@ -38,6 +39,8 @@ export abstract class AbiTraveler<T> {
 
   abstract visitExportedClass(classNode: ClassNode, type: TypeNode): T;
   abstract visitPlainObject(objNode: ObjectNode, type: TypeNode): T;
+
+  abstract visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): T;
 
   travelFromType(typeNode: TypeNode): T {
     const typeName = typeNode.name
@@ -88,6 +91,7 @@ export abstract class AbiTraveler<T> {
         const exportClassNode = findClass(this.abi, typeName)
         const importClassNode = findImport(this.abi, typeName)
         const plainObjectNode = findObject(this.abi, typeName)
+        const anInterface = findInterface(this.abi, typeName)
 
         if (exportClassNode) {
           return this.visitExportedClass(exportClassNode, typeNode)
@@ -98,9 +102,13 @@ export abstract class AbiTraveler<T> {
         } else
         if (plainObjectNode) {
           return this.visitPlainObject(plainObjectNode, typeNode)
+        } else
+        if (anInterface) {
+          return this.visitInterface(anInterface, typeNode)
         } else {
           break
         }
+
     }
     throw new Error(`unknown type: ${typeName}`)
   }
