@@ -35,9 +35,12 @@ export class Lock {
 
   assertType(type: LockType): void {
     if (this.type !== type) {
-      const expected = LockType[type]
-      const actual = LockType[this.type]
-      throw new Error(`expected lock type: ${expected}, was: ${actual}`)
+      // TODO needs fixing = enums cant be used like this in TS
+      //const expected = LockType[type]
+      //const actual = LockType[this.type]
+      const expected = type
+      const actual = this.type
+      throw new Error(`expected lock type: ${expected.toString()}, was: ${actual.toString()}`)
     }
   }
 
