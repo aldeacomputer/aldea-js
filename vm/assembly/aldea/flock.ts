@@ -42,6 +42,10 @@ export class Flock extends Jig {
     return this.$output.origin
   }
 
+  returnLockAddres (): ArrayBuffer {
+    return this.$lock.getAddressOrFail()
+  }
+
   static createWithSize(n: u32): Flock {
     const aFlock = new Flock();
     while (n > 0) {

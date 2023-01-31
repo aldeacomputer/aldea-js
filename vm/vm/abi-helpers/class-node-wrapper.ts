@@ -69,4 +69,12 @@ export class ClassNodeWrapper {
     }
     return new MethodNodeWrapper(this, methodOrNull)
   }
+
+  fieldByName(fieldName: string) {
+    const fieldNode = this.fields.find(f => f.name === fieldName)
+    if (!fieldNode) {
+      throw new Error(`${fieldNode} was not found`)
+    }
+    return fieldNode
+  }
 }

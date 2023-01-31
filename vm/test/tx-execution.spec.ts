@@ -5,10 +5,12 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
-import {base16, Pointer, PrivKey, ref, Tx} from "@aldea/sdk-js";
+import {base16, Pointer, PrivKey, ref, Tx, instructions} from "@aldea/sdk-js";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
 import {LockType} from "../vm/wasm-instance.js";
 import {TxBuilder} from "./tx-builder.js";
+
+const { SignInstruction } = instructions
 
 describe('execute txs', () => {
   let storage: Storage
@@ -561,6 +563,21 @@ describe('execute txs', () => {
     exec.lockJigToUser(eaterIndex, userAddr)
     exec.finalize()
     storage.persist(exec)
+  })
+
+  it('keeps locking state up to date after lock', () => {
+    exec.tx.push(new SignInstruction(exec.tx.createSignature(userPriv), userPub.toBytes()))
+    const importIdx = exec.importModule(modIdFor('flock'))
+    const flockIdx = exec.instantiate(importIdx, 'Flock', [])
+
+    exec.lockJigToUser(flockIdx, userAddr)
+    const resIdx = exec.callInstanceMethodByIndex(flockIdx, 'returnLockAddres', [])
+    const res = exec.getStatementResult(resIdx).value
+
+    expect(res).to.eql(userAddr.hash)
+
+    exec.lockJigToUser(flockIdx, userAddr)
+    exec.finalize()
   })
 
   it('can create jigs inside jigs')

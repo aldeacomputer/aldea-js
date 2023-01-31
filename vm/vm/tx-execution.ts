@@ -627,7 +627,7 @@ class TxExecution {
     if (!jigRef.lock.canBeChangedBy(this)) {
       throw new PermissionError(`no permission to remove lock from jig ${jigRef.origin}`)
     }
-    jigRef.close(new UserLock(address))
+    jigRef.changeLock(new UserLock(address))
     this.affectedJigs.add(jigRef)
     this.statementResults.push(this.getStatementResult(jigIndex))
   }
