@@ -60,8 +60,8 @@ describe('Jig Type', () => {
     exec.finalize()
 
     const flockOutput = exec.outputs[0]
-    const parsed = exec.outputs[1].objectState(exec.getImportedModule(jigBearerModuleIndex))
-    expect(parsed.jigProperty.originBuf).to.eql(flockOutput.origin.toBytes())
+    const parsed = exec.outputs[1].parsedState()
+    expect(parsed[0]).to.eql(flockOutput.origin.toBytes())
   })
 
   it('can make calls on methods returning jig typed parameters', () => {
@@ -71,8 +71,8 @@ describe('Jig Type', () => {
     exec.lockJigToUser(flockIndex, userAddr)
     exec.finalize()
 
-    const parsed = exec.outputs[1].objectState(exec.getImportedModule(jigBearerModuleIndex))
-    expect(parsed.jigProperty.originBuf).to.eql(returnedJig.origin.toBytes())
+    const parsed = exec.outputs[1].parsedState()
+    expect(parsed[0]).to.eql(returnedJig.origin.toBytes())
   })
 
   it('can make calls on jigs sending jig typed parameters', () => {
@@ -89,9 +89,9 @@ describe('Jig Type', () => {
 
     const flockOutput = exec.outputs[0]
     const anotherFlockOutput = exec.outputs[1]
-    const parsed = exec.outputs[2].objectState(exec.getImportedModule(jigBearerModuleIndex))
-    expect(parsed.jigProperty.originBuf).to.not.eql(flockOutput.origin.toBytes()) // Remove
-    expect(parsed.jigProperty.originBuf).to.eql(anotherFlockOutput.origin.toBytes())
+    const parsed = exec.outputs[2].parsedState()
+    expect(parsed[0]).to.not.eql(flockOutput.origin.toBytes()) // Remove
+    expect(parsed[0]).to.eql(anotherFlockOutput.origin.toBytes())
   })
 
   it('can restore jigs that contain jigs of the same package', () => {
@@ -99,8 +99,6 @@ describe('Jig Type', () => {
     exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
     exec.finalize()
-
-    const parsed = exec.outputs[1].objectState(exec.getImportedModule(jigBearerModuleIndex))
 
     storage.persist(exec)
 
@@ -128,8 +126,6 @@ describe('Jig Type', () => {
     exec.lockJigToUser(flockIndex, userAddr)
     exec.finalize()
 
-    const parsed = exec.outputs[1].objectState(exec.getImportedModule(jigBearerModuleIndex))
-
     storage.persist(exec)
 
     const tx2 = new TxBuilder()
@@ -149,6 +145,4 @@ describe('Jig Type', () => {
     const parsedJigBearer = exec2.outputs[1].parsedState()
     expect(parsedJigBearer[0].name).to.eql('Flock')
   })
-
-
 })

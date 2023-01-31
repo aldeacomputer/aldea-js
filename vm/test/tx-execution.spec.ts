@@ -33,6 +33,7 @@ describe('execute txs', () => {
     const sources = [
       'ant',
       'basic-math',
+      'coin-eater',
       'flock',
       'forever-counter',
       'nft',
@@ -549,6 +550,17 @@ describe('execute txs', () => {
     expect(state[1]).to.eql('black') // 3 base class + 1 concrete class
     expect(state[2]).to.eql(6) // 3 base class + 1 concrete class
     expect(state[3]).to.eql(10) // 3 base class + 1 concrete class
+  })
+
+  it('coin eater', () => {
+    const coin = vm.mint(userAddr, 1000)
+    const importIndex = exec.importModule(modIdFor('coin-eater'))
+    const coinIndex = exec.loadJigByOutputId(coin.id())
+    const eaterIndex = exec.instantiate(importIndex, 'CoinEater', [ref(coinIndex)])
+    // exec.callInstanceMethodByIndex(eaterIndex, 'chopOneLeg', [])
+    exec.lockJigToUser(eaterIndex, userAddr)
+    exec.finalize()
+    storage.persist(exec)
   })
 
   it('can create jigs inside jigs')

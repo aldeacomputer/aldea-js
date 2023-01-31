@@ -11,7 +11,13 @@ import {
   findFunction
 } from "@aldea/compiler/abi";
 import {ClassNodeWrapper} from "./class-node-wrapper.js";
-import {JIG_TOP_CLASS_NAME, jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "./well-known-abi-nodes.js";
+import {
+  coinNode,
+  JIG_TOP_CLASS_NAME,
+  jigInitParamsAbiNode, jigNode,
+  lockAbiNode,
+  outputAbiNode
+} from "./well-known-abi-nodes.js";
 
 const classNotFound = (className: string): ClassNodeWrapper => {
   throw new Error(`Class with name "${className}" not found.`)
@@ -44,7 +50,7 @@ export class AbiAccess {
   }
 
   get imports(): ImportNode[] {
-    return this.abi.imports
+    return [...this.abi.imports, coinNode, jigNode]
   }
 
   get objects(): ObjectNode[] {
