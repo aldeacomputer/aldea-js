@@ -125,9 +125,9 @@ export class WasmInstance {
           const fnName = this.liftString(fnNamePtr)
           this.currentExec.localCallStartHandler(this, jigPtr, fnName)
         },
-        vm_jig_authcheck: (originPtr: number, check: AuthCheck) => {
-          const origin = this.liftBuffer(originPtr)
-          return this.currentExec.remoteAuthCheckHandler(Pointer.fromBytes(origin), check)
+        vm_jig_authcheck: (callerOriginPtr: number, check: AuthCheck) => {
+          const callerOrigin = this.liftBuffer(callerOriginPtr)
+          return this.currentExec.remoteAuthCheckHandler(Pointer.fromBytes(callerOrigin), check)
         },
         vm_local_call_end: () => {
           this.currentExec.localCallEndtHandler()
