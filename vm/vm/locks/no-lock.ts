@@ -2,6 +2,7 @@ import { ExecutionError } from '../errors.js'
 import {Lock} from "./lock.js";
 import {TxExecution} from "../tx-execution.js";
 import {LockType} from "../wasm-instance.js";
+import {Pointer} from "@aldea/sdk-js";
 
 export class NoLock implements Lock {
   constructor () {}
@@ -28,5 +29,9 @@ export class NoLock implements Lock {
 
   data(): Uint8Array {
     return new Uint8Array(0);
+  }
+
+  acceptsChangeFrom(_callerOrigin: Pointer, _context: TxExecution): boolean {
+    return true;
   }
 }

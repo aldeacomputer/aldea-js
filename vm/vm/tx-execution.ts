@@ -337,15 +337,15 @@ class TxExecution {
   }
 
 
-  remoteAuthCheckHandler (origin: Pointer, check: AuthCheck): boolean {
-    const jigRef = this.jigs.find(jigR => jigR.origin.equals(origin))
+  remoteAuthCheckHandler (callerOrigin: Pointer, check: AuthCheck): boolean {
+    const jigRef = this.jigs.find(jigR => jigR.origin.equals(callerOrigin))
     if (!jigRef) {
       throw new Error('jig ref should exists')
     }
     if (check === AuthCheck.CALL) {
       return jigRef.lock.acceptsExecution(this)
     } else {
-      return jigRef.lock instanceof NoLock
+      return jigRef.lock.acceptsChangeFrom(callerOrigin, this)
     }
   }
 

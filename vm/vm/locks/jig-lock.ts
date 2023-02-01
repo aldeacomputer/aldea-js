@@ -36,4 +36,8 @@ export class JigLock implements Lock {
   data(): Uint8Array {
     return this.origin.toBytes();
   }
+
+  acceptsChangeFrom(callerOrigin: Pointer, context: TxExecution): boolean {
+    return this.acceptsExecution(context);
+  }
 }

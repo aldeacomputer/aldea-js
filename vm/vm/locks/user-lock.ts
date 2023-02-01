@@ -1,6 +1,6 @@
 import { Lock } from './lock.js'
 import {TxExecution} from "../tx-execution.js";
-import {Address} from '@aldea/sdk-js';
+import {Address, Pointer} from '@aldea/sdk-js';
 import {LockType} from "../wasm-instance.js";
 
 export class UserLock implements Lock {
@@ -35,5 +35,9 @@ export class UserLock implements Lock {
 
   data(): Uint8Array {
     return this.addr.hash
+  }
+
+  acceptsChangeFrom(_callerOrigin: Pointer, context: TxExecution): boolean {
+    return this.acceptsExecution(context);
   }
 }
