@@ -12,7 +12,7 @@ import {
 } from '../dist/aldea.bundle.mjs'
 
 test('Builds a tx with every opcode and encodes/decodes consistently', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/package/a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701/abi.json', { file: 'test/mocks/txb.pkg.json', format: 'string' })
     mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
@@ -117,7 +117,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
 })
 
 test('Aldea.commitTx() returns a created TX object', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.post('http://localhost/tx', { file: 'test/mocks/tx.post.json', format: 'string' })
   })
@@ -130,7 +130,7 @@ test('Aldea.commitTx() returns a created TX object', async t => {
 })
 
 test('Aldea.commitTx() throws error with bad Tx', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.post('http://localhost/tx', { file: 'test/mocks/tx.400.json', format: 'string', status: 400 })
   })
@@ -142,7 +142,7 @@ test('Aldea.commitTx() throws error with bad Tx', async t => {
 })
 
 test('Aldea.getTx() returns a TX object if exists', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/tx/b010448235a7b4ab082435b9c497ba38e8b85e5c0717b91b5b3ae9c1e10b7551', { file: 'test/mocks/tx.get.json' })
   })
@@ -154,7 +154,7 @@ test('Aldea.getTx() returns a TX object if exists', async t => {
 })
 
 test('Aldea.getTx() throws error if notfound', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/tx/xxx', { file: 'test/mocks/tx.404.json', format: 'string', status: 404 })
   })
@@ -165,7 +165,7 @@ test('Aldea.getTx() throws error if notfound', async t => {
 })
 
 test('Aldea.getRawTx() returns a TX binary if exists', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/rawtx/b010448235a7b4ab082435b9c497ba38e8b85e5c0717b91b5b3ae9c1e10b7551', { file: 'test/mocks/tx.get.raw' })
   })
@@ -174,7 +174,7 @@ test('Aldea.getRawTx() returns a TX binary if exists', async t => {
 })
 
 test('Aldea.getRawTx() throws error if notfound', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/rawtx/xxx', { file: 'test/mocks/tx.404.json', format: 'string', status: 404 })
   })
@@ -185,7 +185,7 @@ test('Aldea.getRawTx() throws error if notfound', async t => {
 })
 
 test('Aldea.getOutput() returns an Output json object if exists', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/output/1f283ad569e6ddc4b0ba9b18f70692d14183a0bfd9d3d14f20c4e366b453bb7f', { file: 'test/mocks/output.get.json', format: 'string' })
   })
@@ -199,7 +199,7 @@ test('Aldea.getOutput() returns an Output json object if exists', async t => {
 })
 
 test('Aldea.getOutput() throws error if notfound', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/output/0000', { file: 'test/mocks/output.404.json', format: 'string', status: 404 })
   })
@@ -210,7 +210,7 @@ test('Aldea.getOutput() throws error if notfound', async t => {
 })
 
 test('Aldea.getOutputByOrigin() returns an Output json object if exists', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/output-by-origin/1f283ad569e6ddc4b0ba9b18f70692d14183a0bfd9d3d14f20c4e366b453bb7f', { file: 'test/mocks/output.get.json', format: 'string' })
   })
@@ -224,7 +224,7 @@ test('Aldea.getOutputByOrigin() returns an Output json object if exists', async 
 })
 
 test('Aldea.getOutputByOrigin() throws error if invalid pointer', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/output-by-origin/0000_0', { file: 'test/mocks/output.400.json', format: 'string', status: 400 })
   })
@@ -235,7 +235,7 @@ test('Aldea.getOutputByOrigin() throws error if invalid pointer', async t => {
 })
 
 test('Aldea.getPackageAbi() returns an ABI json object if exists', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/package/c39c3547d5882c2a1b2bdd2e692fe528a3ab907028e322616671961c0461f798/abi.json', { file: 'test/mocks/pkg.get.json', format: 'string' })
   })
@@ -248,7 +248,7 @@ test('Aldea.getPackageAbi() returns an ABI json object if exists', async t => {
 })
 
 test('Aldea.getPackageAbi() throws error if notfound', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/package/0000/abi.json', { file: 'test/mocks/pkg.404.json', format: 'string', status: 404 })
   })
@@ -259,7 +259,7 @@ test('Aldea.getPackageAbi() throws error if notfound', async t => {
 })
 
 test('Aldea.getPackageSrc() returns an ABI json object if exists', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/package/c39c3547d5882c2a1b2bdd2e692fe528a3ab907028e322616671961c0461f798/source', { file: 'test/mocks/pkg.get.cbor' })
   })
@@ -270,7 +270,7 @@ test('Aldea.getPackageSrc() returns an ABI json object if exists', async t => {
 })
 
 test('Aldea.getPackageSrc() throws error if notfound', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/package/0000/source', { file: 'test/mocks/pkg.404.json', status: 404 })
   })
@@ -281,7 +281,7 @@ test('Aldea.getPackageSrc() throws error if notfound', async t => {
 })
 
 test('Aldea.getPackageWasm() returns an ABI json object if exists', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/package/c39c3547d5882c2a1b2bdd2e692fe528a3ab907028e322616671961c0461f798/wasm', { file: 'test/mocks/pkg.get.wasm' })
   })
@@ -290,7 +290,7 @@ test('Aldea.getPackageWasm() returns an ABI json object if exists', async t => {
 })
 
 test('Aldea.getPackageWasm() throws error if notfound', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/package/0000/wasm', { file: 'test/mocks/pkg.404.json', status: 404 })
   })
@@ -301,7 +301,7 @@ test('Aldea.getPackageWasm() throws error if notfound', async t => {
 })
 
 test('Aldea.loadOutput() returns an Output json object if exists', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/output/1f283ad569e6ddc4b0ba9b18f70692d14183a0bfd9d3d14f20c4e366b453bb7f', { file: 'test/mocks/output.get.json', format: 'string' })
     mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
@@ -313,7 +313,7 @@ test('Aldea.loadOutput() returns an Output json object if exists', async t => {
 })
 
 test('Aldea.loadOutputByOrigin() returns an Output json object if exists', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/output-by-origin/b010448235a7b4ab082435b9c497ba38e8b85e5c0717b91b5b3ae9c1e10b7551_1', { file: 'test/mocks/output.get.json', format: 'string' })
     mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
@@ -325,7 +325,7 @@ test('Aldea.loadOutputByOrigin() returns an Output json object if exists', async
 })
 
 test('Aldea.loadOutput() throws error if notfound', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/output/0000', { file: 'test/mocks/output.404.json', format: 'string', status: 404 })
   })
@@ -336,7 +336,7 @@ test('Aldea.loadOutput() throws error if notfound', async t => {
 })
 
 test('Aldea.loadOutput() throws error if invalid ID', async t => {
-  const aldea = new Aldea('localhost')
+  const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/output/ff283ad569e6ddc4b0ba9b18f70600d14183a0bfd9d3d14f20c4e366b453bbee', { file: 'test/mocks/output.invalid.json', format: 'string' })
     mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })

@@ -42,7 +42,7 @@ esbuild.build({
 esbuild.build({
   entryPoints: ['src/index.ts'],
   outfile: 'dist/aldea.bundle.min.js',
-  globalName: 'aldea',
+  globalName: 'aldeaJS',
   bundle: true,
   format: 'iife',
   platform: 'browser',
