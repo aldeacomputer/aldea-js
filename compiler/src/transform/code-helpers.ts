@@ -110,9 +110,10 @@ export function writeRemoteProxyInterfaceImpl(obj: InterfaceWrap, members: strin
  * Writes a getter on a proxy class. Returns the result of `vm_remote_prop`.
  */
 export function writeRemoteProxyGetter(field: FieldWrap, obj: ClassWrap | InterfaceWrap): string {
+  const type = normalizeTypeName(field.type)
   return `
-  get ${field.name}(): ${field.type.name} {
-    return vm_remote_prop<${field.type.name}>(this.$output.origin, '${field.name}')
+  get ${field.name}(): ${type} {
+    return vm_remote_prop<${type}>(this.$output.origin, '${field.name}')
   }
   `.trim()
 }
@@ -124,8 +125,8 @@ export function writeRemoteProxyMethod(method: MethodWrap, obj: ClassWrap | Inte
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
   const isStatic = method.kind === MethodKind.STATIC
-  const args = method.args.map((f, i) => `a${i}: ${f.type.name}`)
-  const rtype = isConstructor ? 'JigInitParams' : method.rtype?.name
+  const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
+  const rtype = isConstructor ? 'JigInitParams' : normalizeTypeName(method.rtype)
   const callable = isInstance ?
     `vm_remote_call_i<${rtype}>(this.$output.origin, '${method.name}', args.buffer)` :
     `vm_remote_call_s<${rtype}>('${pkgId}', '${obj.name}_${method.name}', args.buffer)` ;
@@ -152,8 +153,8 @@ export function writeRemoteProxyMethod(method: MethodWrap, obj: ClassWrap | Inte
  * Writes a method on a proxy class.
  */
 export function writeRemoteProxyInstMethod(method: MethodWrap, obj: ClassWrap | InterfaceWrap): string {
-  const args = method.args.map((f, i) => `a${i}: ${f.type.name}`)
-  const rtype = method.rtype?.name
+  const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
+  const rtype = normalizeTypeName(method.rtype)
 
   return `
   ${method.name}(${args.join(', ')}): ${rtype} {
