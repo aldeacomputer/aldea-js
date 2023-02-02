@@ -115,7 +115,7 @@ declare module 'aldea/coin' {
 	export class Coin extends RemoteJig {
 	    constructor();
 	    get motos(): u64;
-	    send(motos: u64, to: ArrayBuffer): Coin;
+	    send(motos: u64): Coin;
 	    combine(coins: Coin[]): Coin;
 	}
 
@@ -254,7 +254,7 @@ declare class Jig {
 /** Built in Coin remote jig */
 declare class Coin extends Jig {
   get motos(): u64;
-  send(motos: u64, pubkeyHash: ArrayBuffer): Coin;
+  send(motos: u64): Coin;
   combine(coins: Coin[]): Coin;
 }
 

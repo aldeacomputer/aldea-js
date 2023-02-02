@@ -6,13 +6,13 @@ export class Coin extends Jig {
     this.motos = amount
   }
 
-  send (amount: u64, newOwner: ArrayBuffer): Coin {
+  send (amount: u64,): Coin {
     if(this.motos < amount){
       throw new Error('not enough coins')
     }
     this.motos -= amount
     const newCoin = new Coin(amount)
-    newCoin.$lock.changeToAddressLock(newOwner)
+    newCoin.$lock.unlock()
     return newCoin
   }
 

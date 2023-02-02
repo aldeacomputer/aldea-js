@@ -37,7 +37,7 @@ describe('Coin', () => {
         .load(coin.id())
         .sign(userPriv)
         .call(0, sendMethodIndex, [sentAmount, otherUserAddr.hash])
-        .lock(0, userAddr)
+        .lock(2, userAddr)
         .fund(0)
         .build()
 

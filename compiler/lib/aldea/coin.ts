@@ -21,10 +21,9 @@ export class Coin extends RemoteJig {
     )
   }
 
-  send(motos: u64, to: ArrayBuffer): Coin {
+  send(motos: u64): Coin {
     const args = new ArgWriter(12)
     args.writeU64(motos)
-    args.writeU32(changetype<usize>(to))
 
     return vm_remote_call_i<Coin>(
       this.$output.origin,

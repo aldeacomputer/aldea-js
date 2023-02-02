@@ -628,6 +628,7 @@ class TxExecution {
       throw new PermissionError(`no permission to remove lock from jig ${jigRef.origin}`)
     }
     jigRef.changeLock(new UserLock(address))
+    jigRef.writeField('$lock', {origin: jigRef.origin.toBytes(), ...jigRef.lock.serialize()})
     this.affectedJigs.add(jigRef)
     this.statementResults.push(this.getStatementResult(jigIndex))
   }
