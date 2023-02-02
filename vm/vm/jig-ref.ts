@@ -26,7 +26,6 @@ export class JigRef  {
 
   changeLock (newLock: Lock) {
     this.lock = newLock
-    // this.writeField('$lock', {origin: this.origin.toBytes(), ...this.lock.serialize()})
   }
 
   className(): string {
