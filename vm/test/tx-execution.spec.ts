@@ -580,6 +580,22 @@ describe('execute txs', () => {
     exec.finalize()
   })
 
+  it('receives right amount from properties of foreign jigs', () => {
+    const flockPkgIdx = exec.importModule(modIdFor('flock'))
+    const sheepCountPkgIdx = exec.importModule(modIdFor('sheep-counter'))
+    const flockIdx = exec.instantiate(flockPkgIdx, 'Flock', [])
+    exec.callInstanceMethodByIndex(flockIdx, 'grow', [])
+    exec.callInstanceMethodByIndex(flockIdx, 'grow', [])
+    exec.callInstanceMethodByIndex(flockIdx, 'grow', [])
+    const counterIdx = exec.instantiate(sheepCountPkgIdx, 'Shepherd', [ref(flockIdx)])
+    const methodIdx = exec.callInstanceMethodByIndex(counterIdx, 'sheepCount', [])
+    const method2Idx = exec.callInstanceMethodByIndex(counterIdx, 'flockIdentifier', [])
+    const value = exec.getStatementResult(methodIdx).value
+    const value2 = exec.getStatementResult(method2Idx).value
+    expect(value).to.eql(3)
+    expect(value2).to.eql('numero11')
+  })
+
   it('can create jigs inside jigs')
   it('can save numbers inside statement result')
   it('can save strings inside statement result')

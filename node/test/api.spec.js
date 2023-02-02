@@ -12,7 +12,7 @@ const {
   SignInstruction
 } = instructions
 
-const FLOCK_PKG_ID = '486ecf1c64c2898e45a4a3823656aa9bd260e0f0202f195b0e18ca21f2efbfcd'
+const FLOCK_PKG_ID = '62ce8314290272856f81b04723d1abdaec9dea253636e64e11c728d963a57144'
 
 describe('api', () => {
   let app
@@ -226,7 +226,7 @@ describe('api', () => {
           .expect('Content-Type', /application\/json/)
           .expect(200)
 
-        expect(response.body).to.eql({ state: { size: 0 } })
+        expect(response.body).to.eql({ state: { size: 0, identifier: 'numero11' } })
       })
 
       it('fails when output does not exists', async () => {

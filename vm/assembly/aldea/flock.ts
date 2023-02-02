@@ -1,9 +1,11 @@
 export class Flock extends Jig {
   size: u32;
+  identifier: string;
 
   constructor() {
     super();
     this.size = 0;
+    this.identifier = 'numero11'
   }
 
   grow (): void {

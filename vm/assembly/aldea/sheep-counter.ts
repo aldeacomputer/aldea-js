@@ -70,6 +70,10 @@ export class Shepherd extends Jig {
     return this.flock.size
   }
 
+  flockIdentifier (): string {
+    return this.flock.identifier
+  }
+
   growFlockUsingInternalTools (): void {
     InternalFlockOperations.growFlock(this.flock)
   }
@@ -105,16 +109,17 @@ export function buildSomeSheepCounter (): SheepCounter {
 
 
 // @ts-ignore
-@imported('486ecf1c64c2898e45a4a3823656aa9bd260e0f0202f195b0e18ca21f2efbfcd')
+@imported('62ce8314290272856f81b04723d1abdaec9dea253636e64e11c728d963a57144')
 declare class Flock extends Jig {
   constructor();
   size: u32;
+  identifier: string;
   legCount (): u32;
   grow (): void;
 }
 
 // @ts-ignore
-@imported('486ecf1c64c2898e45a4a3823656aa9bd260e0f0202f195b0e18ca21f2efbfcd')
+@imported('62ce8314290272856f81b04723d1abdaec9dea253636e64e11c728d963a57144')
 declare class InternalFlockOperations extends Jig {
   static growFlock (aFlock: Flock): void
 }

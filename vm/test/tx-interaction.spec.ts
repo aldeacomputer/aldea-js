@@ -329,7 +329,7 @@ describe('tx interaction', () => {
       .import(modIdFor('flock'))
       .import(modIdFor('sheep-counter'))
       .new(0, 0, [])
-      .exec(1, 1, 9, [ref(2)])
+      .exec(1, 1, 10, [ref(2)])
       .lock(2, userAddr)
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()

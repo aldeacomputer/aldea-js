@@ -355,14 +355,8 @@ export class WasmInstance {
     const offsets = getObjectMemLayout(classNode)
     const { offset, align } = offsets[field.name]
     const TypedArray = getTypedArrayConstructor(field.type)
-    const val = new TypedArray(this.memory.buffer)[ref.ptr + offset >>> align]
-
-    return {
-      mod: this,
-      value: val,
-      node: field.type
-    }
-    // return liftValue(this, field.type, val)
+    const ptr = new TypedArray(this.memory.buffer)[ref.ptr + offset >>> align]
+    return this.extractValue(ptr, field.type)
   }
 
   /**
