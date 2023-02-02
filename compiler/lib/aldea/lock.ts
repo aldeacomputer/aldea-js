@@ -49,6 +49,7 @@ export class Lock {
       throw new Error('invalid lock data.')
     }
 
+    // TODO - vm_jig_lock should return new data from VM
     vm_jig_lock(this.origin, type, data)
     this.type = type
     this.data = data

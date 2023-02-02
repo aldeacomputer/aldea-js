@@ -18,18 +18,9 @@ export class Aldea {
   api: typeof ky;
   cache = new Map<string, Response>();
 
-  constructor(host: string, port?: number, protocol: string = 'http', base: string = '') {
-    let url: string = `${protocol}://${host}`
-
-    if (typeof port === 'number' && port !== 80) {
-      url = `${url}:${port}`
-    }
-    if (typeof base === 'string' && base.length) {
-      url = join(url, base)
-    }
-
+  constructor(url: string) {
     this.api = ky.create({
-      prefixUrl: url,
+      prefixUrl: new URL(url),
       hooks: {
         beforeRequest: [ cacheGetter.bind(this) ],
         afterResponse: [ cacheSetter.bind(this) ],

@@ -8,7 +8,7 @@ const pageUrl = `file://${pagePath}`
 
 test('builds, serialized and parses a kitchen sink tx', async ({ page }) => {
   await page.goto(pageUrl);
-  const $aldea = await page.evaluateHandle('window.aldea')
+  const $aldea = await page.evaluateHandle('window.aldeaJS')
 
   const mocks = {
     'http://localhost/package/a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701/abi.json':   fs.readFileSync('test/mocks/txb.pkg.json').toString(),
@@ -19,7 +19,7 @@ test('builds, serialized and parses a kitchen sink tx', async ({ page }) => {
 
   // Setup mocked Aldea client in browser [handle]
   const $env = await $aldea.evaluateHandle(({ Aldea, Address, KeyPair }, mocks) => {
-    const aldea = new Aldea('localhost')
+    const aldea = new Aldea('http://localhost')
     const hooks = Object.entries(mocks).map(([url, body]) => {
       return req => {
         if (req.method === 'GET' && req.url === url) {
