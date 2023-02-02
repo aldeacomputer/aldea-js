@@ -85,7 +85,7 @@ export class TransformCtx {
     this.exports = collectExports(this.entries)
     this.imports = collectImports(this.sources)
     this.objects = collectObjects(this.sources, this.exports)
-    this.exposedTypes = collectExposedTypes(this.exports, this.objects)
+    this.exposedTypes = collectExposedTypes(this)
 
     this.validate()
   }
@@ -330,7 +330,7 @@ function collectObjects(sources: Source[], exports: ExportWrap[]): ObjectWrap[] 
 }
 
 // Collects exposed types from the given lists of exports and plain objects
-function collectExposedTypes(exports: ExportWrap[], objects: ObjectWrap[]): Map<string, TypeNode> {
+function collectExposedTypes(ctx: TransformCtx): Map<string, TypeNode> {
   const map = new Map<string, TypeNode>()
 
   const setType = ({ node: _, ...type }: TypeWrap) => {
@@ -349,21 +349,23 @@ function collectExposedTypes(exports: ExportWrap[], objects: ObjectWrap[]): Map<
     if (fn.rtype) { setType(fn.rtype as TypeWrap) }
   }
 
-  exports.forEach(ex => {
-    switch(ex.kind) {
+  const applyCode = (c: ExportWrap | ImportWrap) => {
+    switch(c.kind) {
       case CodeKind.CLASS:
-        applyClass(ex.code as ClassWrap)
+        applyClass(c.code as ClassWrap)
         break
       case CodeKind.FUNCTION:
-        applyFunction(ex.code as FunctionWrap)
+        applyFunction(c.code as FunctionWrap)
         break
       case CodeKind.INTERFACE:
-        applyClass(ex.code as InterfaceWrap)
+        applyClass(c.code as InterfaceWrap)
         break
     }
-  })
+  }
 
-  objects.forEach(applyClass)
+  ctx.exports.forEach(applyCode)
+  ctx.imports.forEach(applyCode)
+  ctx.objects.forEach(applyClass)
   return map
 }
 
