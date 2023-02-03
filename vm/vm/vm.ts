@@ -1,5 +1,5 @@
 import path from 'path'
-import {__encodeArgs, WasmInstance} from './wasm-instance.js'
+import { WasmInstance } from './wasm-instance.js'
 import { fileURLToPath } from 'url'
 import { TxExecution } from './tx-execution.js'
 import fs from "fs"
@@ -13,6 +13,7 @@ import {JigState} from "./jig-state.js";
 import {randomBytes} from "@aldea/sdk-js/support/ed25519";
 import {UserLock} from "./locks/user-lock.js";
 import {Buffer} from "buffer";
+import {encodeSequence} from "./cbor.js";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -124,7 +125,7 @@ export class VM {
       location,
       location,
       0,
-      __encodeArgs([amount]),
+      encodeSequence([amount]),
       COIN_PKG_ID,
       new UserLock(address).serialize()
     )
