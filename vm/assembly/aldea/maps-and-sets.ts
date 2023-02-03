@@ -12,3 +12,20 @@ export class JigMap extends Jig {
   }
 }
 
+export class JigKey extends Jig {}
+
+export class JigValue extends Jig {}
+
+export class JigToJigMap extends Jig {
+  myMap: Map<JigKey, JigValue>
+  constructor() {
+    super();
+    this.myMap = new Map<JigKey, JigValue>()
+  }
+
+  add(key: JigKey, value: JigValue): void {
+    key.$lock.changeToJigLock()
+    value.$lock.changeToJigLock()
+    this.myMap.set(key, value)
+  }
+}
