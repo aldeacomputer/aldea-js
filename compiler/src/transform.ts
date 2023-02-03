@@ -33,19 +33,26 @@ import {
   writeSetPutter,
 } from './transform/code-helpers.js'
 
-/**
- * TODO
- */
-export default class Transform {
-  $ctx?: TransformCtx
 
+export interface HackyTransformInterface {
+  $ctx?: TransformCtx;
+  baseDir: string;
+  log(line: string): void;
+  writeFile(filename: string, contents: string | Uint8Array, baseDir: string): void | Promise<void>;
+  afterParse(parser: Parser): void;
+  afterInitialize(program: Program): void;
+  afterCompile(module: Module): void;
+}
+
+
+export const Transform: Omit<HackyTransformInterface, 'baseDir' | 'log' | 'writeFile'> = {
   /**
-   * Called when parsing is complete, and the AST is ready.
-   */
+  * Called when parsing is complete, and the AST is ready.
+  */
   afterParse(parser: Parser): void {
     const $ctx = new TransformCtx(parser)
     this.$ctx = $ctx
-  
+
     $ctx.exports.forEach(ex => {
       let code: ClassWrap | FunctionWrap | InterfaceWrap
       switch (ex.kind) {
@@ -71,7 +78,7 @@ export default class Transform {
           break
       }
     })
-  
+
     $ctx.imports.forEach(im => {
       let code: ClassWrap | FunctionWrap | InterfaceWrap
       switch (im.kind) {
@@ -91,42 +98,42 @@ export default class Transform {
           break
       }
     })
-  
+
     exportComplexSetters($ctx)
-  }
+  },
 
   /**
    * Called once the program is initialized, before it is being compiled.
    * 
    * We simply attach the program to the Transform Context so we can use it later.
    */
-  afterInitialize(program: Program): void {
+  afterInitialize(this: HackyTransformInterface, program: Program): void {
     if (this.$ctx) this.$ctx.program = program
-  }
+  },
 
   /**
    * Called with the resulting module before it is being emitted.
    * 
    * We write the ABI files here and log the transformed code to sdtout
    */
-  async afterCompile(_module: Module): Promise<void> {
-    // @ts-ignore
-    const log = (line: string): void => { this.stdout.write(line + '\n') }
-    const write = async (filename: string, contents: string | Uint8Array): Promise<void> => {
-      // @ts-ignore
-      await this.writeFile(filename, contents, this.baseDir)
-    }
-
+  async afterCompile(this: HackyTransformInterface, _module: Module): Promise<void> {
+    //// @ts-ignore
+    //const log = (line: string): void => { this.stdout.write(line + '\n') }
+    //const write = async (filename: string, contents: string | Uint8Array): Promise<void> => {
+    //  // @ts-ignore
+    //  await this.writeFile(filename, contents, this.baseDir)
+    //}
     if (this.$ctx) {
-      await write('abi.cbor', new Uint8Array(abiToCbor(this.$ctx.abi)))
-      await write('abi.json', abiToJson(this.$ctx.abi, 2))
-      await write('docs.json', JSON.stringify(createDocs(this.$ctx), null, 2))
-      log('»»» TRANSFORMED «««')
-      log('*******************')
-      this.$ctx.entries.forEach(entry => { log(ASTBuilder.build(entry)) })
+      await this.writeFile('abi.cbor', new Uint8Array(abiToCbor(this.$ctx.abi)), this.baseDir)
+      await this.writeFile('abi.json', abiToJson(this.$ctx.abi, 2), this.baseDir)
+      await this.writeFile('docs.json', JSON.stringify(createDocs(this.$ctx), null, 2), this.baseDir)
+      this.log('»»» TRANSFORMED «««')
+      this.log('*******************')
+      this.$ctx.entries.forEach(entry => { this.log(ASTBuilder.build(entry)) })
     }
   }
 }
+
 
 /**
  * Adds a VM hook to the object's constructor

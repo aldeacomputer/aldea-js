@@ -1,11 +1,11 @@
 import test from 'ava'
 import { ASTBuilder, NodeKind } from 'assemblyscript'
 import { mockProgram } from './support/mock-program.js'
-import Transform from '../dist/transform.js'
+import { Transform } from '../dist/transform.js'
 import { isAmbient, isPrivate, isProtected } from '../dist/transform/filters.js'
 
 test.beforeEach(t => {
-  t.context.transform = new Transform()
+  t.context.transform = { ...Transform }
 })
 
 test('afterParse() adds hook to constructors', async t => {

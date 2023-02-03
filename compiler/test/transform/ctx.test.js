@@ -1,11 +1,10 @@
 import test from 'ava'
-import { ASTBuilder } from 'assemblyscript'
 import { mockProgram } from '../support/mock-program.js'
 import { TransformCtx } from '../../dist/transform/ctx.js'
-import Transform from '../../dist/transform.js'
+import { Transform } from '../../dist/transform.js'
 
 test.beforeEach(t => {
-  t.context.transform = new Transform()
+  t.context.transform = { ...Transform }
 })
 
 test('ctx collects user sources and entries', async t => {
