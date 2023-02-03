@@ -5,7 +5,7 @@ import {Abi, ArgNode, ClassNode, FieldNode, findField, findFunction, findMethod,
 import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
-import {Externref, getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
+import {getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
 import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {LiftValueVisitor} from "./abi-helpers/lift-value-visitor.js";
 import {LowerValueVisitor} from "./abi-helpers/lower-value-visitor.js";
@@ -16,6 +16,7 @@ import {NoLock} from "./locks/no-lock.js";
 import {arrayBufferTypeNode, outputTypeNode, voidNode,} from "./abi-helpers/well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
+import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
 
 export enum LockType {
   FROZEN = -1,
@@ -433,18 +434,20 @@ export class WasmInstance {
     return visitor.visitArrayBuffer()
   }
 
-  private liftArguments (argBuffer: Uint8Array, args: ArgNode[]): any[] {
+  liftArguments (argBuffer: Uint8Array, args: ArgNode[]): any[] {
     const argReader = new ArgReader(argBuffer)
     return args.map((n: ArgNode) => {
       const ptr = readType(argReader, n.type)
-      const value = this.extractValue(ptr, n.type).value
-      if (value.value instanceof Externref) {
-        return this.currentExec.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
-      } else if (value.value instanceof Internref) {
-        return this.currentExec.jigByInternRef(value.value)
-      } else {
-        return value
-      }
+      const visitor = new LiftArgumentVisitor(this.abi, this, ptr)
+      return visitor.travelFromType(n.type)
+      // const value = this.extractValue(ptr, n.type).value
+      // if (value.value instanceof Externref) {
+      //   return this.currentExec.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
+      // } else if (value.value instanceof Internref) {
+      //   return this.currentExec.jigByInternRef(value.value)
+      // } else {
+      //   return value
+      // }
     })
   }
 }

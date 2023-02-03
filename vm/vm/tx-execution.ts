@@ -8,7 +8,7 @@ import {VM} from "./vm.js";
 import {AuthCheck, LockType, WasmValue, Prop, WasmInstance} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref} from "./memory.js";
-import {ArgNode, ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
+import {ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
 import {Address, base16, InstructionRef, instructions, Pointer, Tx} from '@aldea/sdk-js';
 import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
@@ -150,7 +150,7 @@ class TxExecution {
     }
     this.jigs.forEach(jigRef => {
       if (jigRef.lock.isOpen()) {
-        throw new PermissionError(`unlocked jig: ${jigRef.origin}`)
+        throw new PermissionError(`unlocked jig (${jigRef.className()}): ${jigRef.origin}`)
       }
     })
 
@@ -233,22 +233,23 @@ class TxExecution {
     const klassNode = jig.package.abi.classByIndex(jig.classIdx)
     const method = findMethod(klassNode, methodName, 'could not find method')
 
-    const argReader = new ArgReader(argBuff)
-    const args = method.args.map((n: ArgNode) => {
-      const ptr = readType(argReader, n.type)
-      const value = callerInstance.extractValue(ptr, n.type).value
-      if (value.value instanceof Externref) {
-        return this.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
-      } else if (value.value instanceof Internref) {
-        const jigRef = this.jigs.find(j => j.package === callerInstance && j.ref.equals(value.value))
-        if (!jigRef) {
-          throw new Error('should exist')
-        }
-        return jigRef
-      } else {
-        return value
-      }
-    })
+    const args = callerInstance.liftArguments(argBuff, method.args)
+
+    // const args = method.args.map((n: ArgNode) => {
+    //   const ptr = readType(argReader, n.type)
+    //   const value = callerInstance.extractValue(ptr, n.type).value
+    //   if (value.value instanceof Externref) {
+    //     return this.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
+    //   } else if (value.value instanceof Internref) {
+    //     const jigRef = this.jigs.find(j => j.package === callerInstance && j.ref.equals(value.value))
+    //     if (!jigRef) {
+    //       throw new Error('should exist')
+    //     }
+    //     return jigRef
+    //   } else {
+    //     return value
+    //   }
+    // })
 
     return this.callInstanceMethod(jig, methodName, args)
   }

@@ -556,10 +556,10 @@ describe('execute txs', () => {
 
   it('coin eater', () => {
     const coin = vm.mint(userAddr, 1000)
+    exec.tx.push(new SignInstruction(exec.tx.createSignature(userPriv), userPub.toBytes()))
     const importIndex = exec.importModule(modIdFor('coin-eater'))
     const coinIndex = exec.loadJigByOutputId(coin.id())
     const eaterIndex = exec.instantiate(importIndex, 'CoinEater', [ref(coinIndex)])
-    // exec.callInstanceMethodByIndex(eaterIndex, 'chopOneLeg', [])
     exec.lockJigToUser(eaterIndex, userAddr)
     exec.finalize()
     storage.persist(exec)
@@ -594,6 +594,34 @@ describe('execute txs', () => {
     const value2 = exec.getStatementResult(method2Idx).value
     expect(value).to.eql(3)
     expect(value2).to.eql('numero11')
+  })
+
+  it('can combine coins owned by a jig inside that jig', () => {
+    const coin1 = vm.mint(userAddr, 300)
+    const coin2 = vm.mint(userAddr, 400)
+    const coin3 = vm.mint(userAddr, 500)
+    exec.tx.push(new SignInstruction(exec.tx.createSignature(userPriv), userPub.toBytes()))
+
+    const coinEaterModIdx = exec.importModule(modIdFor('coin-eater'))
+    const coin1Idx = exec.loadJigByOutputId(coin1.id())
+    const coin2Idx = exec.loadJigByOutputId(coin2.id())
+    const coin3Idx = exec.loadJigByOutputId(coin3.id())
+    const eaterIdx = exec.instantiate(coinEaterModIdx, 'CoinEater', [ref(coin1Idx)])
+    exec.callInstanceMethodByIndex(eaterIdx, 'addCoin', [ref(coin2Idx)])
+    exec.callInstanceMethodByIndex(eaterIdx, 'addCoin', [ref(coin3Idx)])
+    exec.callInstanceMethodByIndex(eaterIdx, 'combineAll', [])
+    exec.lockJigToUser(eaterIdx, userAddr)
+
+    exec.markAsFunded()
+    exec.finalize()
+
+    expect(exec.outputs).to.have.length(4)
+    expect(exec.outputs[0].serializedLock.type).to.eql(-1)
+    expect(exec.outputs[1].serializedLock.type).to.eql(-1)
+    expect(exec.outputs[2].serializedLock.type).to.eql(2)
+    expect(exec.outputs[2].serializedLock.data).to.eql(exec.outputs[3].currentLocation.toBytes())
+    expect(exec.outputs[2].parsedState()).to.eql([300 + 400 + 500])
+    expect(exec.outputs[3].parsedState()).to.eql([exec.outputs[2].origin.toBytes(), []])
   })
 
   it('can create jigs inside jigs')
