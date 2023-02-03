@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@aldea/compiler": "^0.0.0-alpha",
-    "@aldea/sdk-js": "^0.0.0-alpha"
+    "@aldea/sdk-js": "^0.0.1-beta"
   },
   "devDependencies": {
     "assemblyscript": "^0.24.1",

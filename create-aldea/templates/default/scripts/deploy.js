@@ -15,7 +15,7 @@ async function deploy(cwd, argv) {
   const pkg = buildPackage(cwd, argv._)
   const address = Address.fromPubKey(keys.pubKey)
 
-  const aldea = new Aldea('node.aldea.computer', undefined, 'https')
+  const aldea = new Aldea('https://node.aldea.computer')
   const coin = await aldea.loadOutput(argv.coin)
 
   if (coin.props.amount < 100) {

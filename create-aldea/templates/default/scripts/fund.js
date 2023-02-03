@@ -10,7 +10,7 @@ async function fund(cwd, _argv) {
   const keys = loadKeys(cwd)
   const address = Address.fromPubKey(keys.pubKey)
   
-  const aldea = new Aldea('node.aldea.computer', undefined, 'https')
+  const aldea = new Aldea('https://node.aldea.computer')
   const params = { amount: 10000, address: address.toString() }
   const res = await aldea.api.post('mint', { json: params }).json()
   const coin = await aldea.loadOutput(res.id)

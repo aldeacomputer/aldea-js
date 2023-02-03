@@ -1,7 +1,6 @@
 import fs from 'fs'
 import { join } from 'path'
 import minimist from 'minimist'
-import { bold } from 'kolorist'
 import { Address, KeyPair } from '@aldea/sdk-js'
 
 /**
