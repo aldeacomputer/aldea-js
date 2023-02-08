@@ -134,8 +134,8 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
   function readFile(filename: string, baseDir: string): string | null {
     if (input[filename]) { return input[filename] }
     const path = join(baseDir, filename)
-    if (fs.existsSync(path)) { return fs.readFileSync(path, 'utf8') }
-    return null
+    try { return fs.readFileSync(path, 'utf8') }
+    catch(e) { return null } 
   }
 
   function listFiles(dirname: string, baseDir: string): string[] {
@@ -144,7 +144,7 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
     })
   }
 
-  function writeFile(filename: string, content: string | Uint8Array) {
+  function writeFile(filename: string, content: string | Uint8Array): void {
     if (filename === 'abi.json') { return }
     if (filename === 'abi.cbor') { filename = 'abi' }
     if (filename === 'docs.cbor') { filename = 'docs' }
@@ -153,12 +153,19 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
   }
 
   const customStdout = asc.createMemoryStream()
-  const transform: AscTransform = {
-    ...new Transform(),
+
+  Object.assign(Transform.prototype, {
     baseDir: '.',
     writeFile,
-    log(line: string) { customStdout.write(line + '\n') }
-  }
+    log: (line: string) => customStdout.write(line + '\n')
+  })
+
+  //const transform: AscTransform = {
+  //  ...new Transform(),
+  //  baseDir: '.',
+  //  writeFile,
+  //  log(line: string) { customStdout.write(line + '\n') }
+  //}
 
   const { error, stdout, stderr, stats } = await asc.main(argv, {
     readFile,
@@ -166,7 +173,7 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
     writeFile,
     stdout: customStdout,
     // @ts-ignore
-    transforms: [transform]
+    transforms: [new Transform()]
   })
 
   if (!error) {
