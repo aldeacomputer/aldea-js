@@ -1,6 +1,6 @@
 import { ArgWriter } from './arg-writer'
-import { RemoteJig } from './jig'
-import { vm_remote_call_i, vm_remote_prop } from './imports'
+import { _RemoteJig } from './jig'
+import { vm_call_method, vm_get_prop } from './imports'
 
 /**
  * Coin class
@@ -8,14 +8,14 @@ import { vm_remote_call_i, vm_remote_prop } from './imports'
  * Built in Jig that proxies calls to the VM for handling.
  */
 @final
-export class Coin extends RemoteJig {
+export class Coin extends _RemoteJig {
   // @ts-ignore
   constructor() {
     throw new Error('coins cannot be instantiated from constructor')
   }
 
   get motos(): u64 {
-    return vm_remote_prop<u64>(
+    return vm_get_prop<u64>(
       this.$output.origin,
       'motos'
     )
@@ -25,7 +25,7 @@ export class Coin extends RemoteJig {
     const args = new ArgWriter(12)
     args.writeU64(motos)
 
-    return vm_remote_call_i<Coin>(
+    return vm_call_method<Coin>(
       this.$output.origin,
       'send',
       args.buffer
@@ -36,7 +36,7 @@ export class Coin extends RemoteJig {
     const args = new ArgWriter(4)
     args.writeU32(changetype<usize>(coins))
 
-    return vm_remote_call_i<Coin>(
+    return vm_call_method<Coin>(
       this.$output.origin,
       'combine',
       args.buffer

@@ -14,7 +14,7 @@ __metadata:
     "@noble/hashes": ^1.1.5
     "@scure/base": ^1.1.1
     "@types/node": ^18.11.18
-    assemblyscript: 0.22.0
+    assemblyscript: 0.27.0
     ava: ^5.1.0
     cbor-redux: ^1.0.0-3
     commander: ^9.4.1
@@ -2106,16 +2106,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"assemblyscript@npm:0.22.0":
-  version: 0.22.0
-  resolution: "assemblyscript@npm:0.22.0"
+"assemblyscript@npm:0.27.0":
+  version: 0.27.0
+  resolution: "assemblyscript@npm:0.27.0"
   dependencies:
-    binaryen: 110.0.0-nightly.20221019
+    binaryen: 111.0.0-nightly.20230111
     long: ^5.2.0
   bin:
     asc: bin/asc.js
     asinit: bin/asinit.js
-  checksum: acfce1c988980c7211f07980b4aa1df2e73cc150e5803b1261a6b527c7a61cf461343b5e80e31f5043987aa0157008929ece1f8181999ff886b8693e9429bd9f
+  checksum: f5e641de723a4774e695f696427b412adbadd04f493aeb4ab814e78f193791546a9d372c1b675a04e1c9a8cd9ddb54527c37d03aec404b025b40e491764f2705
   languageName: node
   linkType: hard
 
@@ -2400,13 +2400,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"binaryen@npm:110.0.0-nightly.20221019":
-  version: 110.0.0-nightly.20221019
-  resolution: "binaryen@npm:110.0.0-nightly.20221019"
+"binaryen@npm:111.0.0-nightly.20230111":
+  version: 111.0.0-nightly.20230111
+  resolution: "binaryen@npm:111.0.0-nightly.20230111"
   bin:
     wasm-opt: bin/wasm-opt
     wasm2js: bin/wasm2js
-  checksum: 4c32d5728c5d9c7e25a7971436c86d431ad49e6e6a03f1ea13d93d14b749f8b7195e418c89f4c008d54be44c2caff87457380839a9e122feed2855d2335fa6d2
+  checksum: b361f946d91c82b8dbebca81cfb85feebac02995707bb0def66e8d78b22ea6a666a892d7acbd5efa19b4c54cbe53f2e2e10bd17302a7321c236293a20fc52193
   languageName: node
   linkType: hard
 

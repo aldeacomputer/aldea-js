@@ -3,7 +3,7 @@ import { basename, dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import asc from 'assemblyscript/asc'
 import { Command } from 'commander'
-import { HackyTransformInterface, Transform } from './transform.js'
+import { AscTransform, Transform } from './transform.js'
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -71,19 +71,19 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
   }
 
   const customStdout = asc.createMemoryStream()
-  const transform: HackyTransformInterface = {
-    ...Transform,
+
+  Object.assign(Transform.prototype, {
     baseDir,
     writeFile,
-    log(line: string) { customStdout.write(line + '\n') }
-  }
+    log: (line: string) => customStdout.write(line + '\n')
+  })
 
   const { error, stdout, stderr, stats } = await asc.main(argv, {
     listFiles,
     writeFile,
     stdout: customStdout,
     // @ts-ignore
-    transforms: [transform]
+    transforms: [new Transform()]
   })
 
   if (!error) {
@@ -153,8 +153,8 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
   }
 
   const customStdout = asc.createMemoryStream()
-  const transform: HackyTransformInterface = {
-    ...Transform,
+  const transform: AscTransform = {
+    ...new Transform(),
     baseDir: '.',
     writeFile,
     log(line: string) { customStdout.write(line + '\n') }

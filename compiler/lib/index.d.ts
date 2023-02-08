@@ -62,9 +62,16 @@ declare module 'aldea/jig' {
 	    lockData: ArrayBuffer;
 	}
 	/**
+	 * TODO
+	 */
+	export interface JigLike {
+	    readonly $output: Output;
+	    readonly $lock: Lock;
+	}
+	/**
 	 * Base Jig class
 	 */
-	export class Jig {
+	export class Jig implements JigLike {
 	    readonly $output: Output;
 	    readonly $lock: Lock;
 	    constructor(params: JigInitParams);
@@ -72,13 +79,13 @@ declare module 'aldea/jig' {
 	/**
 	 * Local Jig class
 	 */
-	export class LocalJig extends Jig {
+	export class _LocalJig extends Jig {
 	    constructor();
 	}
 	/**
 	 * Remote Jig class
 	 */
-	export class RemoteJig extends Jig {
+	export class _RemoteJig extends Jig {
 	    constructor(params: JigInitParams);
 	}
 
@@ -106,13 +113,13 @@ declare module 'aldea/auth' {
 
 }
 declare module 'aldea/coin' {
-	import { RemoteJig } from 'aldea/jig';
+	import { _RemoteJig } from 'aldea/jig';
 	/**
 	 * Coin class
 	 *
 	 * Built in Jig that proxies calls to the VM for handling.
 	 */
-	export class Coin extends RemoteJig {
+	export class Coin extends _RemoteJig {
 	    constructor();
 	    get motos(): u64;
 	    send(motos: u64): Coin;
