@@ -120,14 +120,14 @@ export function writeExportedFunction(method: MethodWrap, obj: ClassWrap): strin
  * 
  * Ensures compilation by inlining an idof call.
  */
-export function writeInterfaceRemoteClass(obj: InterfaceWrap, fields: FieldWrap[], methods: MethodWrap[]): string {
+export function writeInterfaceRemoteClass(obj: InterfaceWrap, fields: FieldWrap[], methods: FunctionWrap[]): string {
   const fieldCode = fields.reduce((acc: string[], n: FieldWrap): string[] => {
     acc.push(writeRemoteGetter(n, obj))
     return acc
   }, []).join('\n')
 
-  const methodCode = methods.reduce((acc: string[], n: MethodWrap): string[] => {
-    acc.push(writeRemoteMethod(n, obj))
+  const methodCode = methods.reduce((acc: string[], n: FunctionWrap): string[] => {
+    acc.push(writeRemoteInterfaceMethod(n, obj))
     return acc
   }, []).join('\n')
 
@@ -232,7 +232,7 @@ export function writeRemoteGetter(field: FieldWrap, obj: ClassWrap | InterfaceWr
  * - For static methods returns the result of `vm_call_static`.
  * - For instance methods returns the result of `vm_call_method`.
  */
-export function writeRemoteMethod(method: MethodWrap, obj: ClassWrap | InterfaceWrap, pkg?: string): string {
+export function writeRemoteMethod(method: MethodWrap, obj: ClassWrap, pkg?: string): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
   const isStatic = method.kind === MethodKind.STATIC
@@ -266,6 +266,23 @@ export function writeRemoteMethod(method: MethodWrap, obj: ClassWrap | Interface
     }
     `.trim()
   }
+}
+
+/**
+ * Writes a method on a remote class that is derived from an interface.
+ * 
+ * As `writeRemoteMethod` but for intefaces it is always an instance method so
+ * can have simpler implementation.
+ */
+export function writeRemoteInterfaceMethod(method: FunctionWrap, obj: InterfaceWrap, pkg?: string): string {
+  const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
+  const rtype = normalizeTypeName(method.rtype)
+  return `
+  ${method.name}(${args.join(', ')}): ${rtype} {
+    ${ writeArgWriter(method.args as FieldWrap[]) }
+    return vm_call_method<${rtype}>(this.$output.origin, '${method.name}', args.buffer)
+  }
+  `.trim()
 }
 
 /**
