@@ -91,7 +91,7 @@ declare module 'aldea/jig' {
 
 }
 declare module 'aldea/auth' {
-	import { Jig } from 'aldea/jig';
+	import { JigLike } from 'aldea/jig';
 	/**
 	 * AuthCheck type
 	 *
@@ -105,11 +105,11 @@ declare module 'aldea/auth' {
 	/**
 	 * Check if the caller can call the given jig
 	 */
-	export function canCall(jig: Jig): bool;
+	export function canCall(jig: JigLike): bool;
 	/**
 	 * Check if the caller can lock the given jig
 	 */
-	export function canLock(jig: Jig): bool;
+	export function canLock(jig: JigLike): bool;
 
 }
 declare module 'aldea/coin' {

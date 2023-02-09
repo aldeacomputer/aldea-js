@@ -86,10 +86,10 @@ export class WasmInstance {
         }
       },
       vm: {
-        vm_constructor_end: (jigPtr: number, classNamePtr: number): void => {
-          const className = this.liftString(classNamePtr)
-          this.currentExec.constructorHandler(this, jigPtr, className)
-        },
+        // vm_constructor_end: (jigPtr: number, classNamePtr: number): void => {
+        //   const className = this.liftString(classNamePtr)
+        //   this.currentExec.constructorHandler(this, jigPtr, className)
+        // },
         vm_jig_init: (): WasmPointer => {
           const nextOrigin = this.currentExec.createNextOrigin()
 
@@ -121,18 +121,18 @@ export class WasmInstance {
 
           return this.insertValue(new Pointer(this.id, classIdx).toBytes(), { name: 'ArrayBuffer', args: [] })
         },
-        vm_local_call_start: (jigPtr: number, fnNamePtr: number): void => {
-          const fnName = this.liftString(fnNamePtr)
-          this.currentExec.localCallStartHandler(this, jigPtr, fnName)
-        },
+        // vm_local_call_start: (jigPtr: number, fnNamePtr: number): void => {
+        //   const fnName = this.liftString(fnNamePtr)
+        //   this.currentExec.localCallStartHandler(this, jigPtr, fnName)
+        // },
         vm_jig_authcheck: (callerOriginPtr: number, check: AuthCheck) => {
           const callerOrigin = this.liftBuffer(callerOriginPtr)
           return this.currentExec.remoteAuthCheckHandler(Pointer.fromBytes(callerOrigin), check)
         },
-        vm_local_call_end: () => {
-          this.currentExec.localCallEndtHandler()
-        },
-        vm_remote_call_i: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
+        // vm_local_call_end: () => {
+        //   this.currentExec.localCallEndtHandler()
+        // },
+        vm_call_method: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
           const targetOriginArrBuf = this.liftBuffer(targetOriginPtr)
           const methodName = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
@@ -140,7 +140,7 @@ export class WasmInstance {
           const methodResult = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), methodName, argBuf)
           return this.insertValue(methodResult.value, methodResult.node)
         },
-        vm_remote_call_s: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
+        vm_call_static: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
           const moduleId = this.liftString(originPtr).split('_')[0]
           const fnStr = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
@@ -148,7 +148,7 @@ export class WasmInstance {
           return Number(this.insertValue(result.value, result.node))
         },
 
-        vm_remote_call_f: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): WasmPointer => {
+        vm_call_function: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): WasmPointer => {
           const pkgId = this.liftString(pkgIdStrPtr)
           const fnName = this.liftString(fnNamePtr)
           const argsBuf = this.liftBuffer(argsBufPtr)
@@ -159,7 +159,7 @@ export class WasmInstance {
           return this.insertValue(result.value, result.node)
         },
 
-        vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
+        vm_get_prop: (targetOriginPtr: number, propNamePtr: number) => {
           const targetOrigBuf = this.liftBuffer(targetOriginPtr)
           const propStr = this.liftString(propNamePtr)
           const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propStr)
@@ -255,6 +255,12 @@ export class WasmInstance {
           }
 
           return this.insertValue(buf, arrayBufferTypeNode)
+        },
+        vm_constructor_local: (namePtr: number, argsPtr: number): number => {
+          return 0
+        },
+        vm_constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): number => {
+          return 0
         },
         vm_debug_str: (strPtr: number): void => {
           const msg = this.liftString(strPtr)
