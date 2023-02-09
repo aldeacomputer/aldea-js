@@ -8,7 +8,7 @@ export {
   vm_debug_str,
 } from './aldea/imports'
 
-export { Jig, _LocalJig, _RemoteJig, JigInitParams, JigLike } from './aldea/jig'
+export { Jig, _LocalJig, _RemoteJig, JigInitParams } from './aldea/jig'
 export { Coin } from './aldea/coin'
 export { caller } from './aldea/caller'
 export { ArgWriter } from './aldea/arg-writer'
