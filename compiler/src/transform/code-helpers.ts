@@ -30,7 +30,6 @@ export function writeConstructor(obj: ClassWrap): string {
  * Writes an interface for the given jig class.
  */
 export function writeJigInterface(obj: ClassWrap, fields: FieldWrap[], methods: MethodWrap[]): string {
-  const parent = obj.extends && obj.extends !== 'Jig' ? obj.extends : 'JigLike'
   const fieldCode = fields
     .map(n => `${n.name}: ${normalizeTypeName(n.type)}`)
     .join('\n')
@@ -42,7 +41,7 @@ export function writeJigInterface(obj: ClassWrap, fields: FieldWrap[], methods: 
     .join('\n')
 
   return `
-  interface ${obj.name} extends ${parent} {
+  interface ${obj.name} extends ${obj.extends} {
     ${fieldCode}
     ${methodCode}
   }

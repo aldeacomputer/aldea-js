@@ -64,14 +64,14 @@ declare module 'aldea/jig' {
 	/**
 	 * TODO
 	 */
-	export interface JigLike {
+	export interface Jig {
 	    readonly $output: Output;
 	    readonly $lock: Lock;
 	}
 	/**
 	 * Base Jig class
 	 */
-	export class Jig implements JigLike {
+	export class _BaseJig implements Jig {
 	    readonly $output: Output;
 	    readonly $lock: Lock;
 	    constructor(params: JigInitParams);
@@ -79,13 +79,13 @@ declare module 'aldea/jig' {
 	/**
 	 * Local Jig class
 	 */
-	export class _LocalJig extends Jig {
+	export class _LocalJig extends _BaseJig {
 	    constructor();
 	}
 	/**
 	 * Remote Jig class
 	 */
-	export class _RemoteJig extends Jig {
+	export class _RemoteJig extends _BaseJig {
 	    constructor(params: JigInitParams);
 	}
 

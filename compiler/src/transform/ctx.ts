@@ -119,7 +119,7 @@ export class TransformCtx {
   private mapTypeIds(): TypeIdNode[] {
     if (!this.program) return []
     if (!this.#typeIds) {
-      const whitelist = ['Jig', 'JigInitParams', 'Output', 'Lock', 'Coin']
+      const whitelist = ['JigInitParams', 'Output', 'Lock', 'Coin']
         .concat(...this.imports.filter(im => im.kind === CodeKind.CLASS).map(im => im.name))
 
       function whiteListType(type: TypeNode): void {
@@ -142,8 +142,16 @@ export class TransformCtx {
       this.#typeIds = [...this.program.managedClasses].reduce((arr: TypeIdNode[], [id, klass]) => {
         const name = normalizeClassName(klass)
         // whitelisted names go in as they are
-        if (whitelist.includes(name) && !exportList.includes(name) && !interfaceList.includes(name)) {
+        if (
+          whitelist.includes(name) &&
+          name !== 'Jig' &&
+          !exportList.includes(name) &&
+          !interfaceList.includes(name)) {
           arr.push({ id, name })
+        }
+        // the basejig is simply known as... Jig
+        if (name === '_BaseJig') {
+          arr.push({ id, name: 'Jig' })
         }
         // for local jigs we rename to the original with $ prefix
         if (/^_Local/.test(name)) {

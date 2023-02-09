@@ -21,7 +21,7 @@ export class JigInitParams {
 /**
  * TODO
  */
-export interface JigLike {
+export interface Jig {
   readonly $output: Output;
   readonly $lock: Lock;
 }
@@ -29,7 +29,7 @@ export interface JigLike {
 /**
  * Base Jig class
  */
-export class Jig implements JigLike {
+export class _BaseJig implements Jig {
   readonly $output: Output;
   readonly $lock: Lock;
 
@@ -46,7 +46,7 @@ export class Jig implements JigLike {
 /**
  * Local Jig class
  */
-export class _LocalJig extends Jig {
+export class _LocalJig extends _BaseJig {
   constructor() {
     const params = vm_jig_init()
     super(params)
@@ -59,7 +59,7 @@ export class _LocalJig extends Jig {
 /**
  * Remote Jig class
  */
-export class _RemoteJig extends Jig {
+export class _RemoteJig extends _BaseJig {
   constructor(params: JigInitParams) {
     super(params)
   }
