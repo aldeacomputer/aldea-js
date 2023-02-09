@@ -287,11 +287,9 @@ function interfaceToRemoteClass(obj: InterfaceWrap, ctx: TransformCtx): void {
 
   const fields = parents.flatMap(n => n.fields as FieldWrap[])
     .concat(...obj.fields as FieldWrap[])
-    .filter(n => n.kind === FieldKind.PUBLIC)
 
-  const methods = parents.flatMap(n => n.methods as MethodWrap[])
-    .concat(...(obj.methods as MethodWrap[]))
-    .filter(n => n.kind === MethodKind.INSTANCE)
+  const methods = parents.flatMap(n => n.methods as FunctionWrap[])
+    .concat(...(obj.methods as FunctionWrap[]))
 
   const code = writeInterfaceRemoteClass(obj, fields, methods)
   const source = obj.node.range.source

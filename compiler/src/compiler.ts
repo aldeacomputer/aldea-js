@@ -5,6 +5,8 @@ import asc from 'assemblyscript/asc'
 import { Command } from 'commander'
 import { AscTransform, Transform } from './transform.js'
 
+import { ASTBuilder } from 'assemblyscript'
+
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 const extension = '.ts'
@@ -80,12 +82,13 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     log(line: string) { customStdout.write(line + '\n') }
   }
 
+  const transform = new DynamicTransform()
   const { error, stdout, stderr, stats } = await asc.main(argv, {
     listFiles,
     writeFile,
     stdout: customStdout,
     // @ts-ignore
-    transforms: [new DynamicTransform()]
+    transforms: [transform]
   })
 
   if (!error) {
@@ -93,6 +96,8 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     console.log(stats.toString())
     console.log(stdout.toString())
   } else {
+    // useful to uncomment this to debug failed compilation
+    // transform.$ctx?.entries.forEach(entry => { console.log(ASTBuilder.build(entry)) })
     console.log("Compilation failed: " + error.message)
     console.log(stderr.toString())
   }
@@ -164,13 +169,14 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
     log(line: string) { customStdout.write(line + '\n') }
   }
 
+  const transform = new DynamicTransform()
   const { error, stdout, stderr, stats } = await asc.main(argv, {
     readFile,
     listFiles,
     writeFile,
     stdout: customStdout,
     // @ts-ignore
-    transforms: [new DynamicTransform()]
+    transforms: [transform]
   })
 
   if (!error) {
