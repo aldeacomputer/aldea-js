@@ -31,8 +31,25 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     this.value = value
   }
 
+  private lowerJigProxy (type: TypeNode) {
+    const val = this.value as JigRef
+    const mod = this.instance
+    // const buf = Buffer.from(val.originBuf);
+    // const bufferPtr = lowerBuffer(mod, buf)
+
+    const outputPtr = this.lowerValue(val.outputObject(), { name: outputAbiNode.name, args: [] })
+    const lockPtr = this.lowerValue(val.lockObject(), { name: 'Lock', args: [] })
+
+    // this.lowerValue()
+    const objPtr = mod.__new(8, mod.abi.rtidFromTypeNode(type));
+    const memU32 = new Uint32Array(mod.memory.buffer)
+    memU32[objPtr >>> 2] = Number(outputPtr)
+    memU32[(objPtr + 4) >>> 2] = Number(lockPtr)
+    return objPtr
+  }
+
   visitExportedClass (classNode: ClassNode, type: TypeNode): WasmPointer {
-    return this.value.ref.ptr
+    return this.lowerJigProxy(type)
   }
 
   visitArray(innerType: TypeNode): WasmPointer {
@@ -104,21 +121,22 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     return this.value ? 1 : 0
   }
 
-  visitImportedClass(node: TypeNode, pkgId: string): WasmPointer {
-    const val = this.value as JigRef
-    const mod = this.instance
-    // const buf = Buffer.from(val.originBuf);
-    // const bufferPtr = lowerBuffer(mod, buf)
-
-    const outputPtr = this.lowerValue(val.outputObject(), { name: outputAbiNode.name, args: [] })
-    const lockPtr = this.lowerValue(val.lockObject(), { name: 'Lock', args: [] })
-
-    // this.lowerValue()
-    const objPtr = mod.__new(8, mod.abi.rtidFromTypeNode(node));
-    const memU32 = new Uint32Array(mod.memory.buffer)
-    memU32[objPtr >>> 2] = Number(outputPtr)
-    memU32[(objPtr + 4) >>> 2] = Number(lockPtr)
-    return objPtr
+  visitImportedClass(type: TypeNode, _pkgId: string): WasmPointer {
+    return this.lowerJigProxy(type)
+    // const val = this.value as JigRef
+    // const mod = this.instance
+    // // const buf = Buffer.from(val.originBuf);
+    // // const bufferPtr = lowerBuffer(mod, buf)
+    //
+    // const outputPtr = this.lowerValue(val.outputObject(), { name: outputAbiNode.name, args: [] })
+    // const lockPtr = this.lowerValue(val.lockObject(), { name: 'Lock', args: [] })
+    //
+    // // this.lowerValue()
+    // const objPtr = mod.__new(8, mod.abi.rtidFromTypeNode(type));
+    // const memU32 = new Uint32Array(mod.memory.buffer)
+    // memU32[objPtr >>> 2] = Number(outputPtr)
+    // memU32[(objPtr + 4) >>> 2] = Number(lockPtr)
+    // return objPtr
   }
 
   visitMap(keyType: TypeNode, valueType: TypeNode): WasmPointer {

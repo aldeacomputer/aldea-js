@@ -107,8 +107,8 @@ export class WasmInstance {
           if (!className) {
             throw new Error('should exist')
           }
-          const classNode = this.abi.classByName(className)
-          const classIdx = this.abi.exports.findIndex(node => node.code.name === classNode.name)
+
+          const classIdx = this.abi.classIdxByName(className)
 
           this.currentExec.addNewJigRef(new JigRef(
             new Internref(className, jigPtr),
@@ -325,7 +325,7 @@ export class WasmInstance {
     ]
     const objectNode = this.abi.classByIndex(classIdx)
     const visitor = new LowerJigStateVisitor(this.abi, this, rawState)
-    const pointer = visitor.visitPlainObject(objectNode, {name: objectNode.name, args: []})
+    const pointer = visitor.visitPlainObject(objectNode, {name: `$${objectNode.name}`, args: []})
     return new Internref(objectNode.name, Number(pointer))
   }
 
@@ -403,7 +403,7 @@ export class WasmInstance {
     const visitor = new LiftJigStateVisitor(this.abi, this, ref.ptr)
     const lifted = visitor.visitPlainObject(
       abiObj,
-      {name: abiObj.name, args: []}
+      {name: `${abiObj.name}`, args: []}
     )
     return __encodeArgs(
       abiObj.nativeFields().map((field: FieldNode) => lifted[field.name])
@@ -439,7 +439,7 @@ export class WasmInstance {
     return visitor.visitArrayBuffer()
   }
 
-  private liftArguments (argBuffer: Uint8Array, args: ArgNode[]): any[] {
+  liftArguments (argBuffer: Uint8Array, args: ArgNode[]): any[] {
     const argReader = new ArgReader(argBuffer)
     return args.map((n: ArgNode) => {
       const ptr = readType(argReader, n.type)

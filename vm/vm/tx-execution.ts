@@ -5,10 +5,10 @@ import {UserLock} from "./locks/user-lock.js"
 import {NoLock} from "./locks/no-lock.js"
 import {JigState} from "./jig-state.js"
 import {VM} from "./vm.js";
-import {AuthCheck, LockType, WasmValue, Prop, WasmInstance} from "./wasm-instance.js";
+import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref} from "./memory.js";
-import {ArgNode, ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
+import {ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
 import {Address, base16, InstructionRef, instructions, Pointer, Tx} from '@aldea/sdk-js';
 import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
@@ -224,33 +224,20 @@ class TxExecution {
     this.remoteLockHandler(childJigRef.origin, type, extraArg)
   }
 
-  remoteCallHandler (callerInstance: WasmInstance, origin: Pointer, methodName: string, argBuff: Uint8Array): WasmValue {
-    let jig = this.jigs.find(j => j.origin.equals(origin))
-    if (!jig) {
-      jig = this.findJigByOrigin(origin)
+  remoteCallHandler (callerInstance: WasmInstance, targetOrigin: Pointer, methodName: string, argBuff: Uint8Array): WasmValue {
+    let targetJig = this.jigs.find(j => j.origin.equals(targetOrigin))
+    if (!targetJig) {
+      targetJig = this.findJigByOrigin(targetOrigin)
     }
 
-    const klassNode = jig.package.abi.classByIndex(jig.classIdx)
+    const klassNode = targetJig.package.abi.classByIndex(targetJig.classIdx)
     const method = findMethod(klassNode, methodName, 'could not find method')
 
-    const argReader = new ArgReader(argBuff)
-    const args = method.args.map((n: ArgNode) => {
-      const ptr = readType(argReader, n.type)
-      const value = callerInstance.extractValue(ptr, n.type).value
-      if (value.value instanceof Externref) {
-        return this.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
-      } else if (value.value instanceof Internref) {
-        const jigRef = this.jigs.find(j => j.package === callerInstance && j.ref.equals(value.value))
-        if (!jigRef) {
-          throw new Error('should exist')
-        }
-        return jigRef
-      } else {
-        return value
-      }
-    })
-
-    return this.callInstanceMethod(jig, methodName, args)
+    const args = callerInstance.liftArguments(argBuff, method.args)
+    this.localCallStartHandler(targetJig, methodName)
+    const wasmValue = this.callInstanceMethod(targetJig, methodName, args);
+    this.localCallEndHandler()
+    return wasmValue
   }
 
   remoteStaticExecHandler (srcModule: WasmInstance, targetModId: Uint8Array, fnStr: string, argBuffer: Uint8Array): WasmValue {
@@ -315,11 +302,7 @@ class TxExecution {
     this.affectedJigs.add(childJigRef)
   }
 
-  localCallStartHandler(wasmInstance: WasmInstance, jigPtr: number, fnName: string) {
-    const targetJig = this.jigs.find(j => j.ref.ptr === jigPtr && j.package === wasmInstance) || this.jigs.find(j => j.ref.ptr === -1 && j.package === wasmInstance)
-    if (!targetJig) {
-      throw new Error('jig should exist')
-    }
+  localCallStartHandler(targetJig: JigRef, fnName: string) {
     if (!targetJig.lock.acceptsExecution(this)) {
       const stackTop = this.stackTop()
       if (stackTop) {
@@ -332,7 +315,7 @@ class TxExecution {
     this.stack.push(targetJig.origin)
   }
 
-  localCallEndtHandler () {
+  localCallEndHandler () {
     this.stack.pop()
   }
 
@@ -536,7 +519,9 @@ class TxExecution {
 
   callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {
     const jigRef = this.getStatementResult(jigIndex).asJig()
+    this.stack.push(jigRef.origin)
     const methodResult = this.callInstanceMethod(jigRef, methodName, args)
+    this.stack.pop()
     this.statementResults.push(new ValueStatementResult(methodResult.node, methodResult.value, methodResult.mod))
     return this.statementResults.length - 1
   }

@@ -4,10 +4,10 @@ import {LowerValueVisitor} from "./lower-value-visitor.js";
 import {base16, Pointer} from "@aldea/sdk-js";
 
 export class LowerJigStateVisitor extends LowerValueVisitor {
-  visitExportedClass (node: ClassNode, _type: TypeNode): WasmPointer {
+  visitExportedClass (node: ClassNode, type: TypeNode): WasmPointer {
     const origin = this.value // it's a Uint8Array with the origin
-    const jigRef = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(origin))
-    return jigRef.ref.ptr
+    this.value = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(origin))
+    return super.visitExportedClass(node, type)
   }
 
   visitImportedClass(node: TypeNode, pkgId: string): WasmPointer {

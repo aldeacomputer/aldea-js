@@ -192,19 +192,17 @@ describe('execute txs', () => {
     ).to.throw(PermissionError)
   })
 
-  it('allow to call private methods on jigs of the same module that own', () => {
+  it('does not allow to call private methods on jigs of the same module that own', () => {
+    // Private methods works like private methods now.
     const antWasmIndex = exec.importModule(modIdFor('ant'))
     const ant1Index = exec.instantiate(antWasmIndex, 'Ant', [])
     const ant2Index = exec.instantiate(antWasmIndex, 'Ant', [])
     const jig = exec.getStatementResult(ant2Index)
     exec.callInstanceMethodByIndex(ant1Index, 'addChildren', [jig.asJig()])
-    exec.callInstanceMethodByIndex(ant1Index, 'buildCapacity', [jig.asJig()])
-    exec.lockJigToUser(ant1Index, userAddr)
-    exec.finalize()
 
-    const parsed = exec.outputs[0].parsedState()
-    expect(parsed[0]).to.have.length(1)
-    expect(parsed[1]).to.eql([])
+    expect(() =>
+      exec.callInstanceMethodByIndex(ant1Index, 'buildCapacity', [jig.asJig()])
+    ).to.throw(PermissionError)
   })
 
   describe('when a jig already exists', () => {
