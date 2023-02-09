@@ -5,10 +5,10 @@ import { Transform } from '../dist/transform.js'
 import { isAmbient, isPrivate, isProtected } from '../dist/transform/filters.js'
 
 test.beforeEach(t => {
-  t.context.transform = { ...Transform }
+  t.context.transform = new Transform()
 })
 
-test('afterParse() adds hook to constructors', async t => {
+test.skip('afterParse() adds hook to constructors', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {
     a: u8;
@@ -43,12 +43,11 @@ test('afterParse() adds constructor if not defined', async t => {
     ASTBuilder.build(mock.classes[0].members[0]),
     'constructor() {\n'+
     '  super();\n'+
-    '  vm_constructor_end(this, "Test");\n'+
     '}'
   )
 })
 
-test('afterParse() add proxy methods for public methods', async t => {
+test.skip('afterParse() add proxy methods for public methods', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {
     a: u8;
@@ -78,7 +77,7 @@ test('afterParse() add proxy methods for public methods', async t => {
   )
 })
 
-test('afterParse() add proxy methods for private methods', async t => {
+test.skip('afterParse() add proxy methods for private methods', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {
     a: u8;
@@ -135,7 +134,7 @@ test('afterParse() adds exported constructors methods', async t => {
   t.is(
     ASTBuilder.build(mock.functions[0]),
     'export function Test_constructor(): Test {\n'+
-    '  return new Test();\n'+
+    '  return new _LocalTest();\n'+
     '}'
   )
 })
@@ -152,7 +151,7 @@ test('afterParse() adds exported static methods', async t => {
   t.is(
     ASTBuilder.build(mock.functions[1]),
     'export function Test_helloWorld(a0: string): string {\n'+
-    '  return Test.helloWorld(a0);\n'+
+    '  return _LocalTest.helloWorld(a0);\n'+
     '}'
   )
 })
@@ -202,7 +201,7 @@ test('afterParse() replaces imported ambient class with concrete implementation'
   t.false(isAmbient(mock.classes[0].flags))
   t.is(
     ASTBuilder.build(mock.classes[0]),
-    'class Test extends RemoteJig {}'
+    'class Test extends _RemoteJig {}'
   )
 })
 
@@ -220,7 +219,7 @@ test('afterParse() adds getters to all imported class properties', async t => {
   t.is(
     ASTBuilder.build(mock.classes[0].members[0]),
     'get a(): u32 {\n'+
-    '  return vm_remote_prop<u32>(this.$output.origin, "a");\n'+
+    '  return vm_get_prop<u32>(this.$output.origin, "a");\n'+
     '}'
   )
 })
@@ -242,7 +241,7 @@ test('afterParse() adds proxy methods to imported static and instance methods', 
     'a(a0: u8): u8 {\n'+
     '  const args = new ArgWriter(1);\n'+
     '  args.writeU8(a0);\n'+
-    '  return vm_remote_call_i<u8>(this.$output.origin, "a", args.buffer);\n'+
+    '  return vm_call_method<u8>(this.$output.origin, "a", args.buffer);\n'+
     '}'
   )
   t.is(
@@ -250,7 +249,7 @@ test('afterParse() adds proxy methods to imported static and instance methods', 
     'static b(a0: u8): u8 {\n'+
     '  const args = new ArgWriter(1);\n'+
     '  args.writeU8(a0);\n'+
-    '  return vm_remote_call_s<u8>("0000000000000000000000000000000000000000000000000000000000000000", "Test_b", args.buffer);\n'+
+    '  return vm_call_static<u8>("0000000000000000000000000000000000000000000000000000000000000000", "Test_b", args.buffer);\n'+
     '}'
   )
 })

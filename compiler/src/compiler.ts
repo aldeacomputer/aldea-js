@@ -72,18 +72,20 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
 
   const customStdout = asc.createMemoryStream()
 
-  Object.assign(Transform.prototype, {
-    baseDir,
-    writeFile,
-    log: (line: string) => customStdout.write(line + '\n')
-  })
+  // Create a dynamic transform class as merging the prototype
+  // is not safe concurrently
+  class DynamicTransform extends Transform implements AscTransform {
+    baseDir: string = baseDir
+    writeFile = writeFile
+    log(line: string) { customStdout.write(line + '\n') }
+  }
 
   const { error, stdout, stderr, stats } = await asc.main(argv, {
     listFiles,
     writeFile,
     stdout: customStdout,
     // @ts-ignore
-    transforms: [new Transform()]
+    transforms: [new DynamicTransform()]
   })
 
   if (!error) {
@@ -154,18 +156,13 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
 
   const customStdout = asc.createMemoryStream()
 
-  Object.assign(Transform.prototype, {
-    baseDir: '.',
-    writeFile,
-    log: (line: string) => customStdout.write(line + '\n')
-  })
-
-  //const transform: AscTransform = {
-  //  ...new Transform(),
-  //  baseDir: '.',
-  //  writeFile,
-  //  log(line: string) { customStdout.write(line + '\n') }
-  //}
+  // Create a dynamic transform class as merging the prototype
+  // is not safe concurrently
+  class DynamicTransform extends Transform implements AscTransform {
+    baseDir: string = '.'
+    writeFile = writeFile
+    log(line: string) { customStdout.write(line + '\n') }
+  }
 
   const { error, stdout, stderr, stats } = await asc.main(argv, {
     readFile,
@@ -173,7 +170,7 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
     writeFile,
     stdout: customStdout,
     // @ts-ignore
-    transforms: [new Transform()]
+    transforms: [new DynamicTransform()]
   })
 
   if (!error) {

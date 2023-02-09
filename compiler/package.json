@@ -44,8 +44,8 @@
     "docblock": "^0.4.5"
   },
   "devDependencies": {
-    "@as-pect/cli": "^7.0.8",
-    "@assemblyscript/loader": "0.22.0",
+    "@as-pect/cli": "^8.0.1",
+    "@assemblyscript/loader": "0.27.0",
     "@types/node": "^18.11.18",
     "ava": "^5.1.0",
     "concat": "^1.0.3",

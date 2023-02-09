@@ -4,7 +4,7 @@ import { TransformCtx } from '../../dist/transform/ctx.js'
 import { Transform } from '../../dist/transform.js'
 
 test.beforeEach(t => {
-  t.context.transform = { ...Transform }
+  t.context.transform = new Transform()
 })
 
 test('ctx collects user sources and entries', async t => {
@@ -97,9 +97,9 @@ test('ctx.abi has all the exports, imports and plain objects', async t => {
   t.true(ctx.abi.imports.some(im => im.code.name === 'a'))
   t.is(ctx.abi.objects.length, 1)
   t.true(ctx.abi.objects[0].name === 'D')
-  t.is(ctx.abi.typeIds.length, 9)
+  t.is(ctx.abi.typeIds.length, 11)
   ctx.abi.typeIds.forEach(({ name }) => {
-    t.true(['A', 'B', 'C', 'D', 'string', 'Jig', 'JigInitParams', 'Output', 'Lock'].includes(name))
+    t.true(['A', 'B', '$B', 'C', '$C', 'D', 'string', 'Jig', 'JigInitParams', 'Output', 'Lock'].includes(name))
   })
 })
 

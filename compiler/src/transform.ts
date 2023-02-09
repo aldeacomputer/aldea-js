@@ -201,7 +201,17 @@ function ensureJigConstructor(obj: ClassWrap, ctx: TransformCtx): void {
  * Transforms the given jig class to an interface.
  */
 function jigToInterface(obj: ClassWrap, ctx: TransformCtx): void {
-  const code = writeJigInterface(obj)
+  const parents = collectParents(CodeKind.CLASS, obj.extends, ctx)
+  const parentFields = parents.flatMap(p => p.fields.map(n => n.name) as string[])
+  const parentMethods = parents.flatMap(p => p.methods.map(n => n.name) as string[])
+
+  const fields = (obj.fields as FieldWrap[])
+    .filter(n => n.kind === FieldKind.PUBLIC && !parentFields.includes(n.name))
+
+  const methods = (obj.methods as MethodWrap[])
+    .filter(n => n.kind === MethodKind.INSTANCE && !parentMethods.includes(n.name))
+
+  const code = writeJigInterface(obj, fields, methods)
 
   const source = obj.node.range.source
   const src = ctx.parse(code, source.normalizedPath)
