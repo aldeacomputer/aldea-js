@@ -1,3 +1,25 @@
+declare module 'aldea/auth' {
+	import { JigLike } from 'aldea/jig';
+	/**
+	 * AuthCheck type
+	 *
+	 * - call - can the caller call a method on the jig?
+	 * - lock - can the caller lock the jig?
+	 */
+	export enum AuthCheck {
+	    CALL = 0,
+	    LOCK = 1
+	}
+	/**
+	 * Check if the caller can call the given jig
+	 */
+	export function canCall(jig: JigLike): bool;
+	/**
+	 * Check if the caller can lock the given jig
+	 */
+	export function canLock(jig: JigLike): bool;
+
+}
 declare module 'aldea/lock' {
 	/**
 	 * Lock Types
@@ -88,28 +110,6 @@ declare module 'aldea/jig' {
 	export class _RemoteJig extends _BaseJig {
 	    constructor(params: JigInitParams);
 	}
-
-}
-declare module 'aldea/auth' {
-	import { JigLike } from 'aldea/jig';
-	/**
-	 * AuthCheck type
-	 *
-	 * - call - can the caller call a method on the jig?
-	 * - lock - can the caller lock the jig?
-	 */
-	export enum AuthCheck {
-	    CALL = 0,
-	    LOCK = 1
-	}
-	/**
-	 * Check if the caller can call the given jig
-	 */
-	export function canCall(jig: JigLike): bool;
-	/**
-	 * Check if the caller can lock the given jig
-	 */
-	export function canLock(jig: JigLike): bool;
 
 }
 declare module 'aldea/coin' {
