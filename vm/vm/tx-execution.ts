@@ -519,6 +519,9 @@ class TxExecution {
 
   callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {
     const jigRef = this.getStatementResult(jigIndex).asJig()
+    if(!jigRef.lock.acceptsExecution(this)) {
+
+    }
     this.stack.push(jigRef.origin)
     const methodResult = this.callInstanceMethod(jigRef, methodName, args)
     this.stack.pop()
