@@ -18,7 +18,7 @@ export declare function vm_jig_link(jig: Jig, rtid: i32): ArrayBuffer;
 
 // @ts-ignore
 @external("vm", "vm_jig_lock")
-export declare function vm_jig_lock(origin: ArrayBuffer, type: LockType, args: ArrayBuffer): void;
+export declare function vm_jig_lock(origin: ArrayBuffer, type: LockType, args: ArrayBuffer): ArrayBuffer;
 // @ts-ignore
 @external("vm", "vm_jig_authcheck")
 export declare function vm_jig_authcheck(origin: ArrayBuffer, check: AuthCheck): bool;
