@@ -10,7 +10,7 @@ import {
   Internref,
   liftBuffer
 } from "../memory.js";
-import {outputTypeNode} from "./well-known-abi-nodes.js";
+import {emptyTn, outputTypeNode} from "./well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-access.js";
 import {base16} from "@aldea/sdk-js";
 
@@ -148,7 +148,7 @@ export class LiftValueVisitor extends AbiTraveler<any> {
   visitInterface(anInterface: InterfaceNode, _typeNode: TypeNode): any {
     const jig = this.instance.currentExec.findJigByPtr(this.ptr, this.instance)
     const className = jig.className()
-    const clsTypeNode = { name: className, args: [] }
+    const clsTypeNode = emptyTn(className)
     if (jig.package === this.instance) {
       const classNode = this.abi.classByName(className)
       return this.visitExportedClass(classNode, clsTypeNode)
@@ -203,7 +203,7 @@ export class LiftValueVisitor extends AbiTraveler<any> {
     const ptr = Number(this.ptr)
     const mod = this.instance
     const memU32 = new Uint32Array(mod.memory.buffer);
-    const TypedArray = getTypedArrayConstructor({ name: typeName, args: [] })
+    const TypedArray = getTypedArrayConstructor(emptyTn(typeName))
     return new TypedArray(
       mod.memory.buffer,
       memU32[ptr + 4 >>> 2],

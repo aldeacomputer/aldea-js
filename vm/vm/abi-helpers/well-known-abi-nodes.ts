@@ -1,6 +1,6 @@
 import {FieldKind, ImportNode, ObjectNode, TypeNode} from "@aldea/compiler/abi";
 
-export const arrayBufferTypeNode: TypeNode = {name: 'ArrayBuffer', args: []}
+export const arrayBufferTypeNode: TypeNode = emptyTn('ArrayBuffer')
 
 export const outputAbiNode: ObjectNode = {
   name: 'Output',
@@ -24,6 +24,8 @@ export const outputAbiNode: ObjectNode = {
   ]
 }
 
+export const jigInitParamsTypeNode = emptyTn('JigInitParams')
+
 export const jigInitParamsAbiNode: ObjectNode = {
   name: 'JigInitParams',
   extends: null,
@@ -46,10 +48,7 @@ export const jigInitParamsAbiNode: ObjectNode = {
     {
       kind: FieldKind.PUBLIC,
       name: 'lockType',
-      type: {
-        name: 'u8',
-        args: []
-      }
+      type: emptyTn('u8')
     },
     {
       kind: FieldKind.PUBLIC,
@@ -71,10 +70,7 @@ export const lockAbiNode: ObjectNode = {
     {
       kind: FieldKind.PUBLIC,
       name: 'type',
-      type: {
-        name: 'usize',
-        args: []
-      }
+      type: emptyTn('usize')
     },
     {
       kind: FieldKind.PUBLIC,
@@ -84,7 +80,7 @@ export const lockAbiNode: ObjectNode = {
   ]
 }
 
-export const voidNode = {name: '_void', args: []}
+export const voidNode = emptyTn('_void')
 
 export const coinNode: ImportNode = {
   name: 'Coin',
@@ -98,8 +94,8 @@ export const jigNode: ImportNode = {
   kind: 0
 }
 
-export const outputTypeNode: TypeNode = { name: 'Output', args: [] }
-export const lockTypeNode: TypeNode = { name: 'Lock', args: [] }
+export const outputTypeNode: TypeNode = emptyTn('Output')
+export const lockTypeNode: TypeNode = emptyTn('Lock')
 export const JIG_TOP_CLASS_NAME = 'Jig'
 
 export const basicJigAbiNode: ObjectNode = {
@@ -117,4 +113,8 @@ export const basicJigAbiNode: ObjectNode = {
       type: lockTypeNode
     }
   ]
+}
+
+export function emptyTn(name: string): TypeNode {
+  return { name, args: [], nullable: false }
 }

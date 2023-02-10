@@ -5,7 +5,7 @@ import {Abi, ArgNode, ClassNode, FieldNode, findField, findFunction, findMethod,
 import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
-import {Externref, getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
+import {getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
 import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {LiftValueVisitor} from "./abi-helpers/lift-value-visitor.js";
 import {LowerValueVisitor} from "./abi-helpers/lower-value-visitor.js";
@@ -15,8 +15,7 @@ import {LowerArgumentVisitor} from "./abi-helpers/lower-argument-visitor.js";
 import {NoLock} from "./locks/no-lock.js";
 import {
   arrayBufferTypeNode,
-  basicJigAbiNode,
-  jigNode,
+  emptyTn, jigInitParamsTypeNode,
   outputTypeNode,
   voidNode,
 } from "./abi-helpers/well-known-abi-nodes.js";
@@ -106,7 +105,7 @@ export class WasmInstance {
             classPtr: new ArrayBuffer(0),
             lockType: LockType.NONE,
             lockData: new ArrayBuffer(0),
-          }, { name: 'JigInitParams', args: [] })
+          }, emptyTn('JigInitParams'))
         },
         vm_jig_link: (jigPtr: number, rtid: number): WasmPointer =>  {
           const nextOrigin = this.currentExec.createNextOrigin()
@@ -126,7 +125,7 @@ export class WasmInstance {
             new NoLock()
           ))
 
-          return this.insertValue(new Pointer(this.id, classIdx).toBytes(), { name: 'ArrayBuffer', args: [] })
+          return this.insertValue(new Pointer(this.id, classIdx).toBytes(), emptyTn('ArrayBuffer'))
         },
         // vm_local_call_start: (jigPtr: number, fnNamePtr: number): void => {
         //   const fnName = this.liftString(fnNamePtr)
@@ -183,7 +182,7 @@ export class WasmInstance {
               data: jigRef.lock.data()
             }
           }
-          return Number(this.insertValue(utxo, { name: 'UtxoState', args: [] }))
+          return Number(this.insertValue(utxo, outputTypeNode))
         },
         vm_jig_lock: (originPtr: number, type: number, argsPtr: number) => {
           const argBuf = this.liftBuffer(argsPtr)
@@ -279,7 +278,7 @@ export class WasmInstance {
             classPtr: jigRef.classPtr().toBytes(),
             lockType: jigRef.lock.typeNumber(),
             lockData: jigRef.lock.data(),
-          }, { name: 'JigInitParams', args: [] })
+          }, jigInitParamsTypeNode)
         },
         vm_constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): number => {
           return 0
@@ -347,7 +346,7 @@ export class WasmInstance {
     ]
     const objectNode = this.abi.classByIndex(classIdx)
     const visitor = new LowerJigStateVisitor(this.abi, this, rawState)
-    const pointer = visitor.visitPlainObject(objectNode, {name: `$${objectNode.name}`, args: []})
+    const pointer = visitor.visitPlainObject(objectNode, emptyTn(`$${objectNode.name}`))
     return new Internref(objectNode.name, Number(pointer))
   }
 
@@ -425,7 +424,7 @@ export class WasmInstance {
     const visitor = new LiftJigStateVisitor(this.abi, this, ref.ptr)
     const lifted = visitor.visitPlainObject(
       abiObj,
-      {name: `${abiObj.name}`, args: []}
+      emptyTn(abiObj.name)
     )
     return __encodeArgs(
       abiObj.nativeFields().map((field: FieldNode) => lifted[field.name])
@@ -434,7 +433,7 @@ export class WasmInstance {
 
   extractValue(ptr: WasmPointer, type: TypeNode | null): WasmValue {
     if (type === null) {
-      type = {  name: 'void', args: [] }
+      type = emptyTn('void')
     }
     const visitor = new LiftValueVisitor(this.abi, this, ptr)
     const value = visitor.travelFromType(type)
@@ -471,6 +470,6 @@ export class WasmInstance {
   }
 
   liftBasicJig(value: Internref): any {
-    return this.extractValue(value.ptr, {name: '__Jig', args: []}).value
+    return this.extractValue(value.ptr, emptyTn('__Jig')).value
   }
 }

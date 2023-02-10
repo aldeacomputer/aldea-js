@@ -1,5 +1,5 @@
 import { vm_jig_authcheck } from './imports'
-import {JigLike} from "aldea/jig";
+import {Jig} from "./jig";
 
 /**
  * AuthCheck type
@@ -15,13 +15,13 @@ export enum AuthCheck {
 /**
  * Check if the caller can call the given jig
  */
-export function canCall(jig: JigLike): bool {
+export function canCall(jig: Jig): bool {
   return vm_jig_authcheck(jig.$output.origin, AuthCheck.CALL)
 }
 
 /**
  * Check if the caller can lock the given jig
  */
-export function canLock(jig: JigLike): bool {
+export function canLock(jig: Jig): bool {
   return vm_jig_authcheck(jig.$output.origin, AuthCheck.LOCK)
 }

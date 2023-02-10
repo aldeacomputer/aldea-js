@@ -2,6 +2,7 @@ import {ClassNode, InterfaceNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {LowerValueVisitor} from "./lower-value-visitor.js";
 import {base16, Pointer} from "@aldea/sdk-js";
+import {emptyTn} from "./well-known-abi-nodes.js";
 
 export class LowerJigStateVisitor extends LowerValueVisitor {
   visitExportedClass (node: ClassNode, type: TypeNode): WasmPointer {
@@ -18,7 +19,7 @@ export class LowerJigStateVisitor extends LowerValueVisitor {
   visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
     const jig = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(this.value))
     const className = jig.className();
-    const typenode = {name: className, args: [] };
+    const typenode = emptyTn(className);
     if (jig.package === this.instance) {
       const classNode = this.abi.classByName(className)
       return this.visitExportedClass(classNode, typenode)

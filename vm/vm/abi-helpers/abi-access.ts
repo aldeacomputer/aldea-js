@@ -13,7 +13,7 @@ import {
 import {ClassNodeWrapper} from "./class-node-wrapper.js";
 import {
   basicJigAbiNode,
-  coinNode,
+  coinNode, emptyTn,
   JIG_TOP_CLASS_NAME,
   jigInitParamsAbiNode, jigNode,
   lockAbiNode,
@@ -103,15 +103,15 @@ export class AbiAccess {
   }
 
   typeFromRtid(rtid: number): TypeNode {
-    const node = this.abi.typeIds.find(typeId => typeId.id === rtid)
+    const node = this.abi.typeIds.find((typeId: TypeIdNode) => typeId.id === rtid)
     if (!node) {
       throw new Error(`unknown rtid: ${rtid}`)
     }
-    return { name: node.name, args: [] }
+    return emptyTn(node.name)
   }
 
   findImportedIndex(name: string) {
-    return this.abi.imports.findIndex(imported => imported.name === name)
+    return this.abi.imports.findIndex((imported: ImportNode) => imported.name === name)
   }
 
   importedByIndex(importedIndex: number): ImportNode {

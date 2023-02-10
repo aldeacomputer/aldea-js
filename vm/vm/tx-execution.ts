@@ -13,6 +13,7 @@ import {Address, base16, InstructionRef, instructions, Pointer, Tx} from '@aldea
 import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
+import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
 
 abstract class StatementResult {
   abstract get abiNode(): TypeNode;
@@ -445,20 +446,14 @@ class TxExecution {
 
   loadJigByOutputId (outputId: Uint8Array): number {
     const jigRef = this.findJigByOutputId(outputId)
-    const typeNode = {
-      name: jigRef.className(),
-      args: <TypeNode[]>[]
-    }
+    const typeNode = emptyTn(jigRef.className())
     this.statementResults.push(new ValueStatementResult(typeNode, jigRef, jigRef.package))
     return this.statementResults.length - 1
   }
 
   loadJigByOrigin (origin: Pointer): number {
     const jigRef = this.findJigByOrigin(origin)
-    const typeNode = {
-      name: jigRef.className(),
-      args: <TypeNode[]>[]
-    }
+    const typeNode = emptyTn(jigRef.className())
     this.statementResults.push(new ValueStatementResult(typeNode, jigRef, jigRef.package))
     return this.statementResults.length - 1
   }
