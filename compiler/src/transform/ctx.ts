@@ -511,6 +511,7 @@ function mapType(node: NamedTypeNode): TypeWrap {
   return {
     node,
     name: node.name.identifier.text,
+    nullable: node.isNullable,
     args: args || []
   }
 }

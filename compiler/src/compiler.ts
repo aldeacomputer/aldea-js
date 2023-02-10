@@ -5,8 +5,6 @@ import asc from 'assemblyscript/asc'
 import { Command } from 'commander'
 import { AscTransform, Transform } from './transform.js'
 
-import { ASTBuilder } from 'assemblyscript'
-
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 const extension = '.ts'
@@ -21,7 +19,6 @@ const baseOpts = [
   '--exportRuntime',
   '--exportStart',
   '--lib', join(rootDir, 'lib'),
-  //'--transform', join(rootDir, 'dist/transform.js')
 ]
 
 export interface CompiledOutput {
