@@ -155,7 +155,7 @@ export class AbiAccess {
   }
 
   importByName(typeName: any): ImportNode {
-    const node = this.abi.imports.find(imp => imp.name === typeName)
+    const node = this.imports.find(imp => imp.name === typeName)
     if (!node) {
       throw new Error(`Import not found: ${typeName}`)
     }

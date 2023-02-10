@@ -22,6 +22,7 @@ import {
 } from "./abi-helpers/well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
+import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
 
 export enum LockType {
   FROZEN = -1,
@@ -463,16 +464,9 @@ export class WasmInstance {
   liftArguments (argBuffer: Uint8Array, args: ArgNode[]): any[] {
     const argReader = new ArgReader(argBuffer)
     return args.map((n: ArgNode) => {
-
-      // const ptr = readType(argReader, n.type)
-      // const value = this.extractValue(ptr, n.type).value
-      // if (value.value instanceof Externref) {
-      //   return this.currentExec.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
-      // } else if (value.value instanceof Internref) {
-      //   return this.currentExec.jigByInternRef(value.value)
-      // } else {
-      //   return value
-      // }
+      const ptr = readType(argReader, n.type)
+      const visitor = new LiftArgumentVisitor(this.abi, this, ptr)
+      return visitor.travelFromType(n.type)
     })
   }
 
