@@ -104,10 +104,13 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
       }
     })
 
-    // 3 - inject complex setters
+    // 3 - Remove declare keyword from objects
+    $ctx.objects.forEach(obj => obj.node.flags &= ~CommonFlags.Declare)
+
+    // 4 - inject complex setters
     complexTypeSetters($ctx)
 
-    // 4 - filter through the AST and apply necessary mutations
+    // 5 - filter through the AST and apply necessary mutations
     $ctx.sources.forEach(src => {
       filterAST(src, (node: Node, parent?: Node, parentProp?: string) => {
         switch (node.kind) {
