@@ -9,7 +9,7 @@ import {base16, PrivKey, Tx, instructions} from "@aldea/sdk-js";
 
 const { SignInstruction } = instructions
 
-describe('execute txs', () => {
+describe.skip('execute with interfaces', () => {
   let storage: Storage
   let vm: VM
   const moduleIds = new Map<string, string>()

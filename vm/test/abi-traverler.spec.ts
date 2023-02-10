@@ -178,10 +178,12 @@ class TestTraveller extends AbiTraveler<string> {
   }
 
   visitExportedClass(classNode: ClassNode, type: TypeNode): string {
-    const parts = classNode.fields.map(field => {
-      const value = this.visitValue(field.type)
-      return `${field.name}: ${value}`
-    })
+    const parts = classNode.fields
+      .filter(field => !field.name.startsWith('$'))
+      .map(field => {
+        const value = this.visitValue(field.type)
+        return `${field.name}: ${value}`
+      })
 
     return `${classNode.name}<${parts.join(', ')}>`
   }

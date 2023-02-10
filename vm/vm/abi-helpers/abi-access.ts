@@ -138,7 +138,7 @@ export class AbiAccess {
   }
 
   classNameExists(typeName: string): boolean {
-    return this.exports.some(exp => exp.code.name === typeName);
+    return this.exports.some(exp => exp.code.name === typeName && exp.kind === CodeKind.CLASS);
   }
 
   importClassNameExists(typeName: string): boolean {

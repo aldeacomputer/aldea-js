@@ -495,11 +495,15 @@ class TxExecution {
     const methodResult = jig.package.instanceCall(jig, jig.className(), methodName, args);
     this.affectedJigs.add(jig)
     let value = methodResult.value
+
     if (value instanceof Internref) {
-      value = this.jigs.find(j => j.package === jig.package && j.ref.equals(value))
+      const jigData = methodResult.mod.liftBasicJig(value)
+      const origin = Pointer.fromBytes(jigData.$output.origin)
+      value = this.findJigByOrigin(origin)
     }
     if (value instanceof Externref) {
-      value = this.jigs.find(j => j.origin.equals(Pointer.fromBytes(value.originBuf)))
+      const pointer = Pointer.fromBytes(value.originBuf)
+      value = this.getJigRefByOrigin(pointer)
     }
     return {...methodResult, value}
   }

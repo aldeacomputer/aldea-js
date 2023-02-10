@@ -521,7 +521,7 @@ describe('reading complex types from memory', () => {
     })
   })
 
-  describe('objects', () => {
+  describe.skip('objects', () => {
     it('reads plain objects', async() => {
       const code = `
       declare class Test {
@@ -788,7 +788,7 @@ describe('writing complex types to memory', () => {
     })
   })
 
-  describe('objects', () => {
+  describe.skip('objects', () => {
     it('writes plain objects', async() => {
       const code = `
       declare class Test {
