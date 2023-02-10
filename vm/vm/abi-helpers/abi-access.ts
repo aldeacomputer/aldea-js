@@ -12,6 +12,7 @@ import {
 } from "@aldea/compiler/abi";
 import {ClassNodeWrapper} from "./class-node-wrapper.js";
 import {
+  basicJigAbiNode,
   coinNode,
   JIG_TOP_CLASS_NAME,
   jigInitParamsAbiNode, jigNode,
@@ -67,7 +68,8 @@ export class AbiAccess {
       ...this.abi.objects,
       outputAbiNode,
       lockAbiNode,
-      jigInitParamsAbiNode
+      jigInitParamsAbiNode,
+      basicJigAbiNode
     ]
   }
   get typeIds(): TypeIdNode[] {

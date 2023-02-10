@@ -101,3 +101,20 @@ export const jigNode: ImportNode = {
 export const outputTypeNode: TypeNode = { name: 'Output', args: [] }
 export const lockTypeNode: TypeNode = { name: 'Lock', args: [] }
 export const JIG_TOP_CLASS_NAME = 'Jig'
+
+export const basicJigAbiNode: ObjectNode = {
+  name: '__Jig',
+  extends: null,
+  fields: [
+    {
+      kind: FieldKind.PUBLIC,
+      name: '$output',
+      type: outputTypeNode
+    },
+    {
+      kind: FieldKind.PUBLIC,
+      name: '$lock',
+      type: lockTypeNode
+    }
+  ]
+}

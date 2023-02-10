@@ -197,19 +197,6 @@ class TxExecution {
     return jigRef
   }
 
-  constructorHandler(source: WasmInstance, jigPtr: number, className: string): void {
-    const origin = this.createNextOrigin()
-    const existingRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.package === source)
-    const classIdx = source.abi.exports.findIndex(e => e.code.name === className)
-    if (existingRef) {
-      existingRef.classIdx = classIdx
-      existingRef.ref.name = className
-      return
-    }
-    const jigRef = new JigRef(new Internref(className, jigPtr), classIdx, source, origin, origin, new NoLock())
-    this.addNewJigRef(jigRef)
-  }
-
   localAuthCheckHandler(jigPtr: number, instance: WasmInstance, check: AuthCheck): boolean {
     const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.package === instance) || this.jigs.find(j => j.ref.ptr === -1 && j.package === instance)
     if (!jig) {throw new Error('should exists')}
@@ -519,12 +506,9 @@ class TxExecution {
 
   callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {
     const jigRef = this.getStatementResult(jigIndex).asJig()
-    if(!jigRef.lock.acceptsExecution(this)) {
-
-    }
-    this.stack.push(jigRef.origin)
+    this.localCallStartHandler(jigRef, methodName)
     const methodResult = this.callInstanceMethod(jigRef, methodName, args)
-    this.stack.pop()
+    this.localCallEndHandler()
     this.statementResults.push(new ValueStatementResult(methodResult.node, methodResult.value, methodResult.mod))
     return this.statementResults.length - 1
   }
@@ -545,10 +529,13 @@ class TxExecution {
 
     let {node, value, mod} = module.staticCall(className, methodName, args)
     if (value instanceof Internref) {
-      value = this.jigs.find(j => j.package === module && j.ref.equals(value))
+      const jigData = mod.liftBasicJig(value)
+      const origin = Pointer.fromBytes(jigData.$output.origin)
+      value = this.findJigByOrigin(origin)
     }
     if (value instanceof Externref) {
-      value = this.jigs.find(j => j.origin.equals(Pointer.fromBytes(value.originBuf)))
+      const pointer = Pointer.fromBytes(value.originBuf)
+      value = this.getJigRefByOrigin(pointer)
     }
     return new ValueStatementResult(
       node,
@@ -570,20 +557,22 @@ class TxExecution {
     let {node, value, mod} = wasm.functionCall(fnName, args)
 
     if (value instanceof Internref) {
-      value = this.jigs.find(j => j.ref.equals(value))
+      const jigData = mod.liftBasicJig(value)
+      const origin = Pointer.fromBytes(jigData.$output.origin)
+      value = this.findJigByOrigin(origin)
     }
-
     if (value instanceof Externref) {
-      value = this.jigs.find(j => j.origin.equals(Pointer.fromBytes(value.originBuf)))
+      const pointer = Pointer.fromBytes(value.originBuf)
+      value = this.getJigRefByOrigin(pointer)
     }
 
-    const coso = new ValueStatementResult(
+    const newStatementResult = new ValueStatementResult(
       node,
       value,
       mod
     )
 
-    this.statementResults.push(coso)
+    this.statementResults.push(newStatementResult)
     return this.statementResults.length - 1
   }
 

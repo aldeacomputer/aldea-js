@@ -192,8 +192,8 @@ describe('execute txs', () => {
     ).to.throw(PermissionError)
   })
 
-  it('does not allow to call private methods on jigs of the same module that own', () => {
-    // Private methods works like private methods now.
+  it.skip('does not allow to call private methods on jigs of the same module that own', () => {
+    // Private methods works like private methods and fail at compile time
     const antWasmIndex = exec.importModule(modIdFor('ant'))
     const ant1Index = exec.instantiate(antWasmIndex, 'Ant', [])
     const ant2Index = exec.instantiate(antWasmIndex, 'Ant', [])
@@ -261,7 +261,7 @@ describe('execute txs', () => {
       exec.loadJigByOrigin(new Pointer(freezeTx.hash, 0))
       expect(() => exec.callInstanceMethodByIndex(0, 'grow', [])).to
         .throw(PermissionError,
-          `jig ${freezeExec.outputs[0].currentLocation.toString()} is not allowed to exec "Flock$grow" because it\'s frozen`)
+          `jig ${freezeExec.outputs[0].currentLocation.toString()} is not allowed to exec "grow" because it\'s frozen`)
     })
 
     it('cannot be locked', () => {

@@ -13,7 +13,13 @@ import {LiftJigStateVisitor} from "./abi-helpers/lift-jig-state-visitor.js";
 import {LowerJigStateVisitor} from "./abi-helpers/lower-jig-state-visitor.js";
 import {LowerArgumentVisitor} from "./abi-helpers/lower-argument-visitor.js";
 import {NoLock} from "./locks/no-lock.js";
-import {arrayBufferTypeNode, outputTypeNode, voidNode,} from "./abi-helpers/well-known-abi-nodes.js";
+import {
+  arrayBufferTypeNode,
+  basicJigAbiNode,
+  jigNode,
+  outputTypeNode,
+  voidNode,
+} from "./abi-helpers/well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
 
@@ -256,8 +262,23 @@ export class WasmInstance {
 
           return this.insertValue(buf, arrayBufferTypeNode)
         },
-        vm_constructor_local: (namePtr: number, argsPtr: number): number => {
-          return 0
+        vm_constructor_local: (classNamePtr: number, argsPtr: number): WasmPointer => {
+          const className = this.liftString(classNamePtr)
+          // const classIdx = this.abi.classIdxByName(className)
+          const argsBuf = this.liftBuffer(argsPtr)
+          const methodNode = this.abi.classByName(className).methodByName('constructor')
+          const args = this.liftArguments(argsBuf, methodNode.args)
+          const instance = this.staticCall(className, 'constructor', args)
+          const interRef = instance.value as Internref
+          const jigRef = this.currentExec.findJigByRef(interRef)
+
+          return this.insertValue({
+            origin: jigRef.origin.toBytes(),
+            location: jigRef.origin.toBytes(),
+            classPtr: jigRef.classPtr().toBytes(),
+            lockType: jigRef.lock.typeNumber(),
+            lockData: jigRef.lock.data(),
+          }, { name: 'JigInitParams', args: [] })
         },
         vm_constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): number => {
           return 0
@@ -442,15 +463,20 @@ export class WasmInstance {
   liftArguments (argBuffer: Uint8Array, args: ArgNode[]): any[] {
     const argReader = new ArgReader(argBuffer)
     return args.map((n: ArgNode) => {
-      const ptr = readType(argReader, n.type)
-      const value = this.extractValue(ptr, n.type).value
-      if (value.value instanceof Externref) {
-        return this.currentExec.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
-      } else if (value.value instanceof Internref) {
-        return this.currentExec.jigByInternRef(value.value)
-      } else {
-        return value
-      }
+
+      // const ptr = readType(argReader, n.type)
+      // const value = this.extractValue(ptr, n.type).value
+      // if (value.value instanceof Externref) {
+      //   return this.currentExec.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
+      // } else if (value.value instanceof Internref) {
+      //   return this.currentExec.jigByInternRef(value.value)
+      // } else {
+      //   return value
+      // }
     })
+  }
+
+  liftBasicJig(value: Internref): any {
+    return this.extractValue(value.ptr, {name: '__Jig', args: []}).value
   }
 }
