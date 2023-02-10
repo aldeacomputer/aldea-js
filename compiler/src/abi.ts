@@ -126,7 +126,8 @@ export function normalizeNodeName(
 export function normalizeTypeName(type: TypeNode | null): string {
   if (!type) return ''
   const args = type.args.length ? `<${ type.args.map(normalizeTypeName).join(',') }>` : ''
-  return type.name + args
+  const nullable = type.nullable ? ' | null' : ''
+  return type.name + args + nullable
 }
 
 // Casts an ExportNode object into an array for CBOR serialization
@@ -228,9 +229,10 @@ function cborFromArg({ name, type }: ArgNode): ArgCbor {
 }
 
 // Casts a TypeNode object into an array for CBOR serialization
-function cborFromType({ name, args }: TypeNode): TypeCbor {
+function cborFromType({ name, nullable, args }: TypeNode): TypeCbor {
   return [
     name,
+    nullable,
     args.map(cborFromType),
   ]
 }
@@ -342,9 +344,10 @@ function cborToArg([name, type]: ArgCbor): ArgNode {
 }
 
 // Casts the CBOR array to a TypeNode object.
-function cborToType([name, args]: TypeCbor): TypeNode {
+function cborToType([name, nullable, args]: TypeCbor): TypeNode {
   return {
     name,
+    nullable,
     args: args.map(cborToType),
   }
 }
