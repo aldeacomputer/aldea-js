@@ -13,6 +13,7 @@ import {
   InterfaceNode
 } from "@aldea/compiler/abi";
 import {AbiAccess} from "../vm/abi-helpers/abi-access.js";
+import {emptyTn} from "../vm/abi-helpers/well-known-abi-nodes.js";
 
 class TestAbiClassBuilder {
   fields: FieldNode[]
@@ -200,14 +201,14 @@ class TestTraveller extends AbiTraveler<string> {
   }
 }
 
-const tn = (name: string, args: string[] = []): TypeNode => ({ name, args: args.map(arg => tn(arg))}) //tn => TypeNode
+const tn = (name: string, args: string[] = []): TypeNode => ({ name, args: args.map(arg => tn(arg)), nullable: false}) //tn => TypeNode
 describe('AbiTraveler', () => {
 
   describe('when the class has a single basic type field', () => {
     function checkScenario (typeName: string) {
       const abi = new TestAbiBuilder()
         .addExportedClass('Foo', cls => {
-          cls.withField(FieldKind.PUBLIC, 'bar', { name: typeName, args: [] })
+          cls.withField(FieldKind.PUBLIC, 'bar', emptyTn(typeName))
         })
         .build()
 
