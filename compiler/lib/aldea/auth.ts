@@ -1,5 +1,5 @@
 import { vm_jig_authcheck } from './imports'
-import { Jig } from './jig'
+import {Jig} from "./jig";
 
 /**
  * AuthCheck type

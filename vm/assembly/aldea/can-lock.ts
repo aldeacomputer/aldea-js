@@ -4,8 +4,8 @@ export class PublicJig extends Jig {
   adopted: Jig[]
   constructor() {
     super();
-    this.$lock.changeToPublicLock()
     this.adopted = []
+    this.$lock.changeToPublicLock()
   }
 
   adopt (aJig: Jig): void {

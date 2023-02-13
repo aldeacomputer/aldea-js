@@ -94,6 +94,14 @@ export class Shepherd extends Jig {
   static returnAFlock (someFlock: Flock): Flock {
     return someFlock
   }
+
+  breedANewFlock(size: u32): Flock {
+    const newFlock = new Flock()
+    for (let i: u32 = 0; i++; i < size) {
+      newFlock.grow()
+    }
+    return this.replace(newFlock)
+  }
 }
 
 export class ExternalFlockOperations extends Jig  {

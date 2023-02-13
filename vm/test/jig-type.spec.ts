@@ -49,12 +49,12 @@ describe('Jig Type', () => {
     exec.markAsFunded()
     jigBearerModuleIndex = exec.importModule(modIdFor('jig-type-bearer')) // index 0
     flockModuleIndex = exec.importModule(modIdFor('flock'))
-    flockIndex = exec.instantiate(flockModuleIndex, 'Flock', [])
+    flockIndex = exec.instantiateByIndex(flockModuleIndex, 'Flock', [])
     jig = exec.getStatementResult(flockIndex).asJig()
   })
 
   it('can create instances by sending jig typed arguments to constructor properly.', () => {
-    const jigBearerIndex = exec.instantiate(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
+    const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
     exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
     exec.finalize()
@@ -65,7 +65,7 @@ describe('Jig Type', () => {
   })
 
   it('can make calls on methods returning jig typed parameters', () => {
-    const jigBearerIndex = exec.instantiate(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
+    const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
     const returnedJig = exec.getStatementResult(exec.callInstanceMethodByIndex(jigBearerIndex, 'getJig', [])).asJig()
     exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
@@ -76,10 +76,10 @@ describe('Jig Type', () => {
   })
 
   it('can make calls on jigs sending jig typed parameters', () => {
-    const anotherFlockIndex = exec.instantiate(flockModuleIndex, 'Flock', [])
+    const anotherFlockIndex = exec.instantiateByIndex(flockModuleIndex, 'Flock', [])
     const anotherJig = exec.getStatementResult(anotherFlockIndex).asJig()
 
-    const jigBearerIndex = exec.instantiate(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
+    const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
     exec.callInstanceMethodByIndex(jigBearerIndex, 'setJig', [anotherJig])
 
     exec.lockJigToUser(jigBearerIndex, userAddr)
@@ -95,7 +95,7 @@ describe('Jig Type', () => {
   })
 
   it('can restore jigs that contain jigs of the same package', () => {
-    const jigBearerIndex = exec.instantiate(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
+    const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
     exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
     exec.finalize()
@@ -121,7 +121,7 @@ describe('Jig Type', () => {
   })
 
   it.skip('can restore jigs that contain jigs of the same package with the expected type name', () => {
-    const jigBearerIndex = exec.instantiate(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
+    const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
     exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
     exec.finalize()

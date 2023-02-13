@@ -273,7 +273,7 @@ describe('tx interaction', () => {
       await vm.execTx(tx2)
     } catch (e: any) {
       expect(e).to.be.instanceof(PermissionError)
-      expect(e.message).to.eql(`jig ${new Pointer(tx1.hash, 0).toString()} is not allowed to exec "Flock$grow"`)
+      expect(e.message).to.eql(`jig ${new Pointer(tx1.hash, 0).toString()} is not allowed to exec "grow"`)
       return
     }
     expect.fail('should fail')

@@ -24,7 +24,7 @@ export class Coin extends Jig {
     return this
   }
 
-  private combineInto(): void {
+  combineInto(): void {
     this.motos = 0
     this.$lock.freeze()
   }

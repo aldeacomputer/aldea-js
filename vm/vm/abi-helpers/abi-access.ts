@@ -8,11 +8,12 @@ import {
   ObjectNode,
   TypeIdNode,
   TypeNode,
-  findFunction
+  findFunction, InterfaceNode
 } from "@aldea/compiler/abi";
 import {ClassNodeWrapper} from "./class-node-wrapper.js";
 import {
-  coinNode,
+  basicJigAbiNode,
+  coinNode, emptyTn,
   JIG_TOP_CLASS_NAME,
   jigInitParamsAbiNode, jigNode,
   lockAbiNode,
@@ -29,12 +30,21 @@ export class AbiAccess {
     this.abi = abi
   }
 
-  classByName (name: string, onNotFound: (a: string) => ClassNodeWrapper = classNotFound): ClassNodeWrapper {
+  classByName(name: string, onNotFound: (a: string) => ClassNodeWrapper = classNotFound): ClassNodeWrapper {
     const abiNode = findClass(this, name)
     if (!abiNode) {
       return onNotFound(name)
     }
     return new ClassNodeWrapper(abiNode, this)
+  }
+
+  classIdxByName (name: string): number {
+    name = name.replace(/^\$|/, '')
+    const index = this.exports.findIndex(e => e.code.name === name)
+    if (index < 0) {
+      throw new Error(`Unknown class name: ${name}`)
+    }
+    return index
   }
 
   findExportIndex (exportName: string) {
@@ -58,7 +68,8 @@ export class AbiAccess {
       ...this.abi.objects,
       outputAbiNode,
       lockAbiNode,
-      jigInitParamsAbiNode
+      jigInitParamsAbiNode,
+      basicJigAbiNode
     ]
   }
   get typeIds(): TypeIdNode[] {
@@ -92,15 +103,15 @@ export class AbiAccess {
   }
 
   typeFromRtid(rtid: number): TypeNode {
-    const node = this.abi.typeIds.find(typeId => typeId.id === rtid)
+    const node = this.abi.typeIds.find((typeId: TypeIdNode) => typeId.id === rtid)
     if (!node) {
       throw new Error(`unknown rtid: ${rtid}`)
     }
-    return { name: node.name, args: [] }
+    return emptyTn(node.name)
   }
 
   findImportedIndex(name: string) {
-    return this.abi.imports.findIndex(imported => imported.name === name)
+    return this.abi.imports.findIndex((imported: ImportNode) => imported.name === name)
   }
 
   importedByIndex(importedIndex: number): ImportNode {
@@ -124,5 +135,46 @@ export class AbiAccess {
 
   functionByName(fnName: string): FunctionNode {
     return findFunction(this.abi, fnName, `Function ${fnName} was not found.`)
+  }
+
+  classNameExists(typeName: string): boolean {
+    return this.exports.some(exp => exp.code.name === typeName && exp.kind === CodeKind.CLASS);
+  }
+
+  importClassNameExists(typeName: string): boolean {
+    const node = this.imports.find(imp => imp.name === typeName);
+    return !!node && (node.kind === CodeKind.CLASS);
+  }
+
+  exportedObjectNameExists(typeName: string): boolean {
+    return this.objects.some(obj => obj.name === typeName);
+  }
+
+  interfaceNameExists(typeName: string): boolean {
+    return this.exports.some(exp => exp.kind === CodeKind.INTERFACE && exp.code.name === typeName)
+  }
+
+  importByName(typeName: any): ImportNode {
+    const node = this.imports.find(imp => imp.name === typeName)
+    if (!node) {
+      throw new Error(`Import not found: ${typeName}`)
+    }
+    return node
+  }
+
+  objectByName(typeName: any): ObjectNode {
+    const node = this.objects.find(obj => obj.name === typeName)
+    if (!node) {
+      throw new Error(`Unknown object: ${typeName}`)
+    }
+    return node
+  }
+
+  interfaceByName(typeName: any): InterfaceNode {
+    const node = this.exports.find(exp => exp.code.name === typeName && exp.kind === CodeKind.INTERFACE)
+    if (!node) {
+      throw new Error(`Unknown interface: ${typeName}`)
+    }
+    return node.code as InterfaceNode
   }
 }

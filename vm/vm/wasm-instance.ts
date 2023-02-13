@@ -5,7 +5,7 @@ import {Abi, ArgNode, ClassNode, FieldNode, findField, findFunction, findMethod,
 import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
-import {Externref, getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
+import {getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
 import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {LiftValueVisitor} from "./abi-helpers/lift-value-visitor.js";
 import {LowerValueVisitor} from "./abi-helpers/lower-value-visitor.js";
@@ -13,9 +13,15 @@ import {LiftJigStateVisitor} from "./abi-helpers/lift-jig-state-visitor.js";
 import {LowerJigStateVisitor} from "./abi-helpers/lower-jig-state-visitor.js";
 import {LowerArgumentVisitor} from "./abi-helpers/lower-argument-visitor.js";
 import {NoLock} from "./locks/no-lock.js";
-import {arrayBufferTypeNode, outputTypeNode, voidNode,} from "./abi-helpers/well-known-abi-nodes.js";
+import {
+  arrayBufferTypeNode,
+  emptyTn, jigInitParamsTypeNode,
+  outputTypeNode,
+  voidNode,
+} from "./abi-helpers/well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
+import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
 
 export enum LockType {
   FROZEN = -1,
@@ -86,10 +92,10 @@ export class WasmInstance {
         }
       },
       vm: {
-        vm_constructor_end: (jigPtr: number, classNamePtr: number): void => {
-          const className = this.liftString(classNamePtr)
-          this.currentExec.constructorHandler(this, jigPtr, className)
-        },
+        // vm_constructor_end: (jigPtr: number, classNamePtr: number): void => {
+        //   const className = this.liftString(classNamePtr)
+        //   this.currentExec.constructorHandler(this, jigPtr, className)
+        // },
         vm_jig_init: (): WasmPointer => {
           const nextOrigin = this.currentExec.createNextOrigin()
 
@@ -99,7 +105,7 @@ export class WasmInstance {
             classPtr: new ArrayBuffer(0),
             lockType: LockType.NONE,
             lockData: new ArrayBuffer(0),
-          }, { name: 'JigInitParams', args: [] })
+          }, emptyTn('JigInitParams'))
         },
         vm_jig_link: (jigPtr: number, rtid: number): WasmPointer =>  {
           const nextOrigin = this.currentExec.createNextOrigin()
@@ -107,8 +113,8 @@ export class WasmInstance {
           if (!className) {
             throw new Error('should exist')
           }
-          const classNode = this.abi.classByName(className)
-          const classIdx = this.abi.exports.findIndex(node => node.code.name === classNode.name)
+
+          const classIdx = this.abi.classIdxByName(className)
 
           this.currentExec.addNewJigRef(new JigRef(
             new Internref(className, jigPtr),
@@ -119,20 +125,20 @@ export class WasmInstance {
             new NoLock()
           ))
 
-          return this.insertValue(new Pointer(this.id, classIdx).toBytes(), { name: 'ArrayBuffer', args: [] })
+          return this.insertValue(new Pointer(this.id, classIdx).toBytes(), emptyTn('ArrayBuffer'))
         },
-        vm_local_call_start: (jigPtr: number, fnNamePtr: number): void => {
-          const fnName = this.liftString(fnNamePtr)
-          this.currentExec.localCallStartHandler(this, jigPtr, fnName)
-        },
+        // vm_local_call_start: (jigPtr: number, fnNamePtr: number): void => {
+        //   const fnName = this.liftString(fnNamePtr)
+        //   this.currentExec.localCallStartHandler(this, jigPtr, fnName)
+        // },
         vm_jig_authcheck: (callerOriginPtr: number, check: AuthCheck) => {
           const callerOrigin = this.liftBuffer(callerOriginPtr)
           return this.currentExec.remoteAuthCheckHandler(Pointer.fromBytes(callerOrigin), check)
         },
-        vm_local_call_end: () => {
-          this.currentExec.localCallEndtHandler()
-        },
-        vm_remote_call_i: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
+        // vm_local_call_end: () => {
+        //   this.currentExec.localCallEndtHandler()
+        // },
+        vm_call_method: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
           const targetOriginArrBuf = this.liftBuffer(targetOriginPtr)
           const methodName = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
@@ -140,7 +146,7 @@ export class WasmInstance {
           const methodResult = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), methodName, argBuf)
           return this.insertValue(methodResult.value, methodResult.node)
         },
-        vm_remote_call_s: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
+        vm_call_static: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
           const moduleId = this.liftString(originPtr).split('_')[0]
           const fnStr = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
@@ -148,7 +154,7 @@ export class WasmInstance {
           return Number(this.insertValue(result.value, result.node))
         },
 
-        vm_remote_call_f: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): WasmPointer => {
+        vm_call_function: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): WasmPointer => {
           const pkgId = this.liftString(pkgIdStrPtr)
           const fnName = this.liftString(fnNamePtr)
           const argsBuf = this.liftBuffer(argsBufPtr)
@@ -159,7 +165,7 @@ export class WasmInstance {
           return this.insertValue(result.value, result.node)
         },
 
-        vm_remote_prop: (targetOriginPtr: number, propNamePtr: number) => {
+        vm_get_prop: (targetOriginPtr: number, propNamePtr: number) => {
           const targetOrigBuf = this.liftBuffer(targetOriginPtr)
           const propStr = this.liftString(propNamePtr)
           const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propStr)
@@ -176,7 +182,7 @@ export class WasmInstance {
               data: jigRef.lock.data()
             }
           }
-          return Number(this.insertValue(utxo, { name: 'UtxoState', args: [] }))
+          return Number(this.insertValue(utxo, outputTypeNode))
         },
         vm_jig_lock: (originPtr: number, type: number, argsPtr: number) => {
           const argBuf = this.liftBuffer(argsPtr)
@@ -256,6 +262,42 @@ export class WasmInstance {
 
           return this.insertValue(buf, arrayBufferTypeNode)
         },
+        vm_constructor_local: (classNamePtr: number, argsPtr: number): WasmPointer => {
+          const className = this.liftString(classNamePtr)
+          // const classIdx = this.abi.classIdxByName(className)
+          const argsBuf = this.liftBuffer(argsPtr)
+          const methodNode = this.abi.classByName(className).methodByName('constructor')
+          const args = this.liftArguments(argsBuf, methodNode.args)
+          const instance = this.staticCall(className, 'constructor', args)
+          const interRef = instance.value as Internref
+          const jigRef = this.currentExec.findJigByRef(interRef)
+
+          return this.insertValue({
+            origin: jigRef.origin.toBytes(),
+            location: jigRef.origin.toBytes(),
+            classPtr: jigRef.classPtr().toBytes(),
+            lockType: jigRef.lock.typeNumber(),
+            lockData: jigRef.lock.data(),
+          }, jigInitParamsTypeNode)
+        },
+        vm_constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): WasmPointer => {
+          const pkgIdStr = this.liftString(pkgIdStrPtr)
+          const className = this.liftString(namePtr)
+          const argBuf = this.liftBuffer(argBufPtr)
+          const pkg = this.currentExec.loadModule(base16.decode(pkgIdStr))
+          const abiNode = pkg.abi.classByName(className).methodByName('constructor')
+          const args = this.liftArguments(argBuf, abiNode.args)
+          const result = this.currentExec.instantiate(pkg, className, args)
+          const jigRef = result.value as JigRef
+
+          return this.insertValue({
+            origin: jigRef.origin.toBytes(),
+            location: jigRef.origin.toBytes(),
+            classPtr: jigRef.classPtr().toBytes(),
+            lockType: jigRef.lock.typeNumber(),
+            lockData: jigRef.lock.data(),
+          }, jigInitParamsTypeNode)
+        },
         vm_debug_str: (strPtr: number): void => {
           const msg = this.liftString(strPtr)
           console.log(`debug [pkg=${base16.encode(this.id).slice(0, 6)}...]: ${msg}`)
@@ -319,7 +361,7 @@ export class WasmInstance {
     ]
     const objectNode = this.abi.classByIndex(classIdx)
     const visitor = new LowerJigStateVisitor(this.abi, this, rawState)
-    const pointer = visitor.visitPlainObject(objectNode, {name: objectNode.name, args: []})
+    const pointer = visitor.visitPlainObject(objectNode, emptyTn(`$${objectNode.name}`))
     return new Internref(objectNode.name, Number(pointer))
   }
 
@@ -397,7 +439,7 @@ export class WasmInstance {
     const visitor = new LiftJigStateVisitor(this.abi, this, ref.ptr)
     const lifted = visitor.visitPlainObject(
       abiObj,
-      {name: abiObj.name, args: []}
+      emptyTn(abiObj.name)
     )
     return __encodeArgs(
       abiObj.nativeFields().map((field: FieldNode) => lifted[field.name])
@@ -406,7 +448,7 @@ export class WasmInstance {
 
   extractValue(ptr: WasmPointer, type: TypeNode | null): WasmValue {
     if (type === null) {
-      type = {  name: 'void', args: [] }
+      type = emptyTn('void')
     }
     const visitor = new LiftValueVisitor(this.abi, this, ptr)
     const value = visitor.travelFromType(type)
@@ -433,18 +475,16 @@ export class WasmInstance {
     return visitor.visitArrayBuffer()
   }
 
-  private liftArguments (argBuffer: Uint8Array, args: ArgNode[]): any[] {
+  liftArguments (argBuffer: Uint8Array, args: ArgNode[]): any[] {
     const argReader = new ArgReader(argBuffer)
     return args.map((n: ArgNode) => {
       const ptr = readType(argReader, n.type)
-      const value = this.extractValue(ptr, n.type).value
-      if (value.value instanceof Externref) {
-        return this.currentExec.getJigRefByOrigin(Pointer.fromBytes(value.value.originBuf))
-      } else if (value.value instanceof Internref) {
-        return this.currentExec.jigByInternRef(value.value)
-      } else {
-        return value
-      }
+      const visitor = new LiftArgumentVisitor(this.abi, this, ptr)
+      return visitor.travelFromType(n.type)
     })
+  }
+
+  liftBasicJig(value: Internref): any {
+    return this.extractValue(value.ptr, emptyTn('__Jig')).value
   }
 }

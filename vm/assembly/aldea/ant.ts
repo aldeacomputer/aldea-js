@@ -19,13 +19,13 @@ export class Ant extends Jig {
 
   buildCapacity (): u32 {
     return 1 + this.friends.length +
-      this.children.map((child: Ant) => child.familyPower()) // calls a private method
+      this.children.map<u32>((child: Ant) => child.familyPower()) // calls a private method
         .reduce((total, current) => total + current, 0)
   }
 
-  private familyPower (): u32 {
+  familyPower (): u32 {
     return this.children
-      .map((child: Ant) => child.buildCapacity())
+      .map<u32>((child: Ant) => child.buildCapacity())
       .reduce((total, current) => total + current, 0)
   }
 
@@ -41,7 +41,7 @@ export class Ant extends Jig {
   */
   forceFriendsFamilyToWork (): u32 {
     return this.friends
-      .map((friend: Ant) => friend.familyPower()) // here it fails
+      .map<u32>((friend: Ant) => friend.familyPower()) // here it fails
       .reduce((total, current) => total + current, 0)
   }
 }

@@ -2,16 +2,14 @@ import {WasmInstance as Module} from "./wasm-instance.js";
 import {TypeNode, ObjectNode} from "@aldea/compiler/abi";
 
 export class Internref {
-  name: string;
   ptr: number;
 
-  constructor(name: string, ptr: number) {
-    this.name = name
+  constructor(_name: string, ptr: number) {
     this.ptr = ptr
   }
 
   equals(another: Internref) {
-    return this.name === another.name && this.ptr === another.ptr;
+    return this.ptr === another.ptr;
   }
 }
 
