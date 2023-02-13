@@ -280,8 +280,23 @@ export class WasmInstance {
             lockData: jigRef.lock.data(),
           }, jigInitParamsTypeNode)
         },
-        vm_constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): number => {
-          return 0
+        vm_constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): WasmPointer => {
+          const pkgIdStr = this.liftString(pkgIdStrPtr)
+          const className = this.liftString(namePtr)
+          const argBuf = this.liftBuffer(argBufPtr)
+          const pkg = this.currentExec.loadModule(base16.decode(pkgIdStr))
+          const abiNode = pkg.abi.classByName(className).methodByName('constructor')
+          const args = this.liftArguments(argBuf, abiNode.args)
+          const result = this.currentExec.instantiate(pkg, className, args)
+          const jigRef = result.value as JigRef
+
+          return this.insertValue({
+            origin: jigRef.origin.toBytes(),
+            location: jigRef.origin.toBytes(),
+            classPtr: jigRef.classPtr().toBytes(),
+            lockType: jigRef.lock.typeNumber(),
+            lockData: jigRef.lock.data(),
+          }, jigInitParamsTypeNode)
         },
         vm_debug_str: (strPtr: number): void => {
           const msg = this.liftString(strPtr)

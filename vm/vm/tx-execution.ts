@@ -349,7 +349,7 @@ class TxExecution {
       } else if (inst instanceof instructions.NewInstruction) {
         const wasm = this.getStatementResult(inst.idx).instance
         const className = wasm.abi.exports[inst.exportIdx].code.name
-        this.instantiate(inst.idx, className, this.parseArgs(inst.args))
+        this.instantiateByIndex(inst.idx, className, this.parseArgs(inst.args))
       } else if (inst instanceof instructions.CallInstruction) {
         const jig = this.getStatementResult(inst.idx).asJig()
         const classNode = jig.package.abi.exports[jig.classIdx].code as ClassNode
@@ -472,9 +472,8 @@ class TxExecution {
     }
   }
 
-  instantiate(statementIndex: number, className: string, args: any[]): number {
-    const statement = this.statementResults[statementIndex]
-    const instance = statement.instance
+  instantiate(wasm: WasmInstance, className: string, args: any[]) {
+    const instance = wasm
     this.stack.push(this.createNextOrigin())
     const result = instance.staticCall(className, 'constructor', args)
     this.stack.pop()
@@ -482,7 +481,15 @@ class TxExecution {
     if (!jigRef) { throw new Error('jig should had been created created')}
     this.affectedJigs.add(jigRef)
 
-    this.statementResults.push(new ValueStatementResult(result.node, jigRef, result.mod))
+    const ret = new ValueStatementResult(result.node, jigRef, result.mod);
+    this.statementResults.push(ret)
+    return ret
+  }
+
+  instantiateByIndex(statementIndex: number, className: string, args: any[]): number {
+    const statement = this.statementResults[statementIndex]
+    const instance = statement.instance
+    this.instantiate(instance, className, args)
     return this.statementResults.length - 1
   }
 

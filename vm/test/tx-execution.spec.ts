@@ -59,7 +59,7 @@ describe('execute txs', () => {
 
   it('creates instances from imported modules', () => {
     const importIndex = exec.importModule(modIdFor('flock'))
-    const instanceIndex = exec.instantiate(importIndex, 'Flock', [0])
+    const instanceIndex = exec.instantiateByIndex(importIndex, 'Flock', [0])
     exec.lockJigToUser(instanceIndex, userAddr)
     exec.finalize()
 
@@ -70,7 +70,7 @@ describe('execute txs', () => {
 
   it('sends arguments to constructor properly.', () => {
     const moduleIndex = exec.importModule(modIdFor('weapon')) // index 0
-    const weaponIndex = exec.instantiate(moduleIndex, 'Weapon', ['Sable Corvo de San Martín', 100000]) // index 1
+    const weaponIndex = exec.instantiateByIndex(moduleIndex, 'Weapon', ['Sable Corvo de San Martín', 100000]) // index 1
     exec.lockJigToUser(weaponIndex, userAddr)
     exec.finalize()
 
@@ -81,7 +81,7 @@ describe('execute txs', () => {
 
   it('can call methods on jigs', () => {
     const importIndex = exec.importModule(modIdFor('flock'))
-    const flockIndex = exec.instantiate(importIndex, 'Flock', [])
+    const flockIndex = exec.instantiateByIndex(importIndex, 'Flock', [])
     exec.callInstanceMethodByIndex(flockIndex, 'grow', [])
     exec.lockJigToUser(flockIndex, userAddr)
     exec.finalize()
@@ -92,7 +92,7 @@ describe('execute txs', () => {
 
   it('can make calls on jigs sending basic parameters', () => {
     const importIndex = exec.importModule(modIdFor('flock'))
-    const flockIndex = exec.instantiate(importIndex, 'Flock', [])
+    const flockIndex = exec.instantiateByIndex(importIndex, 'Flock', [])
     exec.callInstanceMethodByIndex(flockIndex, 'growMany', [7])
     exec.lockJigToUser(flockIndex, userAddr)
     exec.finalize()
@@ -104,8 +104,8 @@ describe('execute txs', () => {
   it('can make calls on jigs sending jigs as parameters', () => {
     const flockWasmIndex = exec.importModule(modIdFor('flock'))
     const counterWasmIndex = exec.importModule(modIdFor('sheep-counter'))
-    const flockIndex = exec.instantiate(flockWasmIndex, 'Flock', [])
-    const counterIndex = exec.instantiate(counterWasmIndex, 'SheepCounter', [])
+    const flockIndex = exec.instantiateByIndex(flockWasmIndex, 'Flock', [])
+    const counterIndex = exec.instantiateByIndex(counterWasmIndex, 'SheepCounter', [])
     const jig = exec.getStatementResult(flockIndex)
     exec.callInstanceMethodByIndex(flockIndex, 'grow', [])
     exec.callInstanceMethodByIndex(counterIndex, 'countFlock', [jig.asJig()])
@@ -121,9 +121,9 @@ describe('execute txs', () => {
   it('after locking a jig in the code the state gets updated properly', () => {
     const flockWasmIndex = exec.importModule(modIdFor('flock'))
     const counterWasmIndex = exec.importModule(modIdFor('sheep-counter'))
-    const flockIndex = exec.instantiate(flockWasmIndex, 'Flock', [])
+    const flockIndex = exec.instantiateByIndex(flockWasmIndex, 'Flock', [])
     const jig = exec.getStatementResult(flockIndex)
-    const shepherdIndex = exec.instantiate(counterWasmIndex, 'Shepherd', [jig.asJig()])
+    const shepherdIndex = exec.instantiateByIndex(counterWasmIndex, 'Shepherd', [jig.asJig()])
     exec.lockJigToUser(shepherdIndex, userAddr)
     exec.finalize()
 
@@ -140,11 +140,11 @@ describe('execute txs', () => {
   it('fails if the tx is trying to lock an already locked jig', () => {
     const flockWasmIndex = exec.importModule(modIdFor('flock'))
     const counterWasmIndex = exec.importModule(modIdFor('sheep-counter'))
-    const flockIndex = exec.instantiate(flockWasmIndex, 'Flock', [])
+    const flockIndex = exec.instantiateByIndex(flockWasmIndex, 'Flock', [])
     const jig = exec.getStatementResult(flockIndex)
 
     // this locks the flock successfully
-    const shepherdIndex = exec.instantiate(counterWasmIndex, 'Shepherd', [jig.asJig()])
+    const shepherdIndex = exec.instantiateByIndex(counterWasmIndex, 'Shepherd', [jig.asJig()])
     exec.lockJigToUser(shepherdIndex, userAddr)
     const flockOutputIndex = 0
     // this tries to lock it again
@@ -155,19 +155,19 @@ describe('execute txs', () => {
   it('fails when a jig tries to lock a locked jig', () => {
     const flockWasmIndex = exec.importModule(modIdFor('flock'))
     const counterWasmIndex = exec.importModule(modIdFor('sheep-counter'))
-    const flockIndex = exec.instantiate(flockWasmIndex, 'Flock', [])
+    const flockIndex = exec.instantiateByIndex(flockWasmIndex, 'Flock', [])
     const jig = exec.getStatementResult(flockIndex)
     // this locks the flock
     exec.lockJigToUser(flockIndex, userAddr)
     // this tries to lock it again
-    expect(() => exec.instantiate(counterWasmIndex, 'Shepherd', [jig.asJig()])).to.throw(PermissionError,
+    expect(() => exec.instantiateByIndex(counterWasmIndex, 'Shepherd', [jig.asJig()])).to.throw(PermissionError,
       `lock cannot be changed`)
   })
 
   it('fails when a jig tries to call a method on a jig of the same class with no permissions', () => {
     const antWasmIndex = exec.importModule(modIdFor('ant'))
-    const ant1Index = exec.instantiate(antWasmIndex, 'Ant', [])
-    const ant2Index = exec.instantiate(antWasmIndex, 'Ant', [])
+    const ant1Index = exec.instantiateByIndex(antWasmIndex, 'Ant', [])
+    const ant2Index = exec.instantiateByIndex(antWasmIndex, 'Ant', [])
     const jig = exec.getStatementResult(ant2Index)
     exec.callInstanceMethodByIndex(ant1Index, 'addFriend', [jig.asJig()]) // does not lock to caller
     exec.lockJigToUser(ant1Index, userAddr)
@@ -180,8 +180,8 @@ describe('execute txs', () => {
 
   it('fails when a jig tries to call a private method on another jig of the same module that does not own', () => {
     const antWasmIndex = exec.importModule(modIdFor('ant'))
-    const ant1Index = exec.instantiate(antWasmIndex, 'Ant', [])
-    const ant2Index = exec.instantiate(antWasmIndex, 'Ant', [])
+    const ant1Index = exec.instantiateByIndex(antWasmIndex, 'Ant', [])
+    const ant2Index = exec.instantiateByIndex(antWasmIndex, 'Ant', [])
     const jig = exec.getStatementResult(ant2Index)
     exec.callInstanceMethodByIndex(ant1Index, 'addFriend', [jig.asJig()]) // does not lock to caller
     exec.lockJigToUser(ant1Index, userAddr)
@@ -195,8 +195,8 @@ describe('execute txs', () => {
   it.skip('does not allow to call private methods on jigs of the same module that own', () => {
     // Private methods works like private methods and fail at compile time
     const antWasmIndex = exec.importModule(modIdFor('ant'))
-    const ant1Index = exec.instantiate(antWasmIndex, 'Ant', [])
-    const ant2Index = exec.instantiate(antWasmIndex, 'Ant', [])
+    const ant1Index = exec.instantiateByIndex(antWasmIndex, 'Ant', [])
+    const ant2Index = exec.instantiateByIndex(antWasmIndex, 'Ant', [])
     const jig = exec.getStatementResult(ant2Index)
     exec.callInstanceMethodByIndex(ant1Index, 'addChildren', [jig.asJig()])
 
@@ -208,7 +208,7 @@ describe('execute txs', () => {
   describe('when a jig already exists', () => {
     beforeEach(() => {
       const importIndex = exec.importModule(modIdFor('flock'))
-      const flockIndex = exec.instantiate(importIndex, 'Flock', [])
+      const flockIndex = exec.instantiateByIndex(importIndex, 'Flock', [])
       exec.lockJigToUser(flockIndex, userAddr)
       exec.finalize()
       storage.persist(exec)
@@ -250,7 +250,7 @@ describe('execute txs', () => {
 
       freezeExec = new TxExecution(freezeTx, vm)
       freezeExec.importModule(modIdFor('flock'))
-      freezeExec.instantiate(0, 'Flock', [])
+      freezeExec.instantiateByIndex(0, 'Flock', [])
       freezeExec.callInstanceMethodByIndex(1, 'goToFridge', [])
       freezeExec.markAsFunded()
       freezeExec.finalize()
@@ -277,8 +277,8 @@ describe('execute txs', () => {
 
   it('can restore jigs that contain jigs of the same package', () => {
     exec.importModule(modIdFor('flock'))
-    const flockIndex = exec.instantiate(0, 'Flock', [])
-    const bagIndex = exec.instantiate(0, 'FlockBag', [])
+    const flockIndex = exec.instantiateByIndex(0, 'Flock', [])
+    const bagIndex = exec.instantiateByIndex(0, 'FlockBag', [])
     const jig = exec.getStatementResult(flockIndex).asJig()
     exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [jig])
     exec.lockJigToUser(bagIndex, userAddr)
@@ -309,8 +309,8 @@ describe('execute txs', () => {
   // Should load from a different package
   it.skip('can restore jigs that contain jigs of the same package', () => {
     exec.importModule(modIdFor('flock'))
-    const flockIndex = exec.instantiate(0, 'Flock', [])
-    const bagIndex = exec.instantiate(0, 'FlockBag', [])
+    const flockIndex = exec.instantiateByIndex(0, 'Flock', [])
+    const bagIndex = exec.instantiateByIndex(0, 'FlockBag', [])
     const jig = exec.getStatementResult(flockIndex).asJig()
     exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [jig])
     exec.lockJigToUser(bagIndex, userAddr)
@@ -341,10 +341,10 @@ describe('execute txs', () => {
   it('can send local and external jigs as parameters', () => {
     exec.importModule(modIdFor('flock'))
     exec.importModule(modIdFor('sheep-counter'))
-    const flockIndex = exec.instantiate(0, 'Flock', [])
+    const flockIndex = exec.instantiateByIndex(0, 'Flock', [])
     const flockJig = exec.getStatementResult(flockIndex).asJig()
-    const sheperdIndex = exec.instantiate(1, 'Shepherd', [flockJig])
-    const counterIndex = exec.instantiate(1, 'SheepCounter', [])
+    const sheperdIndex = exec.instantiateByIndex(1, 'Shepherd', [flockJig])
+    const counterIndex = exec.instantiateByIndex(1, 'SheepCounter', [])
     exec.callInstanceMethodByIndex(sheperdIndex, 'growFlockUsingInternalTools', [])
     const shepherdJig = exec.getStatementResult(sheperdIndex).asJig()
     exec.callInstanceMethodByIndex(counterIndex, 'countShepherd', [shepherdJig])
@@ -363,7 +363,7 @@ describe('execute txs', () => {
   it('can send static method result as parameter', () => {
     exec.importModule(modIdFor('flock'))
     const flockIndex = exec.execStaticMethodByIndex(0, 'Flock', 'createWithSize', [3])
-    const bagIndex = exec.instantiate(0, 'FlockBag', [])
+    const bagIndex = exec.instantiateByIndex(0, 'FlockBag', [])
     const flockJig = exec.getStatementResult(flockIndex).asJig()
     exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [flockJig])
     exec.lockJigToUser(bagIndex, userAddr)
@@ -377,9 +377,9 @@ describe('execute txs', () => {
   it('can hidrate jig with extern ref', () => {
     exec.importModule(modIdFor('flock'))
     exec.importModule(modIdFor('sheep-counter'))
-    const flockIndex = exec.instantiate(0, 'Flock', [])
+    const flockIndex = exec.instantiateByIndex(0, 'Flock', [])
     const flockJig = exec.getStatementResult(flockIndex).asJig()
-    const sheperdIndex = exec.instantiate(1, 'Shepherd', [flockJig])
+    const sheperdIndex = exec.instantiateByIndex(1, 'Shepherd', [flockJig])
     exec.lockJigToUser(sheperdIndex, userAddr)
     exec.markAsFunded()
     exec.finalize()
@@ -402,7 +402,7 @@ describe('execute txs', () => {
   it('does not require re lock for address locked jigs.', () => {
     exec.importModule(modIdFor('flock'))
     exec.importModule(modIdFor('sheep-counter'))
-    const flockIndex = exec.instantiate(0, 'Flock', [])
+    const flockIndex = exec.instantiateByIndex(0, 'Flock', [])
     exec.lockJigToUser(flockIndex, userAddr)
     exec.markAsFunded()
     exec.finalize()
@@ -423,8 +423,8 @@ describe('execute txs', () => {
 
   it('can send instance method result as parameter', () => {
     exec.importModule(modIdFor('flock'))
-    const flockIndex = exec.instantiate(0, 'Flock', [])
-    const bagIndex = exec.instantiate(0, 'FlockBag', [])
+    const flockIndex = exec.instantiateByIndex(0, 'Flock', [])
+    const bagIndex = exec.instantiateByIndex(0, 'FlockBag', [])
     const callIndex = exec.callInstanceMethodByIndex(flockIndex, 'returnSelf', [])
     const flockJig = exec.getStatementResult(callIndex).asJig()
     exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [flockJig])
@@ -438,9 +438,9 @@ describe('execute txs', () => {
 
   it('can send complex nested parameters whith jigs', () => {
     exec.importModule(modIdFor('sheep'))
-    const flockIndex = exec.instantiate(0, 'Flock', [])
-    const sheep1Index = exec.instantiate(0, 'Sheep', ['sheep1', 'black'])
-    const sheep2Index = exec.instantiate(0, 'Sheep', ['sheep2', 'black'])
+    const flockIndex = exec.instantiateByIndex(0, 'Flock', [])
+    const sheep1Index = exec.instantiateByIndex(0, 'Sheep', ['sheep1', 'black'])
+    const sheep2Index = exec.instantiateByIndex(0, 'Sheep', ['sheep2', 'black'])
     exec.callInstanceMethodByIndex(flockIndex, 'addSheepsNested', [ [[ref(sheep1Index)], [ref(sheep2Index)]] ])
     exec.lockJigToUser(flockIndex, userAddr)
     exec.markAsFunded()
@@ -449,9 +449,9 @@ describe('execute txs', () => {
 
   it('can return types with nested jigs', () => {
     exec.importModule(modIdFor('sheep'))
-    const flockIndex = exec.instantiate(0, 'Flock', [])
-    const sheep1Index = exec.instantiate(0, 'Sheep', ['sheep1', 'black'])
-    const sheep2Index = exec.instantiate(0, 'Sheep', ['sheep2', 'white'])
+    const flockIndex = exec.instantiateByIndex(0, 'Flock', [])
+    const sheep1Index = exec.instantiateByIndex(0, 'Sheep', ['sheep1', 'black'])
+    const sheep2Index = exec.instantiateByIndex(0, 'Sheep', ['sheep2', 'white'])
     exec.callInstanceMethodByIndex(flockIndex, 'add', [ref(sheep1Index)])
     exec.callInstanceMethodByIndex(flockIndex, 'add', [ref(sheep2Index)])
     const retIndex = exec.callInstanceMethodByIndex(flockIndex, 'orderedByLegs', [ref(sheep2Index)])
@@ -464,7 +464,7 @@ describe('execute txs', () => {
 
   it('does not add the extra items into the abi', () => {
     const importIndex = exec.importModule(modIdFor('flock'))
-    const instanceIndex = exec.instantiate(importIndex, 'Flock', [0])
+    const instanceIndex = exec.instantiateByIndex(importIndex, 'Flock', [0])
     exec.lockJigToUser(instanceIndex, userAddr)
     exec.finalize()
 
@@ -493,7 +493,7 @@ describe('execute txs', () => {
 
   it('can call exported functions from inside jigs', () => {
     const importIndex = exec.importModule(modIdFor('flock'))
-    const flockIndex = exec.instantiate(importIndex, 'Flock', [])
+    const flockIndex = exec.instantiateByIndex(importIndex, 'Flock', [])
     exec.callInstanceMethodByIndex(flockIndex, 'groWithExternalFunction', [])
     exec.lockJigToUser(flockIndex, userAddr)
     exec.finalize()
@@ -503,7 +503,7 @@ describe('execute txs', () => {
 
   it('saves entire state for jigs using inheritance', () => {
     const importIndex = exec.importModule(modIdFor('sheep'))
-    const sheepIndex = exec.instantiate(importIndex, 'MutantSheep', ['Wolverine', 'black'])
+    const sheepIndex = exec.instantiateByIndex(importIndex, 'MutantSheep', ['Wolverine', 'black'])
     exec.lockJigToUser(sheepIndex, userAddr)
     exec.finalize()
 
@@ -512,7 +512,7 @@ describe('execute txs', () => {
 
   it('can call base class and concrete class methods', () => {
     const importIndex = exec.importModule(modIdFor('sheep'))
-    const sheepIndex = exec.instantiate(importIndex, 'MutantSheep', ['Wolverine', 'black']) // 7 legs
+    const sheepIndex = exec.instantiateByIndex(importIndex, 'MutantSheep', ['Wolverine', 'black']) // 7 legs
     exec.callInstanceMethodByIndex(sheepIndex, 'chopOneLeg', []) // -1 leg
     exec.callInstanceMethodByIndex(sheepIndex, 'chopOneLeg', []) // -1 leg
     exec.callInstanceMethodByIndex(sheepIndex, 'regenerateLeg', []) // +1 leg
@@ -529,7 +529,7 @@ describe('execute txs', () => {
 
   it('can create, freeze and reload a jig that uses inheritance', () => {
     const importIndex = exec.importModule(modIdFor('sheep'))
-    const sheepIndex = exec.instantiate(importIndex, 'MutantSheep', ['Wolverine', 'black']) // 7 legs
+    const sheepIndex = exec.instantiateByIndex(importIndex, 'MutantSheep', ['Wolverine', 'black']) // 7 legs
     exec.callInstanceMethodByIndex(sheepIndex, 'chopOneLeg', []) // -1 leg
     exec.lockJigToUser(sheepIndex, userAddr)
     exec.finalize()
@@ -556,7 +556,7 @@ describe('execute txs', () => {
     const coin = vm.mint(userAddr, 1000)
     const importIndex = exec.importModule(modIdFor('coin-eater'))
     const coinIndex = exec.loadJigByOutputId(coin.id())
-    const eaterIndex = exec.instantiate(importIndex, 'CoinEater', [ref(coinIndex)])
+    const eaterIndex = exec.instantiateByIndex(importIndex, 'CoinEater', [ref(coinIndex)])
     // exec.callInstanceMethodByIndex(eaterIndex, 'chopOneLeg', [])
     exec.lockJigToUser(eaterIndex, userAddr)
     exec.finalize()
@@ -566,7 +566,7 @@ describe('execute txs', () => {
   it('keeps locking state up to date after lock', () => {
     exec.tx.push(new SignInstruction(exec.tx.createSignature(userPriv), userPub.toBytes()))
     const importIdx = exec.importModule(modIdFor('flock'))
-    const flockIdx = exec.instantiate(importIdx, 'Flock', [])
+    const flockIdx = exec.instantiateByIndex(importIdx, 'Flock', [])
 
     exec.lockJigToUser(flockIdx, userAddr)
     const resIdx = exec.callInstanceMethodByIndex(flockIdx, 'returnLockAddres', [])
@@ -581,17 +581,33 @@ describe('execute txs', () => {
   it('receives right amount from properties of foreign jigs', () => {
     const flockPkgIdx = exec.importModule(modIdFor('flock'))
     const sheepCountPkgIdx = exec.importModule(modIdFor('sheep-counter'))
-    const flockIdx = exec.instantiate(flockPkgIdx, 'Flock', [])
+    const flockIdx = exec.instantiateByIndex(flockPkgIdx, 'Flock', [])
     exec.callInstanceMethodByIndex(flockIdx, 'grow', [])
     exec.callInstanceMethodByIndex(flockIdx, 'grow', [])
     exec.callInstanceMethodByIndex(flockIdx, 'grow', [])
-    const counterIdx = exec.instantiate(sheepCountPkgIdx, 'Shepherd', [ref(flockIdx)])
+    const counterIdx = exec.instantiateByIndex(sheepCountPkgIdx, 'Shepherd', [ref(flockIdx)])
     const methodIdx = exec.callInstanceMethodByIndex(counterIdx, 'sheepCount', [])
     const method2Idx = exec.callInstanceMethodByIndex(counterIdx, 'flockIdentifier', [])
     const value = exec.getStatementResult(methodIdx).value
     const value2 = exec.getStatementResult(method2Idx).value
     expect(value).to.eql(3)
     expect(value2).to.eql('numero11')
+  })
+
+  it('can create external jigs from inside asc', () => {
+    const flockPkgIdx = exec.importModule(modIdFor('flock'))
+    const pkgIdx = exec.importModule(modIdFor('sheep-counter'))
+    const flockIdx = exec.instantiateByIndex(flockPkgIdx, 'Flock', [])
+    const counterIdx = exec.instantiateByIndex(pkgIdx, 'Shepherd', [ref(flockIdx)])
+    exec.callInstanceMethodByIndex(counterIdx, 'breedANewFlock', [10])
+    exec.lockJigToUser(flockIdx, userAddr)
+    exec.lockJigToUser(counterIdx, userAddr)
+    exec.markAsFunded()
+    exec.finalize()
+
+    expect(exec.outputs).to.have.length(3) // second flock was actually created
+    const state = exec.outputs[1].parsedState()
+    expect(state[0]).to.eql(new Pointer(exec.tx.id, 2).toBytes()) // flock was actually relplaced
   })
 
   it('can create jigs inside jigs')
