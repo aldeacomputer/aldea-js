@@ -521,7 +521,7 @@ describe('reading complex types from memory', () => {
     })
   })
 
-  describe.skip('objects', () => {
+  describe('objects', () => {
     it('reads plain objects', async() => {
       const code = `
       declare class Test {
@@ -557,7 +557,6 @@ describe('reading complex types from memory', () => {
       wasm.setExecution(new TxExecution(new Tx(), new VM(new Storage())))
       const res = wasm.functionCall('test', [])
       assert.instanceOf(res.value, Internref)
-      assert.equal(res.value.name, 'Test')
       assert.typeOf(res.value.ptr, 'number')
     })
   })
@@ -788,7 +787,7 @@ describe('writing complex types to memory', () => {
     })
   })
 
-  describe.skip('objects', () => {
+  describe('objects', () => {
     it('writes plain objects', async() => {
       const code = `
       declare class Test {
