@@ -3,7 +3,24 @@ import { CodeKind, normalizeNodeName } from '../abi.js';
 import { TransformCtx } from './ctx.js'
 import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './nodes.js'
 
+const PKGDOC_BLOCK_REGEX = /^\s*\/\*\*(?:(?!\*\/).)+\*\//s
 const COMMENT_BLOCK_REGEX = /\/\*\*(?:(?!\*\/).)+\*\/\s*$/s
+
+interface Docs {
+  package: PackageInfo;
+  docs: DocMap;
+}
+
+interface PackageInfo {
+  description: string;
+  tags: Tag[];
+}
+
+interface Tag {
+  tag: string;
+  name: string;
+  description: string;
+}
 
 interface DocMap {
   [name: string]: string;
@@ -13,8 +30,8 @@ interface DocMap {
  * Parses comment blocks from the given context's sources and returns a
  * DocMap object.
  */
-export function createDocs(ctx: TransformCtx): DocMap {
-  const docs: DocMap = {}
+export function createDocs(ctx: TransformCtx): Partial<Docs> {
+  const docs: Partial<Docs> = {}
   let open = 0
 
   function parseCommentBlock(
@@ -29,13 +46,33 @@ export function createDocs(ctx: TransformCtx): DocMap {
       const parsedDocs = parse(comments[0], { spacing: 'preserve' })
       if (parsedDocs.length && parsedDocs[0].description) {
         const name = normalizeNodeName(n, parent)
-        docs[name] = parsedDocs[0].description
+        docs.docs ||= {}
+        docs.docs[name] = parsedDocs[0].description.trim()
       }
     }
 
     open = parent ? n.node.range.end : n.node.range.start
   }
 
+  // 1. try to parse a Package Info Block
+  ctx.sources.some(src => {
+    const pkgdoc = src.text.match(PKGDOC_BLOCK_REGEX)
+    if (pkgdoc?.length) {
+      const parsed = parse(pkgdoc[0], { spacing: 'preserve' })
+      if (parsed.length && parsed[0].tags.map((t: any) => t.tag).includes('package')) {
+        const info: PackageInfo = {
+          description: parsed[0].description.trim(),
+          tags: parsed[0].tags.map(({ tag, name, description}: any) => (
+            { tag, name, description }
+          ))
+        }
+        docs.package = info
+        return true
+      }
+    }
+  })
+
+  // 2. parse comments for all exports
   ctx.exports.forEach(ex => {
     parseCommentBlock(ex.code as ClassWrap | FunctionWrap | InterfaceWrap)
 
@@ -45,6 +82,9 @@ export function createDocs(ctx: TransformCtx): DocMap {
       code.methods.forEach(n => parseCommentBlock(n as MethodWrap, code))
     }
   })
+
+  // 3. parse comments for plain objects
+  ctx.objects.forEach(obj => parseCommentBlock(obj as ClassWrap))
 
   return docs
 }

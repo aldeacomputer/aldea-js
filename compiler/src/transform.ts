@@ -22,7 +22,7 @@ import { abiToCbor, abiToJson } from './abi.js'
 import { CodeKind, FieldKind, MethodKind, TypeNode } from './abi/types.js'
 import { TransformCtx } from './transform/ctx.js'
 import { createDocs } from './transform/docs.js'
-import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './transform/nodes.js'
+import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap, ObjectWrap } from './transform/nodes.js'
 import { filterAST } from './transform/filters.js'
 
 import {
@@ -105,7 +105,9 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
     })
 
     // 3 - Remove declare keyword from objects
-    $ctx.objects.forEach(obj => obj.node.flags &= ~CommonFlags.Declare)
+    $ctx.objects.forEach(obj => {
+      objectSanitize(obj)
+    })
 
     // 4 - inject complex setters
     complexTypeSetters($ctx)
@@ -305,6 +307,17 @@ function interfaceToRemoteClass(obj: InterfaceWrap, ctx: TransformCtx): void {
  */
 function interfaceSanitize(obj: InterfaceWrap): void {
   obj.node.flags = obj.node.flags & ~CommonFlags.Export
+}
+
+/**
+ * Removes ambient context from delcared plain objects.
+ */
+function objectSanitize(obj: ObjectWrap): void {
+  obj.node.flags &= ~CommonFlags.Ambient
+  obj.node.flags &= ~CommonFlags.Declare
+  obj.fields.forEach(f => {
+    (<FieldWrap>f).node.flags &= ~CommonFlags.Ambient
+  })
 }
 
 
