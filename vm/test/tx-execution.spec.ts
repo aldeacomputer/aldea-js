@@ -620,7 +620,7 @@ describe('execute txs', () => {
     const coin1Idx = exec.loadJigByOutputId(coin1.id())
     const coin2Idx = exec.loadJigByOutputId(coin2.id())
     const coin3Idx = exec.loadJigByOutputId(coin3.id())
-    const eaterIdx = exec.instantiate(coinEaterModIdx, 'CoinEater', [ref(coin1Idx)])
+    const eaterIdx = exec.instantiateByIndex(coinEaterModIdx, 'CoinEater', [ref(coin1Idx)])
     exec.callInstanceMethodByIndex(eaterIdx, 'addCoin', [ref(coin2Idx)])
     exec.callInstanceMethodByIndex(eaterIdx, 'addCoin', [ref(coin3Idx)])
     exec.callInstanceMethodByIndex(eaterIdx, 'combineAll', [])
