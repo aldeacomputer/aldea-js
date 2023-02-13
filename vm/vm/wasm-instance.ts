@@ -1,4 +1,3 @@
-import {CBOR, Sequence} from 'cbor-redux'
 import {JigRef} from "./jig-ref.js"
 import {Abi, ArgNode, ClassNode, FieldNode, findField, findFunction, findMethod, TypeNode,} from "@aldea/compiler/abi";
 
@@ -22,6 +21,7 @@ import {
 import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
 import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
+import {decodeSequence, encodeSequence} from "./cbor.js";
 
 export enum LockType {
   FROZEN = -1,
@@ -51,17 +51,6 @@ export enum AuthCheck {
 export interface WasmExports extends WebAssembly.Exports {
   [key: string]: (...args: WasmPointer[]) => number | void;
 }
-
-export function __encodeArgs (args: any[]): Uint8Array {
-  const seq = Sequence.from(args)
-  return new Uint8Array(CBOR.encode(seq))
-}
-
-function __decodeArgs (data: Uint8Array): any[] {
-  if (data.length === 0) { return [] }
-  return CBOR.decode(data.buffer, null, {mode: "sequence"}).data
-}
-
 export class WasmInstance {
   id: Uint8Array;
   memory: WebAssembly.Memory;
@@ -357,7 +346,7 @@ export class WasmInstance {
     const rawState = [
       jigState.outputObject(),
       jigState.lockObject(),
-      ...__decodeArgs(frozenState)
+      ...decodeSequence(frozenState)
     ]
     const objectNode = this.abi.classByIndex(classIdx)
     const visitor = new LowerJigStateVisitor(this.abi, this, rawState)
@@ -441,7 +430,7 @@ export class WasmInstance {
       abiObj,
       emptyTn(abiObj.name)
     )
-    return __encodeArgs(
+    return encodeSequence(
       abiObj.nativeFields().map((field: FieldNode) => lifted[field.name])
     )
   }

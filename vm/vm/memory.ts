@@ -1,5 +1,6 @@
 import {WasmInstance as Module} from "./wasm-instance.js";
 import {TypeNode, ObjectNode} from "@aldea/compiler/abi";
+import {Pointer} from "@aldea/sdk-js";
 
 export class Internref {
   ptr: number;
@@ -20,6 +21,10 @@ export class Externref {
   constructor(name: string, origin: Uint8Array) {
     this.name = name
     this.originBuf = origin
+  }
+
+  get origin (): Pointer {
+    return Pointer.fromBytes(this.originBuf)
   }
 }
 

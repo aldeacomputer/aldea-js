@@ -151,7 +151,7 @@ class TxExecution {
     }
     this.jigs.forEach(jigRef => {
       if (jigRef.lock.isOpen()) {
-        throw new PermissionError(`unlocked jig: ${jigRef.origin}`)
+        throw new PermissionError(`unlocked jig (${jigRef.className()}): ${jigRef.origin}`)
       }
     })
 

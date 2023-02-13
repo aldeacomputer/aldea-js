@@ -1,11 +1,9 @@
-import { CBOR } from "cbor-redux"
 import {ClassNode, FieldNode} from "@aldea/compiler/abi";
 import {WasmInstance} from "./wasm-instance.js";
 import {Pointer} from "@aldea/sdk-js";
 import {BufWriter} from "@aldea/sdk-js/buf-writer";
 import {blake3} from "@aldea/sdk-js/support/hash";
-
-const parse = (data: Uint8Array) => CBOR.decode(data.buffer, null, { mode: "sequence" })
+import {decodeSequence} from "./cbor.js";
 
 export class JigState {
   origin: Pointer;
@@ -25,7 +23,7 @@ export class JigState {
   }
 
   parsedState(): any[] {
-    return parse(this.stateBuf).data
+    return decodeSequence(this.stateBuf)
   }
 
   classId (): Pointer {
