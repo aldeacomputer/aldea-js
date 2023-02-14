@@ -8,27 +8,6 @@ test.beforeEach(t => {
   t.context.transform = new Transform()
 })
 
-test.skip('afterParse() adds hook to constructors', async t => {
-  const mock = await mockProgram(`
-  export class Test extends Jig {
-    a: u8;
-    constructor() {
-      super();
-      this.a = 123;
-    }
-  }`)
-
-  // Initially two statements in contructor
-  t.is(mock.classes[0].members[1].body.statements.length, 2)
-
-  t.context.transform.afterParse(mock.parser)
-  t.is(mock.classes[0].members[1].body.statements.length, 3)
-  t.is(
-    ASTBuilder.build(mock.classes[0].members[1].body.statements[2]),
-    'vm_constructor_end(this, "Test")'
-  )
-})
-
 test('afterParse() adds constructor if not defined', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {
@@ -47,80 +26,85 @@ test('afterParse() adds constructor if not defined', async t => {
   )
 })
 
-test.skip('afterParse() add proxy methods for public methods', async t => {
-  const mock = await mockProgram(`
-  export class Test extends Jig {
-    a: u8;
+test('afterParse() creates interface for each jig class', async t => {
+  const mock = await mockProgram(`export class Test extends Jig {}`)
 
-    constructor() {
-      super();
-      this.a = 123;
-    }
-
-    changeA(b: u8): void { this.a = b }    
-  }`)
-
-  // Initially three memebers in class
-  t.is(mock.classes[0].members.length, 3)
+  // Initially zero interfaces
+  t.is(mock.interfaces.length, 0)
 
   t.context.transform.afterParse(mock.parser)
-  t.is(mock.classes[0].members.length, 4)
-  // adds prefix to origin method name
-  t.is(mock.classes[0].members[2].name.text, '_changeA')
   t.is(
-    ASTBuilder.build(mock.classes[0].members[3]),
-    'changeA(a0: u8): void {\n'+
-    '  vm_local_call_start(this, "Test$changeA");\n'+
-    '  this._changeA(a0);\n'+
-    '  vm_local_call_end();\n'+
+    ASTBuilder.build(mock.interfaces[0]),
+    'interface Test extends Jig {\n}'
+  )
+})
+
+test('afterParse() creates interface declaring all jig public fields and instance methods', async t => {
+  const mock = await mockProgram(`
+  export class Test extends Jig {
+    a: string = 'a';
+    private b: string 'b';
+
+    aa(): string { return this.a }
+    private static bb(): string { return this.b }
+    protected static cc(): string { return this.b }
+    static ss(): string { return 's' }
+  }`)
+
+  t.context.transform.afterParse(mock.parser)
+  t.is(mock.interfaces[0].members.length, 2)
+  t.is(
+    ASTBuilder.build(mock.interfaces[0]),
+    'interface Test extends Jig {\n'+
+    '  a: string;\n'+
+    '  aa(): string;\n'+
     '}'
   )
 })
 
-test.skip('afterParse() add proxy methods for private methods', async t => {
-  const mock = await mockProgram(`
-  export class Test extends Jig {
-    a: u8;
 
-    constructor() {
-      super();
-      this.a = 123;
-    }
 
-    protected add(b: u8): i32 { this.a + b }
-    private mul(b: u8): i32 { this.a * b }
-  }`)
+test('afterParse() creates local and remote class for each jig class', async t => {
+  const mock = await mockProgram(`export class Test extends Jig {}`)
 
-  // Initially four memebers in class
-  t.is(mock.classes[0].members.length, 4)
+  // Initially single class
+  t.is(mock.classes.length, 1)
 
   t.context.transform.afterParse(mock.parser)
-  t.is(mock.classes[0].members.length, 6)
-  // adds prefix to origin method name
-  t.is(mock.classes[0].members[2].name.text, '_add')
-  t.is(mock.classes[0].members[3].name.text, '_mul')
-
-  t.is(mock.classes[0].members[4].kind, NodeKind.MethodDeclaration)
-  t.is(mock.classes[0].members[4].name.text, 'add')
-  t.true(isProtected(mock.classes[0].members[4].flags))
-  t.is(mock.classes[0].members[5].kind, NodeKind.MethodDeclaration)
-  t.is(mock.classes[0].members[5].name.text, 'mul')
-  t.true(isPrivate(mock.classes[0].members[5].flags))
+  t.is(mock.classes.length, 2)
+  t.regex(
+    ASTBuilder.build(mock.classes[0]),
+    /^class _LocalTest extends _LocalJig implements Test {/
+  )
+  t.regex(
+    ASTBuilder.build(mock.classes[1]),
+    /^class _RemoteTest extends _RemoteJig implements Test {/
+  )
 })
 
-test('afterParse() does not add proxy methods for static methods', async t => {
+test('afterParse() local jig mirrors real jig, remote jig has implements public field and instance methods', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {
-    constructor() {
-      super();
-    }
+    a: string = 'a';
+    private b: string 'b';
 
-    static helloWorld(str: string): string { return 'hello '+str }
+    aa(): string { return this.a }
+    private static bb(): string { return this.b }
+    protected static cc(): string { return this.b }
+    static ss(): string { return 's' }
   }`)
 
-  t.is(mock.classes[0].members.length, 2)
   t.context.transform.afterParse(mock.parser)
-  t.is(mock.classes[0].members.length, 2)
+  t.is(mock.classes[0].members.length, 7)
+  t.is(mock.classes[1].members.length, 3)
+  t.regex(
+    ASTBuilder.build(mock.classes[1].members[0]),
+    /^get a\(\): string {/
+  )
+  t.regex(
+    ASTBuilder.build(mock.classes[1].members[2]),
+    /^aa\(\): string {/
+  )
 })
 
 test('afterParse() adds exported constructors methods', async t => {
@@ -183,6 +167,32 @@ test('afterParse() does not add exported private instance methods', async t => {
   t.context.transform.afterParse(mock.parser)
   t.is(mock.functions.length, 1)
 })
+
+test('afterParse() creates remote class for each interface', async t => {
+  const mock = await mockProgram(`
+  export interface Foo {
+    a: string;
+    b(): string;
+  }
+  `.trim())
+
+  t.is(mock.classes.length, 0)
+  t.context.transform.afterParse(mock.parser)
+  t.is(mock.classes.length, 1)
+  t.regex(
+    ASTBuilder.build(mock.classes[0]),
+    /^class _RemoteFoo extends _RemoteJig implements Foo {/
+  )
+  t.regex(
+    ASTBuilder.build(mock.classes[0].members[0]),
+    /^get a\(\): string {/
+  )
+  t.regex(
+    ASTBuilder.build(mock.classes[0].members[1]),
+    /^b\(\): string {/
+  )
+})
+
 
 test('afterParse() replaces imported ambient class with concrete implementation', async t => {
   const mock = await mockProgram(`

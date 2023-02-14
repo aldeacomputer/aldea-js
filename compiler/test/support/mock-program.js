@@ -58,6 +58,10 @@ class MockProgram {
     return this.source.statements.filter(n => n.kind === NodeKind.FunctionDeclaration)
   }
 
+  get interfaces() {
+    return this.source.statements.filter(n => n.kind === NodeKind.InterfaceDeclaration)
+  }
+
   async compile() {
     await this.parseBacklog()
     this.pgm.initialize()
