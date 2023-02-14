@@ -27,7 +27,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cargo
-          key: cargo-deps-${{ runner.os }}-${{ hashFiles('./Cargo.toml')}}
+          key: cargo-deps-${{ runner.os }}-${{ hashFiles('./Cargo.lock')}}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
@@ -38,7 +38,6 @@ jobs:
         id: cache-cargo-save
         uses: actions/cache/save@v3
         with:
-          path: |
-            ~/.cargo
-          key: cargo-deps-${{ runner.os }}-${{ hashFiles('./Cargo.toml')}}
+          path: ~/.cargo
+          key: cargo-deps-${{ runner.os }}-${{ hashFiles('./Cargo.lock')}}
 
