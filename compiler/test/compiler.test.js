@@ -2,7 +2,7 @@ import test from 'ava'
 import { compile } from '../dist/compiler.js'
 import { abiFromCbor } from '../dist/abi.js'
 
-test.serial('compiles single source', async t => {
+test('compiles single source', async t => {
   await t.notThrowsAsync(() => compile('export class Test extends Jig {}'))
   await t.notThrowsAsync(() => compile('export function test(): void {}'))
 })
@@ -10,7 +10,7 @@ test.serial('compiles single source', async t => {
 /** These tests must be run in serial as the way the abi is generated
  * can't be done in parallel */
 
-test.serial('compiles multiple sources', async t => {
+test('compiles multiple sources', async t => {
   const sources = {
     'foo.ts': 'export declare class Foo { name: string }',
     'input.ts': `
@@ -28,7 +28,7 @@ test.serial('compiles multiple sources', async t => {
   t.is(abi.exports[0].code.name, 'test')
 })
 
-test.serial('compiles multiple entries', async t => {
+test('compiles multiple entries', async t => {
   const sources = {
     'bar.ts': 'const bar = 25;',
     'foo.ts': 'export declare class Foo { name: string }',
@@ -52,7 +52,7 @@ test.serial('compiles multiple entries', async t => {
   t.is(abi.exports[1].code.name, 'test2')
 })
 
-test.serial('child classes do not include fields of parents', async t => {
+test('child classes do not include fields of parents', async t => {
   const src = `
   export class A extends Jig {
     a: string = 'a';
@@ -79,7 +79,7 @@ test.serial('child classes do not include fields of parents', async t => {
   t.is(abi.exports[2].code.fields.length, 0)
 })
 
-test.serial('child classes do not include methods of parents unless overwritten', async t => {
+test('child classes do not include methods of parents unless overwritten', async t => {
   const src = `
   export class A extends Jig {
     foo(): void {}

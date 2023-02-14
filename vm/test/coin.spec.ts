@@ -213,7 +213,7 @@ describe('Coin', () => {
           } catch (e) {
             expect(e).to.be.instanceof(PermissionError)
             const error = e as PermissionError
-            expect(error.message).to.match(/jig .* is not allowed to exec "Coin\$combineInto" called from .*/)
+            expect(error.message).to.match(/jig .* is not allowed to exec "combineInto" called from .*/)
             return
           }
           expect.fail('test should have failed')

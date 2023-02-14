@@ -1,23 +1,108 @@
 import { blake3 } from '@noble/hashes/blake3'
 import { bytesToHex as toHex } from '@noble/hashes/utils'
-import { isExported, isPrivate, isProtected } from './filters.js'
-import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap, ObjectWrap } from './nodes.js'
+import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './nodes.js'
 import { normalizeTypeName } from '../abi.js'
 import { MethodKind, TypeNode } from '../abi/types.js'
 
 /**
- * Writes a function exported from the entry module that simply calls the
- * same function on the given Object.
+ * Writes a plain class declaration around a empty constructor method.
+ */
+export function writeClass(obj: ClassWrap): string {
+  return `
+  class ${obj.name} {
+    ${ writeConstructor(obj) }
+  }
+  `.trim()
+}
+
+/**
+ * Writes a plain constructor method.
+ */
+export function writeConstructor(obj: ClassWrap): string {
+  return `
+  constructor() {
+    ${ obj.extends ? 'super()' : '' }
+  }
+  `.trim()
+}
+
+/**
+ * Writes an interface for the given jig class.
+ */
+export function writeJigInterface(obj: ClassWrap, fields: FieldWrap[], methods: MethodWrap[]): string {
+  const fieldCode = fields
+    .map(n => `${n.name}: ${normalizeTypeName(n.type)}`)
+    .join('\n')
+  const methodCode = methods
+    .map(n => {
+      const args = n.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
+      return `${n.name}(${args.join(', ')}): ${normalizeTypeName(n.rtype)}`
+    })
+    .join('\n')
+
+  return `
+  interface ${obj.name} extends ${obj.extends} {
+    ${fieldCode}
+    ${methodCode}
+  }
+  `.trim()
+}
+
+/**
+ * Writes a local class declaration for the given jig class.
+ * 
+ * Returns an empty declaration as the transform method injects the body into
+ * the AST.
+ */
+export function writeJigLocalClass(obj: ClassWrap): string {
+  const interfaces = obj.implements
+    .map(normalizeTypeName)
+    .concat(obj.name)
+    .join(', ')
+
+  return `
+  class _Local${obj.name} extends _Local${obj.extends} implements ${interfaces} {}
+  `.trim()
+}
+
+/**
+ * Writes a remote class declaration for the given jig class.
+ * 
+ * Ensures compilation by inlining an idof call.
+ */
+export function writeJigRemoteClass(obj: ClassWrap, fields: FieldWrap[], methods: MethodWrap[]): string {
+  const fieldCode = fields.reduce((acc: string[], n: FieldWrap): string[] => {
+    acc.push(writeRemoteGetter(n, obj))
+    return acc
+  }, []).join('\n')
+
+  const methodCode = methods.reduce((acc: string[], n: MethodWrap): string[] => {
+    acc.push(writeRemoteMethod(n, obj))
+    return acc
+  }, []).join('\n')
+
+  return `
+  class _Remote${obj.name} extends _Remote${obj.extends} implements ${obj.name} {
+    ${fieldCode}
+    ${methodCode}
+  }
+  // required to ensure compilation
+  idof<_Remote${obj.name}>()
+  `.trim()
+}
+
+/**
+ * Writes an export function exported for the given Jig class method.
  * 
  * For instance methods, an extra argument is added for the instance Ptr.
  */
-export function writeExportedMethod(method: MethodWrap, obj: ClassWrap): string {
+export function writeExportedFunction(method: MethodWrap, obj: ClassWrap): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
   const separator = isInstance ? '$' : '_'
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
   const rtype = isConstructor ? `${obj.name}` : normalizeTypeName(method.rtype)
-  const callable = isConstructor ? `new ${obj.name}` : (
+  const callable = isConstructor ? `new _Local${obj.name}` : (
     isInstance ? `ctx.${method.name}` : `${obj.name}.${method.name}`
   )
   if (isInstance) args.unshift(`ctx: ${obj.name}`)
@@ -30,108 +115,135 @@ export function writeExportedMethod(method: MethodWrap, obj: ClassWrap): string 
 }
 
 /**
- * Writes a default constructor class with VM hook.
+ * Writes a remote class declaration for the given interface.
+ * 
+ * Ensures compilation by inlining an idof call.
  */
-export function writeConstructor(obj: ClassWrap): string {
+export function writeInterfaceRemoteClass(obj: InterfaceWrap, fields: FieldWrap[], methods: FunctionWrap[]): string {
+  const fieldCode = fields.reduce((acc: string[], n: FieldWrap): string[] => {
+    acc.push(writeRemoteGetter(n, obj))
+    return acc
+  }, []).join('\n')
+
+  const methodCode = methods.reduce((acc: string[], n: FunctionWrap): string[] => {
+    acc.push(writeRemoteInterfaceMethod(n, obj))
+    return acc
+  }, []).join('\n')
+
   return `
-  constructor() {
-    ${ obj.extends ? 'super()' : '' }
-    ${ writeConstructorHook(obj) }
+  class _Remote${obj.name} extends _RemoteJig implements ${obj.name} {
+    ${fieldCode}
+    ${methodCode}
+  }
+  // required to ensure compilation
+  idof<_Remote${obj.name}>()
+  `.trim()
+}
+
+/**
+ * Writes a remote class declaration for the given imported class.
+ */
+export function writeImportedRemoteClass(obj: ClassWrap, fields: FieldWrap[], methods: MethodWrap[], pkg: string): string {
+  const fieldCode = fields.reduce((acc: string[], n: FieldWrap): string[] => {
+    acc.push(writeRemoteGetter(n, obj))
+    return acc
+  }, []).join('\n')
+
+  const methodCode = methods.reduce((acc: string[], n: MethodWrap): string[] => {
+    acc.push(writeRemoteMethod(n, obj, pkg))
+    return acc
+  }, []).join('\n')
+
+  return `
+  class ${obj.name} extends _RemoteJig {
+    ${fieldCode}
+    ${methodCode}
   }
   `.trim()
 }
 
 /**
- * Writes a VM constructor hook method call.
+ * Writes a remote function declaration for the given imported function.
  */
-export function writeConstructorHook(obj: ClassWrap): string {
-  return `vm_constructor_end(this, '${obj.name}')`
-}
+export function writeImportedRemoteFunction(fn: FunctionWrap, pkg: string): string {
+  const args = fn.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
+  const rtype = normalizeTypeName(fn.rtype)
 
-/**
- * Writes a placeholder proxy class wrapper for the specific Class, around the
- * given member strings.
- */
-export function writeLocalProxyClass(obj: ClassWrap, members: string[]): string {
   return `
-  class ${obj.name} {
-    ${ members.join('\n') }
+  export function ${fn.name}(${args.join(', ')}): ${rtype} {
+    ${ writeArgWriter(fn.args as FieldWrap[]) }
+    return vm_call_function<${rtype}>('${pkg}', '${fn.name}', args.buffer)
   }
   `.trim()
 }
 
 /**
- * Writes a local proxy method. Wraps the native call in `vm_local_call_start`
- * and `vm_local_call_end`.
+ * Writes exported function for putting a value into a set.
+ * 
+ * We need some way of lowering complex types into memory, and this is it.
  */
- export function writeLocalProxyMethod(method: MethodWrap, obj: ClassWrap): string {
-  const access = isPrivate(method.node.flags) ? 'private ' : (
-    isProtected(method.node.flags) ? 'protected ' : ''
-  )
-  const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
-  const returns = method.rtype?.name && method.rtype?.name !== 'void'
+export function writeSetSetter(type: TypeNode): string {
+  const setType = normalizeTypeName(type)
+  const valType = normalizeTypeName(type.args[0])
+  const hash = toHex(blake3(setType, { dkLen: 4 }))
+
   return `
-  ${access}${method.name}(${args.join(', ')}): ${normalizeTypeName(method.rtype)} {
-    vm_local_call_start(this, '${obj.name}$${method.name}')
-    ${returns ? 'const res = ' : ''}this._${method.name}(${ method.args.map((_f, i) => `a${i}`).join(', ') })
-    vm_local_call_end()
-    ${returns ? 'return res' : ''}
+  export function __put_set_entry_${hash}(set: ${setType}, val: ${valType}): void {
+    set.add(val)
   }
   `.trim()
 }
 
 /**
- * Writes a proxy class wrapper for the specific Class, around the given member
- * strings.
+ * Writes exported method for putting a key and value into a map.
+ * 
+ * We need some way of lowering complex types into memory, and this is it.
  */
-export function writeRemoteProxyClass(obj: ClassWrap, members: string[]): string {
-  //const prefix = isExported(obj.node.flags) ? 'export ' : ''
+export function writeMapSetter(type: TypeNode): string {
+  const mapType = normalizeTypeName(type)
+  const keyType = normalizeTypeName(type.args[0])
+  const valType = normalizeTypeName(type.args[1])
+  const hash = toHex(blake3(mapType, { dkLen: 4 }))
+
   return `
-  class ${obj.name} extends RemoteJig {
-    ${ members.join('\n') }
+  export function __put_map_entry_${hash}(map: ${mapType}, key: ${keyType}, val: ${valType}): void {
+    map.set(key, val)
   }
   `.trim()
 }
 
 /**
- * Writes a proxy class wrapper for a specific Interface, around the given member
- * strings.
+ * Writes a getter on a remote class. Returns the result of `vm_get_prop`.
  */
-export function writeRemoteProxyInterfaceImpl(obj: InterfaceWrap, members: string[]): string {
-  return `
-  class _${obj.name} extends RemoteJig implements ${obj.name} {
-    ${ members.join('\n') }
-  }
-  idof<_${obj.name}>() // added to ensure the class is compiled
-  `.trim()
-}
-
-/**
- * Writes a getter on a proxy class. Returns the result of `vm_remote_prop`.
- */
-export function writeRemoteProxyGetter(field: FieldWrap, obj: ClassWrap | InterfaceWrap): string {
+export function writeRemoteGetter(field: FieldWrap, obj: ClassWrap | InterfaceWrap): string {
   const type = normalizeTypeName(field.type)
   return `
   get ${field.name}(): ${type} {
-    return vm_remote_prop<${type}>(this.$output.origin, '${field.name}')
+    return vm_get_prop<${type}>(this.$output.origin, '${field.name}')
   }
   `.trim()
 }
 
 /**
- * Writes a method on a proxy class.
+ * Writes a method on a remote class.
+ * 
+ * - For constructors calls `vm_constructor_local` or `vm_constructor_remote`.
+ * - For static methods returns the result of `vm_call_static`.
+ * - For instance methods returns the result of `vm_call_method`.
  */
-export function writeRemoteProxyMethod(method: MethodWrap, obj: ClassWrap | InterfaceWrap, pkgId: string): string {
+export function writeRemoteMethod(method: MethodWrap, obj: ClassWrap, pkg?: string): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
   const isStatic = method.kind === MethodKind.STATIC
+
+  if (isStatic && !pkg) { throw new Error('static methods require package ID') }
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
-  const rtype = isConstructor ? 'JigInitParams' : normalizeTypeName(method.rtype)
-  const callable = isInstance ?
-    `vm_remote_call_i<${rtype}>(this.$output.origin, '${method.name}', args.buffer)` :
-    `vm_remote_call_s<${rtype}>('${pkgId}', '${obj.name}_${method.name}', args.buffer)` ;
 
   if (isConstructor) {
+    const callable = pkg ?
+      `vm_constructor_remote('${pkg}', '${obj.name}', args.buffer)` :
+      `vm_constructor_local('${obj.name}', args.buffer)` ;
+
     return `
     constructor(${args.join(', ')}) {
       ${ writeArgWriter(method.args as FieldWrap[]) }
@@ -139,7 +251,13 @@ export function writeRemoteProxyMethod(method: MethodWrap, obj: ClassWrap | Inte
       super(params)
     }
     `.trim()
+
   } else {
+    const rtype = normalizeTypeName(method.rtype)
+    const callable = isInstance ?
+      `vm_call_method<${rtype}>(this.$output.origin, '${method.name}', args.buffer)` :
+      `vm_call_static<${rtype}>('${pkg}', '${obj.name}_${method.name}', args.buffer)` ;
+
     return `
     ${isStatic ? 'static ' : ''}${method.name}(${args.join(', ')}): ${rtype} {
       ${ writeArgWriter(method.args as FieldWrap[]) }
@@ -150,37 +268,24 @@ export function writeRemoteProxyMethod(method: MethodWrap, obj: ClassWrap | Inte
 }
 
 /**
- * Writes a method on a proxy class.
+ * Writes a method on a remote class that is derived from an interface.
+ * 
+ * As `writeRemoteMethod` but for intefaces it is always an instance method so
+ * can have simpler implementation.
  */
-export function writeRemoteProxyInstMethod(method: MethodWrap, obj: ClassWrap | InterfaceWrap): string {
+export function writeRemoteInterfaceMethod(method: FunctionWrap, obj: InterfaceWrap, pkg?: string): string {
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
   const rtype = normalizeTypeName(method.rtype)
-
   return `
   ${method.name}(${args.join(', ')}): ${rtype} {
     ${ writeArgWriter(method.args as FieldWrap[]) }
-    return vm_remote_call_i<${rtype}>(this.$output.origin, '${method.name}', args.buffer)
+    return vm_call_method<${rtype}>(this.$output.origin, '${method.name}', args.buffer)
   }
   `.trim()
 }
 
 /**
- * Writes a proxy Function calling a static fuction on a remote package.
- */
-export function writeRemoteProxyFunction(fn: FunctionWrap, pkgId: string): string {
-  const args = fn.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
-  const rtype = normalizeTypeName(fn.rtype)
-
-  return `
-  export function ${fn.name}(${args.join(', ')}): ${rtype} {
-    ${ writeArgWriter(fn.args as FieldWrap[]) }
-    return vm_remote_call_f<${rtype}>('${pkgId}', '${fn.name}', args.buffer)
-  }
-  `.trim()
-}
-
-/**
- * Writes statements to encode the given array of fields to a ArrayBuffer.
+ * Writes statements to encode the given array of fields to an ArrayBuffer.
  * 
  * Each field is encoded either as an integer value or a 32bit Ptr.
  */
@@ -211,41 +316,6 @@ export function writeArgWriterEncodeMethod(field: FieldWrap, i: number): string 
     default:
       return `writeU32(changetype<usize>(a${i}) as u32)`
   }
-}
-
-/**
- * Writes exported method for putting a value into a set.
- * 
- * These methods are a hack used to lower complex objects into memory.
- */
-export function writeSetPutter(type: TypeNode): string {
-  const setType = normalizeTypeName(type)
-  const valType = normalizeTypeName(type.args[0])
-  const hash = toHex(blake3(setType, { dkLen: 4 }))
-
-  return `
-  export function __put_set_entry_${hash}(set: ${setType}, val: ${valType}): void {
-    set.add(val)
-  }
-  `.trim()
-}
-
-/**
- * Writes exported method for putting a key and value into a map.
- * 
- * These methods are a hack used to lower complex objects into memory.
- */
-export function writeMapPutter(type: TypeNode): string {
-  const mapType = normalizeTypeName(type)
-  const keyType = normalizeTypeName(type.args[0])
-  const valType = normalizeTypeName(type.args[1])
-  const hash = toHex(blake3(mapType, { dkLen: 4 }))
-
-  return `
-  export function __put_map_entry_${hash}(map: ${mapType}, key: ${keyType}, val: ${valType}): void {
-    map.set(key, val)
-  }
-  `.trim()
 }
 
 /**

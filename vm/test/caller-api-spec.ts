@@ -57,8 +57,8 @@ describe('execute txs', () => {
       it('returns true when the caller is the right caller', () => {
         const exec = emptyExec()
         const modIdx = exec.importModule(modIdFor('caller-test-code'))
-        const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-        const senderIdx = exec.instantiate(modIdx, 'RightCaller', [])
+        const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+        const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
         const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
 
         expect(exec.getStatementResult(resultIdx).value).to.eql(true)
@@ -71,8 +71,8 @@ describe('execute txs', () => {
       it('returns false when the caller is the right caller', () => {
         const exec = emptyExec()
         const modIdx = exec.importModule(modIdFor('caller-test-code'))
-        const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-        const senderIdx = exec.instantiate(modIdx, 'AnotherCaller', [])
+        const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+        const senderIdx = exec.instantiateByIndex(modIdx, 'AnotherCaller', [])
         const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
 
         expect(exec.getStatementResult(resultIdx).value).to.eql(false)
@@ -85,7 +85,7 @@ describe('execute txs', () => {
       it('returns false when the caller is at top level', () => {
         const exec = emptyExec()
         const modIdx = exec.importModule(modIdFor('caller-test-code'))
-        const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
+        const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
         const resultIdx = exec.callInstanceMethodByIndex(receiverIdx, 'checkCallerType', [])
 
         expect(exec.getStatementResult(resultIdx).value).to.eql(false)
@@ -102,8 +102,8 @@ describe('execute txs', () => {
       it('returns false when called from subclass', () => {
         const exec = emptyExec()
         const modIdx = exec.importModule(modIdFor('caller-test-code'))
-        const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-        const senderIdx = exec.instantiate(modIdx, 'SubclassCaller', [])
+        const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+        const senderIdx = exec.instantiateByIndex(modIdx, 'SubclassCaller', [])
         const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
 
         expect(exec.getStatementResult(resultIdx).value).to.eql(true)
@@ -119,8 +119,8 @@ describe('execute txs', () => {
       it('true false when called from subclass', () => {
         const exec = emptyExec()
         const modIdx = exec.importModule(modIdFor('caller-test-code'))
-        const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-        const senderIdx = exec.instantiate(modIdx, 'SubclassCaller', [])
+        const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+        const senderIdx = exec.instantiateByIndex(modIdx, 'SubclassCaller', [])
         const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
 
         expect(exec.getStatementResult(resultIdx).value).to.eql(true)
@@ -139,7 +139,7 @@ describe('execute txs', () => {
     it('returns false when called from top level', () => {
       const exec = emptyExec()
       const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
+      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
       const resultIdx = exec.callInstanceMethodByIndex(receiverIdx, 'callerHasOutput', [])
 
       expect(exec.getStatementResult(resultIdx).value).to.eql(false)
@@ -151,8 +151,8 @@ describe('execute txs', () => {
     it('returns true when not called from top level', () => {
       const exec = emptyExec()
       const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiate(modIdx, 'RightCaller', [])
+      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doIHaveOutput', [ref(receiverIdx)])
 
       expect(exec.getStatementResult(resultIdx).value).to.eql(true)
@@ -167,8 +167,8 @@ describe('execute txs', () => {
     it('returns right output when exists', () => {
       const exec = emptyExec()
       const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiate(modIdx, 'RightCaller', [])
+      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const result1Idx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOutputOrigin', [ref(receiverIdx)])
       const result2Idx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOutputLocation', [ref(receiverIdx)])
       const result3Idx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOutputClassPtr', [ref(receiverIdx)])
@@ -185,8 +185,8 @@ describe('execute txs', () => {
     it('sends data that makes sense with single getters', () => {
       const exec = emptyExec()
       const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiate(modIdx, 'RightCaller', [])
+      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'checkMyData', [ref(receiverIdx)])
 
       expect(exec.getStatementResult(resultIdx).value).to.eql(true)
@@ -199,7 +199,7 @@ describe('execute txs', () => {
     it('fails if there is no caller', () => {
       const exec = emptyExec()
       const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
+      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
       expect(() =>
         exec.callInstanceMethodByIndex(receiverIdx, 'returnCallerOutputOrigin', [ref(receiverIdx)])
       ).to.throw(ExecutionError)
@@ -210,7 +210,7 @@ describe('execute txs', () => {
     it('fails if there is no caller', () => {
       const exec = emptyExec()
       const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
+      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
       expect(() =>
         exec.callInstanceMethodByIndex(receiverIdx, 'returnCallerOrigin', [ref(receiverIdx)])
       ).to.throw(ExecutionError)
@@ -219,8 +219,8 @@ describe('execute txs', () => {
     it('returns origin if exists', () => {
       const exec = emptyExec()
       const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiate(modIdx, 'RightCaller', [])
+      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOrigin', [ref(receiverIdx)])
 
       expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
@@ -235,7 +235,7 @@ describe('execute txs', () => {
     it('fails if there is no caller', () => {
       const exec = emptyExec()
       const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
+      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
       expect(() =>
         exec.callInstanceMethodByIndex(receiverIdx, 'returnCallerLocation', [ref(receiverIdx)])
       ).to.throw(ExecutionError)
@@ -244,8 +244,8 @@ describe('execute txs', () => {
     it('returns origin if exists', () => {
       const exec = emptyExec()
       const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiate(modIdx, 'RightCaller', [])
+      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyLocation', [ref(receiverIdx)])
 
       expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
@@ -259,7 +259,7 @@ describe('execute txs', () => {
       it('returns the rignt location', () => {
         const prepExec1 = emptyExec()
         const modIdx = prepExec1.importModule(modIdFor('caller-test-code'))
-        const senderIdx = prepExec1.instantiate(modIdx, 'RightCaller', [])
+        const senderIdx = prepExec1.instantiateByIndex(modIdx, 'RightCaller', [])
         prepExec1.lockJigToUser(senderIdx, userAddr)
         prepExec1.finalize()
         storage.persist(prepExec1)
@@ -273,7 +273,7 @@ describe('execute txs', () => {
         const exec = emptyExec([userPriv])
         const modIdx3 = exec.importModule(modIdFor('caller-test-code'))
         const loadedIdx = exec.loadJigByOutputId(prepExec2.outputs[0].id())
-        const receiverIdx = exec.instantiate(modIdx3, 'Receiver', [])
+        const receiverIdx = exec.instantiateByIndex(modIdx3, 'Receiver', [])
         const resultIdx = exec.callInstanceMethodByIndex(loadedIdx, 'giveMeMyLocation', [ref(receiverIdx)])
         const value = exec.getStatementResult(resultIdx).value
 
@@ -291,7 +291,7 @@ describe('execute txs', () => {
     it('fails if there is no caller', () => {
       const exec = emptyExec()
       const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
+      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
       expect(() =>
         exec.callInstanceMethodByIndex(receiverIdx, 'returnCallerClassPtr', [ref(receiverIdx)])
       ).to.throw(ExecutionError)
@@ -300,8 +300,8 @@ describe('execute txs', () => {
     it('returns class ptr if exists', () => {
       const exec = emptyExec()
       const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiate(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiate(modIdx, 'RightCaller', [])
+      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyClassPtr', [ref(receiverIdx)])
 
       expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().classPtr().toBytes())

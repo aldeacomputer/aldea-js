@@ -1,15 +1,14 @@
 export {
-  vm_constructor_end,
-  vm_local_call_start,
-  vm_local_call_end,
-  vm_remote_call_i,
-  vm_remote_call_s,
-  vm_remote_call_f,
-  vm_remote_prop,
-  vm_debug_str
+  vm_constructor_local,
+  vm_constructor_remote,
+  vm_call_method,
+  vm_call_static,
+  vm_call_function,
+  vm_get_prop,
+  vm_debug_str,
 } from './aldea/imports'
 
-export { Jig, LocalJig, RemoteJig, JigInitParams } from './aldea/jig'
+export { Jig, _LocalJig, _RemoteJig, JigInitParams } from './aldea/jig'
 export { Coin } from './aldea/coin'
 export { caller } from './aldea/caller'
 export { ArgWriter } from './aldea/arg-writer'

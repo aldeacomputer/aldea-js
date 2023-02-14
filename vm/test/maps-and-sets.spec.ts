@@ -54,7 +54,7 @@ describe('execute txs', () => {
   it('can be lift and lower maps multiple times', () => {
     const exec1 = emptyExec()
     const modIdx = exec1.importModule(modIdFor('maps-and-sets'))
-    const jigIdx1 = exec1.instantiate(modIdx, 'JigMap', [])
+    const jigIdx1 = exec1.instantiateByIndex(modIdx, 'JigMap', [])
     exec1.lockJigToUser(jigIdx1, userAddr)
     exec1.markAsFunded()
     exec1.finalize()
@@ -81,9 +81,9 @@ describe('execute txs', () => {
   it('works with jigs as keys and jigs as values', () => {
     const exec = emptyExec()
     const modIdx = exec.importModule(modIdFor('maps-and-sets'))
-    const keyIdx = exec.instantiate(modIdx, 'JigKey', [])
-    const valueIdx = exec.instantiate(modIdx, 'JigValue', [])
-    const mapIdx = exec.instantiate(modIdx, 'JigToJigMap', [])
+    const keyIdx = exec.instantiateByIndex(modIdx, 'JigKey', [])
+    const valueIdx = exec.instantiateByIndex(modIdx, 'JigValue', [])
+    const mapIdx = exec.instantiateByIndex(modIdx, 'JigToJigMap', [])
     exec.callInstanceMethodByIndex(mapIdx, 'add', [ref(keyIdx), ref(valueIdx)])
     exec.lockJigToUser(mapIdx, userAddr)
     exec.markAsFunded()

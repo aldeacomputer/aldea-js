@@ -134,6 +134,7 @@ export interface ArgNode {
  */
 export interface TypeNode {
   name: string;
+  nullable: boolean;
   args: TypeNode[];
 }
 
@@ -198,7 +199,7 @@ export type FieldCbor = [FieldKind, string, TypeCbor]
 /**
  * Type CBOR type
  */
-export type TypeCbor = [string, TypeCbor[]]
+export type TypeCbor = [string, boolean, TypeCbor[]]
 
 /**
  * Type ID CBOR type

@@ -3,8 +3,8 @@ import { Jig, JigInitParams } from './jig'
 import { LockType } from './lock'
 import { Output } from './output'
 
-// Jig initialization hooks
-// * ======================
+// Jig initialization
+// * ================
 
 // @ts-ignore
 @external("vm", "vm_jig_init")
@@ -18,39 +18,32 @@ export declare function vm_jig_link(jig: Jig, rtid: i32): ArrayBuffer;
 
 // @ts-ignore
 @external("vm", "vm_jig_lock")
-export declare function vm_jig_lock(origin: ArrayBuffer, type: LockType, args: ArrayBuffer): void;
+export declare function vm_jig_lock(origin: ArrayBuffer, type: LockType, args: ArrayBuffer): ArrayBuffer;
 // @ts-ignore
 @external("vm", "vm_jig_authcheck")
 export declare function vm_jig_authcheck(origin: ArrayBuffer, check: AuthCheck): bool;
 
-// Local stack tracing callbacks
-// * ===========================
+// Method calls
+// * ==========
 
 // @ts-ignore
-@external("vm", "vm_local_call_start")
-export declare function vm_local_call_start(jig: Jig, fn: string): void;
+@external("vm", "vm_constructor_local")
+export declare function vm_constructor_local(name: string, args: ArrayBuffer): JigInitParams;
 // @ts-ignore
-@external("vm", "vm_local_call_end")
-export declare function vm_local_call_end(): void;
+@external("vm", "vm_constructor_remote")
+export declare function vm_constructor_remote(pkgId: string, name: string, args: ArrayBuffer): JigInitParams;
 // @ts-ignore
-@external("vm", "vm_constructor_end")
-export declare function vm_constructor_end(jig: Jig, name: string): void;
-
-// Remote method calls
-// * =================
-
+@external("vm", "vm_call_method")
+export declare function vm_call_method<T>(origin: ArrayBuffer, fn: string, args: ArrayBuffer): T;
 // @ts-ignore
-@external("vm", "vm_remote_call_i")
-export declare function vm_remote_call_i<T>(origin: ArrayBuffer, fn: string, args: ArrayBuffer): T;
+@external("vm", "vm_call_static")
+export declare function vm_call_static<T>(pkgId: string, fn: string, args: ArrayBuffer): T;
 // @ts-ignore
-@external("vm", "vm_remote_call_s")
-export declare function vm_remote_call_s<T>(classPtr: string, fn: string, args: ArrayBuffer): T;
+@external("vm", "vm_call_function")
+export declare function vm_call_function<T>(pkgId: string, fn: string, args: ArrayBuffer): T;
 // @ts-ignore
-@external("vm", "vm_remote_call_f")
-export declare function vm_remote_call_f<T>(classPtr: string, fn: string, args: ArrayBuffer): T;
-// @ts-ignore
-@external("vm", "vm_remote_prop")
-export declare function vm_remote_prop<T>(origin: ArrayBuffer, prop: string): T;
+@external("vm", "vm_get_prop")
+export declare function vm_get_prop<T>(origin: ArrayBuffer, prop: string): T;
 
 // Caller hooks
 // * ==========

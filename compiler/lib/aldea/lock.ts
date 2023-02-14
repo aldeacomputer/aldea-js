@@ -35,9 +35,6 @@ export class Lock {
 
   assertType(type: LockType): void {
     if (this.type !== type) {
-      // TODO needs fixing = enums cant be used like this in TS
-      //const expected = LockType[type]
-      //const actual = LockType[this.type]
       const expected = type
       const actual = this.type
       throw new Error(`expected lock type: ${expected.toString()}, was: ${actual.toString()}`)
@@ -49,10 +46,8 @@ export class Lock {
       throw new Error('invalid lock data.')
     }
 
-    // TODO - vm_jig_lock should return new data from VM
-    vm_jig_lock(this.origin, type, data)
     this.type = type
-    this.data = data
+    this.data = vm_jig_lock(this.origin, type, data)
   }
 
   changeToAddressLock(pubkeyHash: ArrayBuffer): void {

@@ -6,7 +6,7 @@ import {WasmPointer} from "../arg-reader.js";
 import {blake3} from "@noble/hashes/blake3";
 import {bytesToHex as toHex} from "@noble/hashes/utils";
 import {JigRef} from "../jig-ref.js";
-import {outputAbiNode} from "./well-known-abi-nodes.js";
+import {emptyTn, outputAbiNode} from "./well-known-abi-nodes.js";
 import {base16} from "@aldea/sdk-js";
 import {AbiAccess} from "./abi-access.js";
 
@@ -31,14 +31,31 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     this.value = value
   }
 
+  private lowerJigProxy (type: TypeNode) {
+    const val = this.value as JigRef
+    const mod = this.instance
+    // const buf = Buffer.from(val.originBuf);
+    // const bufferPtr = lowerBuffer(mod, buf)
+
+    const outputPtr = this.lowerValue(val.outputObject(), emptyTn(outputAbiNode.name))
+    const lockPtr = this.lowerValue(val.lockObject(), emptyTn('Lock'))
+
+    // this.lowerValue()
+    const objPtr = mod.__new(8, mod.abi.rtidFromTypeNode(type));
+    const memU32 = new Uint32Array(mod.memory.buffer)
+    memU32[objPtr >>> 2] = Number(outputPtr)
+    memU32[(objPtr + 4) >>> 2] = Number(lockPtr)
+    return objPtr
+  }
+
   visitExportedClass (classNode: ClassNode, type: TypeNode): WasmPointer {
-    return this.value.ref.ptr
+    return this.lowerJigProxy(type)
   }
 
   visitArray(innerType: TypeNode): WasmPointer {
     const mod = this.instance
     const val = this.value as Array<any>
-    const rtid = mod.abi.rtidFromTypeNode({ name: 'Array', args: [innerType] })
+    const rtid = mod.abi.rtidFromTypeNode({ name: 'Array', args: [innerType], nullable: false })
     const elBytes = getTypeBytes(innerType)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
     const TypedArray = getTypedArrayConstructor(innerType)
@@ -65,7 +82,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     const mod = this.instance
     const val = this.value
 
-    const rtid = mod.abi.rtidFromTypeNode({name: 'StaticArray', args: [innerType]})
+    const rtid = mod.abi.rtidFromTypeNode({name: 'StaticArray', args: [innerType], nullable: false})
     const elBytes = getTypeBytes(innerType)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
     const TypedArray = getTypedArrayConstructor(innerType)
@@ -104,27 +121,28 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     return this.value ? 1 : 0
   }
 
-  visitImportedClass(node: TypeNode, pkgId: string): WasmPointer {
-    const val = this.value as JigRef
-    const mod = this.instance
-    // const buf = Buffer.from(val.originBuf);
-    // const bufferPtr = lowerBuffer(mod, buf)
-
-    const outputPtr = this.lowerValue(val.outputObject(), { name: outputAbiNode.name, args: [] })
-    const lockPtr = this.lowerValue(val.lockObject(), { name: 'Lock', args: [] })
-
-    // this.lowerValue()
-    const objPtr = mod.__new(8, mod.abi.rtidFromTypeNode(node));
-    const memU32 = new Uint32Array(mod.memory.buffer)
-    memU32[objPtr >>> 2] = Number(outputPtr)
-    memU32[(objPtr + 4) >>> 2] = Number(lockPtr)
-    return objPtr
+  visitImportedClass(type: TypeNode, _pkgId: string): WasmPointer {
+    return this.lowerJigProxy(type)
+    // const val = this.value as JigRef
+    // const mod = this.instance
+    // // const buf = Buffer.from(val.originBuf);
+    // // const bufferPtr = lowerBuffer(mod, buf)
+    //
+    // const outputPtr = this.lowerValue(val.outputObject(), { name: outputAbiNode.name, args: [] })
+    // const lockPtr = this.lowerValue(val.lockObject(), { name: 'Lock', args: [] })
+    //
+    // // this.lowerValue()
+    // const objPtr = mod.__new(8, mod.abi.rtidFromTypeNode(type));
+    // const memU32 = new Uint32Array(mod.memory.buffer)
+    // memU32[objPtr >>> 2] = Number(outputPtr)
+    // memU32[(objPtr + 4) >>> 2] = Number(lockPtr)
+    // return objPtr
   }
 
   visitMap(keyType: TypeNode, valueType: TypeNode): WasmPointer {
     const mod = this.instance
     const val = this.value as Map<any, any>
-    const type = { name: 'Map', args: [keyType, valueType] };
+    const type = { name: 'Map', args: [keyType, valueType], nullable: false };
 
     const kBytes = getTypeBytes(keyType)
     const vBytes = getTypeBytes(valueType)
@@ -171,7 +189,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   visitSet(innerType: TypeNode): WasmPointer {
     const mod = this.instance
     const val = this.value as Set<any>
-    const type = { name: 'Set', args: [innerType] }
+    const type = { name: 'Set', args: [innerType], nullable: false }
     const bytes = Math.max(getTypeBytes(innerType), 4)
     const entrySize = bytes + Math.max(bytes, 4)
     const ptr = this.lowerEmptySetOrMap(mod, type, entrySize)
@@ -203,7 +221,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   visitTypedArray(typeName: string): WasmPointer {
     const mod = this.instance
     const val = this.value
-    const type = {name: typeName, args: []};
+    const type = emptyTn(typeName);
 
     const rtid = mod.abi.rtidFromTypeNode(type)
     const elBytes = getElementBytes(type)
@@ -256,7 +274,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
     const jig = this.value as JigRef
     const className = jig.className();
-    const typenode = {name: className, args: [] };
+    const typenode = emptyTn(className);
     if (jig.package === this.instance) {
       const classNode = this.abi.classByName(className)
       return this.visitExportedClass(classNode, typenode)

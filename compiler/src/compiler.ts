@@ -3,7 +3,7 @@ import { basename, dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import asc from 'assemblyscript/asc'
 import { Command } from 'commander'
-import Transform from './transform.js'
+import { AscTransform, Transform } from './transform.js'
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -19,7 +19,6 @@ const baseOpts = [
   '--exportRuntime',
   '--exportStart',
   '--lib', join(rootDir, 'lib'),
-  '--transform', join(rootDir, 'dist/transform.js')
 ]
 
 export interface CompiledOutput {
@@ -56,19 +55,37 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     '--sourceMap', // delete eventually
   ].concat(baseOpts)
 
+  function listFiles(dirname: string, baseDir: string): string[] {
+    return fs.readdirSync(resolve(baseDir, dirname)).filter(file => {
+      return extension_re_except_d.test(file)
+    })
+  }
+
+  function writeFile(filename: string, contents: string | Uint8Array, baseDir: string): void {
+    if (/^(abi|docs)\.(cbor|json)$/.test(filename)) {
+      filename = outFile.replace(/wasm$/, filename)
+    }
+    fs.mkdirSync(resolve(baseDir, dirname(filename)), { recursive: true })
+    fs.writeFileSync(join(baseDir, filename), contents)
+  }
+
+  const customStdout = asc.createMemoryStream()
+
+  // Create a dynamic transform class as merging the prototype
+  // is not safe concurrently
+  class DynamicTransform extends Transform implements AscTransform {
+    baseDir: string = baseDir
+    writeFile = writeFile
+    log(line: string) { customStdout.write(line + '\n') }
+  }
+
+  const transform = new DynamicTransform()
   const { error, stdout, stderr, stats } = await asc.main(argv, {
-    listFiles(dirname, baseDir) {
-      return fs.readdirSync(resolve(baseDir, dirname)).filter(file => {
-        return extension_re_except_d.test(file)
-      })
-    },
-    writeFile(filename, contents, baseDir) {
-      if (/^(abi|docs)\.(cbor|json)$/.test(filename)) {
-        filename = outFile.replace(/wasm$/, filename)
-      }
-      fs.mkdirSync(resolve(baseDir, dirname(filename)), { recursive: true })
-      fs.writeFileSync(join(baseDir, filename), contents)
-    },
+    listFiles,
+    writeFile,
+    stdout: customStdout,
+    // @ts-ignore
+    transforms: [transform]
   })
 
   if (!error) {
@@ -76,6 +93,8 @@ export async function compileCommand(src: string, opts: any, cmd: Command): Prom
     console.log(stats.toString())
     console.log(stdout.toString())
   } else {
+    // useful to uncomment this to debug failed compilation
+    // transform.$ctx?.entries.forEach(entry => { console.log(ASTBuilder.build(entry)) })
     console.log("Compilation failed: " + error.message)
     console.log(stderr.toString())
   }
@@ -116,27 +135,45 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
     '--textFile', 'wat',
   ]).concat(baseOpts)
 
+  function readFile(filename: string, baseDir: string): string | null {
+    if (input[filename]) { return input[filename] }
+    const path = join(baseDir, filename)
+    try { return fs.readFileSync(path, 'utf8') }
+    catch(e) { return null } 
+  }
+
+  function listFiles(dirname: string, baseDir: string): string[] {
+    return fs.readdirSync(resolve(baseDir, dirname)).filter(file => {
+      return extension_re_except_d.test(file)
+    })
+  }
+
+  function writeFile(filename: string, content: string | Uint8Array): void {
+    if (filename === 'abi.json') { return }
+    if (filename === 'abi.cbor') { filename = 'abi' }
+    if (filename === 'docs.cbor') { filename = 'docs' }
+    // @ts-ignore
+    output[filename] = content
+  }
+
+  const customStdout = asc.createMemoryStream()
+
+  // Create a dynamic transform class as merging the prototype
+  // is not safe concurrently
+  class DynamicTransform extends Transform implements AscTransform {
+    baseDir: string = '.'
+    writeFile = writeFile
+    log(line: string) { customStdout.write(line + '\n') }
+  }
+
+  const transform = new DynamicTransform()
   const { error, stdout, stderr, stats } = await asc.main(argv, {
-    readFile(filename, baseDir) {
-      if (input[filename]) return input[filename]
-      try {
-        return fs.readFileSync(join(baseDir, filename), 'utf8')
-      } catch(e) {
-        return null
-      }
-    },
-    writeFile(filename, content) {
-      if (filename === 'abi.json') { return }
-      if (filename === 'abi.cbor') { filename = 'abi' }
-      if (filename === 'docs.cbor') { filename = 'docs' }
-      // @ts-ignore
-      output[filename] = content
-    },
-    listFiles(dirname, baseDir) {
-      return fs.readdirSync(resolve(baseDir, dirname)).filter(file => {
-        return extension_re_except_d.test(file)
-      })
-    }
+    readFile,
+    listFiles,
+    writeFile,
+    stdout: customStdout,
+    // @ts-ignore
+    transforms: [transform]
   })
 
   if (!error) {

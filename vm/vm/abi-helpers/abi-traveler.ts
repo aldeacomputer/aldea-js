@@ -1,13 +1,8 @@
 import {
   ClassNode,
-  CodeKind,
-  findClass,
-  findImport,
-  findObject,
   ImportNode, InterfaceNode,
   ObjectNode,
   TypeNode,
-  findInterface
 } from "@aldea/compiler/abi";
 import {AbiAccess} from "./abi-access.js";
 
@@ -88,27 +83,23 @@ export abstract class AbiTraveler<T> {
       case 'void':
         return this.visitVoid()
       default:
-        const exportClassNode = findClass(this.abi, typeName)
-        const importClassNode = findImport(this.abi, typeName)
-        const plainObjectNode = findObject(this.abi, typeName)
-        const anInterface = findInterface(this.abi, typeName)
-
-        if (exportClassNode) {
+        if (this.abi.classNameExists(typeName)) {
+          const exportClassNode = this.abi.classByName(typeName)
           return this.visitExportedClass(exportClassNode, typeNode)
-        } else
-        if (importClassNode && importClassNode.kind === CodeKind.CLASS) {
+        }
+        if (this.abi.importClassNameExists(typeName)) {
+          const importClassNode = this.abi.importByName(typeName)
           const abiNode = importClassNode as ImportNode
           return this.visitImportedClass(typeNode, abiNode.pkg)
-        } else
-        if (plainObjectNode) {
-          return this.visitPlainObject(plainObjectNode, typeNode)
-        } else
-        if (anInterface) {
-          return this.visitInterface(anInterface, typeNode)
-        } else {
-          break
         }
-
+        if (this.abi.exportedObjectNameExists(typeName)) {
+          const plainObjectNode = this.abi.objectByName(typeName)
+          return this.visitPlainObject(plainObjectNode, typeNode)
+        }
+        if (this.abi.interfaceNameExists(typeName)) {
+          const anInterface = this.abi.interfaceByName(typeName)
+          return this.visitInterface(anInterface, typeNode)
+        }
     }
     throw new Error(`unknown type: ${typeName}`)
   }

@@ -119,8 +119,7 @@ export class TransformCtx {
   private mapTypeIds(): TypeIdNode[] {
     if (!this.program) return []
     if (!this.#typeIds) {
-      const whitelist = ['Jig', 'JigInitParams', 'Output', 'Lock', 'Coin']
-        .concat(...this.exports.filter(ex => ex.kind === CodeKind.CLASS).map(ex => ex.code.name))
+      const whitelist = ['JigInitParams', 'Output', 'Lock', 'Coin']
         .concat(...this.imports.filter(im => im.kind === CodeKind.CLASS).map(im => im.name))
 
       function whiteListType(type: TypeNode): void {
@@ -130,6 +129,10 @@ export class TransformCtx {
       }
 
       this.exposedTypes.forEach(whiteListType)
+
+      const exportList = this.exports
+        .filter(ex => ex.kind === CodeKind.CLASS)
+        .map(ex => ex.code.name)
       
       const interfaceList = this.exports
         .filter(ex => ex.kind === CodeKind.INTERFACE)
@@ -138,15 +141,30 @@ export class TransformCtx {
 
       this.#typeIds = [...this.program.managedClasses].reduce((arr: TypeIdNode[], [id, klass]) => {
         const name = normalizeClassName(klass)
-        if (whitelist.includes(name) && !interfaceList.includes(name)) {
+        // whitelisted names go in as they are
+        if (
+          whitelist.includes(name) &&
+          name !== 'Jig' &&
+          !exportList.includes(name) &&
+          !interfaceList.includes(name)) {
           arr.push({ id, name })
         }
-        // this is weird. We dont want the actual interface runtime id,
-        // instead we want the proxy class, but we remove the underscore name
-        if (/^_/.test(name)) {
-          const tname = name.replace(/^_/, '')
-          if (interfaceList.includes(tname)) {
-            arr.push({ id, name: tname })
+        // the basejig is simply known as... Jig
+        if (name === '_BaseJig') {
+          arr.push({ id, name: 'Jig' })
+        }
+        // for local jigs we rename to the original with $ prefix
+        if (/^_Local/.test(name)) {
+          const lname = name.replace(/^_Local/, '')
+          if (exportList.includes(lname)) {
+            arr.push({ id, name: `$${lname}` })
+          }
+        }
+        // for remote jigs and interfaces we rename to the original
+        if (/^_Remote/.test(name)) {
+          const rname = name.replace(/^_Remote/, '')
+          if (exportList.includes(rname) || interfaceList.includes(rname)) {
+            arr.push({ id, name: rname })
           }
         }
         return arr
@@ -493,6 +511,7 @@ function mapType(node: NamedTypeNode): TypeWrap {
   return {
     node,
     name: node.name.identifier.text,
+    nullable: node.isNullable,
     args: args || []
   }
 }

@@ -557,7 +557,6 @@ describe('reading complex types from memory', () => {
       wasm.setExecution(new TxExecution(new Tx(), new VM(new Storage())))
       const res = wasm.functionCall('test', [])
       assert.instanceOf(res.value, Internref)
-      assert.equal(res.value.name, 'Test')
       assert.typeOf(res.value.ptr, 'number')
     })
   })
