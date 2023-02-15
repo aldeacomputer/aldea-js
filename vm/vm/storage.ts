@@ -1,7 +1,7 @@
 import {JigState} from './jig-state.js';
-import {TxExecution} from "./tx-execution.js";
 import {Abi} from "@aldea/compiler/abi";
 import {base16, Pointer} from "@aldea/sdk-js";
+import {ExecutionResult} from "./execution-result.js";
 
 export type ModuleData = {
   mod: WebAssembly.Module,
@@ -19,7 +19,7 @@ export class Storage {
   private statesPerLocation: Map<string, JigState>;
   private tips: Map<string, string>;
   private origins: Map<string, string>;
-  private transactions: Map<string, TxExecution>;
+  private transactions: Map<string, ExecutionResult>;
   private modules: Map<string, ModuleData>
 
   constructor() {
@@ -30,7 +30,7 @@ export class Storage {
     this.modules = new Map()
   }
 
-  persist(txExecution: TxExecution) {
+  persist(txExecution: ExecutionResult) {
     this.addTransaction(txExecution)
     txExecution.outputs.forEach((state: JigState) => this.addJig(state))
   }
@@ -62,7 +62,7 @@ export class Storage {
     return base16.decode(tip)
   }
 
-  addTransaction(exec: TxExecution) {
+  addTransaction(exec: ExecutionResult) {
     this.transactions.set(exec.tx.id, exec)
   }
 

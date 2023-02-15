@@ -297,10 +297,10 @@ describe('tx interaction', () => {
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
       .build()
 
-    const txExec = await vm.execTx(tx)
+    const result = await vm.execTx(tx)
 
-    const moduleId = txExec.deployments[0]
-    const module = storage.getModule(moduleId)
+    const deploy = result.deploys[0]
+    const module = storage.getModule(deploy.hash)
     expect(module.abi.exports[0].code.name).to.eql('Foo')
   })
 

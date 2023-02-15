@@ -29,6 +29,10 @@ export class Ant extends Jig {
       .reduce((total, current) => total + current, 0)
   }
 
+  getFamily (): Ant[] {
+    return this.children
+  }
+
   /*
   this will fail bacause its calling public method on not owned jig
    */

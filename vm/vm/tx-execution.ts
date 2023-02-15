@@ -14,6 +14,8 @@ import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
+import {ExecutionResult, PackageDeploy} from "./execution-result.js";
+import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
 
 abstract class StatementResult {
   abstract get abiNode(): TypeNode;
@@ -24,7 +26,7 @@ abstract class StatementResult {
 }
 
 class WasmStatementResult extends StatementResult {
-  private _instance: WasmInstance;
+  private readonly _instance: WasmInstance;
   constructor(instance: WasmInstance) {
     super()
     this._instance = instance
@@ -125,8 +127,7 @@ class TxExecution {
   private vm: VM;
   private jigs: JigRef[];
   private wasms: Map<string, WasmInstance>;
-  private stack: Pointer[];
-  outputs: JigState[];
+  private readonly stack: Pointer[];
   deployments: Uint8Array[];
   statementResults: StatementResult[]
   private funded: boolean;
@@ -138,14 +139,14 @@ class TxExecution {
     this.jigs = []
     this.wasms = new Map()
     this.stack = []
-    this.outputs = []
     this.statementResults = []
     this.funded = false
     this.deployments = []
     this.affectedJigs = new Set()
   }
 
-  finalize () {
+  finalize (): ExecutionResult {
+    const result = new ExecutionResult(this.tx)
     if (!this.funded) {
       throw new ExecutionError('tx not funded')
     }
@@ -163,12 +164,24 @@ class TxExecution {
       const origin = jigRef.origin || location
       const serialized = this.serializeJig(jigRef)
       const jigState = new JigState(origin, location , jigRef.classIdx, serialized, jigRef.package.id, jigRef.lock.serialize())
-      this.outputs.push(jigState)
+      result.addOutput(jigState)
+    })
+
+    this.deployments.forEach(pkgId => {
+      const module = this.vm.getModule(pkgId)
+      result.addDeploy(new PackageDeploy(
+        module.sources,
+        module.entries,
+        module.wasmBin,
+        module.abi
+      ))
     })
 
     this.wasms = new Map()
     this.jigs = []
     this.statementResults = []
+    result.finish()
+    return result
   }
 
   private serializeJig (jig: JigRef): Uint8Array {
@@ -196,20 +209,6 @@ class TxExecution {
     const jigRef = this.jigs.find(j => Buffer.from(j.originBuf).equals(Buffer.from(origin)))
     if(!jigRef) { throw new Error('should exist')}
     return jigRef
-  }
-
-  localAuthCheckHandler(jigPtr: number, instance: WasmInstance, check: AuthCheck): boolean {
-    const jig = this.jigs.find(j => j.ref.ptr === jigPtr && j.package === instance) || this.jigs.find(j => j.ref.ptr === -1 && j.package === instance)
-    if (!jig) {throw new Error('should exists')}
-    return this.remoteAuthCheckHandler(jig.origin, check)
-  }
-
-  localLockHandler (jigPtr: number, instance: WasmInstance, type: LockType, extraArg: ArrayBuffer): void {
-    const childJigRef = this.jigs.find(j => j.ref.ptr === jigPtr && j.package === instance)
-    if (!childJigRef) {
-      throw new Error('should exists')
-    }
-    this.remoteLockHandler(childJigRef.origin, type, extraArg)
   }
 
   remoteCallHandler (callerInstance: WasmInstance, targetOrigin: Pointer, methodName: string, argBuff: Uint8Array): WasmValue {
@@ -320,14 +319,6 @@ class TxExecution {
     }
   }
 
-  findUtxoHandler(wasm: WasmInstance, jigPtr: number): JigRef {
-    const jigRef = this.jigs.find(ref => ref.package === wasm && ref.ref.ptr === jigPtr)
-    if (!jigRef) {
-      throw new Error('jig ref should be present')
-    }
-    return jigRef
-  }
-
   getJigRefByOrigin (origin: Pointer): JigRef {
     const jigRef = this.jigs.find(jr => jr.origin.equals(origin));
     if (!jigRef) {
@@ -341,7 +332,7 @@ class TxExecution {
     return jigRef
   }
 
-  async run (): Promise<void> {
+  async run (): Promise<ExecutionResult> {
     let i = 0
     for (const inst of this.tx.instructions) {
       if (inst instanceof instructions.ImportInstruction) {
@@ -386,7 +377,7 @@ class TxExecution {
       }
       i++
     }
-    this.finalize()
+    return this.finalize()
   }
 
   findJigByOutputId (outputId: Uint8Array): JigRef {
@@ -496,18 +487,25 @@ class TxExecution {
   callInstanceMethod (jig: JigRef, methodName: string, args: any[]): WasmValue {
     const methodResult = jig.package.instanceCall(jig, jig.className(), methodName, args);
     this.affectedJigs.add(jig)
-    let value = methodResult.value
+    // let value = methodResult.value
 
-    if (value instanceof Internref) {
-      const jigData = methodResult.mod.liftBasicJig(value)
-      const origin = Pointer.fromBytes(jigData.$output.origin)
-      value = this.findJigByOrigin(origin)
+    const visitor = new LiftArgumentVisitor(jig.package.abi, jig.package, methodResult.ptr)
+    const value = visitor.travelFromType(methodResult.type)
+
+    // if (value instanceof Internref) {
+    //   const jigData = methodResult.mod.liftBasicJig(value)
+    //   const origin = Pointer.fromBytes(jigData.$output.origin)
+    //   value = this.findJigByOrigin(origin)
+    // }
+    // if (value instanceof Externref) {
+    //   const pointer = Pointer.fromBytes(value.originBuf)
+    //   value = this.getJigRefByOrigin(pointer)
+    // }
+    return {
+      mod: jig.package,
+      node: methodResult.type,
+      value: value
     }
-    if (value instanceof Externref) {
-      const pointer = Pointer.fromBytes(value.originBuf)
-      value = this.getJigRefByOrigin(pointer)
-    }
-    return {...methodResult, value}
   }
 
   callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {
@@ -622,10 +620,6 @@ class TxExecution {
     return this.statementResults.length - 1
   }
 
-  getImportedModule(moduleIndex: number): WasmInstance {
-    return this.getStatementResult(moduleIndex).instance;
-  }
-
   async deployModule(entryPoint: string[], sources: Map<string, string>): Promise<number> {
     const moduleId = await this.vm.deployCode(entryPoint, sources)
     const index = this.importModule(moduleId);
@@ -643,14 +637,6 @@ class TxExecution {
 
   outputIndexFor(jigRef: JigRef): number {
     return this.jigs.findIndex(j => j === jigRef)
-  }
-
-  jigByInternRef(ref: Internref): JigRef {
-    const jig = this.jigs.find((j: JigRef) => j.ref.equals(ref))
-    if (!jig) {
-      throw new Error('jig should exist')
-    }
-    return jig
   }
 }
 

@@ -58,9 +58,9 @@ describe.skip('execute with interfaces', () => {
     const speedIdx = exec.callInstanceMethodByIndex(chitaIdx, 'speed', [])
     expect(exec.getStatementResult(speedIdx).value).to.eql(100)
     exec.lockJigToUser(chitaIdx, userAddr)
-    exec.finalize()
+    const ret = exec.finalize()
 
-    expect(exec.outputs[0].parsedState()).to.eql([[100, 100], 100])
+    expect(ret.outputs[0].parsedState()).to.eql([[100, 100], 100])
   })
 
   it('another jig of the same package can call method using an interface', () => {
@@ -72,9 +72,9 @@ describe.skip('execute with interfaces', () => {
     exec.callInstanceMethodByIndex(tamerIdx, 'speedTrain', [])
     exec.lockJigToUser(chitaIdx, userAddr)
     exec.lockJigToUser(tamerIdx, userAddr)
-    exec.finalize()
+    const ret = exec.finalize()
 
-    expect(exec.outputs[0].parsedState()).to.eql([[100, 100], 100])
+    expect(ret.outputs[0].parsedState()).to.eql([[100, 100], 100])
   })
 
   it('a caller from another package can call using an interface', () => {
@@ -86,9 +86,9 @@ describe.skip('execute with interfaces', () => {
     exec.callInstanceMethodByIndex(tamerIdx, 'speedTrain', [])
     exec.lockJigToUser(chitaIdx, userAddr)
     exec.lockJigToUser(tamerIdx, userAddr)
-    exec.finalize()
+    const ret = exec.finalize()
 
-    expect(exec.outputs[0].parsedState()).to.eql([[100, 100], 100])
+    expect(ret.outputs[0].parsedState()).to.eql([[100, 100], 100])
   })
 
   it('a caller from another package can call using an interface after it was dehidrated and hidrated', () => {
@@ -99,18 +99,18 @@ describe.skip('execute with interfaces', () => {
     const tamerIdx = exec1.instantiateByIndex(pkgIdx, 'Tamer', [chitaJig])
     exec1.lockJigToUser(chitaIdx, userAddr)
     exec1.lockJigToUser(tamerIdx, userAddr)
-    exec1.finalize()
+    const ret1 = exec1.finalize()
 
-    storage.persist(exec1)
+    storage.persist(ret1)
 
     const exec2 = emptyExec([userPriv])
     // const loadedChitaIdx = exec2.loadJigByOutputId(exec1.outputs[0].id())
-    const loadedTamerIdx = exec2.loadJigByOutputId(exec1.outputs[1].id())
+    const loadedTamerIdx = exec2.loadJigByOutputId(ret1.outputs[1].id())
     exec2.callInstanceMethodByIndex(loadedTamerIdx, 'speedTrain', [])
     // exec2.lockJigToUser(chitaIdx, userAddr)
     exec2.lockJigToUser(loadedTamerIdx, userAddr)
-    exec2.finalize()
+    const ret2 = exec2.finalize()
 
-    expect(exec2.outputs[0].parsedState()).to.eql([[100, 100], 100])
+    expect(ret2.outputs[0].parsedState()).to.eql([[100, 100], 100])
   })
 })

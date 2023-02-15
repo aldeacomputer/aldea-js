@@ -51,6 +51,12 @@ export enum AuthCheck {
 export interface WasmExports extends WebAssembly.Exports {
   [key: string]: (...args: WasmPointer[]) => number | void;
 }
+
+interface TypedPointer {
+  get ptr(): WasmPointer
+  get type(): TypeNode
+}
+
 export class WasmInstance {
   id: Uint8Array;
   memory: WebAssembly.Memory;
@@ -354,7 +360,7 @@ export class WasmInstance {
     return new Internref(objectNode.name, Number(pointer))
   }
 
-  instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): WasmValue {
+  instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): TypedPointer {
     const classNode = this.abi.classByName(className)
     const method = classNode.methodByName(methodName)
     const fnName = `${method.className()}$${method.name}`
@@ -369,12 +375,10 @@ export class WasmInstance {
 
     const fn = this.instance.exports[fnName] as Function;
     const ptr = fn(...ptrs)
-    const result = this.extractValue(ptr, method.rtype).value
     // this.memMgr.liftValue(this, method.rtype, ptr)
     return {
-      mod: this,
-      value: result,
-      node: method.rtype ? method.rtype : voidNode
+      ptr,
+      type: method.rtype ? method.rtype : voidNode
     }
   }
 
