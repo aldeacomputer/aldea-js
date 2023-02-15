@@ -62,11 +62,11 @@ export class Storage {
     return base16.decode(tip)
   }
 
-  addTransaction(exec: ExecutionResult) {
+  addTransaction(exec: ExecutionResult): void {
     this.transactions.set(exec.tx.id, exec)
   }
 
-  getTransaction(txid: string) {
+  getTransaction(txid: string): ExecutionResult | undefined {
     return this.transactions.get(txid)
   }
 

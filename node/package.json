@@ -25,6 +25,7 @@
     "helmet": "^6.0.1",
     "http-status": "^1.5.3",
     "mocha": "^10.1.0",
+    "morgan": "^1.10.0",
     "nodemon": "^2.0.20",
     "supertest": "^6.3.2"
   },
