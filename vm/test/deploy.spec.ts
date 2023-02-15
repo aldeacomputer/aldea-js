@@ -44,9 +44,9 @@ describe('deploy code', () => {
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Coso', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
-      exec.finalize()
+      const ret = exec.finalize()
 
-      expect(exec.outputs[0].classIdx).to.eql(0)
+      expect(ret.outputs[0].classIdx).to.eql(0)
     })
 
     it('module persist on other vm instance', async () => {
@@ -60,8 +60,8 @@ describe('deploy code', () => {
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Coso', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
-      exec.finalize()
-      expect(exec.outputs[0].classIdx).to.eql(0)
+      const ret = exec.finalize()
+      expect(ret.outputs[0].classIdx).to.eql(0)
     })
 
     it('can deploy same module twice', async () => {
@@ -84,8 +84,8 @@ describe('deploy code', () => {
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Flock', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
-      exec.finalize()
-      expect(exec.outputs[0].classIdx).to.eql(0)
+      const ret = exec.finalize()
+      expect(ret.outputs[0].classIdx).to.eql(0)
     })
 
     it('some pre compiled module can be added twice', async () => {
@@ -108,9 +108,9 @@ describe('deploy code', () => {
       exec.callInstanceMethodByIndex(jigIndex, 'growWithMath', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
-      exec.finalize()
+      const ret = exec.finalize()
 
-      let jigState = exec.outputs[0].parsedState();
+      let jigState = ret.outputs[0].parsedState();
       expect(jigState[0]).to.eql(1)
     })
   })
@@ -127,9 +127,9 @@ describe('deploy code', () => {
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Coso', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
-      exec.finalize()
+      const ret = exec.finalize()
 
-      expect(exec.outputs[0].classIdx).to.eql(0)
+      expect(ret.outputs[0].classIdx).to.eql(0)
     })
 
     it.skip('can deploy more than 1 file', async () => {
@@ -151,9 +151,9 @@ describe('deploy code', () => {
       const jig2Index = exec.instantiateByIndex(moduleIndex, 'Something', [])
       exec.lockJigToUser(jig1Index, userAddr)
       exec.lockJigToUser(jig2Index, userAddr)
-      exec.finalize()
+      const ret = exec.finalize()
 
-      expect(exec.outputs[0].classIdx).to.eql('Coso')
+      expect(ret.outputs[0].classIdx).to.eql('Coso')
     })
 
     it('adds the module on the right result index', async () => {

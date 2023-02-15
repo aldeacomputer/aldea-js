@@ -57,21 +57,21 @@ describe('execute txs', () => {
     const jigIdx1 = exec1.instantiateByIndex(modIdx, 'JigMap', [])
     exec1.lockJigToUser(jigIdx1, userAddr)
     exec1.markAsFunded()
-    exec1.finalize()
-    storage.persist(exec1)
+    const ret1 = exec1.finalize()
+    storage.persist(ret1)
 
     const exec2 = emptyExec([userPriv])
-    const jigIdx2 = exec2.loadJigByOutputId(exec1.outputs[0].id())
+    const jigIdx2 = exec2.loadJigByOutputId(ret1.outputs[0].id())
     exec2.callInstanceMethodByIndex(jigIdx2, 'add', ['key1', 'value1'])
-    exec2.finalize()
-    storage.persist(exec2)
+    const ret2 = exec2.finalize()
+    storage.persist(ret2)
 
     const exec3 = emptyExec([userPriv])
-    const jigIdx3 = exec3.loadJigByOutputId(exec2.outputs[0].id())
+    const jigIdx3 = exec3.loadJigByOutputId(ret2.outputs[0].id())
     exec3.callInstanceMethodByIndex(jigIdx3, 'add', ['key2', 'value2'])
-    exec3.finalize()
+    const ret3 = exec3.finalize()
 
-    const state = exec3.outputs[0].parsedState()
+    const state = ret3.outputs[0].parsedState()
     const map = new Map<string, string>()
     map.set('key1', 'value1')
     map.set('key2', 'value2')
@@ -87,14 +87,14 @@ describe('execute txs', () => {
     exec.callInstanceMethodByIndex(mapIdx, 'add', [ref(keyIdx), ref(valueIdx)])
     exec.lockJigToUser(mapIdx, userAddr)
     exec.markAsFunded()
-    exec.finalize()
+    const ret = exec.finalize()
 
-    const state = exec.outputs[2].parsedState()
+    const state = ret.outputs[2].parsedState()
     expect(state[0]).to.have.length(1)
     const map: Map<Uint8Array, Uint8Array> = state[0]
     const key = map.keys().next().value
     const value = map.values().next().value
-    expect(key).to.eql(exec.outputs[0].origin.toBytes())
-    expect(value).to.eql(exec.outputs[1].origin.toBytes())
+    expect(key).to.eql(ret.outputs[0].origin.toBytes())
+    expect(value).to.eql(ret.outputs[1].origin.toBytes())
   })
 })

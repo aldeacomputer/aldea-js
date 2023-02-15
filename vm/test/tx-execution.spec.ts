@@ -9,6 +9,8 @@ import {base16, Pointer, PrivKey, ref, Tx, instructions} from "@aldea/sdk-js";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
 import {LockType} from "../vm/wasm-instance.js";
 import {TxBuilder} from "./tx-builder.js";
+import {ExecutionResult} from "../vm/execution-result.js";
+import {emptyTn} from "../vm/abi-helpers/well-known-abi-nodes.js";
 
 const { SignInstruction } = instructions
 
@@ -61,9 +63,9 @@ describe('execute txs', () => {
     const importIndex = exec.importModule(modIdFor('flock'))
     const instanceIndex = exec.instantiateByIndex(importIndex, 'Flock', [0])
     exec.lockJigToUser(instanceIndex, userAddr)
-    exec.finalize()
+    const result = exec.finalize()
 
-    const output = exec.outputs[0]
+    const output = result.outputs[0]
     expect(output.packageId).to.eql(modIdFor('flock'))
     expect(output.classIdx).to.eql(0)
   })
@@ -72,9 +74,9 @@ describe('execute txs', () => {
     const moduleIndex = exec.importModule(modIdFor('weapon')) // index 0
     const weaponIndex = exec.instantiateByIndex(moduleIndex, 'Weapon', ['Sable Corvo de San Martín', 100000]) // index 1
     exec.lockJigToUser(weaponIndex, userAddr)
-    exec.finalize()
+    const result = exec.finalize()
 
-    const parsed = exec.outputs[0].parsedState()
+    const parsed = result.outputs[0].parsedState()
     expect(parsed[0]).to.eql('Sable Corvo de San Martín')
     expect(parsed[1]).to.eql(100000)
   })
@@ -84,9 +86,9 @@ describe('execute txs', () => {
     const flockIndex = exec.instantiateByIndex(importIndex, 'Flock', [])
     exec.callInstanceMethodByIndex(flockIndex, 'grow', [])
     exec.lockJigToUser(flockIndex, userAddr)
-    exec.finalize()
+    const result = exec.finalize()
 
-    const parsed = exec.outputs[0].parsedState()
+    const parsed = result.outputs[0].parsedState()
     expect(parsed[0]).to.eql(1) // grow effect
   })
 
@@ -95,9 +97,9 @@ describe('execute txs', () => {
     const flockIndex = exec.instantiateByIndex(importIndex, 'Flock', [])
     exec.callInstanceMethodByIndex(flockIndex, 'growMany', [7])
     exec.lockJigToUser(flockIndex, userAddr)
-    exec.finalize()
+    const result = exec.finalize()
 
-    const parsed = exec.outputs[0].parsedState()
+    const parsed = result.outputs[0].parsedState()
     expect(parsed[0]).to.eql(7) // growMany effect
   })
 
@@ -111,9 +113,9 @@ describe('execute txs', () => {
     exec.callInstanceMethodByIndex(counterIndex, 'countFlock', [jig.asJig()])
     exec.lockJigToUser(flockIndex, userAddr)
     exec.lockJigToUser(counterIndex, userAddr)
-    exec.finalize()
+    const result = exec.finalize()
 
-    const parsed = exec.outputs[1].parsedState()
+    const parsed = result.outputs[1].parsedState()
     expect(parsed[0]).to.eql(1)
     expect(parsed[1]).to.eql(4)
   })
@@ -125,11 +127,11 @@ describe('execute txs', () => {
     const jig = exec.getStatementResult(flockIndex)
     const shepherdIndex = exec.instantiateByIndex(counterWasmIndex, 'Shepherd', [jig.asJig()])
     exec.lockJigToUser(shepherdIndex, userAddr)
-    exec.finalize()
+    const result = exec.finalize()
 
     const flockOutputIndex = 0
     const shepherdOutputIndex = 1
-    const parsed = exec.outputs[flockOutputIndex]
+    const parsed = result.outputs[flockOutputIndex]
     expect(parsed.classIdx).to.eql(0)
     expect(parsed.serializedLock).to.eql({
       type: LockType.CALLER,
@@ -210,8 +212,8 @@ describe('execute txs', () => {
       const importIndex = exec.importModule(modIdFor('flock'))
       const flockIndex = exec.instantiateByIndex(importIndex, 'Flock', [])
       exec.lockJigToUser(flockIndex, userAddr)
-      exec.finalize()
-      storage.persist(exec)
+      const result = exec.finalize()
+      storage.persist(result)
     })
 
     it('can load that jig', () => {
@@ -225,9 +227,9 @@ describe('execute txs', () => {
       const jigIndex = exec2.loadJigByOrigin(new Pointer(exec.tx.hash, 0))
       exec2.lockJigToUser(jigIndex, otherAddress)
       exec2.markAsFunded()
-      exec2.finalize()
+      const result = exec2.finalize()
 
-      const output = exec2.outputs[0]
+      const output = result.outputs[0]
       expect(output.serializedLock.data).to.eql(otherAddress.hash)
     })
   })
@@ -242,26 +244,26 @@ describe('execute txs', () => {
 
   describe('when a jig was frozen', () => {
     let freezeTx: Tx
-    let freezeExec: TxExecution
+    let freezeExecResult: ExecutionResult
     beforeEach(() => {
       freezeTx = new TxBuilder()
         .sign(PrivKey.fromRandom())
         .build()
 
-      freezeExec = new TxExecution(freezeTx, vm)
+      const freezeExec = new TxExecution(freezeTx, vm)
       freezeExec.importModule(modIdFor('flock'))
       freezeExec.instantiateByIndex(0, 'Flock', [])
       freezeExec.callInstanceMethodByIndex(1, 'goToFridge', [])
       freezeExec.markAsFunded()
-      freezeExec.finalize()
-      storage.persist(freezeExec)
+      freezeExecResult = freezeExec.finalize()
+      storage.persist(freezeExecResult)
     })
 
     it('cannot be called methods', () => {
       exec.loadJigByOrigin(new Pointer(freezeTx.hash, 0))
       expect(() => exec.callInstanceMethodByIndex(0, 'grow', [])).to
         .throw(PermissionError,
-          `jig ${freezeExec.outputs[0].currentLocation.toString()} is not allowed to exec "grow" because it\'s frozen`)
+          `jig ${freezeExecResult.outputs[0].currentLocation.toString()} is not allowed to exec "grow" because it\'s frozen`)
     })
 
     it('cannot be locked', () => {
@@ -283,25 +285,25 @@ describe('execute txs', () => {
     exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [jig])
     exec.lockJigToUser(bagIndex, userAddr)
     exec.markAsFunded()
-    exec.finalize()
+    const result1 = exec.finalize()
 
-    storage.persist(exec)
+    storage.persist(result1)
 
     const tx2 = new TxBuilder()
       .sign(userPriv)
       .build()
 
     const exec2 = new TxExecution(tx2, vm)
-    exec2.loadJigByOutputId(exec.outputs[1].id())
+    exec2.loadJigByOutputId(result1.outputs[1].id())
     exec2.callInstanceMethodByIndex(0, 'growAll', [])
     exec2.lockJigToUser(0, userAddr)
     exec2.markAsFunded()
-    exec2.finalize()
+    const result2 = exec2.finalize()
 
-    const flockOutput = exec2.outputs[0];
+    const flockOutput = result2.outputs[0];
     const flockState = flockOutput.parsedState()
     expect(flockState[0]).to.eql(1)
-    const bagOutput = exec2.outputs[1];
+    const bagOutput = result2.outputs[1];
     const bagState = bagOutput.parsedState()
     expect(bagState[0]).to.eql([flockOutput.origin.toBytes()])
   })
@@ -315,25 +317,25 @@ describe('execute txs', () => {
     exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [jig])
     exec.lockJigToUser(bagIndex, userAddr)
     exec.markAsFunded()
-    exec.finalize()
+    const result1 = exec.finalize()
 
-    storage.persist(exec)
+    storage.persist(result1)
 
     const tx2 = new TxBuilder()
       .sign(userPriv)
       .build()
 
     const exec2 = new TxExecution(tx2, vm)
-    exec2.loadJigByOutputId(exec.outputs[1].id())
+    exec2.loadJigByOutputId(result1.outputs[1].id())
     exec2.callInstanceMethodByIndex(0, 'growAll', [])
     exec2.lockJigToUser(0, userAddr)
     exec2.markAsFunded()
-    exec2.finalize()
+    const result2 = exec2.finalize()
 
-    const flockOutput = exec2.outputs[0];
+    const flockOutput = result2.outputs[0];
     const flockState = flockOutput.parsedState()
     expect(flockState[0]).to.eql(1)
-    const bagOutput = exec2.outputs[1];
+    const bagOutput = result2.outputs[1];
     const bagState = bagOutput.parsedState()
     expect(bagState[0]).to.eql([flockOutput.origin.toBytes()])
   })
@@ -351,11 +353,11 @@ describe('execute txs', () => {
     exec.lockJigToUser(sheperdIndex, userAddr)
     exec.lockJigToUser(counterIndex, userAddr)
     exec.markAsFunded()
-    exec.finalize()
+    const result = exec.finalize()
 
-    const flockState = exec.outputs[0].parsedState()
+    const flockState = result.outputs[0].parsedState()
     expect(flockState[0]).to.eql(1)
-    const counterState = exec.outputs[2].parsedState()
+    const counterState = result.outputs[2].parsedState()
     expect(counterState[0]).to.eql(1)
     expect(counterState[1]).to.eql(6)
   })
@@ -368,10 +370,10 @@ describe('execute txs', () => {
     exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [flockJig])
     exec.lockJigToUser(bagIndex, userAddr)
     exec.markAsFunded()
-    exec.finalize()
+    const result = exec.finalize()
 
-    const bagState = exec.outputs[1].parsedState()
-    expect(bagState[0]).to.eql([exec.outputs[0].origin.toBytes()])
+    const bagState = result.outputs[1].parsedState()
+    expect(bagState[0]).to.eql([result.outputs[0].origin.toBytes()])
   })
 
   it('can hidrate jig with extern ref', () => {
@@ -382,21 +384,21 @@ describe('execute txs', () => {
     const sheperdIndex = exec.instantiateByIndex(1, 'Shepherd', [flockJig])
     exec.lockJigToUser(sheperdIndex, userAddr)
     exec.markAsFunded()
-    exec.finalize()
+    const ret1 = exec.finalize()
 
-    storage.persist(exec)
+    storage.persist(ret1)
 
     const tx2 = new TxBuilder().sign(userPriv).build()
     const exec2 = new TxExecution(tx2, vm)
-    const index = exec2.loadJigByOutputId(exec.outputs[1].id())
+    const index = exec2.loadJigByOutputId(ret1.outputs[1].id())
     exec2.lockJigToUser(index, userAddr)
     exec2.markAsFunded()
-    exec2.finalize()
+    const ret2 = exec2.finalize()
 
-    expect(exec2.outputs).to.have.length(1) // The internal jig is not loaded because we lazy load.
-    const parsedState = exec2.outputs[0].parsedState(); // the first one is the loaded jig
+    expect(ret2.outputs).to.have.length(1) // The internal jig is not loaded because we lazy load.
+    const parsedState = ret2.outputs[0].parsedState(); // the first one is the loaded jig
     expect(parsedState).to.have.length(1)
-    expect(parsedState[0]).to.eql(exec.outputs[0].origin.toBytes())
+    expect(parsedState[0]).to.eql(ret1.outputs[0].origin.toBytes())
   })
 
   it('does not require re lock for address locked jigs.', () => {
@@ -405,20 +407,20 @@ describe('execute txs', () => {
     const flockIndex = exec.instantiateByIndex(0, 'Flock', [])
     exec.lockJigToUser(flockIndex, userAddr)
     exec.markAsFunded()
-    exec.finalize()
+    const ret1 = exec.finalize()
 
-    storage.persist(exec)
+    storage.persist(ret1)
 
     const tx2 = new TxBuilder().sign(userPriv).build()
     const exec2 = new TxExecution(tx2, vm)
-    const index = exec2.loadJigByOutputId(exec.outputs[0].id())
+    const index = exec2.loadJigByOutputId(ret1.outputs[0].id())
     exec2.callInstanceMethodByIndex(index, 'grow', [])
     exec2.markAsFunded()
-    exec2.finalize()
+    const ret2 = exec2.finalize()
 
-    expect(exec2.outputs).to.have.length(1)
-    expect(exec2.outputs[0].serializedLock.type).to.eql(1)
-    expect(exec2.outputs[0].serializedLock.data).to.eql(userAddr.hash)
+    expect(ret2.outputs).to.have.length(1)
+    expect(ret2.outputs[0].serializedLock.type).to.eql(1)
+    expect(ret2.outputs[0].serializedLock.data).to.eql(userAddr.hash)
   })
 
   it('can send instance method result as parameter', () => {
@@ -430,13 +432,13 @@ describe('execute txs', () => {
     exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [flockJig])
     exec.lockJigToUser(bagIndex, userAddr)
     exec.markAsFunded()
-    exec.finalize()
+    const ret = exec.finalize()
 
-    const bagState = exec.outputs[1].parsedState()
-    expect(bagState[0]).to.eql([exec.outputs[0].origin.toBytes()])
+    const bagState = ret.outputs[1].parsedState()
+    expect(bagState[0]).to.eql([ret.outputs[0].origin.toBytes()])
   })
 
-  it('can send complex nested parameters whith jigs', () => {
+  it('can send complex nested parameters with jigs', () => {
     exec.importModule(modIdFor('sheep'))
     const flockIndex = exec.instantiateByIndex(0, 'Flock', [])
     const sheep1Index = exec.instantiateByIndex(0, 'Sheep', ['sheep1', 'black'])
@@ -466,9 +468,9 @@ describe('execute txs', () => {
     const importIndex = exec.importModule(modIdFor('flock'))
     const instanceIndex = exec.instantiateByIndex(importIndex, 'Flock', [0])
     exec.lockJigToUser(instanceIndex, userAddr)
-    exec.finalize()
+    const ret = exec.finalize()
 
-    storage.persist(exec)
+    storage.persist(ret)
 
     const mod = storage.getModule(modIdFor('flock'))
 
@@ -486,9 +488,9 @@ describe('execute txs', () => {
     const importIndex = exec.importModule(modIdFor('sheep'))
     const fnResultIdx = exec.execExportedFnByIndex(importIndex, 'buildFlockWithNSheeps', [3])
     exec.lockJigToUser(fnResultIdx, userAddr)
-    exec.finalize()
+    const ret = exec.finalize()
 
-    expect(exec.outputs).to.have.length(4)
+    expect(ret.outputs).to.have.length(4)
   })
 
   it('can call exported functions from inside jigs', () => {
@@ -496,18 +498,18 @@ describe('execute txs', () => {
     const flockIndex = exec.instantiateByIndex(importIndex, 'Flock', [])
     exec.callInstanceMethodByIndex(flockIndex, 'groWithExternalFunction', [])
     exec.lockJigToUser(flockIndex, userAddr)
-    exec.finalize()
+    const ret = exec.finalize()
 
-    expect(exec.outputs[0].parsedState()[0]).eql(1)
+    expect(ret.outputs[0].parsedState()[0]).eql(1)
   })
 
   it('saves entire state for jigs using inheritance', () => {
     const importIndex = exec.importModule(modIdFor('sheep'))
     const sheepIndex = exec.instantiateByIndex(importIndex, 'MutantSheep', ['Wolverine', 'black'])
     exec.lockJigToUser(sheepIndex, userAddr)
-    exec.finalize()
+    const ret = exec.finalize()
 
-    expect(exec.outputs[0].parsedState()).to.have.length(4) // 3 base class + 1 concrete class
+    expect(ret.outputs[0].parsedState()).to.have.length(4) // 3 base class + 1 concrete class
   })
 
   it('can call base class and concrete class methods', () => {
@@ -517,9 +519,9 @@ describe('execute txs', () => {
     exec.callInstanceMethodByIndex(sheepIndex, 'chopOneLeg', []) // -1 leg
     exec.callInstanceMethodByIndex(sheepIndex, 'regenerateLeg', []) // +1 leg
     exec.lockJigToUser(sheepIndex, userAddr)
-    exec.finalize()
+    const ret = exec.finalize()
 
-    const state = exec.outputs[0].parsedState();
+    const state = ret.outputs[0].parsedState();
     expect(state).to.have.length(4) // 3 base class + 1 concrete class
     expect(state[0]).to.eql('Wolverine') // name
     expect(state[1]).to.eql('black') // color
@@ -532,19 +534,19 @@ describe('execute txs', () => {
     const sheepIndex = exec.instantiateByIndex(importIndex, 'MutantSheep', ['Wolverine', 'black']) // 7 legs
     exec.callInstanceMethodByIndex(sheepIndex, 'chopOneLeg', []) // -1 leg
     exec.lockJigToUser(sheepIndex, userAddr)
-    exec.finalize()
-    storage.persist(exec)
+    const ret1 = exec.finalize()
+    storage.persist(ret1)
 
     const tx2 = new TxBuilder().sign(userPriv).build()
     const exec2 = new TxExecution(tx2, vm)
-    const loadIndex = exec2.loadJigByOutputId(exec.outputs[0].id())
+    const loadIndex = exec2.loadJigByOutputId(ret1.outputs[0].id())
     exec2.callInstanceMethodByIndex(loadIndex, 'chopOneLeg', []) // -1 leg
     exec2.callInstanceMethodByIndex(loadIndex, 'regenerateLeg', []) // +1 leg
     exec2.lockJigToUser(loadIndex, userAddr)
     exec2.markAsFunded()
-    exec2.finalize()
+    const ret2 = exec2.finalize()
 
-    const state = exec2.outputs[0].parsedState();
+    const state = ret2.outputs[0].parsedState();
     expect(state).to.have.length(4) // 3 base class + 1 concrete class
     expect(state[0]).to.eql('Wolverine') // 3 base class + 1 concrete class
     expect(state[1]).to.eql('black') // 3 base class + 1 concrete class
@@ -559,8 +561,12 @@ describe('execute txs', () => {
     const coinIndex = exec.loadJigByOutputId(coin.id())
     const eaterIndex = exec.instantiateByIndex(importIndex, 'CoinEater', [ref(coinIndex)])
     exec.lockJigToUser(eaterIndex, userAddr)
-    exec.finalize()
-    storage.persist(exec)
+    const ret = exec.finalize()
+    storage.persist(ret)
+
+    const eaterState = ret.outputs[1].parsedState()
+    expect(eaterState[0]).to.eql(ret.outputs[0].origin.toBytes())
+    expect(eaterState[1]).to.eql([])
   })
 
   it('keeps locking state up to date after lock', () => {
@@ -603,10 +609,10 @@ describe('execute txs', () => {
     exec.lockJigToUser(flockIdx, userAddr)
     exec.lockJigToUser(counterIdx, userAddr)
     exec.markAsFunded()
-    exec.finalize()
+    const ret = exec.finalize()
 
-    expect(exec.outputs).to.have.length(3) // second flock was actually created
-    const state = exec.outputs[1].parsedState()
+    expect(ret.outputs).to.have.length(3) // second flock was actually created
+    const state = ret.outputs[1].parsedState()
     expect(state[0]).to.eql(new Pointer(exec.tx.id, 2).toBytes()) // flock was actually relplaced
   })
 
@@ -627,27 +633,139 @@ describe('execute txs', () => {
     exec.lockJigToUser(eaterIdx, userAddr)
 
     exec.markAsFunded()
-    exec.finalize()
+    const ret = exec.finalize()
 
-    expect(exec.outputs).to.have.length(4)
-    expect(exec.outputs[0].serializedLock.type).to.eql(-1)
-    expect(exec.outputs[1].serializedLock.type).to.eql(-1)
-    expect(exec.outputs[2].serializedLock.type).to.eql(2)
-    expect(exec.outputs[2].serializedLock.data).to.eql(exec.outputs[3].currentLocation.toBytes())
-    expect(exec.outputs[2].parsedState()).to.eql([300 + 400 + 500])
-    expect(exec.outputs[3].parsedState()).to.eql([exec.outputs[2].origin.toBytes(), []])
+    expect(ret.outputs).to.have.length(4)
+    expect(ret.outputs[0].serializedLock.type).to.eql(-1)
+    expect(ret.outputs[1].serializedLock.type).to.eql(-1)
+    expect(ret.outputs[2].serializedLock.type).to.eql(2)
+    expect(ret.outputs[2].serializedLock.data).to.eql(ret.outputs[3].currentLocation.toBytes())
+    expect(ret.outputs[2].parsedState()).to.eql([300 + 400 + 500])
+    expect(ret.outputs[3].parsedState()).to.eql([ret.outputs[2].origin.toBytes(), []])
   })
 
-  it('can create jigs inside jigs')
-  it('can save numbers inside statement result')
-  it('can save strings inside statement result')
-  it('can save arrays of jigs inside statement results')
-  it('can save arrays of strings inside statement results')
-  it('can save arrays of strings inside statement results')
+  it('can save numbers inside statement result', () => {
+    const flockPkgIdx = exec.importModule(modIdFor('flock'))
+    const counterPkgIdx = exec.importModule(modIdFor('sheep-counter'))
+    const flockIdx = exec.instantiateByIndex(flockPkgIdx, 'Flock', [])
+    exec.callInstanceMethodByIndex(flockIdx, 'grow', []) // size = 1
+    exec.callInstanceMethodByIndex(flockIdx, 'grow', []) // size = 2
+    const shepherdIdx = exec.instantiateByIndex(counterPkgIdx, 'Shepherd', [ref(flockIdx)])
+    const methodIdx = exec.callInstanceMethodByIndex(shepherdIdx, 'sheepCount', [ref(flockIdx)])
 
-  it('fails if an import is tried to use as a jig')
-  it('fails if a number statement result is tried to be use as a jig')
-  it('fails if a jig statement result is tried to be used as an import')
-  it('can lock to a new address if there is a signature for the previous one')
-  it('cannot lock to a new address if there is no signature for the previous one')
+    const statement = exec.getStatementResult(methodIdx);
+    expect(statement.value).to.eql(2)
+    expect(statement.abiNode).to.eql(emptyTn('u32'))
+  })
+
+  it('can save strings inside statement result', () => {
+    const flockPkgIdx = exec.importModule(modIdFor('flock'))
+    const counterPkgIdx = exec.importModule(modIdFor('sheep-counter'))
+    const flockIdx = exec.instantiateByIndex(flockPkgIdx, 'Flock', [])
+    const shepherdIdx = exec.instantiateByIndex(counterPkgIdx, 'Shepherd', [ref(flockIdx)])
+    const methodIdx = exec.callInstanceMethodByIndex(shepherdIdx, 'flockIdentifier', [ref(flockIdx)])
+
+    const statement = exec.getStatementResult(methodIdx)
+    expect(statement.value).to.eql('numero11')
+    expect(statement.abiNode).to.eql(emptyTn('string'))
+  })
+
+  it('can save arrays of jigs inside statement results', () => {
+    const antPkgIdx = exec.importModule(modIdFor('ant'))
+    const ant1Idx = exec.instantiateByIndex(antPkgIdx, 'Ant', [])
+    const ant2Idx = exec.instantiateByIndex(antPkgIdx, 'Ant', [])
+    exec.callInstanceMethodByIndex(ant1Idx, 'addChildren', [ref(ant2Idx)])
+    const methodIdx = exec.callInstanceMethodByIndex(ant1Idx, 'getFamily', [ref(ant2Idx)])
+
+    const statement = exec.getStatementResult(methodIdx)
+    expect(statement.value).to.have.length(1)
+    expect(statement.value[0].origin).to.eql(new Pointer(exec.tx.id, 1))
+  })
+
+  it('fails if an import is tried to use as a jig in the target', () => {
+    const flockPkgIdx = exec.importModule(modIdFor('flock'))
+
+    expect(
+      () => exec.callInstanceMethodByIndex(flockPkgIdx, 'grow', [])
+    ).to.throw(ExecutionError)
+  })
+
+  it('fails if an import is tried to use as a jig in the arguments', () => {
+    const flockPkgIdx = exec.importModule(modIdFor('flock'))
+    const counterPkgIdx = exec.importModule(modIdFor('sheep-counter'))
+
+    expect(
+      () => exec.instantiateByIndex(counterPkgIdx, 'Shepherd', [ref(flockPkgIdx)])
+    ).to.throw(ExecutionError)
+  })
+
+  it('fails if a number statement result is tried to be use as a jig', () => {
+    const flockPkgIdx = exec.importModule(modIdFor('flock'))
+    const counterPkgIdx = exec.importModule(modIdFor('sheep-counter'))
+    const flock1Idx = exec.instantiateByIndex(flockPkgIdx, 'Flock', [])
+    const flock2Idx = exec.instantiateByIndex(flockPkgIdx, 'Flock', [])
+    exec.callInstanceMethodByIndex(flock2Idx, 'grow', []) // size = 1
+    exec.callInstanceMethodByIndex(flock2Idx, 'grow', []) // size = 2
+    const shepherdIdx = exec.instantiateByIndex(counterPkgIdx, 'Shepherd', [ref(flock1Idx)])
+    const methodIdx = exec.callInstanceMethodByIndex(shepherdIdx, 'sheepCount', [])
+
+    expect(
+      () => exec.callInstanceMethodByIndex(methodIdx, 'replace', [ref(flockPkgIdx)])
+    ).to.throw(ExecutionError)
+  })
+  it('fails if a jig statement result is tried to be used as an import', () => {
+    const flockPkgIdx = exec.importModule(modIdFor('flock'))
+    const flockIdx = exec.instantiateByIndex(flockPkgIdx, 'Flock', [])
+
+    expect(
+      () => exec.instantiateByIndex(flockIdx, 'Shepherd', [ref(flockIdx)])
+    ).to.throw(ExecutionError)
+  })
+
+  it('can lock to a new address if there is a signature for the previous one', () => {
+    const privKey1 = PrivKey.fromRandom()
+    const addr1 = privKey1.toPubKey().toAddress()
+    const privKey2 = PrivKey.fromRandom()
+    const addr2 = privKey2.toPubKey().toAddress()
+
+
+
+    const tx = new Tx()
+    tx.push(new SignInstruction(tx.createSignature(privKey1), privKey1.toPubKey().toBytes())) // signs privKey1
+    exec = new TxExecution(tx, vm)
+    exec.markAsFunded()
+    const flockPkgIdx = exec.importModule(modIdFor('flock'))
+    const flockIdx = exec.instantiateByIndex(flockPkgIdx, 'Flock', [])
+    // works, jig was unlocked
+    exec.lockJigToUser(flockIdx, addr1)
+    // works, jig was locked to addr1, and tx was signed by privKey1
+    exec.lockJigToUser(flockIdx, addr2)
+    const ret = exec.finalize()
+
+    const lock = ret.outputs[0].lockObject()
+    expect(lock.data).to.eql(addr2.hash)
+  })
+
+  it('can lock to a new address fails if there is no signature for the previous one', () => {
+    const privKey1 = PrivKey.fromRandom()
+    const addr1 = privKey1.toPubKey().toAddress()
+    const privKey2 = PrivKey.fromRandom()
+    const addr2 = privKey2.toPubKey().toAddress()
+
+
+    // tx has no signature for privKey1
+    const tx = new Tx()
+
+    exec = new TxExecution(tx, vm)
+    exec.markAsFunded()
+    const flockPkgIdx = exec.importModule(modIdFor('flock'))
+    const flockIdx = exec.instantiateByIndex(flockPkgIdx, 'Flock', [])
+    // works, jig was unlocked
+    exec.lockJigToUser(flockIdx, addr1)
+
+    expect(
+      () => exec.lockJigToUser(flockIdx, addr2)
+    ).to.throw(PermissionError)
+  })
 })
+

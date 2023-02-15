@@ -57,10 +57,10 @@ describe('Jig Type', () => {
     const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
     exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
-    exec.finalize()
+    const ret = exec.finalize()
 
-    const flockOutput = exec.outputs[0]
-    const parsed = exec.outputs[1].parsedState()
+    const flockOutput = ret.outputs[0]
+    const parsed = ret.outputs[1].parsedState()
     expect(parsed[0]).to.eql(flockOutput.origin.toBytes())
   })
 
@@ -69,9 +69,9 @@ describe('Jig Type', () => {
     const returnedJig = exec.getStatementResult(exec.callInstanceMethodByIndex(jigBearerIndex, 'getJig', [])).asJig()
     exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
-    exec.finalize()
+    const ret = exec.finalize()
 
-    const parsed = exec.outputs[1].parsedState()
+    const parsed = ret.outputs[1].parsedState()
     expect(parsed[0]).to.eql(returnedJig.origin.toBytes())
   })
 
@@ -85,11 +85,11 @@ describe('Jig Type', () => {
     exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
     exec.lockJigToUser(anotherFlockIndex, userAddr)
-    exec.finalize()
+    const ret = exec.finalize()
 
-    const flockOutput = exec.outputs[0]
-    const anotherFlockOutput = exec.outputs[1]
-    const parsed = exec.outputs[2].parsedState()
+    const flockOutput = ret.outputs[0]
+    const anotherFlockOutput = ret.outputs[1]
+    const parsed = ret.outputs[2].parsedState()
     expect(parsed[0]).to.not.eql(flockOutput.origin.toBytes()) // Remove
     expect(parsed[0]).to.eql(anotherFlockOutput.origin.toBytes())
   })
@@ -98,9 +98,9 @@ describe('Jig Type', () => {
     const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
     exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
-    exec.finalize()
+    const ret1 = exec.finalize()
 
-    storage.persist(exec)
+    storage.persist(ret1)
 
     const tx2 = new TxBuilder()
       .sign(userPriv)
@@ -108,15 +108,15 @@ describe('Jig Type', () => {
 
     const exec2 = new TxExecution(tx2, vm)
 
-    const jigBearerIndexFromOutside = exec2.loadJigByOutputId(exec.outputs[1].id())
+    const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id())
     const returnedJigIndex = exec2.callInstanceMethodByIndex(jigBearerIndexFromOutside, 'getJig', [])
     exec2.callInstanceMethodByIndex(returnedJigIndex, 'grow', [])
     exec2.lockJigToUser(jigBearerIndexFromOutside, userAddr)
     exec2.lockJigToUser(returnedJigIndex, userAddr)
     exec2.markAsFunded()
-    exec2.finalize()
+    const ret2 = exec2.finalize()
 
-    const parsedFlock = exec2.outputs[0].parsedState()
+    const parsedFlock = ret2.outputs[0].parsedState()
     expect(parsedFlock[0]).to.eql(1)
   })
 
@@ -124,9 +124,9 @@ describe('Jig Type', () => {
     const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
     exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
-    exec.finalize()
+    const ret1 = exec.finalize()
 
-    storage.persist(exec)
+    storage.persist(ret1)
 
     const tx2 = new TxBuilder()
       .sign(userPriv)
@@ -134,15 +134,15 @@ describe('Jig Type', () => {
 
     const exec2 = new TxExecution(tx2, vm)
 
-    const jigBearerIndexFromOutside = exec2.loadJigByOutputId(exec.outputs[1].id())
+    const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id())
     const returnedJigIndex = exec2.callInstanceMethodByIndex(jigBearerIndexFromOutside, 'getJig', [])
     exec2.callInstanceMethodByIndex(returnedJigIndex, 'grow', [])
     exec2.lockJigToUser(jigBearerIndexFromOutside, userAddr)
     exec2.lockJigToUser(returnedJigIndex, userAddr)
     exec2.markAsFunded()
-    exec2.finalize()
+    const ret2 = exec2.finalize()
 
-    const parsedJigBearer = exec2.outputs[1].parsedState()
+    const parsedJigBearer = ret2.outputs[1].parsedState()
     expect(parsedJigBearer[0].name).to.eql('Flock')
   })
 })

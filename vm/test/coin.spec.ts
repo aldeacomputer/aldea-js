@@ -6,7 +6,7 @@ import {LockType} from "../vm/wasm-instance.js";
 import {JigState} from "../vm/jig-state.js";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
 import {ref, Tx} from "@aldea/sdk-js";
-import {TxExecution} from "../vm/tx-execution.js";
+import {ExecutionResult} from "../vm/execution-result.js";
 
 describe('Coin', () => {
   let storage: Storage
@@ -32,7 +32,7 @@ describe('Coin', () => {
     let originalAmount: number
     const sendMethodIndex = 1
 
-    const testSubject = async () : Promise<TxExecution> => {
+    const testSubject = async () : Promise<ExecutionResult> => {
       const tx = new TxBuilder()
         .load(coin.id())
         .sign(userPriv)
@@ -140,7 +140,7 @@ describe('Coin', () => {
       yetAnotherCoin = vm.mint(userAddr, yetAnotherCoinAmount)
     })
 
-    const testSubject = async () : Promise<TxExecution> => {
+    const testSubject = async () : Promise<ExecutionResult> => {
       tx = new TxBuilder()
         .load(coin.id())
         .load(otherCoin.id())
@@ -193,7 +193,7 @@ describe('Coin', () => {
           otherCoin = vm.mint(otherUserAddr, otherCoinAmount)
         })
 
-        const testSubject = async () : Promise<TxExecution> => {
+        const testSubject = async () : Promise<ExecutionResult> => {
           tx = new TxBuilder()
             .load(coin.id())
             .load(otherCoin.id())

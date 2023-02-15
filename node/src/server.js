@@ -11,6 +11,7 @@ import { abiToCbor, abiToJson } from "@aldea/compiler/abi"
 import { CBOR, Sequence } from "cbor-redux"
 import { Pointer } from "@aldea/sdk-js"
 import { CompileError } from "@aldea/compiler"
+import morgan from 'morgan'
 
 
 const buildApp = () => {
@@ -35,7 +36,7 @@ const buildApp = () => {
     return {
       id: txExec.tx.id,
       rawtx: txExec.tx.toHex(),
-      packages: txExec.deployments.map((packageId) => {
+      packages: txExec.deploys.map((packageId) => {
         const data = storage.getModule(packageId)
         return {
           id: Buffer.from(packageId).toString('hex'),
@@ -49,6 +50,7 @@ const buildApp = () => {
 
   const app = express()
 
+  app.use(morgan('tiny'))
   app.use(express.json())
   app.use(express.raw())
   app.use(cors())

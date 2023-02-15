@@ -14,6 +14,7 @@ import {randomBytes} from "@aldea/sdk-js/support/ed25519";
 import {UserLock} from "./locks/user-lock.js";
 import {Buffer} from "buffer";
 import {encodeSequence} from "./cbor.js";
+import {ExecutionResult} from "./execution-result.js";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -33,11 +34,11 @@ export class VM {
     this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', COIN_PKG_ID)
   }
 
-  async execTx(tx: Tx): Promise<TxExecution> {
+  async execTx(tx: Tx): Promise<ExecutionResult> {
     const currentExecution = new TxExecution(tx, this)
-    await currentExecution.run()
-    this.storage.persist(currentExecution)
-    return currentExecution
+    const result = await currentExecution.run()
+    this.storage.persist(result)
+    return result
   }
 
   createWasmInstance (moduleId: Uint8Array): WasmInstance {
@@ -131,5 +132,9 @@ export class VM {
     )
     this.storage.addJig(minted)
     return minted
+  }
+
+  getModule(pkgId: Uint8Array) {
+    return this.storage.getModule(pkgId)
   }
 }
