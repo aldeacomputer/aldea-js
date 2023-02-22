@@ -1,4 +1,12 @@
+/**
+ * Represents a highly advanced flock from the future.
+ *
+ * - an instance has a size
+ */
 export class Flock extends Jig {
+  /**
+   * This is a size. The most important property
+   */
   size: u32;
   identifier: string;
 
@@ -8,10 +16,16 @@ export class Flock extends Jig {
     this.identifier = 'numero11'
   }
 
+  /**
+   * Makes the flock grow by 1
+   */
   grow (): void {
     this.size++
   }
 
+  /**
+   * Makes the flock grow by 1 using advanced external mathematical magic.
+   */
   growWithMath (): void {
     this.size = BasicMath.inc(this.size);
   }

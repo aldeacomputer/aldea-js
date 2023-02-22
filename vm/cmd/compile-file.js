@@ -15,6 +15,7 @@ export async function compileFile (file) {
     fs.mkdirSync(dirName, {recursive: true})
     fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.wasm')}`, result.output.wasm)
     fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.wat')}`, result.output.wat)
+    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.docs.json')}`, result.output['docs.json'])
     fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.cbor')}`, result.output.abi)
     fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.json')}`, abiToJson(abiFromCbor(result.output.abi.buffer)))
     console.log(`compiled ${relativePath} ok.`)

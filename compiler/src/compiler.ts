@@ -25,6 +25,7 @@ export interface CompiledOutput {
   abi: Uint8Array;
   wasm: Uint8Array;
   wat?: string;
+  ['docs.json']: string;
 }
 
 export interface CompilerResult {

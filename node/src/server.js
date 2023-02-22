@@ -155,6 +155,15 @@ const buildApp = () => {
     res.send(Buffer.from(data.wasmBin))
   })
 
+  app.get('/package/:packageId/docs', (req, res) => {
+    const {packageId} = req.params
+    const data = storage.getModule(base16.decode(packageId), () => {
+      throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
+    })
+    res.set('content-type', 'application/json')
+    res.send(JSON.parse(Buffer.from(data.docs).toString()))
+  })
+
   app.use((err, req, res, _next) => {
     if (err instanceof HttpNotFound) {
       res.status(statuses.NOT_FOUND)
