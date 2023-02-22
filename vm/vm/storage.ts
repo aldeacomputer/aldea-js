@@ -8,7 +8,8 @@ export type ModuleData = {
   abi: Abi,
   wasmBin: Uint8Array,
   entries: string[],
-  sources: Map<string, string>
+  sources: Map<string, string>,
+  docs: Uint8Array
 }
 
 type OnNotFound = (pkgId: string) => ModuleData
@@ -20,14 +21,14 @@ export class Storage {
   private tips: Map<string, string>;
   private origins: Map<string, string>;
   private transactions: Map<string, ExecutionResult>;
-  private modules: Map<string, ModuleData>
+  private packages: Map<string, ModuleData>
 
   constructor() {
     this.statesPerLocation = new Map()
     this.tips = new Map()
     this.origins = new Map()
     this.transactions = new Map()
-    this.modules = new Map()
+    this.packages = new Map()
   }
 
   persist(txExecution: ExecutionResult) {
@@ -70,13 +71,13 @@ export class Storage {
     return this.transactions.get(txid)
   }
 
-  addPackage(id: Uint8Array, module: WebAssembly.Module, abi: Abi, sources: Map<string, string>, entries: string[], wasmBin: Uint8Array): void {
-    this.modules.set(base16.encode(id), { mod: module, abi, wasmBin, entries, sources })
+  addPackage(id: Uint8Array, module: WebAssembly.Module, abi: Abi, sources: Map<string, string>, entries: string[], wasmBin: Uint8Array, docs: Uint8Array): void {
+    this.packages.set(base16.encode(id), { mod: module, abi, wasmBin, entries, sources, docs})
   }
 
   getModule (id: Uint8Array, onNotFound: OnNotFound = throwNotFound): ModuleData {
     const idHex = base16.encode(id)
-    const module =  this.modules.get(idHex)
+    const module =  this.packages.get(idHex)
     if (!module) {
       return onNotFound(idHex)
     }
@@ -84,7 +85,7 @@ export class Storage {
   }
 
   hasModule(id: Uint8Array): boolean {
-    return this.modules.has(base16.encode(id));
+    return this.packages.has(base16.encode(id));
   }
 
   tipForOrigin(ref: Uint8Array): string {

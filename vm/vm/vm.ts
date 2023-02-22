@@ -84,7 +84,8 @@ export class VM {
       abiFromCbor(result.output.abi.buffer),
       sources,
       entries,
-      result.output.wasm
+      result.output.wasm,
+      Buffer.from(result.output['docs.json'])
     )
     return id
   }
@@ -107,13 +108,16 @@ export class VM {
     const module = new WebAssembly.Module(wasmBuffer)
     const abiPath = modulePath.replace('wasm', 'abi.json')
     const abi = abiFromJson(fs.readFileSync(abiPath).toString())
+    const docsPath = modulePath.replace('wasm', 'docs.json')
+    const docs = fs.readFileSync(docsPath);
     this.storage.addPackage(
       id,
       module,
       abi,
       sources,
       entries,
-      new Uint8Array(wasmBuffer)
+      new Uint8Array(wasmBuffer),
+      docs
     )
     return id
   }
