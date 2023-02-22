@@ -12,7 +12,7 @@ const {
   SignInstruction
 } = instructions
 
-const FLOCK_PKG_ID = '62ce8314290272856f81b04723d1abdaec9dea253636e64e11c728d963a57144'
+const FLOCK_PKG_ID = '49c702e830ed729df6b14d226cfdb83f149e4ed0869c75504a809ccaa0c8af13'
 
 describe('api', () => {
   let app
