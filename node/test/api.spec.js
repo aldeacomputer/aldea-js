@@ -9,7 +9,8 @@ const {
   LockInstruction,
   LoadInstruction,
   FundInstruction,
-  SignInstruction
+  SignInstruction,
+  DeployInstruction
 } = instructions
 
 const FLOCK_PKG_ID = '49c702e830ed729df6b14d226cfdb83f149e4ed0869c75504a809ccaa0c8af13'
@@ -389,6 +390,50 @@ describe('api', () => {
         .expect('Content-Type', /application\/json/)
 
       // expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
+    })
+
+  })
+
+  describe('GET /package/:packageId/docs', () => {
+    let pkgId
+    beforeEach(async () => {
+      const coinId = await mint()
+      const tx = new Tx()
+      tx.push(new LoadInstruction(coinId))
+      tx.push(new FundInstruction(0))
+      const entry = 'entry.ts'
+      const code = `
+        /**
+         * This class has docs
+         */
+        export class SomeClass extends Jig {
+          /**
+           * This method also has docs
+           */
+          m1(): u32 {
+            return 42
+          }
+        }
+      `.trim()
+      tx.push(new DeployInstruction([entry], new Map([[entry, code]])))
+      const sig = tx.createSignature(userPriv)
+      tx.push(new SignInstruction(sig, userPriv.toPubKey().toBytes()))
+
+      const response = await request(app)
+        .post('/tx')
+        .set('content-type', 'application/octet-stream')
+        .send(Buffer.from(tx.toBytes()))
+        .expect(200)
+      pkgId = response.body.packages[0].id
+    })
+    it('returns right data', async () => {
+      const response = await request(app)
+        .get(`/package/${pkgId}/docs`)
+        .expect(200)
+        .expect('Content-Type', /application\/json/)
+
+      expect(response.body).to.have.keys(['docs'])
+      expect(response.body.docs).to.have.keys(['SomeClass', 'SomeClass$m1'])
     })
 
   })
