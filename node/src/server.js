@@ -36,10 +36,14 @@ const buildApp = () => {
     return {
       id: txExec.tx.id,
       rawtx: txExec.tx.toHex(),
-      packages: txExec.deploys.map((packageId) => {
-        const data = storage.getModule(packageId)
+      packages: txExec.deploys.map((pkg) => {
+        const pkgId = base16.encode(pkg.hash)
+        const data = storage.getModule(pkg.hash, () => {
+
+          throw new HttpNotFound(`Unknown package: ${pkgId}`, { pkg_id: pkgId })
+        })
         return {
-          id: Buffer.from(packageId).toString('hex'),
+          id: pkgId,
           files: Array.from(data.sources.entries()).map(([key, value]) => { return { name: key, content: value } }),
           entries: data.entries
         }
