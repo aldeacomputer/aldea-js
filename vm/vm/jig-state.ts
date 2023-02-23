@@ -70,4 +70,8 @@ export class JigState {
       data: this.serializedLock.data
     }
   }
+
+  isNew(): boolean {
+    return this.origin.equals(this.currentLocation);
+  }
 }

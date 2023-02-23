@@ -223,7 +223,7 @@ describe('tx interaction', () => {
     } catch (e) {
       expect(e).to.be.instanceof(ExecutionError)
       const error = e as ExecutionError
-      expect(error.message).to.eql(`jig already spent: ${base16.encode(exec1.outputs[0].id())}`)
+      expect(error.message).to.eql(`jig not present in utxo set: ${base16.encode(exec1.outputs[0].id())}`)
       return
     }
     expect.fail('should fail')

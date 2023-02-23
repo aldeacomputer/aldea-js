@@ -55,13 +55,12 @@ export class VM {
 
   findJigStateByOutputId (outputId: Uint8Array) {
     const jigState = this.storage.getJigStateByOutputId(outputId, () => {
-      throw new ExecutionError(`unknown jig: ${base16.encode(outputId)}`)
+      throw new ExecutionError(`jig not present in utxo set: ${base16.encode(outputId)}`)
     });
     const lastRef = this.storage.tipFor(jigState.origin)
     if (!Buffer.from(jigState.id()).equals(Buffer.from(lastRef))) {
       throw new ExecutionError(`jig already spent: ${base16.encode(outputId)}`)
     }
-    this.storage.tipForOrigin(jigState.id())
     return jigState
   }
 
@@ -134,7 +133,7 @@ export class VM {
       COIN_PKG_ID,
       new UserLock(address).serialize()
     )
-    this.storage.addJig(minted)
+    this.storage.addUtxo(minted)
     return minted
   }
 
