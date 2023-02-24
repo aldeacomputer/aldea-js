@@ -16,6 +16,7 @@ import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
+import {Clock} from "./clock.js";
 
 abstract class StatementResult {
   abstract get abiNode(): TypeNode;
@@ -180,7 +181,7 @@ class TxExecution {
     this.wasms = new Map()
     this.jigs = []
     this.statementResults = []
-    result.finish()
+    result.finish(this.vm.clock)
     return result
   }
 

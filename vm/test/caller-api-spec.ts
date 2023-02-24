@@ -1,5 +1,5 @@
 import {
-  Storage,
+  Storage, StubClock,
   VM
 } from '../vm/index.js'
 import {expect} from 'chai'
@@ -7,6 +7,7 @@ import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
 import {base16, PrivKey, ref, Tx, instructions, Pointer} from "@aldea/sdk-js";
 import {ExecutionError} from "../vm/errors.js";
+import moment from "moment";
 
 const { SignInstruction } = instructions
 
@@ -28,7 +29,8 @@ describe('execute txs', () => {
 
   beforeEach(() => {
     storage = new Storage()
-    vm = new VM(storage)
+    const clock = new StubClock(moment())
+    vm = new VM(storage, clock)
 
     const sources = [
       'caller-test-code'

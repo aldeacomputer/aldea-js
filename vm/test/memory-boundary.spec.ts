@@ -4,7 +4,7 @@ import { abiFromCbor } from '@aldea/compiler/abi'
 import { WasmInstance } from '../vm/wasm-instance.js'
 import { Internref } from '../vm/memory.js'
 import {TxExecution} from "../vm/tx-execution.js";
-import {VM, Storage} from "../vm/index.js";
+import {VM, Storage, MomentClock} from "../vm/index.js";
 import {Tx} from "@aldea/sdk-js";
 
 async function compileToWasm(src: string, id: Uint8Array = new Uint8Array([0, 0, 0, 0])): Promise<WasmInstance> {
@@ -554,7 +554,7 @@ describe('reading complex types from memory', () => {
       `.trim()
   
       const wasm = await compileToWasm(code)
-      wasm.setExecution(new TxExecution(new Tx(), new VM(new Storage())))
+      wasm.setExecution(new TxExecution(new Tx(), new VM(new Storage(), new MomentClock())))
       const res = wasm.functionCall('test', [])
       assert.instanceOf(res.value, Internref)
       assert.typeOf(res.value.ptr, 'number')

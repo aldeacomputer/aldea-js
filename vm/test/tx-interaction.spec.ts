@@ -1,10 +1,11 @@
 import {base16, Pointer, ref} from "@aldea/sdk-js";
-import {Storage, VM} from "../vm/index.js";
+import {Storage, StubClock, VM} from "../vm/index.js";
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {expect} from "chai";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
 import {LockType} from "../vm/wasm-instance.js";
 import {TxBuilder} from "./tx-builder.js";
+import moment from "moment";
 
 describe('tx interaction', () => {
   let storage: Storage
@@ -27,7 +28,8 @@ describe('tx interaction', () => {
   let aCoin: Pointer
   beforeEach(() => {
     storage = new Storage()
-    vm = new VM(storage)
+    const clock = new StubClock(moment())
+    vm = new VM(storage, clock)
     aCoin = vm.mint(fundAddr, 1000).currentLocation
 
     const sources = [

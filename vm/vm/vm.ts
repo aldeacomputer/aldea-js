@@ -15,6 +15,7 @@ import {UserLock} from "./locks/user-lock.js";
 import {Buffer} from "buffer";
 import {encodeSequence} from "./cbor.js";
 import {ExecutionResult} from "./execution-result.js";
+import {Clock} from "./clock.js";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -28,9 +29,11 @@ const COIN_PKG_ID = new Uint8Array([
 
 export class VM {
   private storage: Storage;
+  clock: Clock;
 
-  constructor (storage: Storage) {
+  constructor (storage: Storage, clock: Clock) {
     this.storage = storage
+    this.clock = clock
     this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', COIN_PKG_ID)
   }
 

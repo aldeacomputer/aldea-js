@@ -1,10 +1,11 @@
-import {Storage, VM} from '../vm/index.js'
+import {Storage, StubClock, VM} from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
 import {base16, Tx} from "@aldea/sdk-js";
 import {TxBuilder} from "./tx-builder.js";
 import {JigRef} from "../vm/jig-ref.js";
+import moment from "moment";
 
 describe('Jig Type', () => {
   let storage: Storage
@@ -24,7 +25,8 @@ describe('Jig Type', () => {
 
   beforeEach(() => {
     storage = new Storage()
-    vm = new VM(storage)
+    const clock = new StubClock(moment())
+    vm = new VM(storage, clock)
 
     const sources = [
       'jig-type-bearer',

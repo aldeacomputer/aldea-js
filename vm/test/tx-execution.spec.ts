@@ -1,5 +1,5 @@
 import {
-  Storage,
+  Storage, StubClock,
   VM
 } from '../vm/index.js'
 import {expect} from 'chai'
@@ -11,6 +11,7 @@ import {LockType} from "../vm/wasm-instance.js";
 import {TxBuilder} from "./tx-builder.js";
 import {ExecutionResult} from "../vm/execution-result.js";
 import {emptyTn} from "../vm/abi-helpers/well-known-abi-nodes.js";
+import moment from "moment";
 
 const { SignInstruction } = instructions
 
@@ -32,7 +33,8 @@ describe('execute txs', () => {
 
   beforeEach(() => {
     storage = new Storage()
-    vm = new VM(storage)
+    const clock = new StubClock(moment())
+    vm = new VM(storage, clock)
 
     const sources = [
       'ant',
