@@ -8,7 +8,7 @@ import {VM} from "./vm.js";
 import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref} from "./memory.js";
-import {ClassNode, CodeKind, findClass, findMethod, TypeNode} from '@aldea/compiler/abi'
+import {ClassNode, CodeKind, findClass, findMethod} from '@aldea/compiler/abi'
 import {Address, base16, InstructionRef, instructions, Pointer, Tx} from '@aldea/sdk-js';
 import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
@@ -16,111 +16,13 @@ import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
-
-abstract class StatementResult {
-  abstract get abiNode(): TypeNode;
-  abstract get value(): any;
-  abstract get wasm(): WasmInstance;
-  abstract get instance(): WasmInstance;
-  abstract asJig (): JigRef;
-}
-
-class WasmStatementResult extends StatementResult {
-  private readonly _instance: WasmInstance;
-  constructor(instance: WasmInstance) {
-    super()
-    this._instance = instance
-  }
-
-  get abiNode (): TypeNode {
-    throw new ExecutionError('statement is not a value');
-  }
-
-  asJig(): JigRef {
-    throw new ExecutionError('statement is not a jig');
-  }
-
-  get value (): any {
-    throw new ExecutionError('statement is not a value');
-  }
-
-  get wasm(): WasmInstance {
-    throw new ExecutionError('statement is not a value');
-  }
-
-  get instance(): WasmInstance {
-    return this._instance;
-  }
-}
-class NullStatementResult extends StatementResult {
-  get abiNode(): TypeNode {
-    throw new Error('null')
-  }
-
-  asJig(): JigRef {
-    throw new Error('null')
-  }
-
-  get instance(): WasmInstance {
-    throw new Error('null')
-  }
-
-  get value(): any {
-    throw new Error('null')
-  }
-
-  get wasm(): WasmInstance {
-    throw new Error('null')
-  }
-
-}
-
-class ValueStatementResult extends StatementResult {
-  abiNode: TypeNode
-  value: any
-  wasm: WasmInstance
-
-  constructor(node: TypeNode, value: any, wasm: WasmInstance) {
-    super()
-    this.abiNode = node
-    this.value = value
-    this.wasm = wasm
-  }
-
-  asJig(): JigRef {
-    if (this.value instanceof JigRef) {
-      return this.value as JigRef
-    } else {
-      throw new ExecutionError(`${this.abiNode.name} is not a jig`)
-    }
-  }
-
-  get instance(): WasmInstance {
-    throw new ExecutionError('statement is not a wasm instance');
-  }
-}
-
-class EmptyStatementResult extends StatementResult {
-  get abiNode(): TypeNode {
-    throw new ExecutionError('wrong index')
-  }
-
-  asJig(): JigRef {
-    throw new ExecutionError('wrong index')
-  }
-
-  get instance(): WasmInstance {
-    throw new ExecutionError('wrong index')
-  }
-
-  get value(): any {
-    throw new ExecutionError('wrong index')
-  }
-
-  get wasm(): WasmInstance {
-    throw new ExecutionError('wrong index')
-  }
-}
+import {
+  EmptyStatementResult,
+  NullStatementResult,
+  StatementResult,
+  ValueStatementResult,
+  WasmStatementResult
+} from "./statement-result.js";
 
 class TxExecution {
   tx: Tx;
@@ -199,7 +101,7 @@ class TxExecution {
   loadModule (moduleId: Uint8Array): WasmInstance {
     const existing = this.wasms.get(base16.encode(moduleId))
     if (existing) { return existing }
-    const wasmInstance = this.vm.createWasmInstance(moduleId)
+    const wasmInstance = this.vm.wasmForPackage(moduleId)
     wasmInstance.setExecution(this)
     this.wasms.set(base16.encode(moduleId), wasmInstance)
     return wasmInstance

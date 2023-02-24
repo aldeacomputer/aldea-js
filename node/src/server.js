@@ -95,7 +95,7 @@ const buildApp = (clock) => {
       base16.decode(outputId),
       () => { throw new HttpNotFound(`state not found: ${outputId}`, { outputId })}
     )
-    const wasm = vm.createWasmInstance(state.packageId)
+    const wasm = vm.wasmForPackage(state.packageId)
     res.send({
       state: state.objectState(wasm)
     })

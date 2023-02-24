@@ -11,7 +11,7 @@ describe('JigRef', function () {
   const vm = new VM(storage, clock)
   it('returns right id', () => {
     const id = vm.addPreCompiled(`aldea/flock.wasm`, `aldea/flock.ts`)
-    const wasm = vm.createWasmInstance(id)
+    const wasm = vm.wasmForPackage(id)
     const jig = new JigRef(
       new Internref('Flock', 0),
       1,

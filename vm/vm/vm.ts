@@ -15,6 +15,7 @@ import {UserLock} from "./locks/user-lock.js";
 import {Buffer} from "buffer";
 import {encodeSequence} from "./cbor.js";
 import {ExecutionResult} from "./execution-result.js";
+import {PkgRepository} from "./state-interfaces.js";
 import {Clock} from "./clock.js";
 
 const __dir = fileURLToPath(import.meta.url)
@@ -27,7 +28,7 @@ const COIN_PKG_ID = new Uint8Array([
   0, 0, 0, 0, 0, 0, 0, 0,
 ])
 
-export class VM {
+export class VM implements PkgRepository {
   private storage: Storage;
   clock: Clock;
 
@@ -44,7 +45,7 @@ export class VM {
     return result
   }
 
-  createWasmInstance (moduleId: Uint8Array): WasmInstance {
+  wasmForPackage (moduleId: Uint8Array): WasmInstance {
     const existingModule = this.storage.getModule(moduleId)
     return new WasmInstance(existingModule.mod, existingModule.abi, moduleId)
   }
