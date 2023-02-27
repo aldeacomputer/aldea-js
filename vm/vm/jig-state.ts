@@ -1,9 +1,11 @@
 import {ClassNode, FieldNode} from "@aldea/compiler/abi";
 import {WasmInstance} from "./wasm-instance.js";
-import {Pointer} from "@aldea/sdk-js";
+import {Address, Pointer} from "@aldea/sdk-js";
 import {BufWriter} from "@aldea/sdk-js/buf-writer";
 import {blake3} from "@aldea/sdk-js/support/hash";
 import {decodeSequence} from "./cbor.js";
+import {Lock} from "./locks/lock.js";
+import {Option} from "./support/option.js";
 
 export class JigState {
   origin: Pointer;
@@ -11,17 +13,29 @@ export class JigState {
   classIdx: number;
   stateBuf: Uint8Array;
   packageId: Uint8Array;
-  serializedLock: any;
+  private lock: Lock;
   createdAt: number;
 
-  constructor (origin: Pointer, location: Pointer, classIdx: number, stateBuf: Uint8Array, moduleId: Uint8Array, lock: any, createdAt: number) {
+  constructor (
+    origin: Pointer,
+    location: Pointer,
+    classIdx: number,
+    stateBuf: Uint8Array,
+    moduleId: Uint8Array,
+    lock: Lock,
+    createdAt: number
+  ) {
     this.origin = origin
     this.currentLocation = location
     this.classIdx = classIdx
     this.stateBuf = stateBuf
     this.packageId = moduleId
-    this.serializedLock = lock
+    this.lock = lock
     this.createdAt = createdAt
+  }
+
+  get serializedLock (): any {
+    return this.lock.serialize()
   }
 
   parsedState(): any[] {
@@ -48,9 +62,9 @@ export class JigState {
     bufW.writeBytes(this.currentLocation.toBytes())
     bufW.writeBytes(this.packageId)
     bufW.writeU32(this.classIdx)
-    bufW.writeU8(this.serializedLock.type)
-    if (this.serializedLock.data) {
-      bufW.writeBytes(this.serializedLock.data)
+    bufW.writeU8(this.lock.typeNumber())
+    if (this.lock.data) {
+      bufW.writeBytes(this.lock.data())
     }
     bufW.writeVarInt(this.stateBuf.byteLength)
     bufW.writeBytes(this.stateBuf)
@@ -68,12 +82,20 @@ export class JigState {
   lockObject() {
     return {
       origin: this.origin.toBytes(),
-      type: this.serializedLock.type,
-      data: this.serializedLock.data
+      type: this.lock.typeNumber(),
+      data: this.lock.data()
     }
+  }
+
+  lockType (): number {
+    return this.lock.typeNumber()
   }
 
   isNew(): boolean {
     return this.origin.equals(this.currentLocation);
+  }
+
+  address(): Option<Address> {
+    return this.lock.address();
   }
 }

@@ -2,7 +2,8 @@
 import {Lock} from "./lock.js";
 import {TxExecution} from "../tx-execution.js";
 import {LockType} from "../wasm-instance.js";
-import {Pointer} from "@aldea/sdk-js";
+import {Address, Pointer} from "@aldea/sdk-js";
+import {Option} from "../support/option.js";
 
 export class PublicLock implements Lock {
   constructor () {}
@@ -37,4 +38,6 @@ export class PublicLock implements Lock {
   acceptsChangeFrom(_callerOrigin: Pointer, _context: TxExecution): boolean {
     return false;
   }
+
+  address(): Option<Address> { return Option.none() }
 }

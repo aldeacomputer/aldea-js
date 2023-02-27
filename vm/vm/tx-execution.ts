@@ -163,7 +163,15 @@ class TxExecution {
       const location = new Pointer(this.tx.hash, index)
       const origin = jigRef.origin || location
       const serialized = this.serializeJig(jigRef)
-      const jigState = new JigState(origin, location , jigRef.classIdx, serialized, jigRef.package.id, jigRef.lock.serialize(), this.vm.clock.now().unix())
+      const jigState = new JigState(
+        origin,
+        location ,
+        jigRef.classIdx,
+        serialized,
+        jigRef.package.id,
+        jigRef.lock,
+        this.vm.clock.now().unix()
+      )
       result.addOutput(jigState)
     })
 
