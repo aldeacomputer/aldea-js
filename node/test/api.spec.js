@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import request from 'supertest'
 import { buildApp } from "../src/server.js"
-import { Pointer, base16, Tx, PrivKey, instructions, ed25519 } from "@aldea/sdk-js"
+import {Pointer, base16, Tx, PrivKey, instructions, ed25519, Address} from "@aldea/sdk-js"
 import { StubClock } from "@aldea/vm"
 
 const {
@@ -278,6 +278,27 @@ describe('api', () => {
       })
     });
 
+    describe('GET /utxos-by-address', () => {
+      it('empty list when it does not exist', async () => {
+        const response = await request(app)
+          .get(`/utxos-by-address/${PrivKey.fromRandom().toPubKey().toAddress()}`)
+          .expect('Content-Type', /application\/json/)
+          .expect(200)
+
+        expect(response.body).to.eql([])
+      })
+
+      it('outputs belonging to that address', async () => {
+        const response = await request(app)
+          .get(`/utxos-by-address/${new Address(base16.decode(outputs[0].lock.data)).toString()}`)
+          .expect('Content-Type', /application\/json/)
+          .expect(200)
+
+        expect(response.body).to.have.length(1)
+        expect(response.body[0].id).to.eql(outputs[0].id)
+      })
+    })
+
     describe('GET /output-by-origin/:origin', function () {
       it('returns the output by origin', async () => {
         const response = await request(app)
@@ -457,51 +478,4 @@ describe('api', () => {
     })
 
   })
-
-  // describe('POST /tx', () => {
-  //   let tx
-  //   beforeEach(() => {
-  //     const fundLocation = vm.mint(userAddr, 1000)
-  //     tx = new TxBuilder()
-  //       .import('0e69be258ecd7d4e747f07dcfc7df8edbf4970d9a91a04626f5ba7f826c65af6')
-  //       .new(0, 0, [])
-  //       .lock(1, userAddr)
-  //       .load(fundLocation.toUintArray())
-  //       .fund(3)
-  //       .lock(3, userAddr)
-  //       .sign(userPriv)
-  //       .build()
-  //   })
-  //
-  //   it('returns 200 and json', async () => {
-  //     await request(app)
-  //       .post('/tx')
-  //       .send(Buffer.from(tx.toBytes()))
-  //       .set('content-type', 'application/octet-stream')
-  //       .expect(200)
-  //       .expect('content-type', /application\/json/)
-  //   })
-  //
-  //   it('returns correct body', async () => {
-  //     const res = await request(app)
-  //       .post('/tx')
-  //       .send(Buffer.from(tx.toBytes()))
-  //       .set('content-type', 'application/octet-stream')
-  //
-  //     expect(res.body.deploys).to.eql([])
-  //     const jigLoc1 = new Location(tx.hash, 0)
-  //     // const jigLoc2 = new Location(tx.hash, 0)
-  //     expect(res.body.outputs).to.eql([
-  //       {
-  //         jig_id: base16.encode(Buffer.concat([jigLoc1.toBuffer(), Buffer.alloc(4).fill(0)])),
-  //         jig_ref: "string",
-  //         pkg_id: "string",
-  //         class_id: "string",
-  //         lock: { type: 1, data: "string" },
-  //         state_hex: "hex",
-  //       }
-  //     ])
-  //   })
-  //
-  // })
 })

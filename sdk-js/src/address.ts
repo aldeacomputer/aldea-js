@@ -1,5 +1,5 @@
 import { PubKey } from './internal.js';
-import { bech32m } from './support/base.js'
+import {base16, bech32m} from './support/base.js'
 import { blake3 } from './support/hash.js'
 
 const PREFIX = 'aldea:'
@@ -45,6 +45,10 @@ export class Address {
    */
   toString(): string {
     return bech32m.encode(this.hash, PREFIX)
+  }
+
+  toHex(): string {
+    return base16.encode(this.hash)
   }
 
   equals (another: Address): boolean {

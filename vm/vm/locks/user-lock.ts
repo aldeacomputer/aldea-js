@@ -2,6 +2,7 @@ import { Lock } from './lock.js'
 import {TxExecution} from "../tx-execution.js";
 import {Address, Pointer} from '@aldea/sdk-js';
 import {LockType} from "../wasm-instance.js";
+import {Option} from "../support/option.js";
 
 export class UserLock implements Lock {
   private addr: Address;
@@ -40,4 +41,6 @@ export class UserLock implements Lock {
   acceptsChangeFrom(_callerOrigin: Pointer, context: TxExecution): boolean {
     return this.acceptsExecution(context);
   }
+
+  address(): Option<Address> { return Option.some(this.addr) }
 }
