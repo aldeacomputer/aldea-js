@@ -12,14 +12,16 @@ export class JigState {
   stateBuf: Uint8Array;
   packageId: Uint8Array;
   serializedLock: any;
+  createdAt: number;
 
-  constructor (origin: Pointer, location: Pointer, classIdx: number, stateBuf: Uint8Array, moduleId: Uint8Array, lock: any) {
+  constructor (origin: Pointer, location: Pointer, classIdx: number, stateBuf: Uint8Array, moduleId: Uint8Array, lock: any, createdAt: number) {
     this.origin = origin
     this.currentLocation = location
     this.classIdx = classIdx
     this.stateBuf = stateBuf
     this.packageId = moduleId
     this.serializedLock = lock
+    this.createdAt = createdAt
   }
 
   parsedState(): any[] {

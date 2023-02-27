@@ -31,9 +31,11 @@ describe('execute txs', () => {
     return base16.decode(id)
   }
 
+  let now = moment()
+
   beforeEach(() => {
     storage = new Storage()
-    const clock = new StubClock(moment())
+    const clock = new StubClock(now)
     vm = new VM(storage, clock)
 
     const sources = [
@@ -59,6 +61,16 @@ describe('execute txs', () => {
     const tx = new Tx()
     exec = new TxExecution(tx, vm)
     exec.markAsFunded()
+  })
+
+  it('returns an executed at prop', () => {
+    const importIndex = exec.importModule(modIdFor('flock'))
+    const instanceIndex = exec.instantiateByIndex(importIndex, 'Flock', [0])
+    exec.lockJigToUser(instanceIndex, userAddr)
+    const result = exec.finalize()
+
+    expect(result.executedAt).to.eql(now.unix())
+    result.outputs.forEach(o => expect(o.createdAt).to.eql(now.unix()))
   })
 
   it('creates instances from imported modules', () => {
@@ -770,4 +782,3 @@ describe('execute txs', () => {
     ).to.throw(PermissionError)
   })
 })
-

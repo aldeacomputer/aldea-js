@@ -134,7 +134,8 @@ export class VM {
       0,
       encodeSequence([amount]),
       COIN_PKG_ID,
-      new UserLock(address).serialize()
+      new UserLock(address).serialize(),
+      this.clock.now().unix()
     )
     this.storage.addUtxo(minted)
     return minted

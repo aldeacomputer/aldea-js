@@ -16,7 +16,6 @@ import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
-import {Clock} from "./clock.js";
 
 abstract class StatementResult {
   abstract get abiNode(): TypeNode;
@@ -164,7 +163,7 @@ class TxExecution {
       const location = new Pointer(this.tx.hash, index)
       const origin = jigRef.origin || location
       const serialized = this.serializeJig(jigRef)
-      const jigState = new JigState(origin, location , jigRef.classIdx, serialized, jigRef.package.id, jigRef.lock.serialize())
+      const jigState = new JigState(origin, location , jigRef.classIdx, serialized, jigRef.package.id, jigRef.lock.serialize(), this.vm.clock.now().unix())
       result.addOutput(jigState)
     })
 
