@@ -13,7 +13,6 @@ import { Pointer } from "@aldea/sdk-js"
 import { CompileError } from "@aldea/compiler"
 import morgan from 'morgan'
 
-
 const buildApp = (clock) => {
   const { vm, storage } = buildVm(clock)
 
@@ -117,6 +116,14 @@ const buildApp = (clock) => {
       Pointer.fromString(origin),
       () => { throw new HttpNotFound(`${origin} not found`, { origin })})
     res.status(200).send(serializeJigState(jigState))
+  })
+
+  app.get('/utxos-by-address/:address', (req, res) => {
+    const addressStr = req.params.address
+    const address = Address.fromString(addressStr)
+    res.send(
+      storage.utxosForAddress(address).map(u => serializeJigState(u))
+    )
   })
 
   app.post('/mint', asyncHandler(async (req, res) => {
