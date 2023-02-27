@@ -12,7 +12,7 @@ export class MomentClock {
 
 export class StubClock {
   private date: moment.Moment
-  constructor(aDate: moment.Moment) {
+  constructor(aDate: moment.Moment = moment()) {
     this.date = aDate
   }
 

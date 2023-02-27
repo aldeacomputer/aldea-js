@@ -14,8 +14,8 @@ import { CompileError } from "@aldea/compiler"
 import morgan from 'morgan'
 
 
-const buildApp = () => {
-  const { vm, storage } = buildVm()
+const buildApp = (clock) => {
+  const { vm, storage } = buildVm(clock)
 
   const serializeJigState = (jigState) => {
     const lock = jigState.serializedLock
@@ -28,11 +28,12 @@ const buildApp = () => {
         type: lock.type,
         data: lock.data ? base16.encode(lock.data) : ''
       },
-      state: base16.encode(jigState.stateBuf)
+      state: base16.encode(jigState.stateBuf),
+      created_at: jigState.createdAt
     }
   }
 
-  const serializeTxExec = (txExec) => {
+  const serializeExecResult = (txExec) => {
     return {
       id: txExec.tx.id,
       rawtx: txExec.tx.toHex(),
@@ -48,7 +49,8 @@ const buildApp = () => {
           entries: data.entries
         }
       }),
-      outputs: txExec.outputs.map(o => serializeJigState(o))
+      outputs: txExec.outputs.map(o => serializeJigState(o)),
+      executed_at: txExec.executedAt
     }
   }
 
@@ -66,7 +68,7 @@ const buildApp = () => {
   app.post('/tx', asyncHandler(async (req, res) => {
     const tx = Tx.fromBytes(new Uint8Array(req.body))
     const txResult = await vm.execTx(tx)
-    res.send(serializeTxExec(txResult))
+    res.send(serializeExecResult(txResult))
   }))
 
   app.get('/tx/:txid', (req, res) => {
@@ -75,7 +77,7 @@ const buildApp = () => {
     if (!exec) {
       throw new HttpNotFound(`unknown tx: ${txid}`, { txid })
     }
-    res.status(200).send(serializeTxExec(exec))
+    res.status(200).send(serializeExecResult(exec))
   })
 
   app.get('/rawtx/:txid', (req, res) => {

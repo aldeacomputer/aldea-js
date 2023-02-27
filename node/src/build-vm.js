@@ -1,9 +1,8 @@
-import { VM, Storage, MomentClock } from "@aldea/vm"
+import { VM, Storage } from "@aldea/vm"
 import { base16 } from "@aldea/sdk-js"
 
-export function buildVm () {
+export function buildVm (clock) {
   const storage = new Storage()
-  const clock = new MomentClock()
   const vm = new VM(storage, clock)
   const sources = [
     'ant',
