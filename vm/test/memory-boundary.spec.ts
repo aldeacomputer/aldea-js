@@ -6,6 +6,7 @@ import { Internref } from '../vm/memory.js'
 import {TxExecution} from "../vm/tx-execution.js";
 import {VM, Storage, MomentClock} from "../vm/index.js";
 import {Tx} from "@aldea/sdk-js";
+import {TxContext} from "../vm/tx-context.js";
 
 async function compileToWasm(src: string, id: Uint8Array = new Uint8Array([0, 0, 0, 0])): Promise<WasmInstance> {
   try {
@@ -554,7 +555,8 @@ describe('reading complex types from memory', () => {
       `.trim()
   
       const wasm = await compileToWasm(code)
-      wasm.setExecution(new TxExecution(new Tx(), new VM(new Storage(), new MomentClock())))
+      const storage = new Storage();
+      wasm.setExecution(new TxExecution(new TxContext(new Tx(), storage), new VM(storage, new MomentClock())))
       const res = wasm.functionCall('test', [])
       assert.instanceOf(res.value, Internref)
       assert.typeOf(res.value.ptr, 'number')

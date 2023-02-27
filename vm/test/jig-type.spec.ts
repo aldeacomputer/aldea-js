@@ -6,6 +6,7 @@ import {base16, Tx} from "@aldea/sdk-js";
 import {TxBuilder} from "./tx-builder.js";
 import {JigRef} from "../vm/jig-ref.js";
 import moment from "moment";
+import {TxContext} from "../vm/tx-context.js";
 
 describe('Jig Type', () => {
   let storage: Storage
@@ -47,7 +48,8 @@ describe('Jig Type', () => {
   let exec: TxExecution
   beforeEach(() => {
     const tx = new Tx()
-    exec = new TxExecution(tx, vm)
+    const context = new TxContext(tx, storage)
+    exec = new TxExecution(context, vm)
     exec.markAsFunded()
     jigBearerModuleIndex = exec.importModule(modIdFor('jig-type-bearer')) // index 0
     flockModuleIndex = exec.importModule(modIdFor('flock'))
@@ -108,7 +110,7 @@ describe('Jig Type', () => {
       .sign(userPriv)
       .build()
 
-    const exec2 = new TxExecution(tx2, vm)
+    const exec2 = new TxExecution(new TxContext(tx2, storage), vm)
 
     const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id())
     const returnedJigIndex = exec2.callInstanceMethodByIndex(jigBearerIndexFromOutside, 'getJig', [])
@@ -134,7 +136,7 @@ describe('Jig Type', () => {
       .sign(userPriv)
       .build()
 
-    const exec2 = new TxExecution(tx2, vm)
+    const exec2 = new TxExecution(new TxContext(tx2, storage), vm)
 
     const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id())
     const returnedJigIndex = exec2.callInstanceMethodByIndex(jigBearerIndexFromOutside, 'getJig', [])

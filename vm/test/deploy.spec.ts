@@ -6,11 +6,14 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {
-  Tx
+  PrivKey,
+  Tx,
+  instructions
 } from '@aldea/sdk-js'
 import {TxExecution} from "../vm/tx-execution.js";
 import {calculatePackageId} from "../vm/calculate-package-id.js";
 import moment from "moment";
+import {TxContext} from "../vm/tx-context.js";
 
 const someValidModule = `
 export class Coso extends Jig {
@@ -35,13 +38,25 @@ describe('deploy code', () => {
     vm = new VM(storage, clock)
   })
 
+  function emptyExec (privKeys: PrivKey[] = []): TxExecution {
+    const tx = new Tx()
+    privKeys.forEach(pk => {
+      const sig = tx.createSignature(pk)
+      tx.push(new instructions.SignInstruction(sig, pk.toPubKey().toBytes()))
+    })
+    const context = new TxContext(tx, storage)
+    const exec = new TxExecution(context, vm)
+    exec.markAsFunded()
+    return exec
+  }
+
+
   describe('backdoor deploy', () => {
     const aMap = new Map<string, string>()
     aMap.set(fileName, someValidModule)
     it('makes the module available', async () => {
       const moduleId = await vm.deployCode([fileName], aMap)
-      const tx = new Tx()
-      const exec = new TxExecution(tx, vm)
+      const exec = emptyExec()
       const moduleIndex = exec.importModule(moduleId)
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Coso', [])
       exec.lockJigToUser(jigIndex, userAddr)
@@ -56,7 +71,7 @@ describe('deploy code', () => {
 
       const vm2 = new VM(storage, new StubClock(moment()))
       const tx = new Tx()
-      const exec = new TxExecution(tx, vm2)
+      const exec = new TxExecution(new TxContext(tx, storage), vm2)
       const moduleIndex = exec.importModule(moduleId)
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Coso', [])
       exec.lockJigToUser(jigIndex, userAddr)
@@ -77,8 +92,7 @@ describe('deploy code', () => {
     it('modules can be pre added from a file', async () => {
       const moduleId = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
-      const tx = new Tx()
-      const exec = new TxExecution(tx, vm)
+      const exec = emptyExec()
       const moduleIndex = exec.importModule(moduleId)
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Flock', [])
       exec.lockJigToUser(jigIndex, userAddr)
@@ -98,8 +112,7 @@ describe('deploy code', () => {
       vm.addPreCompiled('aldea/basic-math.wasm', 'aldea/basic-math.ts')
       const flockId = vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
-      const tx = new Tx()
-      const exec = new TxExecution(tx, vm)
+      const exec = emptyExec()
       const moduleIndex = exec.importModule(flockId)
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Flock', [])
       exec.callInstanceMethodByIndex(jigIndex, 'growWithMath', [])
@@ -114,8 +127,7 @@ describe('deploy code', () => {
 
   describe('deploy from tx execution', () => {
     it('can use the deployed module in the same tx', async () => {
-      const tx = new Tx()
-      const exec = new TxExecution(tx, vm)
+      const exec = emptyExec()
       const sources = new Map<string, string>()
       sources.set(fileName, someValidModule)
       const moduleIndex = await exec.deployModule([fileName],  sources)
@@ -128,8 +140,7 @@ describe('deploy code', () => {
     })
 
     it.skip('can deploy more than 1 file', async () => {
-      const tx = new Tx()
-      const exec = new TxExecution(tx, vm)
+      const exec = emptyExec()
       const sources = new Map<string, string>()
       sources.set(fileName, someValidModule)
       sources.set(fileName, `
@@ -150,8 +161,7 @@ describe('deploy code', () => {
     })
 
     it('adds the module on the right result index', async () => {
-      const tx = new Tx()
-      const exec = new TxExecution(tx, vm)
+      const exec = emptyExec()
       const sources = new Map<string, string>()
       sources.set(fileName, someValidModule)
       const moduleIndex = await exec.deployModule([fileName], sources)

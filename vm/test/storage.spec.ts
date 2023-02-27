@@ -6,6 +6,7 @@ import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
 import {base16, PrivKey, Tx, instructions} from "@aldea/sdk-js";
+import {TxContext} from "../vm/tx-context.js";
 
 const { SignInstruction } = instructions
 
@@ -46,7 +47,8 @@ describe('execute txs', () => {
       const sig = tx.createSignature(pk)
       tx.push(new SignInstruction(sig, pk.toPubKey().toBytes()))
     })
-    const exec = new TxExecution(tx, vm)
+    const context = new TxContext(tx, storage)
+    const exec = new TxExecution(context, vm)
     exec.markAsFunded()
     return exec
   }

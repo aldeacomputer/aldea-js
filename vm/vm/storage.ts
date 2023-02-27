@@ -4,6 +4,7 @@ import {Address, base16, Pointer} from "@aldea/sdk-js";
 import {ExecutionResult} from "./execution-result.js";
 import {LockType} from "./wasm-instance.js";
 import {Option} from "./support/option.js";
+import {StateProvider} from "./tx-context.js";
 
 export type ModuleData = {
   mod: WebAssembly.Module,
@@ -18,7 +19,7 @@ type OnNotFound = (pkgId: string) => ModuleData
 
 const throwNotFound = (idHex: string) => { throw new Error(`unknown module: ${idHex}`) }
 
-export class Storage {
+export class Storage implements StateProvider {
   private utxosByOid: Map<string, JigState> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, JigState[]> // address -> state. Only utxos
   private tips: Map<string, string> // orgin -> latest output_id
@@ -84,18 +85,16 @@ export class Storage {
     }
   }
 
-  getJigStateByOrigin(origin: Pointer, onNotFound: () => JigState): JigState {
+  getJigStateByOrigin(origin: Pointer): Option<JigState> {
     const latestLocation = this.tips.get(origin.toString())
-    if (!latestLocation) return onNotFound()
+    if (!latestLocation) return Option.none()
     const ret = this.utxosByOid.get(latestLocation)
-    if (!ret) return onNotFound()
-    return ret
+    return Option.fromNullable(ret)
   }
 
-  getJigStateByOutputId (outputId: Uint8Array, onNotFound: () => JigState): JigState {
+  getJigStateByOutputId (outputId: Uint8Array): Option<JigState> {
     const state = this.utxosByOid.get(base16.encode(outputId))
-    if (!state) return onNotFound()
-    return state
+    return Option.fromNullable(state)
   }
 
   tipFor(origin: Pointer): Uint8Array {
@@ -138,5 +137,13 @@ export class Storage {
   utxosForAddress(userAddr: Address): JigState[] {
     return Option.fromNullable(this.utxosByAddress.get(userAddr.toString()))
       .orDefault([])
+  }
+
+  byOutputId(id: Uint8Array): Option<JigState> {
+    return this.getJigStateByOutputId(id);
+  }
+
+  byOrigin(origin: Pointer): Option<JigState> {
+    return this.getJigStateByOrigin(origin);
   }
 }

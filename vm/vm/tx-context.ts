@@ -1,31 +1,42 @@
 import {Instruction, Pointer, Tx} from "@aldea/sdk-js";
 import {JigState} from "./jig-state.js";
+import {Option} from "./support/option.js";
 
-interface StateProvider {
+export interface StateProvider {
 
-  byOutputId(id: Uint8Array): JigState;
+  byOutputId(id: Uint8Array): Option<JigState>;
 
-  byOrigin(origin: Pointer): JigState;
+  byOrigin(origin: Pointer): Option<JigState>;
 }
 
 export class TxContext {
-  tx: Tx
+  private _tx: Tx
   states: StateProvider
   constructor(tx: Tx, states: StateProvider) {
-    this.tx = tx
+    this._tx = tx
     this.states = states
   }
 
-  forEachInstruction (fn: (i: Instruction) => void): void {
-    this.tx.instructions.forEach(fn)
+  async forEachInstruction (fn: (i: Instruction) => Promise<void>): Promise<void> {
+    for (const inst of this._tx.instructions) {
+      await fn(inst)
+    }
   }
 
   stateByOutputId (id: Uint8Array): JigState {
-    return this.states.byOutputId(id)
+    return this.states.byOutputId(id).get()
   }
 
   stateByOrigin (origin: Pointer): JigState {
-    return this.states.byOrigin(origin)
+    return this.states.byOrigin(origin).get()
+  }
+
+  get tx (): Tx {
+    return this._tx
+  }
+
+  hash (): Uint8Array {
+    return this._tx.hash
   }
 }
 

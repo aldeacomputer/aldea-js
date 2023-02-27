@@ -17,6 +17,7 @@ import {encodeSequence} from "./cbor.js";
 import {ExecutionResult} from "./execution-result.js";
 import {PkgRepository} from "./state-interfaces.js";
 import {Clock} from "./clock.js";
+import {TxContext} from "./tx-context.js";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -39,7 +40,8 @@ export class VM implements PkgRepository {
   }
 
   async execTx(tx: Tx): Promise<ExecutionResult> {
-    const currentExecution = new TxExecution(tx, this)
+    const context = new TxContext(tx, this.storage)
+    const currentExecution = new TxExecution(context, this)
     const result = await currentExecution.run()
     this.storage.persist(result)
     return result
@@ -52,13 +54,14 @@ export class VM implements PkgRepository {
 
 
   findJigStateByOrigin (origin: Pointer) {
-    return this.storage.getJigStateByOrigin(origin, () => {
-      throw new ExecutionError(`unknown jig: ${origin.toString()}`)
-    })
+    return this.storage.getJigStateByOrigin(origin)
+      .orElse(() => {
+        throw new ExecutionError(`unknown jig: ${origin.toString()}`)
+      })
   }
 
   findJigStateByOutputId (outputId: Uint8Array) {
-    const jigState = this.storage.getJigStateByOutputId(outputId, () => {
+    const jigState = this.storage.getJigStateByOutputId(outputId).orElse(() => {
       throw new ExecutionError(`jig not present in utxo set: ${base16.encode(outputId)}`)
     });
     const lastRef = this.storage.tipFor(jigState.origin)

@@ -171,7 +171,7 @@ export class WasmInstance {
           const jigRef = this.currentExec.findRemoteUtxoHandler(originBuff)
           const utxo = {
             origin: jigRef.origin.toString(),
-            location: new Pointer(this.currentExec.tx.id, this.currentExec.outputIndexFor(jigRef)).toString(),
+            location: new Pointer(this.currentExec.tx.tx.id, this.currentExec.outputIndexFor(jigRef)).toString(),
             lock: {
               type: jigRef.lock.typeNumber(),
               data: jigRef.lock.data()

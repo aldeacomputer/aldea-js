@@ -9,7 +9,7 @@ import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instanc
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref} from "./memory.js";
 import {ClassNode, CodeKind, findClass, findMethod} from '@aldea/compiler/abi'
-import {Address, base16, InstructionRef, instructions, Pointer, Tx} from '@aldea/sdk-js';
+import {Address, base16, InstructionRef, instructions, Pointer} from '@aldea/sdk-js';
 import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
@@ -23,9 +23,10 @@ import {
   ValueStatementResult,
   WasmStatementResult
 } from "./statement-result.js";
+import {TxContext} from "./tx-context.js";
 
 class TxExecution {
-  tx: Tx;
+  tx: TxContext;
   private vm: VM;
   private jigs: JigRef[];
   private wasms: Map<string, WasmInstance>;
@@ -35,7 +36,7 @@ class TxExecution {
   private funded: boolean;
   private affectedJigs: Set<JigRef>
 
-  constructor(tx: Tx, vm: VM) {
+  constructor(tx: TxContext, vm: VM) {
     this.tx = tx
     this.vm = vm
     this.jigs = []
@@ -48,7 +49,7 @@ class TxExecution {
   }
 
   finalize (): ExecutionResult {
-    const result = new ExecutionResult(this.tx)
+    const result = new ExecutionResult(this.tx.tx)
     if (!this.funded) {
       throw new ExecutionError('tx not funded')
     }
@@ -62,7 +63,7 @@ class TxExecution {
       if (!this.affectedJigs.has(jigRef)) {
         return
       }
-      const location = new Pointer(this.tx.hash, index)
+      const location = new Pointer(this.tx.tx.hash, index)
       const origin = jigRef.origin || location
       const serialized = this.serializeJig(jigRef)
       const jigState = new JigState(
@@ -243,8 +244,7 @@ class TxExecution {
   }
 
   async run (): Promise<ExecutionResult> {
-    let i = 0
-    for (const inst of this.tx.instructions) {
+    await this.tx.forEachInstruction(async inst => {
       if (inst instanceof instructions.ImportInstruction) {
         this.importModule(inst.pkgId)
       } else if (inst instanceof instructions.NewInstruction) {
@@ -285,8 +285,7 @@ class TxExecution {
       } else {
         throw new ExecutionError(`unknown instruction: ${inst.opcode}`)
       }
-      i++
-    }
+    })
     return this.finalize()
   }
 
@@ -492,7 +491,7 @@ class TxExecution {
 
 
   createNextOrigin () {
-    return new Pointer(this.tx.hash, this.jigs.length)
+    return new Pointer(this.tx.tx.hash, this.jigs.length)
   }
 
   stackTop () {

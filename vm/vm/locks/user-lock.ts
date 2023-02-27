@@ -23,7 +23,7 @@ export class UserLock implements Lock {
   }
 
   acceptsExecution(context: TxExecution): boolean {
-    return context.tx.isSignedBy(this.addr, context.execLength());
+    return context.tx.tx.isSignedBy(this.addr, context.execLength());
   }
 
   canBeChangedBy(context: TxExecution): boolean {

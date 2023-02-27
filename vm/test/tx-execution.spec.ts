@@ -8,10 +8,10 @@ import {TxExecution} from "../vm/tx-execution.js";
 import {base16, Pointer, PrivKey, ref, Tx, instructions} from "@aldea/sdk-js";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
 import {LockType} from "../vm/wasm-instance.js";
-import {TxBuilder} from "./tx-builder.js";
 import {ExecutionResult} from "../vm/execution-result.js";
 import {emptyTn} from "../vm/abi-helpers/well-known-abi-nodes.js";
 import moment from "moment";
+import {TxContext} from "../vm/tx-context.js";
 
 const { SignInstruction } = instructions
 
@@ -56,11 +56,22 @@ describe('execute txs', () => {
     })
   })
 
+  function emptyExec (privKeys: PrivKey[] = []): TxExecution {
+    const tx = new Tx()
+    privKeys.forEach(pk => {
+      const sig = tx.createSignature(pk)
+      tx.push(new SignInstruction(sig, pk.toPubKey().toBytes()))
+    })
+    const context = new TxContext(tx, storage)
+    const exec = new TxExecution(context, vm)
+    exec.markAsFunded()
+    return exec
+  }
+
+
   let exec: TxExecution
   beforeEach(() => {
-    const tx = new Tx()
-    exec = new TxExecution(tx, vm)
-    exec.markAsFunded()
+    exec = emptyExec()
   })
 
   it('returns an executed at prop', () => {
@@ -149,7 +160,7 @@ describe('execute txs', () => {
     expect(parsed.classIdx).to.eql(0)
     expect(parsed.serializedLock).to.eql({
       type: LockType.CALLER,
-      data: new Pointer(exec.tx.hash, shepherdOutputIndex).toBytes()
+      data: new Pointer(exec.tx.tx.hash, shepherdOutputIndex).toBytes()
     })
   })
 
@@ -165,7 +176,7 @@ describe('execute txs', () => {
     const flockOutputIndex = 0
     // this tries to lock it again
     expect(() => {exec.lockJigToUser(flockIndex, userAddr)}).to.throw(PermissionError,
-      `no permission to remove lock from jig ${new Pointer(exec.tx.hash, flockOutputIndex).toString()}`)
+      `no permission to remove lock from jig ${new Pointer(exec.tx.tx.hash, flockOutputIndex).toString()}`)
   })
 
   it('fails when a jig tries to lock a locked jig', () => {
@@ -232,13 +243,10 @@ describe('execute txs', () => {
 
     it('can load that jig', () => {
       const otherAddress = PrivKey.fromRandom().toPubKey().toAddress()
-      const tx2 = new TxBuilder()
-        .sign(userPriv)
-        .build()
 
-      const exec2 = new TxExecution(tx2, vm)
+      const exec2 = emptyExec([userPriv])
 
-      const jigIndex = exec2.loadJigByOrigin(new Pointer(exec.tx.hash, 0))
+      const jigIndex = exec2.loadJigByOrigin(new Pointer(exec.tx.tx.hash, 0))
       exec2.lockJigToUser(jigIndex, otherAddress)
       exec2.markAsFunded()
       const result = exec2.finalize()
@@ -260,17 +268,14 @@ describe('execute txs', () => {
     let freezeTx: Tx
     let freezeExecResult: ExecutionResult
     beforeEach(() => {
-      freezeTx = new TxBuilder()
-        .sign(PrivKey.fromRandom())
-        .build()
-
-      const freezeExec = new TxExecution(freezeTx, vm)
+      const freezeExec = emptyExec([PrivKey.fromRandom()])
       freezeExec.importModule(modIdFor('flock'))
       freezeExec.instantiateByIndex(0, 'Flock', [])
       freezeExec.callInstanceMethodByIndex(1, 'goToFridge', [])
       freezeExec.markAsFunded()
       freezeExecResult = freezeExec.finalize()
       storage.persist(freezeExecResult)
+      freezeTx = freezeExec.tx.tx
     })
 
     it('cannot be called methods', () => {
@@ -286,7 +291,7 @@ describe('execute txs', () => {
     })
 
     it('saves correctly serialized lock', () => {
-      const state = storage.getJigStateByOrigin(new Pointer(freezeTx.hash, 0), () => expect.fail('should exist'))
+      const state = storage.getJigStateByOrigin(new Pointer(freezeTx.hash, 0)).orElse(() => expect.fail('should exist'))
       expect(state.serializedLock).to.eql({type: LockType.FROZEN, data: new Uint8Array(0)})
     })
   });
@@ -303,11 +308,7 @@ describe('execute txs', () => {
 
     storage.persist(result1)
 
-    const tx2 = new TxBuilder()
-      .sign(userPriv)
-      .build()
-
-    const exec2 = new TxExecution(tx2, vm)
+    const exec2 = emptyExec([userPriv])
     exec2.loadJigByOutputId(result1.outputs[1].id())
     exec2.callInstanceMethodByIndex(0, 'growAll', [])
     exec2.lockJigToUser(0, userAddr)
@@ -335,11 +336,7 @@ describe('execute txs', () => {
 
     storage.persist(result1)
 
-    const tx2 = new TxBuilder()
-      .sign(userPriv)
-      .build()
-
-    const exec2 = new TxExecution(tx2, vm)
+    const exec2 = emptyExec([userPriv])
     exec2.loadJigByOutputId(result1.outputs[1].id())
     exec2.callInstanceMethodByIndex(0, 'growAll', [])
     exec2.lockJigToUser(0, userAddr)
@@ -402,8 +399,7 @@ describe('execute txs', () => {
 
     storage.persist(ret1)
 
-    const tx2 = new TxBuilder().sign(userPriv).build()
-    const exec2 = new TxExecution(tx2, vm)
+    const exec2 = emptyExec([userPriv])
     const index = exec2.loadJigByOutputId(ret1.outputs[1].id())
     exec2.lockJigToUser(index, userAddr)
     exec2.markAsFunded()
@@ -425,8 +421,7 @@ describe('execute txs', () => {
 
     storage.persist(ret1)
 
-    const tx2 = new TxBuilder().sign(userPriv).build()
-    const exec2 = new TxExecution(tx2, vm)
+    const exec2 = emptyExec([userPriv])
     const index = exec2.loadJigByOutputId(ret1.outputs[0].id())
     exec2.callInstanceMethodByIndex(index, 'grow', [])
     exec2.markAsFunded()
@@ -551,8 +546,7 @@ describe('execute txs', () => {
     const ret1 = exec.finalize()
     storage.persist(ret1)
 
-    const tx2 = new TxBuilder().sign(userPriv).build()
-    const exec2 = new TxExecution(tx2, vm)
+    const exec2 = emptyExec([userPriv])
     const loadIndex = exec2.loadJigByOutputId(ret1.outputs[0].id())
     exec2.callInstanceMethodByIndex(loadIndex, 'chopOneLeg', []) // -1 leg
     exec2.callInstanceMethodByIndex(loadIndex, 'regenerateLeg', []) // +1 leg
@@ -569,8 +563,8 @@ describe('execute txs', () => {
   })
 
   it('coin eater', () => {
+    const exec = emptyExec([userPriv])
     const coin = vm.mint(userAddr, 1000)
-    exec.tx.push(new SignInstruction(exec.tx.createSignature(userPriv), userPub.toBytes()))
     const importIndex = exec.importModule(modIdFor('coin-eater'))
     const coinIndex = exec.loadJigByOutputId(coin.id())
     const eaterIndex = exec.instantiateByIndex(importIndex, 'CoinEater', [ref(coinIndex)])
@@ -584,7 +578,7 @@ describe('execute txs', () => {
   })
 
   it('keeps locking state up to date after lock', () => {
-    exec.tx.push(new SignInstruction(exec.tx.createSignature(userPriv), userPub.toBytes()))
+    const exec = emptyExec([userPriv])
     const importIdx = exec.importModule(modIdFor('flock'))
     const flockIdx = exec.instantiateByIndex(importIdx, 'Flock', [])
 
@@ -627,14 +621,14 @@ describe('execute txs', () => {
 
     expect(ret.outputs).to.have.length(3) // second flock was actually created
     const state = ret.outputs[1].parsedState()
-    expect(state[0]).to.eql(new Pointer(exec.tx.id, 2).toBytes()) // flock was actually relplaced
+    expect(state[0]).to.eql(new Pointer(exec.tx.tx.id, 2).toBytes()) // flock was actually relplaced
   })
 
   it('can combine coins owned by a jig inside that jig', () => {
     const coin1 = vm.mint(userAddr, 300)
     const coin2 = vm.mint(userAddr, 400)
     const coin3 = vm.mint(userAddr, 500)
-    exec.tx.push(new SignInstruction(exec.tx.createSignature(userPriv), userPub.toBytes()))
+    const exec = emptyExec([userPriv])
 
     const coinEaterModIdx = exec.importModule(modIdFor('coin-eater'))
     const coin1Idx = exec.loadJigByOutputId(coin1.id())
@@ -693,7 +687,7 @@ describe('execute txs', () => {
 
     const statement = exec.getStatementResult(methodIdx)
     expect(statement.value).to.have.length(1)
-    expect(statement.value[0].origin).to.eql(new Pointer(exec.tx.id, 1))
+    expect(statement.value[0].origin).to.eql(new Pointer(exec.tx.tx.id, 1))
   })
 
   it('fails if an import is tried to use as a jig in the target', () => {
@@ -743,10 +737,7 @@ describe('execute txs', () => {
     const addr2 = privKey2.toPubKey().toAddress()
 
 
-
-    const tx = new Tx()
-    tx.push(new SignInstruction(tx.createSignature(privKey1), privKey1.toPubKey().toBytes())) // signs privKey1
-    exec = new TxExecution(tx, vm)
+    exec = emptyExec([privKey1])
     exec.markAsFunded()
     const flockPkgIdx = exec.importModule(modIdFor('flock'))
     const flockIdx = exec.instantiateByIndex(flockPkgIdx, 'Flock', [])
@@ -768,9 +759,7 @@ describe('execute txs', () => {
 
 
     // tx has no signature for privKey1
-    const tx = new Tx()
-
-    exec = new TxExecution(tx, vm)
+    exec = emptyExec()
     exec.markAsFunded()
     const flockPkgIdx = exec.importModule(modIdFor('flock'))
     const flockIdx = exec.instantiateByIndex(flockPkgIdx, 'Flock', [])
