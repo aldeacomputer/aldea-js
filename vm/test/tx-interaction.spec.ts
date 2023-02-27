@@ -1,10 +1,11 @@
 import {base16, Pointer, ref} from "@aldea/sdk-js";
-import {Storage, VM} from "../vm/index.js";
+import {Storage, StubClock, VM} from "../vm/index.js";
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {expect} from "chai";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
 import {LockType} from "../vm/wasm-instance.js";
 import {TxBuilder} from "./tx-builder.js";
+import moment from "moment";
 
 describe('tx interaction', () => {
   let storage: Storage
@@ -27,7 +28,8 @@ describe('tx interaction', () => {
   let aCoin: Pointer
   beforeEach(() => {
     storage = new Storage()
-    vm = new VM(storage)
+    const clock = new StubClock(moment())
+    vm = new VM(storage, clock)
     aCoin = vm.mint(fundAddr, 1000).currentLocation
 
     const sources = [
@@ -223,7 +225,7 @@ describe('tx interaction', () => {
     } catch (e) {
       expect(e).to.be.instanceof(ExecutionError)
       const error = e as ExecutionError
-      expect(error.message).to.eql(`jig already spent: ${base16.encode(exec1.outputs[0].id())}`)
+      expect(error.message).to.eql(`jig not present in utxo set: ${base16.encode(exec1.outputs[0].id())}`)
       return
     }
     expect.fail('should fail')

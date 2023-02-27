@@ -2,6 +2,7 @@ import { expect } from "chai"
 import request from 'supertest'
 import { buildApp } from "../src/server.js"
 import { Pointer, base16, Tx, PrivKey, instructions, ed25519 } from "@aldea/sdk-js"
+import { StubClock } from "@aldea/vm"
 
 const {
   ImportInstruction,
@@ -18,9 +19,11 @@ const FLOCK_PKG_ID = '49c702e830ed729df6b14d226cfdb83f149e4ed0869c75504a809ccaa0
 describe('api', () => {
   let app
   let vm
+  let clock = new StubClock()
 
   beforeEach(() => {
-    const builded = buildApp()
+
+    const builded = buildApp(clock)
     app = builded.app
     vm = builded.vm
   })
@@ -69,8 +72,9 @@ describe('api', () => {
         .expect('Content-Type', /application\/json/)
         .expect(200)
 
-      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs'])
+      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs', 'executed_at'])
       expect(response.body.id).to.eql(tx.id)
+      expect(response.body.executed_at).to.eql(clock.now().unix())
       expect(response.body.outputs).to.have.length(2)
       expect(response.body.outputs[0].location).to.eql(new Pointer(tx.id, 0).toString())
       expect(response.body.outputs[0].origin).to.eql(new Pointer(tx.id, 0).toString())
@@ -130,8 +134,9 @@ describe('api', () => {
         .expect('Content-Type', /application\/json/)
         .expect(200)
 
-      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs'])
+      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs', 'executed_at'])
       expect(response.body.id).to.eql(txid)
+      expect(response.body.executed_at).to.eql(clock.now().unix())
       expect(response.body.outputs).to.have.length(2)
       expect(response.body.outputs[0].location).to.eql(new Pointer(txid, 0).toString())
       expect(response.body.outputs[0].origin).to.eql(new Pointer(txid, 0).toString())
@@ -250,13 +255,14 @@ describe('api', () => {
           .expect('Content-Type', /application\/json/)
           .expect(200)
 
-        expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state'])
+        expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state', 'created_at'])
         expect(response.body.id).to.eql(outputs[0].id)
         expect(response.body.origin).to.eql(outputs[0].origin)
         expect(response.body.location).to.eql(outputs[0].location)
         expect(response.body.class).to.eql(outputs[0].class)
         expect(response.body.lock).to.eql(outputs[0].lock)
         expect(response.body.state).to.eql(outputs[0].state)
+        expect(response.body.created_at).to.eql(clock.now().unix())
       })
 
       it('returns not found when does not exists', async () => {
@@ -279,13 +285,14 @@ describe('api', () => {
           .expect('Content-Type', /application\/json/)
           .expect(200)
 
-        expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state'])
+        expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state', 'created_at'])
         expect(response.body.id).to.eql(outputs[0].id)
         expect(response.body.origin).to.eql(outputs[0].origin)
         expect(response.body.location).to.eql(outputs[0].location)
         expect(response.body.class).to.eql(outputs[0].class)
         expect(response.body.lock).to.eql(outputs[0].lock)
         expect(response.body.state).to.eql(outputs[0].state)
+        expect(response.body.created_at).to.eql(clock.now().unix())
       })
 
       it('returns not found when does not exists', async () => {
@@ -311,7 +318,7 @@ describe('api', () => {
         .expect(200)
         .expect('Content-Type', /application\/json/)
 
-      expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state'])
+      expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state', 'created_at'])
       expect(response.body.class).to.eql(`${new Array(64).fill('0').join('')}_0`)
     })
 

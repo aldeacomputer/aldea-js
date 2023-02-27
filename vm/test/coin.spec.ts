@@ -1,4 +1,4 @@
-import {Storage, VM} from '../vm/index.js'
+import {Storage, StubClock, VM} from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxBuilder} from "./tx-builder.js";
@@ -7,6 +7,7 @@ import {JigState} from "../vm/jig-state.js";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
 import {ref, Tx} from "@aldea/sdk-js";
 import {ExecutionResult} from "../vm/execution-result.js";
+import moment from "moment";
 
 describe('Coin', () => {
   let storage: Storage
@@ -23,7 +24,8 @@ describe('Coin', () => {
 
   beforeEach(() => {
     storage = new Storage()
-    vm = new VM(storage)
+    const clock = new StubClock(moment())
+    vm = new VM(storage, clock)
   })
 
 

@@ -15,6 +15,7 @@ import {UserLock} from "./locks/user-lock.js";
 import {Buffer} from "buffer";
 import {encodeSequence} from "./cbor.js";
 import {ExecutionResult} from "./execution-result.js";
+import {Clock} from "./clock.js";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -28,9 +29,11 @@ const COIN_PKG_ID = new Uint8Array([
 
 export class VM {
   private storage: Storage;
+  clock: Clock;
 
-  constructor (storage: Storage) {
+  constructor (storage: Storage, clock: Clock) {
     this.storage = storage
+    this.clock = clock
     this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', COIN_PKG_ID)
   }
 
@@ -55,13 +58,12 @@ export class VM {
 
   findJigStateByOutputId (outputId: Uint8Array) {
     const jigState = this.storage.getJigStateByOutputId(outputId, () => {
-      throw new ExecutionError(`unknown jig: ${base16.encode(outputId)}`)
+      throw new ExecutionError(`jig not present in utxo set: ${base16.encode(outputId)}`)
     });
     const lastRef = this.storage.tipFor(jigState.origin)
     if (!Buffer.from(jigState.id()).equals(Buffer.from(lastRef))) {
       throw new ExecutionError(`jig already spent: ${base16.encode(outputId)}`)
     }
-    this.storage.tipForOrigin(jigState.id())
     return jigState
   }
 
@@ -132,9 +134,10 @@ export class VM {
       0,
       encodeSequence([amount]),
       COIN_PKG_ID,
-      new UserLock(address).serialize()
+      new UserLock(address).serialize(),
+      this.clock.now().unix()
     )
-    this.storage.addJig(minted)
+    this.storage.addUtxo(minted)
     return minted
   }
 

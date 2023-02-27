@@ -1,9 +1,9 @@
 import { VM, Storage } from "@aldea/vm"
 import { base16 } from "@aldea/sdk-js"
 
-export function buildVm () {
+export function buildVm (clock) {
   const storage = new Storage()
-  const vm = new VM(storage)
+  const vm = new VM(storage, clock)
   const sources = [
     'ant',
     'basic-math',

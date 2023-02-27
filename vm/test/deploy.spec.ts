@@ -1,5 +1,5 @@
 import {
-  Storage,
+  Storage, StubClock,
   VM
 } from
     '../vm/index.js'
@@ -10,6 +10,7 @@ import {
 } from '@aldea/sdk-js'
 import {TxExecution} from "../vm/tx-execution.js";
 import {calculatePackageId} from "../vm/calculate-package-id.js";
+import moment from "moment";
 
 const someValidModule = `
 export class Coso extends Jig {
@@ -23,21 +24,22 @@ export class Coso extends Jig {
 
 describe('deploy code', () => {
   let storage: Storage
+  let vm: VM
   const userPriv = AldeaCrypto.randomPrivateKey()
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
   const userAddr = userPub.toAddress()
   const fileName = 'something.ts'
   beforeEach(() => {
     storage = new Storage()
+    const clock = new StubClock(moment())
+    vm = new VM(storage, clock)
   })
 
   describe('backdoor deploy', () => {
     const aMap = new Map<string, string>()
     aMap.set(fileName, someValidModule)
     it('makes the module available', async () => {
-      const vm = new VM(storage)
       const moduleId = await vm.deployCode([fileName], aMap)
-
       const tx = new Tx()
       const exec = new TxExecution(tx, vm)
       const moduleIndex = exec.importModule(moduleId)
@@ -50,10 +52,9 @@ describe('deploy code', () => {
     })
 
     it('module persist on other vm instance', async () => {
-      const vm = new VM(storage)
       const moduleId = await vm.deployCode([fileName], aMap)
 
-      const vm2 = new VM(storage)
+      const vm2 = new VM(storage, new StubClock(moment()))
       const tx = new Tx()
       const exec = new TxExecution(tx, vm2)
       const moduleIndex = exec.importModule(moduleId)
@@ -65,7 +66,6 @@ describe('deploy code', () => {
     })
 
     it('can deploy same module twice', async () => {
-      const vm = new VM(storage)
       const moduleId1 = await vm.deployCode([fileName], aMap)
       const moduleId2 = await vm.deployCode([fileName], aMap)
 
@@ -75,7 +75,6 @@ describe('deploy code', () => {
 
   describe('addPreCompiled', function () {
     it('modules can be pre added from a file', async () => {
-      const vm = new VM(storage)
       const moduleId = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
       const tx = new Tx()
@@ -89,7 +88,6 @@ describe('deploy code', () => {
     })
 
     it('some pre compiled module can be added twice', async () => {
-      const vm = new VM(storage)
       const moduleId1 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
       const moduleId2 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
@@ -97,7 +95,6 @@ describe('deploy code', () => {
     })
 
     it('modules can be pre added from a file with dependencies', () => {
-      const vm = new VM(storage)
       vm.addPreCompiled('aldea/basic-math.wasm', 'aldea/basic-math.ts')
       const flockId = vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
@@ -117,8 +114,6 @@ describe('deploy code', () => {
 
   describe('deploy from tx execution', () => {
     it('can use the deployed module in the same tx', async () => {
-      const vm = new VM(storage)
-
       const tx = new Tx()
       const exec = new TxExecution(tx, vm)
       const sources = new Map<string, string>()
@@ -133,8 +128,6 @@ describe('deploy code', () => {
     })
 
     it.skip('can deploy more than 1 file', async () => {
-      const vm = new VM(storage)
-
       const tx = new Tx()
       const exec = new TxExecution(tx, vm)
       const sources = new Map<string, string>()
@@ -157,8 +150,6 @@ describe('deploy code', () => {
     })
 
     it('adds the module on the right result index', async () => {
-      const vm = new VM(storage)
-
       const tx = new Tx()
       const exec = new TxExecution(tx, vm)
       const sources = new Map<string, string>()

@@ -163,7 +163,7 @@ class TxExecution {
       const location = new Pointer(this.tx.hash, index)
       const origin = jigRef.origin || location
       const serialized = this.serializeJig(jigRef)
-      const jigState = new JigState(origin, location , jigRef.classIdx, serialized, jigRef.package.id, jigRef.lock.serialize())
+      const jigState = new JigState(origin, location , jigRef.classIdx, serialized, jigRef.package.id, jigRef.lock.serialize(), this.vm.clock.now().unix())
       result.addOutput(jigState)
     })
 
@@ -180,7 +180,7 @@ class TxExecution {
     this.wasms = new Map()
     this.jigs = []
     this.statementResults = []
-    result.finish()
+    result.finish(this.vm.clock)
     return result
   }
 

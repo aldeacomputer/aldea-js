@@ -1,11 +1,12 @@
 import {
-  Storage,
+  Storage, StubClock,
   VM
 } from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
 import {base16, PrivKey, Tx, instructions} from "@aldea/sdk-js";
+import moment from "moment";
 
 const { SignInstruction } = instructions
 
@@ -27,7 +28,8 @@ describe.skip('execute with interfaces', () => {
 
   beforeEach(() => {
     storage = new Storage()
-    vm = new VM(storage)
+    const clock = new StubClock(moment())
+    vm = new VM(storage, clock)
 
     const sources = [
       'runner'

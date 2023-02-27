@@ -15,7 +15,7 @@
   "exports": {
     ".": {
       "import": "./tsc/index.js",
-      "types": "./tsc/index.ts.d"
+      "types": "./tsc/index.d.ts"
     }
   },
   "type": "module",
@@ -25,7 +25,8 @@
   "dependencies": {
     "@aldea/compiler": "workspace:^",
     "@aldea/sdk-js": "workspace:^",
-    "cbor-redux": "1.0.0-3"
+    "cbor-redux": "1.0.0-3",
+    "moment": "^2.29.4"
   },
   "devDependencies": {
     "@types/chai": "^4.3.3",

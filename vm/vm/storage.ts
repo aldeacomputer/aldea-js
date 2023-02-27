@@ -17,14 +17,14 @@ type OnNotFound = (pkgId: string) => ModuleData
 const throwNotFound = (idHex: string) => { throw new Error(`unknown module: ${idHex}`) }
 
 export class Storage {
-  private statesPerLocation: Map<string, JigState>;
-  private tips: Map<string, string>;
-  private origins: Map<string, string>;
-  private transactions: Map<string, ExecutionResult>;
-  private packages: Map<string, ModuleData>
+  private utxos: Map<string, JigState> // output_id -> state. Only utxos
+  private tips: Map<string, string> // orgin -> latest output_id
+  private origins: Map<string, string> // utxo -> origin. Only utxos
+  private transactions: Map<string, ExecutionResult> // txid -> transaction execution.
+  private packages: Map<string, ModuleData> // pkg_id -> pkg data
 
   constructor() {
-    this.statesPerLocation = new Map()
+    this.utxos = new Map()
     this.tips = new Map()
     this.origins = new Map()
     this.transactions = new Map()
@@ -33,26 +33,38 @@ export class Storage {
 
   persist(txExecution: ExecutionResult) {
     this.addTransaction(txExecution)
-    txExecution.outputs.forEach((state: JigState) => this.addJig(state))
+    txExecution.outputs.forEach((state: JigState) => this.addUtxo(state))
   }
 
-  addJig(jigState: JigState) {
+  addUtxo(jigState: JigState) {
     const currentLocation = base16.encode(jigState.id());
-    this.statesPerLocation.set(currentLocation, jigState)
-    this.tips.set(jigState.origin.toString(), currentLocation)
-    this.origins.set(currentLocation, jigState.origin.toString())
+    const originStr = jigState.origin.toString();
+
+    if (!jigState.isNew()) {
+      const prevLocation = this.tips.get(originStr)
+      if (!prevLocation) {
+        throw new Error(`${originStr} should exist`)
+      }
+      this.utxos.delete(prevLocation)
+      this.tips.delete(originStr)
+      this.origins.delete(originStr)
+    }
+
+    this.utxos.set(currentLocation, jigState)
+    this.tips.set(originStr, currentLocation)
+    this.origins.set(currentLocation, originStr)
   }
 
   getJigStateByOrigin(origin: Pointer, onNotFound: () => JigState): JigState {
     const latestLocation = this.tips.get(origin.toString())
     if (!latestLocation) return onNotFound()
-    const ret = this.statesPerLocation.get(latestLocation)
+    const ret = this.utxos.get(latestLocation)
     if (!ret) return onNotFound()
     return ret
   }
 
   getJigStateByOutputId (outputId: Uint8Array, onNotFound: () => JigState): JigState {
-    const state = this.statesPerLocation.get(base16.encode(outputId))
+    const state = this.utxos.get(base16.encode(outputId))
     if (!state) return onNotFound()
     return state
   }
@@ -86,18 +98,5 @@ export class Storage {
 
   hasModule(id: Uint8Array): boolean {
     return this.packages.has(base16.encode(id));
-  }
-
-  tipForOrigin(ref: Uint8Array): string {
-    const refHex = base16.encode(ref)
-    const origin = this.origins.get(refHex)
-    if (!origin) {
-      throw new Error('error')
-    }
-    const tip = this.tips.get(origin);
-    if (!tip) {
-      throw new Error('is not present')
-    }
-    return tip
   }
 }
