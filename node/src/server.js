@@ -92,7 +92,10 @@ const buildApp = (clock) => {
 
   app.get('/state/:outputId', (req, res) => {
     const outputId = req.params.outputId
-    const state = storage.getJigStateByOutputId(base16.decode(outputId), () => { throw new HttpNotFound(`state not found: ${outputId}`, { outputId })})
+    const state = storage.getHistoricalUtxo(
+      base16.decode(outputId),
+      () => { throw new HttpNotFound(`state not found: ${outputId}`, { outputId })}
+    )
     const wasm = vm.createWasmInstance(state.packageId)
     res.send({
       state: state.objectState(wasm)
@@ -101,7 +104,7 @@ const buildApp = (clock) => {
 
   app.get('/output/:outputId', (req, res) => {
     const outputId = req.params.outputId
-    const jigState = storage.getJigStateByOutputId(
+    const jigState = storage.getHistoricalUtxo(
       base16.decode(outputId),
       () => { throw new HttpNotFound(`${outputId} not found`, { outputId })}
     )

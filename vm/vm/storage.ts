@@ -22,6 +22,7 @@ export class Storage {
   private origins: Map<string, string> // utxo -> origin. Only utxos
   private transactions: Map<string, ExecutionResult> // txid -> transaction execution.
   private packages: Map<string, ModuleData> // pkg_id -> pkg data
+  private historicalUtxos: Map<string, JigState>
 
   constructor() {
     this.utxos = new Map()
@@ -29,6 +30,7 @@ export class Storage {
     this.origins = new Map()
     this.transactions = new Map()
     this.packages = new Map()
+    this.historicalUtxos = new Map()
   }
 
   persist(txExecution: ExecutionResult) {
@@ -51,6 +53,7 @@ export class Storage {
     }
 
     this.utxos.set(currentLocation, jigState)
+    this.historicalUtxos.set(currentLocation, jigState)
     this.tips.set(originStr, currentLocation)
     this.origins.set(currentLocation, originStr)
   }
@@ -98,5 +101,11 @@ export class Storage {
 
   hasModule(id: Uint8Array): boolean {
     return this.packages.has(base16.encode(id));
+  }
+
+  getHistoricalUtxo (outputId: Uint8Array, onNotFound: () => JigState): JigState {
+    const state = this.historicalUtxos.get(base16.encode(outputId))
+    if (!state) return onNotFound()
+    return state
   }
 }
