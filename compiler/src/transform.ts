@@ -1,5 +1,6 @@
 import {
   ASTBuilder,
+  CallExpression,
   ClassDeclaration,
   CommonFlags,
   FunctionDeclaration,
@@ -142,6 +143,19 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
               mutateNewJigExpression(node as NewExpression)
             }
             break
+
+          // Check method call in case of caller.is
+          // Jig type node should be renamed to remote jig name
+          case NodeKind.Call:
+            if ((<CallExpression>node).expression.kind === NodeKind.PropertyAccess) {
+              const accessTypeName = (((<CallExpression>node).expression as PropertyAccessExpression).expression as IdentifierExpression).text
+              const propertyName = ((<CallExpression>node).expression as PropertyAccessExpression).property.text
+              const typeArgs = (<CallExpression>node).typeArguments
+              if (accessTypeName === 'caller' && propertyName === 'is' && typeArgs) {
+                mutateJigTypeArg(typeArgs[0] as NamedTypeNode)
+              }
+            }
+            break;
         }
       })
     })
@@ -397,7 +411,7 @@ function mutateJigPropertyAccess(node: PropertyAccessExpression): void {
 }
 
 /**
- * Mutates instanceof expressions on Jig classes to use LocalClass.
+ * Mutates instanceof expressions on Jig classes to use LocalClass and RemoteClass.
  */
 function mutateInstanceOfJig(
   node: InstanceOfExpression,
@@ -422,10 +436,18 @@ function mutateInstanceOfJig(
 }
 
 /**
- * Mutates new expressions on Jig classes to use LocalClass.
+ * Mutates new expressions on Jig classes to use RemoteClass.
  */
 function mutateNewJigExpression(node: NewExpression): void {
   const id = node.typeName.identifier as IdentifierExpression
+  id.text = `_Remote${id.text}`
+}
+
+/**
+ * Mutates Jig class type node to use RemoteClass.
+ */
+function mutateJigTypeArg(node: NamedTypeNode): void {
+  const id = node.name.identifier
   id.text = `_Remote${id.text}`
 }
 
