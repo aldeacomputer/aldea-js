@@ -185,7 +185,6 @@ export class WasmInstance {
           this.currentExec.remoteLockHandler(Pointer.fromBytes(originBuf), type, argBuf)
         },
         vm_caller_typecheck: (rtid: number, exact: boolean): boolean => {
-          const type = this.abi.typeFromRtid(rtid)
           const callerOrigin = this.currentExec.stackPreviousToTop()
 
           if (!callerOrigin) {
@@ -193,6 +192,11 @@ export class WasmInstance {
           }
 
           const callerRef = this.currentExec.getJigRefByOrigin(callerOrigin)
+          if (!callerRef.package.abi.rtidExists(rtid)) {
+            return false
+          }
+          const type = callerRef.package.abi.typeFromRtid(rtid)
+
 
           // check if it's an exported class
           const exportedIndex = this.abi.findExportIndex(type.name)

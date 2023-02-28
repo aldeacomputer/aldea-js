@@ -4,10 +4,10 @@ import {
 } from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {TxExecution} from "../vm/tx-execution.js";
 import {base16, PrivKey, ref, Tx, instructions, Pointer} from "@aldea/sdk-js";
 import {ExecutionError} from "../vm/errors.js";
 import moment from "moment";
+import {emptyExecFactoryFactory} from "./util.js";
 
 const { SignInstruction } = instructions
 
@@ -42,17 +42,7 @@ describe('execute txs', () => {
     })
   })
 
-  function emptyExec (privKeys: PrivKey[] = []): TxExecution {
-    const tx = new Tx()
-    privKeys.forEach(pk => {
-      const sig = tx.createSignature(pk)
-      tx.push(new SignInstruction(sig, pk.toPubKey().toBytes()))
-    })
-    const exec = new TxExecution(tx, vm)
-    exec.markAsFunded()
-    return exec
-  }
-
+  const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
 
   describe('#is<T>', function () {
     describe('when exact is true', function () {
@@ -263,24 +253,23 @@ describe('execute txs', () => {
         const modIdx = prepExec1.importModule(modIdFor('caller-test-code'))
         const senderIdx = prepExec1.instantiateByIndex(modIdx, 'RightCaller', [])
         prepExec1.lockJigToUser(senderIdx, userAddr)
-        prepExec1.finalize()
-        storage.persist(prepExec1)
-
+        const result1 = prepExec1.finalize()
+        storage.persist(result1)
         const prepExec2 = emptyExec([userPriv])
-        const loadedIdx0 = prepExec2.loadJigByOutputId(prepExec1.outputs[0].id())
+        const loadedIdx0 = prepExec2.loadJigByOutputId(result1.outputs[0].id())
         prepExec2.lockJigToUser(loadedIdx0, userAddr)
-        prepExec2.finalize()
-        storage.persist(prepExec2)
+        const result2 = prepExec2.finalize()
+        storage.persist(result2)
 
         const exec = emptyExec([userPriv])
         const modIdx3 = exec.importModule(modIdFor('caller-test-code'))
-        const loadedIdx = exec.loadJigByOutputId(prepExec2.outputs[0].id())
+        const loadedIdx = exec.loadJigByOutputId(result2.outputs[0].id())
         const receiverIdx = exec.instantiateByIndex(modIdx3, 'Receiver', [])
         const resultIdx = exec.callInstanceMethodByIndex(loadedIdx, 'giveMeMyLocation', [ref(receiverIdx)])
         const value = exec.getStatementResult(resultIdx).value
 
-        expect(value).to.eql(new Pointer(prepExec2.tx.hash, 0).toBytes())
-        expect(value).not.to.eql(prepExec1.outputs[0].origin.toBytes())
+        expect(value).to.eql(new Pointer(prepExec2.tx.tx.hash, 0).toBytes())
+        expect(value).not.to.eql(result1.outputs[0].origin.toBytes())
 
         exec.lockJigToUser(loadedIdx, userAddr)
         exec.lockJigToUser(receiverIdx, userAddr)

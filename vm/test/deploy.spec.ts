@@ -1,19 +1,12 @@
-import {
-  Storage, StubClock,
-  VM
-} from
-    '../vm/index.js'
+import {Storage, StubClock, VM} from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {
-  PrivKey,
-  Tx,
-  instructions
-} from '@aldea/sdk-js'
+import {Tx} from '@aldea/sdk-js'
 import {TxExecution} from "../vm/tx-execution.js";
 import {calculatePackageId} from "../vm/calculate-package-id.js";
 import moment from "moment";
 import {TxContext} from "../vm/tx-context.js";
+import {emptyExecFactoryFactory} from "./util.js";
 
 const someValidModule = `
 export class Coso extends Jig {
@@ -24,7 +17,6 @@ export class Coso extends Jig {
   }
 }
 `
-
 describe('deploy code', () => {
   let storage: Storage
   let vm: VM
@@ -38,18 +30,8 @@ describe('deploy code', () => {
     vm = new VM(storage, clock)
   })
 
-  function emptyExec (privKeys: PrivKey[] = []): TxExecution {
-    const tx = new Tx()
-    privKeys.forEach(pk => {
-      const sig = tx.createSignature(pk)
-      tx.push(new instructions.SignInstruction(sig, pk.toPubKey().toBytes()))
-    })
-    const context = new TxContext(tx, storage)
-    const exec = new TxExecution(context, vm)
-    exec.markAsFunded()
-    return exec
-  }
 
+  const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
 
   describe('backdoor deploy', () => {
     const aMap = new Map<string, string>()

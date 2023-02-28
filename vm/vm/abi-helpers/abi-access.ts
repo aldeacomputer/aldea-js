@@ -102,6 +102,10 @@ export class AbiAccess {
     return node.id
   }
 
+  rtidExists (id: number): boolean {
+    return this.abi.typeIds.some(rtid => rtid.id === id)
+  }
+
   typeFromRtid(rtid: number): TypeNode {
     const node = this.abi.typeIds.find((typeId: TypeIdNode) => typeId.id === rtid)
     if (!node) {
