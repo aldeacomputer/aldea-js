@@ -124,7 +124,7 @@ describe('Jig Type', () => {
     expect(parsedFlock[0]).to.eql(1)
   })
 
-  it.skip('can restore jigs that contain jigs of the same package with the expected type name', () => {
+  it('can restore jigs that contain jigs of the same package with the expected type name', () => {
     const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
     exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
@@ -147,6 +147,6 @@ describe('Jig Type', () => {
     const ret2 = exec2.finalize()
 
     const parsedJigBearer = ret2.outputs[1].parsedState()
-    expect(parsedJigBearer[0].name).to.eql('Flock')
+    expect(parsedJigBearer[0]).to.eql(ret2.outputs[0].origin.toBytes())
   })
 })

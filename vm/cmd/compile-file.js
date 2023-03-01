@@ -19,6 +19,9 @@ export async function compileFile (file) {
     fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.cbor')}`, result.output.abi)
     fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.json')}`, abiToJson(abiFromCbor(result.output.abi.buffer)))
     console.log(`compiled ${relativePath} ok.`)
+    if (process.env.VERBOSE === 'true') {
+      console.log(result.stdout.toString())
+    }
   } catch (e) {
     console.warn(`error compiling ${relativePath}: ${e.message}`)
     console.error(e.stderr.toString())

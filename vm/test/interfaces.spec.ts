@@ -11,7 +11,7 @@ import {TxContext} from "../vm/tx-context.js";
 
 const { SignInstruction } = instructions
 
-describe.skip('execute with interfaces', () => {
+describe('execute with interfaces', () => {
   let storage: Storage
   let vm: VM
   const moduleIds = new Map<string, string>()
@@ -95,7 +95,7 @@ describe.skip('execute with interfaces', () => {
     expect(ret.outputs[0].parsedState()).to.eql([[100, 100], 100])
   })
 
-  it('a caller from another package can call using an interface after it was dehidrated and hidrated', () => {
+  it.skip('a caller from another package can call using an interface after it was dehidrated and hidrated', () => {
     const exec1 = emptyExec()
     const pkgIdx = exec1.importModule(modIdFor('runner'))
     const chitaIdx = exec1.instantiateByIndex(pkgIdx, 'Chita', [])

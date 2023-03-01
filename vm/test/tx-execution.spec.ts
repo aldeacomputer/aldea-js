@@ -219,19 +219,6 @@ describe('execute txs', () => {
     ).to.throw(PermissionError)
   })
 
-  it.skip('does not allow to call private methods on jigs of the same module that own', () => {
-    // Private methods works like private methods and fail at compile time
-    const antWasmIndex = exec.importModule(modIdFor('ant'))
-    const ant1Index = exec.instantiateByIndex(antWasmIndex, 'Ant', [])
-    const ant2Index = exec.instantiateByIndex(antWasmIndex, 'Ant', [])
-    const jig = exec.getStatementResult(ant2Index)
-    exec.callInstanceMethodByIndex(ant1Index, 'addChildren', [jig.asJig()])
-
-    expect(() =>
-      exec.callInstanceMethodByIndex(ant1Index, 'buildCapacity', [jig.asJig()])
-    ).to.throw(PermissionError)
-  })
-
   describe('when a jig already exists', () => {
     beforeEach(() => {
       const importIndex = exec.importModule(modIdFor('flock'))

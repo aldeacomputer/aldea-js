@@ -10,9 +10,9 @@ import {
   Internref,
   liftBuffer
 } from "../memory.js";
-import {emptyTn, outputTypeNode} from "./well-known-abi-nodes.js";
+import {basicJigAbiNode, emptyTn, outputTypeNode} from "./well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-access.js";
-import {base16} from "@aldea/sdk-js";
+import {base16, Pointer} from "@aldea/sdk-js";
 
 
 export class LiftValueVisitor extends AbiTraveler<any> {
@@ -146,7 +146,11 @@ export class LiftValueVisitor extends AbiTraveler<any> {
   }
 
   visitInterface(anInterface: InterfaceNode, _typeNode: TypeNode): any {
-    const jig = this.instance.currentExec.findJigByPtr(this.ptr, this.instance)
+    const visitor = new LiftValueVisitor(this.abi, this.instance, Number(this.ptr) + 1)
+    const basicJig = visitor.visitPlainObject(basicJigAbiNode, _typeNode)
+
+    const jig = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(basicJig.$output.origin))
+
     const className = jig.className()
     const clsTypeNode = emptyTn(className)
     if (jig.package === this.instance) {

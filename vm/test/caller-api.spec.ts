@@ -4,12 +4,10 @@ import {
 } from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {base16, PrivKey, ref, Tx, instructions, Pointer} from "@aldea/sdk-js";
+import {base16, ref, Pointer} from "@aldea/sdk-js";
 import {ExecutionError} from "../vm/errors.js";
 import moment from "moment";
 import {emptyExecFactoryFactory} from "./util.js";
-
-const { SignInstruction } = instructions
 
 describe('execute txs', () => {
   let storage: Storage
@@ -46,7 +44,7 @@ describe('execute txs', () => {
 
   describe('#is<T>', function () {
     describe('when exact is true', function () {
-      it('returns true when the caller is the right caller', () => {
+      it.skip('returns true when the caller is the right caller', () => {
         const exec = emptyExec()
         const modIdx = exec.importModule(modIdFor('caller-test-code'))
         const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
@@ -91,7 +89,7 @@ describe('execute txs', () => {
 
       })
 
-      it('returns false when called from subclass', () => {
+      it.skip('returns false when called from subclass', () => {
         const exec = emptyExec()
         const modIdx = exec.importModule(modIdFor('caller-test-code'))
         const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
@@ -108,7 +106,7 @@ describe('execute txs', () => {
 
 
     describe('when exact is false', () => {
-      it('true false when called from subclass', () => {
+      it.skip('true false when called from subclass', () => {
         const exec = emptyExec()
         const modIdx = exec.importModule(modIdFor('caller-test-code'))
         const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])

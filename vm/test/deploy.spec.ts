@@ -9,7 +9,7 @@ import {TxContext} from "../vm/tx-context.js";
 import {emptyExecFactoryFactory} from "./util.js";
 
 const someValidModule = `
-export class Coso extends Jig {
+export class Foo extends Jig {
   prop1: string;
   constructor () {
     super()
@@ -40,7 +40,7 @@ describe('deploy code', () => {
       const moduleId = await vm.deployCode([fileName], aMap)
       const exec = emptyExec()
       const moduleIndex = exec.importModule(moduleId)
-      const jigIndex = exec.instantiateByIndex(moduleIndex, 'Coso', [])
+      const jigIndex = exec.instantiateByIndex(moduleIndex, 'Foo', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
       const ret = exec.finalize()
@@ -55,7 +55,7 @@ describe('deploy code', () => {
       const tx = new Tx()
       const exec = new TxExecution(new TxContext(tx, storage), vm2)
       const moduleIndex = exec.importModule(moduleId)
-      const jigIndex = exec.instantiateByIndex(moduleIndex, 'Coso', [])
+      const jigIndex = exec.instantiateByIndex(moduleIndex, 'Foo', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
       const ret = exec.finalize()
@@ -113,7 +113,7 @@ describe('deploy code', () => {
       const sources = new Map<string, string>()
       sources.set(fileName, someValidModule)
       const moduleIndex = await exec.deployModule([fileName],  sources)
-      const jigIndex = exec.instantiateByIndex(moduleIndex, 'Coso', [])
+      const jigIndex = exec.instantiateByIndex(moduleIndex, 'Foo', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
       const ret = exec.finalize()
@@ -121,25 +121,26 @@ describe('deploy code', () => {
       expect(ret.outputs[0].classIdx).to.eql(0)
     })
 
-    it.skip('can deploy more than 1 file', async () => {
+    it('can deploy more than 1 file', async () => {
       const exec = emptyExec()
       const sources = new Map<string, string>()
+      const anotherFileName = 'another.ts';
       sources.set(fileName, someValidModule)
-      sources.set(fileName, `
-        export { Coso } from 'coso.ts'
+      sources.set(anotherFileName, ` 
         export class Something extends Jig {
           constructor () { super() } 
           foo(): string { return 'holu' }
-        } 
+        }
       `)
-      const moduleIndex = await exec.deployModule([fileName],  sources)
-      const jig1Index = exec.instantiateByIndex(moduleIndex, 'Coso', [])
+
+      const moduleIndex = await exec.deployModule([fileName, anotherFileName],  sources)
+      const jig1Index = exec.instantiateByIndex(moduleIndex, 'Foo', [])
       const jig2Index = exec.instantiateByIndex(moduleIndex, 'Something', [])
       exec.lockJigToUser(jig1Index, userAddr)
       exec.lockJigToUser(jig2Index, userAddr)
       const ret = exec.finalize()
 
-      expect(ret.outputs[0].classIdx).to.eql('Coso')
+      expect(ret.outputs[0].classIdx).to.eql(1)
     })
 
     it('adds the module on the right result index', async () => {
