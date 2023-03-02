@@ -266,7 +266,7 @@ describe('execute txs', () => {
         const resultIdx = exec.callInstanceMethodByIndex(loadedIdx, 'giveMeMyLocation', [ref(receiverIdx)])
         const value = exec.getStatementResult(resultIdx).value
 
-        expect(value).to.eql(new Pointer(prepExec2.tx.tx.hash, 0).toBytes())
+        expect(value).to.eql(new Pointer(prepExec2.txContext.tx.hash, 0).toBytes())
         expect(value).not.to.eql(result1.outputs[0].origin.toBytes())
 
         exec.lockJigToUser(loadedIdx, userAddr)

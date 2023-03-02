@@ -1,11 +1,7 @@
 import {Storage, StubClock, VM} from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {Tx} from '@aldea/sdk-js'
-import {TxExecution} from "../vm/tx-execution.js";
 import {calculatePackageId} from "../vm/calculate-package-id.js";
-import moment from "moment";
-import {TxContext} from "../vm/tx-context.js";
 import {emptyExecFactoryFactory} from "./util.js";
 
 const someValidModule = `
@@ -24,9 +20,9 @@ describe('deploy code', () => {
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
   const userAddr = userPub.toAddress()
   const fileName = 'something.ts'
+  const clock = new StubClock()
   beforeEach(() => {
     storage = new Storage()
-    const clock = new StubClock(moment())
     vm = new VM(storage, clock)
   })
 
@@ -37,9 +33,11 @@ describe('deploy code', () => {
     const aMap = new Map<string, string>()
     aMap.set(fileName, someValidModule)
     it('makes the module available', async () => {
-      const moduleId = await vm.deployCode([fileName], aMap)
+      const pkgData = await vm.compileSources([fileName], aMap)
+      storage.addPackage(pkgData.id, pkgData)
+      const pkgId = pkgData.id
       const exec = emptyExec()
-      const moduleIndex = exec.importModule(moduleId)
+      const moduleIndex = exec.importModule(pkgId)
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Foo', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
@@ -49,12 +47,13 @@ describe('deploy code', () => {
     })
 
     it('module persist on other vm instance', async () => {
-      const moduleId = await vm.deployCode([fileName], aMap)
+      const pkgData = await vm.compileSources([fileName], aMap)
+      storage.addPackage(pkgData.id, pkgData)
+      const pkgId = pkgData.id
 
-      const vm2 = new VM(storage, new StubClock(moment()))
-      const tx = new Tx()
-      const exec = new TxExecution(new TxContext(tx, storage), vm2)
-      const moduleIndex = exec.importModule(moduleId)
+      const vm2 = new VM(storage, new StubClock())
+      const exec = emptyExecFactoryFactory(() => storage, () => vm2)()
+      const moduleIndex = exec.importModule(pkgId)
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Foo', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
@@ -63,8 +62,8 @@ describe('deploy code', () => {
     })
 
     it('can deploy same module twice', async () => {
-      const moduleId1 = await vm.deployCode([fileName], aMap)
-      const moduleId2 = await vm.deployCode([fileName], aMap)
+      const moduleId1 = (await vm.compileSources([fileName], aMap)).id
+      const moduleId2 = (await vm.compileSources([fileName], aMap)).id
 
       expect(moduleId1).to.eql(moduleId2)
     })
@@ -112,7 +111,7 @@ describe('deploy code', () => {
       const exec = emptyExec()
       const sources = new Map<string, string>()
       sources.set(fileName, someValidModule)
-      const moduleIndex = await exec.deployModule([fileName],  sources)
+      const moduleIndex = await exec.deployPackage([fileName],  sources)
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Foo', [])
       exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
@@ -133,7 +132,7 @@ describe('deploy code', () => {
         }
       `)
 
-      const moduleIndex = await exec.deployModule([fileName, anotherFileName],  sources)
+      const moduleIndex = await exec.deployPackage([fileName, anotherFileName],  sources)
       const jig1Index = exec.instantiateByIndex(moduleIndex, 'Foo', [])
       const jig2Index = exec.instantiateByIndex(moduleIndex, 'Something', [])
       exec.lockJigToUser(jig1Index, userAddr)
@@ -147,7 +146,7 @@ describe('deploy code', () => {
       const exec = emptyExec()
       const sources = new Map<string, string>()
       sources.set(fileName, someValidModule)
-      const moduleIndex = await exec.deployModule([fileName], sources)
+      const moduleIndex = await exec.deployPackage([fileName], sources)
       const result = exec.getStatementResult(moduleIndex)
 
       const packageId = calculatePackageId([fileName], sources)

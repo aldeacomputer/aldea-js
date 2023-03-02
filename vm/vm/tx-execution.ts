@@ -10,12 +10,11 @@ import {Lock} from "./locks/lock.js";
 import {Externref, Internref} from "./memory.js";
 import {ClassNode, CodeKind, findClass, findMethod} from '@aldea/compiler/abi'
 import {Address, base16, InstructionRef, instructions, Pointer} from '@aldea/sdk-js';
-import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
+import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
-import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
 import {
   EmptyStatementResult,
   NullStatementResult,
@@ -24,20 +23,21 @@ import {
   WasmStatementResult
 } from "./statement-result.js";
 import {TxContext} from "./tx-context.js";
+import {PkgData} from "./storage.js";
 
 class TxExecution {
-  tx: TxContext;
+  txContext: TxContext;
   private vm: VM;
   private jigs: JigRef[];
   private wasms: Map<string, WasmInstance>;
   private readonly stack: Pointer[];
-  deployments: Uint8Array[];
+  deployments: PkgData[];
   statementResults: StatementResult[]
   private funded: boolean;
   private affectedJigs: Set<JigRef>
 
   constructor(tx: TxContext, vm: VM) {
-    this.tx = tx
+    this.txContext = tx
     this.vm = vm
     this.jigs = []
     this.wasms = new Map()
@@ -49,7 +49,7 @@ class TxExecution {
   }
 
   finalize (): ExecutionResult {
-    const result = new ExecutionResult(this.tx.tx)
+    const result = new ExecutionResult(this.txContext.tx)
     if (!this.funded) {
       throw new ExecutionError('tx not funded')
     }
@@ -63,7 +63,7 @@ class TxExecution {
       if (!this.affectedJigs.has(jigRef)) {
         return
       }
-      const location = new Pointer(this.tx.tx.hash, index)
+      const location = new Pointer(this.txContext.tx.hash, index)
       const origin = jigRef.origin || location
       const serialized = this.serializeJig(jigRef)
       const jigState = new JigState(
@@ -73,18 +73,18 @@ class TxExecution {
         serialized,
         jigRef.package.id,
         jigRef.lock,
-        this.vm.clock.now().unix()
+        this.txContext.now().unix()
       )
       result.addOutput(jigState)
     })
 
-    this.deployments.forEach(pkgId => {
-      const module = this.vm.getModule(pkgId)
+    this.deployments.forEach(pkgData => {
       result.addDeploy(new PackageDeploy(
-        module.sources,
-        module.entries,
-        module.wasmBin,
-        module.abi
+        pkgData.sources,
+        pkgData.entries,
+        pkgData.wasmBin,
+        pkgData.abi,
+        pkgData.docs
       ))
     })
 
@@ -102,7 +102,7 @@ class TxExecution {
   loadModule (moduleId: Uint8Array): WasmInstance {
     const existing = this.wasms.get(base16.encode(moduleId))
     if (existing) { return existing }
-    const wasmInstance = this.vm.wasmForPackage(moduleId)
+    const wasmInstance = this.txContext.wasmFromPkgId(moduleId)
     wasmInstance.setExecution(this)
     this.wasms.set(base16.encode(moduleId), wasmInstance)
     return wasmInstance
@@ -244,7 +244,7 @@ class TxExecution {
   }
 
   async run (): Promise<ExecutionResult> {
-    await this.tx.forEachInstruction(async inst => {
+    await this.txContext.forEachInstruction(async inst => {
       if (inst instanceof instructions.ImportInstruction) {
         this.importModule(inst.pkgId)
       } else if (inst instanceof instructions.NewInstruction) {
@@ -274,7 +274,7 @@ class TxExecution {
       } else if (inst instanceof instructions.SignToInstruction) {
         this.statementResults.push(new EmptyStatementResult())
       } else if (inst instanceof instructions.DeployInstruction) {
-        await this.deployModule(inst.entry, inst.code)
+        await this.deployPackage(inst.entry, inst.code)
       } else if (inst instanceof instructions.FundInstruction) {
         const coinJig = this.getStatementResult(inst.idx).asJig()
         const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'motos').value
@@ -290,7 +290,7 @@ class TxExecution {
   }
 
   findJigByOutputId (outputId: Uint8Array): JigRef {
-    const jigState = this.vm.findJigStateByOutputId(outputId)
+    const jigState = this.txContext.stateByOutputId(outputId)
     const existing = this.jigs.find(j => j.origin.equals(jigState.origin))
     if (existing) {
       return existing
@@ -315,20 +315,12 @@ class TxExecution {
     if (existing) {
       return existing
     }
-    const jigState = this.vm.findJigStateByOrigin(origin)
+    const jigState = this.txContext.stateByOrigin(origin)
     return this.hydrateJigState(jigState)
   }
 
   findJigByRef (ref: Internref): JigRef {
     const existing = this.jigs.find(j => j.ref.equals(ref))
-    if (!existing) {
-      throw new Error('should exist')
-    }
-    return existing
-  }
-
-  findJigByPtr (ptr: WasmPointer, instance: WasmInstance): JigRef {
-    const existing = this.jigs.find(j => j.ref.ptr === ptr && j.package === instance)
     if (!existing) {
       throw new Error('should exist')
     }
@@ -396,25 +388,8 @@ class TxExecution {
   callInstanceMethod (jig: JigRef, methodName: string, args: any[]): WasmValue {
     const methodResult = jig.package.instanceCall(jig, jig.className(), methodName, args);
     this.affectedJigs.add(jig)
-    // let value = methodResult.value
 
-    const visitor = new LiftArgumentVisitor(jig.package.abi, jig.package, methodResult.ptr)
-    const value = visitor.travelFromType(methodResult.type)
-
-    // if (value instanceof Internref) {
-    //   const jigData = methodResult.mod.liftBasicJig(value)
-    //   const origin = Pointer.fromBytes(jigData.$output.origin)
-    //   value = this.findJigByOrigin(origin)
-    // }
-    // if (value instanceof Externref) {
-    //   const pointer = Pointer.fromBytes(value.originBuf)
-    //   value = this.getJigRefByOrigin(pointer)
-    // }
-    return {
-      mod: jig.package,
-      node: methodResult.type,
-      value: value
-    }
+    return methodResult
   }
 
   callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {
@@ -441,15 +416,7 @@ class TxExecution {
     }
 
     let {node, value, mod} = module.staticCall(className, methodName, args)
-    if (value instanceof Internref) {
-      const jigData = mod.liftBasicJig(value)
-      const origin = Pointer.fromBytes(jigData.$output.origin)
-      value = this.findJigByOrigin(origin)
-    }
-    if (value instanceof Externref) {
-      const pointer = Pointer.fromBytes(value.originBuf)
-      value = this.getJigRefByOrigin(pointer)
-    }
+
     return new ValueStatementResult(
       node,
       value,
@@ -469,16 +436,6 @@ class TxExecution {
 
     let {node, value, mod} = wasm.functionCall(fnName, args)
 
-    if (value instanceof Internref) {
-      const jigData = mod.liftBasicJig(value)
-      const origin = Pointer.fromBytes(jigData.$output.origin)
-      value = this.findJigByOrigin(origin)
-    }
-    if (value instanceof Externref) {
-      const pointer = Pointer.fromBytes(value.originBuf)
-      value = this.getJigRefByOrigin(pointer)
-    }
-
     const newStatementResult = new ValueStatementResult(
       node,
       value,
@@ -491,7 +448,7 @@ class TxExecution {
 
 
   createNextOrigin () {
-    return new Pointer(this.tx.tx.hash, this.jigs.length)
+    return new Pointer(this.txContext.tx.hash, this.jigs.length)
   }
 
   stackTop () {
@@ -529,11 +486,13 @@ class TxExecution {
     return this.statementResults.length - 1
   }
 
-  async deployModule(entryPoint: string[], sources: Map<string, string>): Promise<number> {
-    const moduleId = await this.vm.deployCode(entryPoint, sources)
-    const index = this.importModule(moduleId);
-    this.deployments.push(moduleId)
-    return index
+  async deployPackage(entryPoint: string[], sources: Map<string, string>): Promise<number> {
+    const pkgData = await this.txContext.compile(entryPoint, sources)
+    this.deployments.push(pkgData)
+    const wasm = this.txContext.getWasmInstance(pkgData)
+    wasm.setExecution(this)
+    this.statementResults.push(new WasmStatementResult(wasm))
+    return this.statementResults.length - 1
   }
 
   execLength() {

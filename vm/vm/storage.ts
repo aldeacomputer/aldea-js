@@ -1,31 +1,62 @@
 import {JigState} from './jig-state.js';
 import {Abi} from "@aldea/compiler/abi";
 import {Address, base16, Pointer} from "@aldea/sdk-js";
-import {ExecutionResult} from "./execution-result.js";
+import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {LockType} from "./wasm-instance.js";
 import {Option} from "./support/option.js";
 import {StateProvider} from "./tx-context.js";
 
-export type ModuleData = {
-  mod: WebAssembly.Module,
-  abi: Abi,
-  wasmBin: Uint8Array,
-  entries: string[],
-  sources: Map<string, string>,
+export class PkgData {
+  abi: Abi
   docs: Uint8Array
+  entries: string[]
+  id: Uint8Array
+  mod: WebAssembly.Module
+  sources: Map<string, string>
+  wasmBin: Uint8Array
+
+  constructor(
+    abi: Abi,
+    docs: Uint8Array,
+    entries: string[],
+    id: Uint8Array,
+    mod: WebAssembly.Module,
+    sources: Map<string, string>,
+    wasmBin: Uint8Array
+  ) {
+    this.abi = abi
+    this.docs = docs
+    this.entries = entries
+    this.id = id
+    this.mod = mod
+    this.sources = sources
+    this.wasmBin = wasmBin
+  }
+
+  static fromPackageDeploy(deploy: PackageDeploy) {
+    return new this(
+      deploy.abi,
+      deploy.docs,
+      deploy.entries,
+      deploy.hash,
+      new WebAssembly.Module(deploy.bytecode),
+      deploy.sources,
+      deploy.bytecode
+    )
+  }
 }
 
-type OnNotFound = (pkgId: string) => ModuleData
+type OnNotFound = (pkgId: string) => PkgData
 
 const throwNotFound = (idHex: string) => { throw new Error(`unknown module: ${idHex}`) }
 
 export class Storage implements StateProvider {
   private utxosByOid: Map<string, JigState> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, JigState[]> // address -> state. Only utxos
-  private tips: Map<string, string> // orgin -> latest output_id
+  private tips: Map<string, string> // origin -> latest output_id
   private origins: Map<string, string> // utxo -> origin. Only utxos
   private transactions: Map<string, ExecutionResult> // txid -> transaction execution.
-  private packages: Map<string, ModuleData> // pkg_id -> pkg data
+  private packages: Map<string, PkgData> // pkg_id -> pkg data
   private historicalUtxos: Map<string, JigState>
 
   constructor() {
@@ -41,6 +72,7 @@ export class Storage implements StateProvider {
   persist(txExecution: ExecutionResult) {
     this.addTransaction(txExecution)
     txExecution.outputs.forEach((state: JigState) => this.addUtxo(state))
+    txExecution.deploys.forEach(pkgDeploy => this.addPackage(pkgDeploy.hash, PkgData.fromPackageDeploy(pkgDeploy)))
   }
 
   addUtxo(jigState: JigState) {
@@ -111,11 +143,11 @@ export class Storage implements StateProvider {
     return this.transactions.get(txid)
   }
 
-  addPackage(id: Uint8Array, module: WebAssembly.Module, abi: Abi, sources: Map<string, string>, entries: string[], wasmBin: Uint8Array, docs: Uint8Array): void {
-    this.packages.set(base16.encode(id), { mod: module, abi, wasmBin, entries, sources, docs})
+  addPackage(id: Uint8Array, pkgData: PkgData): void {
+    this.packages.set(base16.encode(id), pkgData)
   }
 
-  getModule (id: Uint8Array, onNotFound: OnNotFound = throwNotFound): ModuleData {
+  getModule (id: Uint8Array, onNotFound: OnNotFound = throwNotFound): PkgData {
     const idHex = base16.encode(id)
     const module =  this.packages.get(idHex)
     if (!module) {

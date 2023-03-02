@@ -52,11 +52,6 @@ export interface WasmExports extends WebAssembly.Exports {
   [key: string]: (...args: WasmPointer[]) => number | void;
 }
 
-interface TypedPointer {
-  get ptr(): WasmPointer
-  get type(): TypeNode
-}
-
 export class WasmInstance {
   id: Uint8Array;
   memory: WebAssembly.Memory;
@@ -171,7 +166,7 @@ export class WasmInstance {
           const jigRef = this.currentExec.findRemoteUtxoHandler(originBuff)
           const utxo = {
             origin: jigRef.origin.toString(),
-            location: new Pointer(this.currentExec.tx.tx.id, this.currentExec.outputIndexFor(jigRef)).toString(),
+            location: new Pointer(this.currentExec.txContext.tx.id, this.currentExec.outputIndexFor(jigRef)).toString(),
             lock: {
               type: jigRef.lock.typeNumber(),
               data: jigRef.lock.data()
@@ -347,7 +342,7 @@ export class WasmInstance {
         mod: this
       }
     } else {
-      return this.extractValue(retPtr, method.rtype)
+      return this.extractCallResult(retPtr, method.rtype)
     }
   }
 
@@ -364,7 +359,7 @@ export class WasmInstance {
     return new Internref(objectNode.name, Number(pointer))
   }
 
-  instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): TypedPointer {
+  instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): WasmValue {
     const classNode = this.abi.classByName(className)
     const method = classNode.methodByName(methodName)
     const fnName = `${method.className()}$${method.name}`
@@ -380,10 +375,7 @@ export class WasmInstance {
     const fn = this.instance.exports[fnName] as Function;
     const ptr = fn(...ptrs)
     // this.memMgr.liftValue(this, method.rtype, ptr)
-    return {
-      ptr,
-      type: method.rtype ? method.rtype : voidNode
-    }
+    return this.extractCallResult(ptr, method.rtype)
   }
 
   getPropValue (ref: Internref, classIdx: number, fieldName: string): Prop {
@@ -413,7 +405,7 @@ export class WasmInstance {
 
     const fn = this.instance.exports[fnName] as Function;
     const ptr = fn(...ptrs)
-    return this.extractValue(ptr, abiFn.rtype)
+    return this.extractCallResult(ptr, abiFn.rtype)
   }
 
   __new (a: number, b: number): number {
@@ -448,6 +440,20 @@ export class WasmInstance {
       type = emptyTn('void')
     }
     const visitor = new LiftValueVisitor(this.abi, this, ptr)
+    const value = visitor.travelFromType(type)
+
+    return {
+      mod: this,
+      value,
+      node: type
+    }
+  }
+
+  private extractCallResult (ptr: WasmPointer, type: TypeNode | null): WasmValue {
+    if (type === null) {
+      type = emptyTn('void')
+    }
+    const visitor = new LiftArgumentVisitor(this.abi, this, ptr)
     const value = visitor.travelFromType(type)
 
     return {

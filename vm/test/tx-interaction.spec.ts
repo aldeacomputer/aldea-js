@@ -5,7 +5,6 @@ import {expect} from "chai";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
 import {LockType} from "../vm/wasm-instance.js";
 import {TxBuilder} from "./tx-builder.js";
-import moment from "moment";
 
 describe('tx interaction', () => {
   let storage: Storage
@@ -25,10 +24,11 @@ describe('tx interaction', () => {
     return id
   }
 
+  const clock = new StubClock()
+
   let aCoin: Pointer
   beforeEach(() => {
     storage = new Storage()
-    const clock = new StubClock(moment())
     vm = new VM(storage, clock)
     aCoin = vm.mint(fundAddr, 1000).currentLocation
 
@@ -224,7 +224,7 @@ describe('tx interaction', () => {
     } catch (e) {
       expect(e).to.be.instanceof(ExecutionError)
       const error = e as ExecutionError
-      expect(error.message).to.eql(`jig not present in utxo set: ${base16.encode(exec1.outputs[0].id())}`)
+      expect(error.message).to.eql(`output not present in utxo set: ${base16.encode(exec1.outputs[0].id())}`)
       return
     }
     expect.fail('should fail')

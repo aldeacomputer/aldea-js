@@ -5,15 +5,12 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
-import {base16, Pointer, PrivKey, ref, Tx, instructions} from "@aldea/sdk-js";
+import {base16, Pointer, PrivKey, ref, Tx} from "@aldea/sdk-js";
 import {ExecutionError, PermissionError} from "../vm/errors.js";
 import {LockType} from "../vm/wasm-instance.js";
 import {ExecutionResult} from "../vm/execution-result.js";
 import {emptyTn} from "../vm/abi-helpers/well-known-abi-nodes.js";
-import moment from "moment";
-import {TxContext} from "../vm/tx-context.js";
-
-const { SignInstruction } = instructions
+import {emptyExecFactoryFactory} from "./util.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -31,11 +28,10 @@ describe('execute txs', () => {
     return base16.decode(id)
   }
 
-  let now = moment()
+  const clock = new StubClock()
 
   beforeEach(() => {
     storage = new Storage()
-    const clock = new StubClock(now)
     vm = new VM(storage, clock)
 
     const sources = [
@@ -56,18 +52,7 @@ describe('execute txs', () => {
     })
   })
 
-  function emptyExec (privKeys: PrivKey[] = []): TxExecution {
-    const tx = new Tx()
-    privKeys.forEach(pk => {
-      const sig = tx.createSignature(pk)
-      tx.push(new SignInstruction(sig, pk.toPubKey().toBytes()))
-    })
-    const context = new TxContext(tx, storage)
-    const exec = new TxExecution(context, vm)
-    exec.markAsFunded()
-    return exec
-  }
-
+  const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
 
   let exec: TxExecution
   beforeEach(() => {
@@ -80,8 +65,8 @@ describe('execute txs', () => {
     exec.lockJigToUser(instanceIndex, userAddr)
     const result = exec.finalize()
 
-    expect(result.executedAt).to.eql(now.unix())
-    result.outputs.forEach(o => expect(o.createdAt).to.eql(now.unix()))
+    expect(result.executedAt).to.eql(clock.now().unix())
+    result.outputs.forEach(o => expect(o.createdAt).to.eql(clock.now().unix()))
   })
 
   it('creates instances from imported modules', () => {
@@ -160,7 +145,7 @@ describe('execute txs', () => {
     expect(parsed.classIdx).to.eql(0)
     expect(parsed.serializedLock).to.eql({
       type: LockType.CALLER,
-      data: new Pointer(exec.tx.tx.hash, shepherdOutputIndex).toBytes()
+      data: new Pointer(exec.txContext.tx.hash, shepherdOutputIndex).toBytes()
     })
   })
 
@@ -176,7 +161,7 @@ describe('execute txs', () => {
     const flockOutputIndex = 0
     // this tries to lock it again
     expect(() => {exec.lockJigToUser(flockIndex, userAddr)}).to.throw(PermissionError,
-      `no permission to remove lock from jig ${new Pointer(exec.tx.tx.hash, flockOutputIndex).toString()}`)
+      `no permission to remove lock from jig ${new Pointer(exec.txContext.tx.hash, flockOutputIndex).toString()}`)
   })
 
   it('fails when a jig tries to lock a locked jig', () => {
@@ -233,7 +218,7 @@ describe('execute txs', () => {
 
       const exec2 = emptyExec([userPriv])
 
-      const jigIndex = exec2.loadJigByOrigin(new Pointer(exec.tx.tx.hash, 0))
+      const jigIndex = exec2.loadJigByOrigin(new Pointer(exec.txContext.tx.hash, 0))
       exec2.lockJigToUser(jigIndex, otherAddress)
       exec2.markAsFunded()
       const result = exec2.finalize()
@@ -262,7 +247,7 @@ describe('execute txs', () => {
       freezeExec.markAsFunded()
       freezeExecResult = freezeExec.finalize()
       storage.persist(freezeExecResult)
-      freezeTx = freezeExec.tx.tx
+      freezeTx = freezeExec.txContext.tx
     })
 
     it('cannot be called methods', () => {
@@ -608,7 +593,7 @@ describe('execute txs', () => {
 
     expect(ret.outputs).to.have.length(3) // second flock was actually created
     const state = ret.outputs[1].parsedState()
-    expect(state[0]).to.eql(new Pointer(exec.tx.tx.id, 2).toBytes()) // flock was actually relplaced
+    expect(state[0]).to.eql(new Pointer(exec.txContext.tx.id, 2).toBytes()) // flock was actually relplaced
   })
 
   it('can combine coins owned by a jig inside that jig', () => {
@@ -674,7 +659,7 @@ describe('execute txs', () => {
 
     const statement = exec.getStatementResult(methodIdx)
     expect(statement.value).to.have.length(1)
-    expect(statement.value[0].origin).to.eql(new Pointer(exec.tx.tx.id, 1))
+    expect(statement.value[0].origin).to.eql(new Pointer(exec.txContext.tx.id, 1))
   })
 
   it('fails if an import is tried to use as a jig in the target', () => {

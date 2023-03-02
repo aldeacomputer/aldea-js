@@ -165,10 +165,10 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   }
 
   visitPlainObject(objNode: ObjectNode, typeNode: TypeNode): WasmPointer {
-    let vals = this.value
+    let value = this.value
     const mod = this.instance
-    if (!Array.isArray(vals)) { vals = Object.values(vals) }
-    if (!Array.isArray(vals) || objNode.fields.length !== vals.length) {
+    if (!Array.isArray(value)) { value = Object.values(value) }
+    if (!Array.isArray(value) || objNode.fields.length !== value.length) {
       throw new Error(`invalid state for ${objNode.name}`)
     }
 
@@ -181,7 +181,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
       const TypedArray = getTypedArrayConstructor(n.type)
       const mem = new TypedArray(mod.memory.buffer, ptr, bytes)
       const { align, offset } = offsets[n.name]
-      mem[offset >>> align] = this.lowerValue(vals[i], n.type)
+      mem[offset >>> align] = this.lowerValue(value[i], n.type)
     })
     return ptr
   }
@@ -271,15 +271,15 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     return 0
   }
 
-  visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
+  visitInterface(anInterface: InterfaceNode, _typeNode: TypeNode): WasmPointer {
     const jig = this.value as JigRef
     const className = jig.className();
-    const typenode = emptyTn(className);
+    const typeNode = emptyTn(className);
     if (jig.package === this.instance) {
       const classNode = this.abi.classByName(className)
-      return this.visitExportedClass(classNode, typenode)
+      return this.visitExportedClass(classNode, typeNode)
     } else {
-      return this.visitImportedClass(typenode, base16.encode(jig.package.id))
+      return this.visitImportedClass(typeNode, base16.encode(jig.package.id))
     }
   }
 }

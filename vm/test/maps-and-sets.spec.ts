@@ -4,12 +4,9 @@ import {
 } from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {TxExecution} from "../vm/tx-execution.js";
-import {base16, PrivKey, Tx, instructions, ref} from "@aldea/sdk-js";
+import {base16, ref} from "@aldea/sdk-js";
 import moment from "moment";
-import {TxContext} from "../vm/tx-context.js";
-
-const {SignInstruction} = instructions
+import {emptyExecFactoryFactory} from "./util.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -42,18 +39,7 @@ describe('execute txs', () => {
     })
   })
 
-  function emptyExec(privKeys: PrivKey[] = []): TxExecution {
-    const tx = new Tx()
-    privKeys.forEach(pk => {
-      const sig = tx.createSignature(pk)
-      tx.push(new SignInstruction(sig, pk.toPubKey().toBytes()))
-    })
-    const context = new TxContext(tx, storage)
-    const exec = new TxExecution(context, vm)
-    exec.markAsFunded()
-    return exec
-  }
-
+  const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
 
   it('can be lift and lower maps multiple times', () => {
     const exec1 = emptyExec()

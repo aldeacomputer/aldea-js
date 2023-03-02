@@ -2,11 +2,10 @@ import {Storage, StubClock, VM} from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
-import {base16, Tx} from "@aldea/sdk-js";
-import {TxBuilder} from "./tx-builder.js";
+import {base16} from "@aldea/sdk-js";
 import {JigRef} from "../vm/jig-ref.js";
 import moment from "moment";
-import {TxContext} from "../vm/tx-context.js";
+import {emptyExecFactoryFactory} from "./util.js";
 
 describe('Jig Type', () => {
   let storage: Storage
@@ -40,6 +39,8 @@ describe('Jig Type', () => {
     })
   })
 
+  const emptyTx = emptyExecFactoryFactory(() => storage, () => vm)
+
   let jigBearerModuleIndex: number
   let flockModuleIndex: number
   let flockIndex: number
@@ -47,9 +48,7 @@ describe('Jig Type', () => {
 
   let exec: TxExecution
   beforeEach(() => {
-    const tx = new Tx()
-    const context = new TxContext(tx, storage)
-    exec = new TxExecution(context, vm)
+    exec = emptyTx()
     exec.markAsFunded()
     jigBearerModuleIndex = exec.importModule(modIdFor('jig-type-bearer')) // index 0
     flockModuleIndex = exec.importModule(modIdFor('flock'))
@@ -106,11 +105,7 @@ describe('Jig Type', () => {
 
     storage.persist(ret1)
 
-    const tx2 = new TxBuilder()
-      .sign(userPriv)
-      .build()
-
-    const exec2 = new TxExecution(new TxContext(tx2, storage), vm)
+    const exec2 = emptyTx([userPriv])
 
     const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id())
     const returnedJigIndex = exec2.callInstanceMethodByIndex(jigBearerIndexFromOutside, 'getJig', [])
@@ -132,11 +127,7 @@ describe('Jig Type', () => {
 
     storage.persist(ret1)
 
-    const tx2 = new TxBuilder()
-      .sign(userPriv)
-      .build()
-
-    const exec2 = new TxExecution(new TxContext(tx2, storage), vm)
+    const exec2 = emptyTx([userPriv])
 
     const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id())
     const returnedJigIndex = exec2.callInstanceMethodByIndex(jigBearerIndexFromOutside, 'getJig', [])

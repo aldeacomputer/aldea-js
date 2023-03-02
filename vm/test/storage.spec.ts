@@ -4,11 +4,8 @@ import {
 } from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {TxExecution} from "../vm/tx-execution.js";
-import {base16, PrivKey, Tx, instructions} from "@aldea/sdk-js";
-import {TxContext} from "../vm/tx-context.js";
-
-const { SignInstruction } = instructions
+import {base16} from "@aldea/sdk-js";
+import {emptyExecFactoryFactory} from "./util.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -41,17 +38,7 @@ describe('execute txs', () => {
     })
   })
 
-  function emptyExec (privKeys: PrivKey[] = []): TxExecution {
-    const tx = new Tx()
-    privKeys.forEach(pk => {
-      const sig = tx.createSignature(pk)
-      tx.push(new SignInstruction(sig, pk.toPubKey().toBytes()))
-    })
-    const context = new TxContext(tx, storage)
-    const exec = new TxExecution(context, vm)
-    exec.markAsFunded()
-    return exec
-  }
+  const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
 
   describe('index by address', function () {
     it('saves new utxos', () => {
