@@ -4,7 +4,7 @@ import {Address, base16, Pointer} from "@aldea/sdk-js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {LockType} from "./wasm-instance.js";
 import {Option} from "./support/option.js";
-import {StateProvider} from "./tx-context.js";
+import {StateProvider} from "./state-interfaces.js";
 
 export class PkgData {
   abi: Abi

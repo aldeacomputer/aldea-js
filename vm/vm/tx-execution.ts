@@ -4,7 +4,6 @@ import {ExecutionError, PermissionError} from "./errors.js"
 import {UserLock} from "./locks/user-lock.js"
 import {NoLock} from "./locks/no-lock.js"
 import {JigState} from "./jig-state.js"
-import {VM} from "./vm.js";
 import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {Externref, Internref} from "./memory.js";
@@ -27,7 +26,6 @@ import {PkgData} from "./storage.js";
 
 class TxExecution {
   txContext: TxContext;
-  private vm: VM;
   private jigs: JigRef[];
   private wasms: Map<string, WasmInstance>;
   private readonly stack: Pointer[];
@@ -36,9 +34,8 @@ class TxExecution {
   private funded: boolean;
   private affectedJigs: Set<JigRef>
 
-  constructor(tx: TxContext, vm: VM) {
-    this.txContext = tx
-    this.vm = vm
+  constructor(context: TxContext) {
+    this.txContext = context
     this.jigs = []
     this.wasms = new Map()
     this.stack = []
@@ -91,7 +88,7 @@ class TxExecution {
     this.wasms = new Map()
     this.jigs = []
     this.statementResults = []
-    result.finish(this.vm.clock)
+    result.finish(this.txContext.clock)
     return result
   }
 

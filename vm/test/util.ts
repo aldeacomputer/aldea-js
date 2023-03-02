@@ -12,7 +12,7 @@ export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () =
     tx.push(new instructions.SignInstruction(sig, pk.toPubKey().toBytes()))
   })
   const context = new TxContext(tx, storage, vm, vm.clock)
-  const exec = new TxExecution(context, vm)
-  exec.markAsFunded()
+  const exec = new TxExecution(context)
+    exec.markAsFunded()
   return exec
 }

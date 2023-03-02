@@ -40,7 +40,7 @@ export class VM implements PkgRepository {
 
   async execTx(tx: Tx): Promise<ExecutionResult> {
     const context = new TxContext(tx, this.storage, this, this.clock)
-    const currentExecution = new TxExecution(context, this)
+    const currentExecution = new TxExecution(context)
     const result = await currentExecution.run()
     this.storage.persist(result)
     return result

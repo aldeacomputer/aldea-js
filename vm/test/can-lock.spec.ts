@@ -5,7 +5,6 @@ import {
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {base16, ref} from "@aldea/sdk-js";
-import moment from "moment";
 import {emptyExecFactoryFactory} from "./util.js";
 
 describe('execute txs', () => {
@@ -26,7 +25,7 @@ describe('execute txs', () => {
 
   beforeEach(() => {
     storage = new Storage()
-    const clock = new StubClock(moment())
+    const clock = new StubClock()
     vm = new VM(storage, clock)
 
     const sources = [

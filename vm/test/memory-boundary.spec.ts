@@ -558,7 +558,7 @@ describe('reading complex types from memory', () => {
       const storage = new Storage();
       const clock = new MomentClock();
       const vm = new VM(storage, clock);
-      wasm.setExecution(new TxExecution(new TxContext(new Tx(), storage, vm, clock), vm))
+      wasm.setExecution(new TxExecution(new TxContext(new Tx(), storage, vm, clock)))
       const res = wasm.functionCall('test', [])
       assert.instanceOf(res.value, JigRef)
       assert.typeOf(res.value.ref.ptr, 'number')
