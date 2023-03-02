@@ -71,6 +71,11 @@ export function writeJigLocalClass(obj: ClassWrap): string {
  * Ensures compilation by inlining an idof call.
  */
 export function writeJigRemoteClass(obj: ClassWrap, fields: FieldWrap[], methods: MethodWrap[]): string {
+  const interfaces = obj.implements
+    .map(normalizeTypeName)
+    .concat(obj.name)
+    .join(', ')
+
   const fieldCode = fields.reduce((acc: string[], n: FieldWrap): string[] => {
     acc.push(writeRemoteGetter(n, obj))
     return acc
@@ -82,7 +87,7 @@ export function writeJigRemoteClass(obj: ClassWrap, fields: FieldWrap[], methods
   }, []).join('\n')
 
   return `
-  class _Remote${obj.name} extends _Remote${obj.extends} implements ${obj.name} {
+  class _Remote${obj.name} extends _Remote${obj.extends} implements ${interfaces} {
     ${fieldCode}
     ${methodCode}
   }
