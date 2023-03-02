@@ -295,33 +295,6 @@ describe('execute txs', () => {
     expect(bagState[0]).to.eql([flockOutput.origin.toBytes()])
   })
 
-  // Should load from a different package
-  it.skip('can restore jigs that contain jigs of the same package', () => {
-    exec.importModule(modIdFor('flock'))
-    const flockIndex = exec.instantiateByIndex(0, 'Flock', [])
-    const bagIndex = exec.instantiateByIndex(0, 'FlockBag', [])
-    const jig = exec.getStatementResult(flockIndex).asJig()
-    exec.callInstanceMethodByIndex(bagIndex, 'addFlock', [jig])
-    exec.lockJigToUser(bagIndex, userAddr)
-    exec.markAsFunded()
-    const result1 = exec.finalize()
-
-    storage.persist(result1)
-
-    const exec2 = emptyExec([userPriv])
-    exec2.loadJigByOutputId(result1.outputs[1].id())
-    exec2.callInstanceMethodByIndex(0, 'growAll', [])
-    exec2.lockJigToUser(0, userAddr)
-    exec2.markAsFunded()
-    const result2 = exec2.finalize()
-
-    const flockOutput = result2.outputs[0];
-    const flockState = flockOutput.parsedState()
-    expect(flockState[0]).to.eql(1)
-    const bagOutput = result2.outputs[1];
-    const bagState = bagOutput.parsedState()
-    expect(bagState[0]).to.eql([flockOutput.origin.toBytes()])
-  })
 
   it('can send local and external jigs as parameters', () => {
     exec.importModule(modIdFor('flock'))

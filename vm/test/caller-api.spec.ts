@@ -44,7 +44,7 @@ describe('execute txs', () => {
 
   describe('#is<T>', function () {
     describe('when exact is true', function () {
-      it.skip('returns true when the caller is the right caller', () => {
+      it('returns true when the caller is the right caller', () => {
         const exec = emptyExec()
         const modIdx = exec.importModule(modIdFor('caller-test-code'))
         const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
@@ -85,11 +85,9 @@ describe('execute txs', () => {
       })
 
       // This case makes no sense with no interfaces
-      it.skip('returns true for when an external class is the right one', () => {
+      it('returns true for when an external class is the right one')
 
-      })
-
-      it.skip('returns false when called from subclass', () => {
+      it('returns false when called from subclass', () => {
         const exec = emptyExec()
         const modIdx = exec.importModule(modIdFor('caller-test-code'))
         const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
@@ -106,7 +104,7 @@ describe('execute txs', () => {
 
 
     describe('when exact is false', () => {
-      it.skip('true false when called from subclass', () => {
+      it('true false when called from subclass', () => {
         const exec = emptyExec()
         const modIdx = exec.importModule(modIdFor('caller-test-code'))
         const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])

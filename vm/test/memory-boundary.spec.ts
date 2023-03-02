@@ -76,11 +76,11 @@ describe('reading basic types from memory', () => {
     assert.equal(res.value, 42n)
   })
 
-  xit('reads f32 as number', async () => {
+  it('reads f32 as number', async () => {
     const wasm = await compileToWasm('export function test(): f32 { return 42.12345 }')
     const res = wasm.functionCall('test', [])
     assert.typeOf(res.value, 'number')
-    assert.equal(res.value, 42.12345)
+    assert.equal(res.value.toFixed(5), 42.12345)
   })
 
   it('reads f64 as number', async () => {

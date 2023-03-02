@@ -81,7 +81,7 @@ describe('execute with interfaces', () => {
     expect(ret.outputs[0].parsedState()).to.eql([[100, 100], 100])
   })
 
-  it.skip('a caller from another package can call using an interface after it was dehidrated and hidrated', () => {
+  it('a caller from another package can call using an interface after it was dehidrated and hidrated', () => {
     const exec1 = emptyExec()
     const pkgIdx = exec1.importModule(modIdFor('runner'))
     const chitaIdx = exec1.instantiateByIndex(pkgIdx, 'Chita', [])
