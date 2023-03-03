@@ -375,6 +375,14 @@ class TxExecution {
     return ret
   }
 
+  pushToStack (newTop: Pointer) {
+    this.stack.push(newTop)
+  }
+
+  popFromStack () {
+    this.stack.pop()
+  }
+
   instantiateByIndex(statementIndex: number, className: string, args: any[]): number {
     const statement = this.statementResults[statementIndex]
     const instance = statement.instance

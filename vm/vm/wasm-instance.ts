@@ -262,7 +262,11 @@ export class WasmInstance {
           const argsBuf = this.liftBuffer(argsPtr)
           const methodNode = this.abi.classByName(className).methodByName('constructor')
           const args = this.liftArguments(argsBuf, methodNode.args)
+
+          this.currentExec.pushToStack(this.currentExec.createNextOrigin())
           const instance = this.staticCall(className, 'constructor', args)
+          this.currentExec.popFromStack()
+
           const interRef = instance.value as Internref
           const jigRef = this.currentExec.findJigByRef(interRef)
 
@@ -279,7 +283,10 @@ export class WasmInstance {
           const className = this.liftString(namePtr)
           const argBuf = this.liftBuffer(argBufPtr)
           const pkg = this.currentExec.loadModule(base16.decode(pkgIdStr))
+
+          this.currentExec.pushToStack(this.currentExec.createNextOrigin())
           const abiNode = pkg.abi.classByName(className).methodByName('constructor')
+          this.currentExec.popFromStack()
           const args = this.liftArguments(argBuf, abiNode.args)
           const result = this.currentExec.instantiate(pkg, className, args)
           const jigRef = result.value as JigRef
