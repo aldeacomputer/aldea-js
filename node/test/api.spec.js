@@ -331,7 +331,7 @@ describe('api', () => {
     })
   })
 
-  describe('POST /mint', () => {
+  describe('POST /util', () => {
     it('returns proper data', async () => {
       const response = await request(app)
         .post('/mint')
