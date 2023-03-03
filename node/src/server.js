@@ -198,6 +198,7 @@ const buildApp = (clock) => {
         }
       })
     } else {
+      console.log(err)
       res.status(statuses.BAD_REQUEST)
       res.send({
         message: err.message,

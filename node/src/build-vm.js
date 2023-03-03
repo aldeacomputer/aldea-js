@@ -5,12 +5,7 @@ export function buildVm (clock) {
   const storage = new Storage()
   const vm = new VM(storage, clock)
   const sources = [
-    'ant',
-    'basic-math',
-    'flock',
-    'nft',
-    'sheep-counter',
-    'weapon'
+    'nft'
   ]
 
   sources.forEach(src => {
