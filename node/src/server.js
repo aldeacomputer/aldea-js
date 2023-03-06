@@ -113,8 +113,8 @@ const buildApp = (clock) => {
   app.get('/output-by-origin/:origin', (req, res) => {
     const origin = req.params.origin
     const jigState = storage.getJigStateByOrigin(
-      Pointer.fromString(origin),
-      () => { throw new HttpNotFound(`${origin} not found`, { origin })})
+      Pointer.fromString(origin)
+    ).orElse(() => { throw new HttpNotFound(`${origin} not found`, { origin })})
     res.status(200).send(serializeJigState(jigState))
   })
 

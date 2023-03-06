@@ -14,7 +14,7 @@ const {
   DeployInstruction
 } = instructions
 
-const FLOCK_PKG_ID = '49c702e830ed729df6b14d226cfdb83f149e4ed0869c75504a809ccaa0c8af13'
+const NFT_PKG_ID = 'ea9225bcf8572c3a9fa75d186b62ab976d017d96b0614612f59d5fa5087b7fa3'
 
 describe('api', () => {
   let app
@@ -56,8 +56,8 @@ describe('api', () => {
     it('returns correct data when the tx goes trough', async () => {
       const coinId = await mint()
       const tx = new Tx()
-        .push(new ImportInstruction(base16.decode(FLOCK_PKG_ID)))
-        .push(new NewInstruction(0, 0, []))
+        .push(new ImportInstruction(base16.decode(NFT_PKG_ID)))
+        .push(new NewInstruction(0, 0, ['someNft', 0, 'file://nft.png']))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
@@ -86,7 +86,7 @@ describe('api', () => {
       const coinId = await mint()
       const tx = new Tx()
         .push(new ImportInstruction(base16.decode(Buffer.alloc(32).fill(0).toString('hex')))) //
-        .push(new NewInstruction(0, 0, []))
+        .push(new NewInstruction(0, 0, ['someNft', 0, 'file://nft.png']))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
@@ -111,8 +111,8 @@ describe('api', () => {
     beforeEach(async () => {
       const coinId = await mint()
       const tx = new Tx()
-        .push(new ImportInstruction(base16.decode(FLOCK_PKG_ID)))
-        .push(new NewInstruction(0, 0, []))
+        .push(new ImportInstruction(base16.decode(NFT_PKG_ID)))
+        .push(new NewInstruction(0, 0, ['someNft', 0, 'file://nft.png']))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
@@ -162,8 +162,8 @@ describe('api', () => {
     beforeEach(async () => {
       const coinId = await mint()
       tx = new Tx()
-        .push(new ImportInstruction(base16.decode(FLOCK_PKG_ID)))
-        .push(new NewInstruction(0, 0, []))
+        .push(new ImportInstruction(base16.decode(NFT_PKG_ID)))
+        .push(new NewInstruction(0, 0, ['someNft', 0, 'file://nft.png']))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
@@ -207,8 +207,8 @@ describe('api', () => {
     beforeEach(async () => {
       const coinId = await mint()
       const tx = new Tx()
-        .push(new ImportInstruction(base16.decode(FLOCK_PKG_ID)))
-        .push(new NewInstruction(0, 0, []))
+        .push(new ImportInstruction(base16.decode(NFT_PKG_ID)))
+        .push(new NewInstruction(0, 0, ['someNft', 0, 'file://nft.png']))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
@@ -232,7 +232,7 @@ describe('api', () => {
           .expect('Content-Type', /application\/json/)
           .expect(200)
 
-        expect(response.body).to.eql({ state: { size: 0, identifier: 'numero11' } })
+        expect(response.body).to.eql({ state: { name: 'someNft', rarity: 0, image: 'file://nft.png' } })
       })
 
       it('fails when output does not exists', async () => {
@@ -367,7 +367,7 @@ describe('api', () => {
   })
 
   describe('GET /package/:packageId/abi.:format', () => {
-    const pkgId = FLOCK_PKG_ID
+    const pkgId = NFT_PKG_ID
     it('when type is json returns a json', async () => {
       const response = await request(app)
         .get(`/package/${pkgId}/abi.json`)
@@ -401,7 +401,7 @@ describe('api', () => {
   })
 
   describe('GET /package/:packageId/source', () => {
-    const pkgId = FLOCK_PKG_ID
+    const pkgId = NFT_PKG_ID
     it('returns right data', async () => {
       await request(app)
         .get(`/package/${pkgId}/source`)
@@ -467,7 +467,7 @@ describe('api', () => {
   })
 
   describe('GET /package/:packageId/wasm', () => {
-    const pkgId = FLOCK_PKG_ID
+    const pkgId = NFT_PKG_ID
     it('returns right data', async () => {
       await request(app)
         .get(`/package/${pkgId}/source`)

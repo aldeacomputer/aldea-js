@@ -13,7 +13,6 @@
     "sdk-demo",
     "sdk-js",
     "splash-webapp",
-    "video-examples",
     "vm"
   ],
   "scripts": {
