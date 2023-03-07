@@ -4,7 +4,6 @@ import {AldeaCrypto} from "../vm/aldea-crypto.js";
 import {TxExecution} from "../vm/tx-execution.js";
 import {base16} from "@aldea/sdk-js";
 import {JigRef} from "../vm/jig-ref.js";
-import moment from "moment";
 import {emptyExecFactoryFactory} from "./util.js";
 
 describe('Jig Type', () => {
@@ -25,7 +24,7 @@ describe('Jig Type', () => {
 
   beforeEach(() => {
     storage = new Storage()
-    const clock = new StubClock(moment())
+    const clock = new StubClock()
     vm = new VM(storage, clock)
 
     const sources = [
