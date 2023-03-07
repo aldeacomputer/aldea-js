@@ -101,6 +101,6 @@ describe('execute with interfaces', () => {
     exec2.lockJigToUser(loadedTamerIdx, userAddr)
     const ret2 = exec2.finalize()
 
-    expect(ret2.outputs[0].parsedState()).to.eql([[100, 100], 100])
+    expect(ret2.outputs[1].parsedState()).to.eql([[100, 100], 100])
   })
 })

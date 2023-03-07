@@ -287,10 +287,10 @@ describe('execute txs', () => {
     exec2.markAsFunded()
     const result2 = exec2.finalize()
 
-    const flockOutput = result2.outputs[0];
+    const flockOutput = result2.outputs[1];
     const flockState = flockOutput.parsedState()
     expect(flockState[0]).to.eql(1)
-    const bagOutput = result2.outputs[1];
+    const bagOutput = result2.outputs[0];
     const bagState = bagOutput.parsedState()
     expect(bagState[0]).to.eql([flockOutput.origin.toBytes()])
   })
@@ -517,8 +517,8 @@ describe('execute txs', () => {
     const ret = exec.finalize()
     storage.persist(ret)
 
-    const eaterState = ret.outputs[1].parsedState()
-    expect(eaterState[0]).to.eql(ret.outputs[0].origin.toBytes())
+    const eaterState = ret.outputs[0].parsedState()
+    expect(eaterState[0]).to.eql(ret.outputs[1].origin.toBytes())
     expect(eaterState[1]).to.eql([])
   })
 
@@ -589,12 +589,13 @@ describe('execute txs', () => {
     const ret = exec.finalize()
 
     expect(ret.outputs).to.have.length(4)
-    expect(ret.outputs[0].serializedLock.type).to.eql(-1)
     expect(ret.outputs[1].serializedLock.type).to.eql(-1)
-    expect(ret.outputs[2].serializedLock.type).to.eql(2)
-    expect(ret.outputs[2].serializedLock.data).to.eql(ret.outputs[3].currentLocation.toBytes())
-    expect(ret.outputs[2].parsedState()).to.eql([300 + 400 + 500])
-    expect(ret.outputs[3].parsedState()).to.eql([ret.outputs[2].origin.toBytes(), []])
+    expect(ret.outputs[2].serializedLock.type).to.eql(-1)
+    expect(ret.outputs[3].serializedLock.type).to.eql(2)
+    expect(ret.outputs[3].serializedLock.data).to.eql(ret.outputs[0].origin.toBytes())
+
+    expect(ret.outputs[3].parsedState()).to.eql([300 + 400 + 500])
+    expect(ret.outputs[0].parsedState()).to.eql([ret.outputs[3].origin.toBytes(), []])
   })
 
   it('can save numbers inside statement result', () => {

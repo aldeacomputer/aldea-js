@@ -106,7 +106,7 @@ export class WasmInstance {
 
           const classIdx = this.abi.classIdxByName(className)
 
-          this.currentExec.addNewJigRef(new JigRef(
+          this.currentExec.linkJig(new JigRef(
             new Internref(className, jigPtr),
             classIdx,
             this,
@@ -166,7 +166,7 @@ export class WasmInstance {
           const jigRef = this.currentExec.findRemoteUtxoHandler(originBuff)
           const utxo = {
             origin: jigRef.origin.toString(),
-            location: new Pointer(this.currentExec.txContext.tx.id, this.currentExec.outputIndexFor(jigRef)).toString(),
+            location: jigRef.latestLocation,
             lock: {
               type: jigRef.lock.typeNumber(),
               data: jigRef.lock.data()
@@ -263,12 +263,12 @@ export class WasmInstance {
           const methodNode = this.abi.classByName(className).methodByName('constructor')
           const args = this.liftArguments(argsBuf, methodNode.args)
 
-          this.currentExec.pushToStack(this.currentExec.createNextOrigin())
-          const instance = this.staticCall(className, 'constructor', args)
-          this.currentExec.popFromStack()
+          const instance = this.currentExec.instantiate(this, className, args)
+          // this.currentExec.pushToStack(this.currentExec.createNextOrigin())
+          // const instance = this.staticCall(className, 'constructor', args)
+          // this.currentExec.popFromStack()
 
-          const interRef = instance.value as Internref
-          const jigRef = this.currentExec.findJigByRef(interRef)
+          const jigRef = instance.value as JigRef
 
           return this.insertValue({
             origin: jigRef.origin.toBytes(),
@@ -284,9 +284,7 @@ export class WasmInstance {
           const argBuf = this.liftBuffer(argBufPtr)
           const pkg = this.currentExec.loadModule(base16.decode(pkgIdStr))
 
-          this.currentExec.pushToStack(this.currentExec.createNextOrigin())
           const abiNode = pkg.abi.classByName(className).methodByName('constructor')
-          this.currentExec.popFromStack()
           const args = this.liftArguments(argBuf, abiNode.args)
           const result = this.currentExec.instantiate(pkg, className, args)
           const jigRef = result.value as JigRef

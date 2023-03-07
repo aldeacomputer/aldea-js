@@ -115,7 +115,7 @@ describe('Jig Type', () => {
     exec2.markAsFunded()
     const ret2 = exec2.finalize()
 
-    const parsedFlock = ret2.outputs[0].parsedState()
+    const parsedFlock = ret2.outputs[1].parsedState()
     expect(parsedFlock[0]).to.eql(1)
   })
 
@@ -137,7 +137,7 @@ describe('Jig Type', () => {
     exec2.markAsFunded()
     const ret2 = exec2.finalize()
 
-    const parsedJigBearer = ret2.outputs[1].parsedState()
-    expect(parsedJigBearer[0]).to.eql(ret2.outputs[0].origin.toBytes())
+    const parsedJigBearer = ret2.outputs[0].parsedState()
+    expect(parsedJigBearer[0]).to.eql(ret2.outputs[1].origin.toBytes())
   })
 })

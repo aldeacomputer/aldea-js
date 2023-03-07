@@ -453,11 +453,11 @@ describe('tx interaction', () => {
     const exec = await vm.execTx(tx)
 
     const tx2 = new TxBuilder()
-      .load(exec.outputs[0].id())
+      .load(exec.outputs[0].id()) // load flock
       .import(modIdFor('sheep-counter'))
-      .new(1, 1, [ref(0)])
-      .call(2, 7, [])
-      .call(2, 8, [])
+      .new(1, 1, [ref(0)]) // Shpherd
+      .call(2, 7, []) // growFlockUsingInternalTools
+      .call(2, 8, []) // growFlockUsingExternalTools
       .lock(2, userAddr)
       .sign(userPriv)
       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)

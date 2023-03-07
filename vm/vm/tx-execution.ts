@@ -32,7 +32,7 @@ class TxExecution {
   deployments: PkgData[];
   statementResults: StatementResult[]
   private funded: boolean;
-  private affectedJigs: Set<JigRef>
+  private affectedJigs: JigRef[]
 
   constructor(context: TxContext) {
     this.txContext = context
@@ -42,7 +42,7 @@ class TxExecution {
     this.statementResults = []
     this.funded = false
     this.deployments = []
-    this.affectedJigs = new Set()
+    this.affectedJigs = []
   }
 
   finalize (): ExecutionResult {
@@ -56,12 +56,9 @@ class TxExecution {
       }
     })
 
-    this.jigs.forEach((jigRef, index) => {
-      if (!this.affectedJigs.has(jigRef)) {
-        return
-      }
-      const location = new Pointer(this.txContext.tx.hash, index)
-      const origin = jigRef.origin || location
+    this.affectedJigs.forEach((jigRef, index) => {
+      const origin = jigRef.origin
+      const location = new Pointer(this.txContext.txHash(), index)
       const serialized = this.serializeJig(jigRef)
       const jigState = new JigState(
         origin,
@@ -167,11 +164,6 @@ class TxExecution {
     return jig.package.getPropValue(jig.ref, jig.classIdx, propName)
   }
 
-  // _onCreate (moduleId: string, className: string, args: any[]): JigRef {
-  //   this.loadModule(moduleId)
-  //   return this.instantiate(moduleId, className, args)
-  // }
-
   remoteLockHandler (childOrigin: Pointer, type: LockType, extraArg: ArrayBuffer): void {
     const childJigRef = this.getJigRefByOrigin(childOrigin)
     if (!childJigRef.lock.canBeChangedBy(this)) {
@@ -194,7 +186,7 @@ class TxExecution {
     } else {
       throw new Error('not implemented yet')
     }
-    this.affectedJigs.add(childJigRef)
+    this.marKJigAsAffected(childJigRef)
   }
 
   localCallStartHandler(targetJig: JigRef, fnName: string) {
@@ -206,7 +198,7 @@ class TxExecution {
         throw new PermissionError(`jig ${targetJig.origin.toString()} is not allowed to exec "${fnName}"${targetJig.lock.constructor === FrozenLock ? " because it's frozen" : ""}`)
       }
     }
-    this.affectedJigs.add(targetJig)
+    this.marKJigAsAffected(targetJig)
     this.stack.push(targetJig.origin)
   }
 
@@ -238,6 +230,11 @@ class TxExecution {
   addNewJigRef (jigRef: JigRef): JigRef {
     this.jigs.push(jigRef)
     return jigRef
+  }
+
+  linkJig (jigRef: JigRef): void {
+    this.addNewJigRef(jigRef)
+    this.marKJigAsAffected(jigRef)
   }
 
   async run (): Promise<ExecutionResult> {
@@ -277,7 +274,7 @@ class TxExecution {
         const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'motos').value
         if(amount < 100) throw new ExecutionError('not enough coins to fund the transaction')
         coinJig.changeLock(new FrozenLock())
-        this.affectedJigs.add(coinJig)
+        this.marKJigAsAffected(coinJig)
         this.markAsFunded()
       } else {
         throw new ExecutionError(`unknown instruction: ${inst.opcode}`)
@@ -361,18 +358,24 @@ class TxExecution {
     }
   }
 
-  instantiate(wasm: WasmInstance, className: string, args: any[]) {
+  instantiate(wasm: WasmInstance, className: string, args: any[]): WasmValue {
     const instance = wasm
     this.stack.push(this.createNextOrigin())
     const result = instance.staticCall(className, 'constructor', args)
     this.stack.pop()
     const jigRef = this.jigs.find(j => j.package === instance && j.ref.ptr === result.value.ptr)
     if (!jigRef) { throw new Error('jig should had been created created')}
-    this.affectedJigs.add(jigRef)
+    this.marKJigAsAffected(jigRef)
+    return {
+      ...result,
+      node: emptyTn(className),
+      value: jigRef
+    }
 
-    const ret = new ValueStatementResult(result.node, jigRef, result.mod);
-    this.statementResults.push(ret)
-    return ret
+    //
+    // const ret = new ValueStatementResult(result.node, jigRef, result.mod);
+    // this.statementResults.push(ret)
+    // return ret
   }
 
   pushToStack (newTop: Pointer) {
@@ -386,13 +389,15 @@ class TxExecution {
   instantiateByIndex(statementIndex: number, className: string, args: any[]): number {
     const statement = this.statementResults[statementIndex]
     const instance = statement.instance
-    this.instantiate(instance, className, args)
+    const wasmValue = this.instantiate(instance, className, args)
+
+    this.statementResults.push(new ValueStatementResult(wasmValue.node, wasmValue.value, wasmValue.mod))
     return this.statementResults.length - 1
   }
 
   callInstanceMethod (jig: JigRef, methodName: string, args: any[]): WasmValue {
     const methodResult = jig.package.instanceCall(jig, jig.className(), methodName, args);
-    this.affectedJigs.add(jig)
+    this.marKJigAsAffected(jig)
 
     return methodResult
   }
@@ -453,7 +458,7 @@ class TxExecution {
 
 
   createNextOrigin () {
-    return new Pointer(this.txContext.tx.hash, this.jigs.length)
+    return new Pointer(this.txContext.txHash(), this.affectedJigs.length)
   }
 
   stackTop () {
@@ -481,7 +486,7 @@ class TxExecution {
     }
     jigRef.changeLock(new UserLock(address))
     jigRef.writeField('$lock', {origin: jigRef.origin.toBytes(), ...jigRef.lock.serialize()})
-    this.affectedJigs.add(jigRef)
+    this.marKJigAsAffected(jigRef)
     this.statementResults.push(this.getStatementResult(jigIndex))
   }
 
@@ -500,16 +505,27 @@ class TxExecution {
     return this.statementResults.length - 1
   }
 
-  execLength() {
-    return this.statementResults.length
-  }
-
   markAsFunded() {
     this.funded = true
   }
 
   outputIndexFor(jigRef: JigRef): number {
     return this.jigs.findIndex(j => j === jigRef)
+  }
+
+  signedBy(addr: Address) {
+    return this.txContext.tx.isSignedBy(addr, this.execLength())
+  }
+
+  private execLength() {
+    return this.statementResults.length
+  }
+
+  private marKJigAsAffected (jig: JigRef): void {
+    const exists = this.affectedJigs.find(affetedJig => affetedJig.origin.equals(jig.origin))
+    if (!exists) {
+      this.affectedJigs.push(jig)
+    }
   }
 }
 

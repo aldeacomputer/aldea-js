@@ -26,6 +26,10 @@ export class TxContext {
     }
   }
 
+  txHash () {
+    return this.tx.hash
+  }
+
   stateByOutputId (id: Uint8Array): JigState {
     return this.states.byOutputId(id).orElse(() => {
       throw new ExecutionError(`output not present in utxo set: ${base16.encode(id)}`)
