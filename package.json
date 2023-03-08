@@ -6,13 +6,9 @@
     "lib/assemblyscript",
     "compiler",
     "create-aldea",
-    "demos-webapp",
     "docs",
-    "explorer",
     "node",
-    "sdk-demo",
     "sdk-js",
-    "splash-webapp",
     "vm"
   ],
   "scripts": {
