@@ -60,7 +60,7 @@ const buildApp = (clock) => {
   app.use(express.raw())
   app.use(cors())
 
-  app.get('/status', (req, res) => {
+  app.get('/status', (_req, res) => {
     res.send({ok: true})
   })
 
