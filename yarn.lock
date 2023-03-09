@@ -5,9 +5,9 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@aldea/compiler@^0.0.0-alpha.5, @aldea/compiler@workspace:^, @aldea/compiler@workspace:compiler":
+"@aldea/compiler@^0.0.0-alpha.5, @aldea/compiler@workspace:^, @aldea/compiler@workspace:packages/compiler":
   version: 0.0.0-use.local
-  resolution: "@aldea/compiler@workspace:compiler"
+  resolution: "@aldea/compiler@workspace:packages/compiler"
   dependencies:
     "@as-pect/cli": ^8.0.1
     "@assemblyscript/loader": 0.27.0
@@ -48,9 +48,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/node@workspace:node":
+"@aldea/node@workspace:packages/node":
   version: 0.0.0-use.local
-  resolution: "@aldea/node@workspace:node"
+  resolution: "@aldea/node@workspace:packages/node"
   dependencies:
     "@aldea/sdk-js": "workspace:^"
     "@aldea/vm": "workspace:^"
@@ -69,9 +69,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/sdk-js@workspace:^, @aldea/sdk-js@workspace:sdk-js":
+"@aldea/sdk-js@workspace:^, @aldea/sdk-js@workspace:packages/sdk-js":
   version: 0.0.0-use.local
-  resolution: "@aldea/sdk-js@workspace:sdk-js"
+  resolution: "@aldea/sdk-js@workspace:packages/sdk-js"
   dependencies:
     "@aldea/compiler": ^0.0.0-alpha.5
     "@mxssfd/typedoc-theme": ^1.0.3
@@ -94,9 +94,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/vm@workspace:^, @aldea/vm@workspace:vm":
+"@aldea/vm@workspace:^, @aldea/vm@workspace:packages/vm":
   version: 0.0.0-use.local
-  resolution: "@aldea/vm@workspace:vm"
+  resolution: "@aldea/vm@workspace:packages/vm"
   dependencies:
     "@aldea/compiler": "workspace:^"
     "@aldea/sdk-js": "workspace:^"
@@ -2431,9 +2431,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"create-aldea@workspace:create-aldea":
+"create-aldea@workspace:packages/create-aldea":
   version: 0.0.0-use.local
-  resolution: "create-aldea@workspace:create-aldea"
+  resolution: "create-aldea@workspace:packages/create-aldea"
   dependencies:
     "@types/minimist": ^1.2.2
     "@types/prompts": ^2.4.1

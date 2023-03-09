@@ -4,12 +4,8 @@
   "private": true,
   "workspaces": [
     "lib/assemblyscript",
-    "compiler",
-    "create-aldea",
     "docs",
-    "node",
-    "sdk-js",
-    "vm"
+    "packages/*"
   ],
   "scripts": {
     "build": "yarn workspaces foreach -ptv run build",
