@@ -22,7 +22,7 @@ This monorepo contains JavaScript tools and packages used by developers to build
 | [@aldea/compiler](https://github.com/aldeacomputer/aldea-js/tree/main/packages/compiler)  | ![npm](https://img.shields.io/npm/v/@aldea/compiler?label=%20) | AssemblyScript compiler            |
 | [@aldea/mocknet](https://github.com/aldeacomputer/aldea-js/tree/main/packages/mocknet)    | ![npm](https://img.shields.io/npm/v/@aldea/mocknet?label=%20)  | A mock node for development        |
 | [@aldea/sdk-js](https://github.com/aldeacomputer/aldea-js/tree/main/packages/sdk-js)      | ![npm](https://img.shields.io/npm/v/@aldea/sdk-js?label=%20)   | JavaScript development toolkit     |
-| [@aldea/vm](https://github.com/aldeacomputer/aldea-js/tree/main/packages/sdk)             | ![npm](https://img.shields.io/npm/v/@aldea/vm?label=%20)       | Aldea VM JavaScript implementation |
+| [@aldea/vm](https://github.com/aldeacomputer/aldea-js/tree/main/packages/vm)              | ![npm](https://img.shields.io/npm/v/@aldea/vm?label=%20)       | Aldea VM JavaScript implementation |
 
 ## License
 
