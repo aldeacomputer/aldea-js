@@ -15,7 +15,8 @@
   "exports": {
     ".": {
       "import": "./tsc/index.js",
-      "types": "./tsc/index.d.ts"
+      "types": "./tsc/index.d.ts",
+      "default": "./tsc/index.js"
     }
   },
   "type": "module",

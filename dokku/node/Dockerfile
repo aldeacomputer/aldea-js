@@ -1,4 +1,4 @@
-FROM node:lts
+FROM node:19-alpine as build
 
 RUN mkdir /app
 WORKDIR /app
@@ -27,5 +27,25 @@ COPY vm vm
 
 RUN yarn build
 
+
+FROM node:19-alpine
+
+RUN mkdir /app
+WORKDIR /app
+
+COPY package.json .
+COPY .yarnrc.yml .
+COPY .yarn .yarn
+COPY yarn.lock .
+
+COPY --from=build /app/compiler compiler
+COPY --from=build /app/lib lib
+COPY --from=build /app/node node
+COPY --from=build /app/sdk-js sdk-js
+COPY --from=build /app/vm vm
+
+RUN yarn workspaces focus --production
+
 WORKDIR /app/node
+RUN yarn workspaces focus --production
 CMD yarn start
