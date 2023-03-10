@@ -1,15 +1,14 @@
 {
   "name": "@aldea/docs",
   "version": "0.1.0",
-  "description": "",
+  "license": "Apache-2.0",
+  "private": true,
   "main": "index.js",
   "scripts": {
     "dev": "next",
     "start": "next start",
     "build": "next build"
   },
-  "author": "Shu Ding",
-  "license": "MIT",
   "dependencies": {
     "next": "^12.1.0",
     "nextra": "^1.1.0",

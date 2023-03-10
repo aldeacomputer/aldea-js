@@ -1,9 +1,14 @@
 {
   "name": "@aldea/mocknet",
+  "description": "A mocked blockchain environment for building on the Aldea Computer.",
   "version": "0.0.1-beta.1",
-  "description": "",
+  "license": "Apache-2.0",
+  "type": "module",
   "main": "src/index.js",
   "bin": "src/index.js",
+  "files": [
+    "src/**/*"
+  ],
   "packageManager": "yarn@3.2.3",
   "scripts": {
     "ci": "yarn test",
@@ -12,9 +17,6 @@
     "start": "node .",
     "test": "mocha"
   },
-  "author": "",
-  "license": "ISC",
-  "type": "module",
   "dependencies": {
     "@aldea/sdk-js": "workspace:^",
     "@aldea/vm": "workspace:^",

@@ -1,8 +1,17 @@
 {
   "name": "@aldea/vm",
-  "version": "0.0.1",
-  "description": "",
+  "description": "The Aldea Computer virtual machine implemented in JavaScript.",
+  "version": "0.0.1-beta.1",
+  "license": "Apache-2.0",
+  "type": "module",
   "main": "index.js",
+  "exports": {
+    ".": {
+      "import": "./tsc/index.js",
+      "types": "./tsc/index.d.ts",
+      "default": "./tsc/index.js"
+    }
+  },
   "scripts": {
     "test": "ts-mocha test/**/*.spec.ts",
     "build": "yarn clean && tsc && yarn compile",
@@ -12,17 +21,6 @@
     "fileId": "cmd/calculate-package-id.js",
     "clean": "rm -r tsc/* build/aldea/* || true"
   },
-  "exports": {
-    ".": {
-      "import": "./tsc/index.js",
-      "types": "./tsc/index.d.ts",
-      "default": "./tsc/index.js"
-    }
-  },
-  "type": "module",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "@aldea/compiler": "workspace:^",
     "@aldea/sdk-js": "workspace:^",

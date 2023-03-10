@@ -1,8 +1,9 @@
 {
   "name": "@aldea/compiler",
-  "version": "0.0.0-alpha.7",
+  "description": "Compiles AssemblyScript code into Aldea-flavoured WASM packages.",
+  "version": "0.0.1-beta.1",
+  "license": "Apache-2.0",
   "type": "module",
-  "license": "MIT",
   "bin": {
     "aldea": "bin/aldea.js"
   },
@@ -20,6 +21,7 @@
     "bin/*",
     "dist/**/*",
     "lib/**/*",
+    "src/**/*",
     "types/**/*",
     "assembly.json"
   ],

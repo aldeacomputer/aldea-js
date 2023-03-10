@@ -1,15 +1,16 @@
 {
   "name": "create-aldea",
-  "version": "0.0.1-beta.3",
+  "description": "Quickly and easily scaffold new Aldea projects.",
+  "version": "0.0.1-beta.4",
+  "license": "Apache-2.0",
   "type": "module",
-  "license": "MIT",
   "bin": "index.js",
-  "packageManager": "yarn@3.2.3",
   "files": [
     "dist/*",
     "src/*",
     "templates/**/*"
   ],
+  "packageManager": "yarn@3.2.3",
   "scripts": {
     "build": "tsc"
   },

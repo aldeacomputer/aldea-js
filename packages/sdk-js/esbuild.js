@@ -23,22 +23,6 @@ esbuild.build({
   ]
 })
 
-// This build is temporary - eventually we'll just ship typescripts built modules
-esbuild.build({
-  entryPoints: ['src/index.ts'],
-  outfile: 'dist/aldea.bundle.mjs',
-  bundle: true,
-  format: 'esm',
-  platform: 'node',
-  target: 'node16',
-  minify: false,
-  keepNames: true,
-  sourcemap: true,
-  plugins: [
-    makeAllPackagesExternalPlugin
-  ]
-})
-
 esbuild.build({
   entryPoints: ['src/index.ts'],
   outfile: 'dist/aldea.bundle.min.js',

@@ -3,7 +3,9 @@
 ![Version](https://img.shields.io/npm/v/@aldea/mocknet?style=flat-square)
 ![License](https://img.shields.io/npm/l/@aldea/mocknet?style=flat-square)
 
-The mocknet is a mocked blockchain environment for building on the Aldea Computer. There are no blocks, no consensus, just a full-featured virtual machine for validating and executing transactions and an API for fetching state from the mocked environment.
+> A mocked blockchain environment for building on the Aldea Computer
+
+No blocks, no consensus, just a full-featured virtual machine for validating and executing transactions and an API for fetching state from the mocked environment.
 
 ## Usage
 
