@@ -5,7 +5,24 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@aldea/compiler@^0.0.0-alpha.5, @aldea/compiler@workspace:^, @aldea/compiler@workspace:packages/compiler":
+"@aldea/compiler@npm:^0.0.0-alpha.5":
+  version: 0.0.0-alpha.7
+  resolution: "@aldea/compiler@npm:0.0.0-alpha.7"
+  dependencies:
+    "@noble/hashes": ^1.1.5
+    "@scure/base": ^1.1.1
+    assemblyscript: 0.27.0
+    cbor-redux: ^1.0.0-3
+    commander: ^9.4.1
+    comment-parser: ^1.3.1
+    docblock: ^0.4.5
+  bin:
+    aldea: bin/aldea.js
+  checksum: 11be7d06a1159b384fb695279ae5f7ea6d38cacebb106434f3dd380b9bfa36da4dc4f200ea3b10b8e29acbda66a27caff09b9ff6a1866ff86ce20b42fadb286d
+  languageName: node
+  linkType: hard
+
+"@aldea/compiler@workspace:^, @aldea/compiler@workspace:packages/compiler":
   version: 0.0.0-use.local
   resolution: "@aldea/compiler@workspace:packages/compiler"
   dependencies:

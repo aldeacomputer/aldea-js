@@ -8,13 +8,15 @@
     "fund": "node scripts/fund.js",
     "deploy": "node scripts/deploy.js",
     "create-fighters": "node scripts/create-fighters.js",
-    "fight": "node scripts/fight.js"
+    "fight": "node scripts/fight.js",
+    "mocknet": "npx mocknet"
   },
   "dependencies": {
-    "@aldea/compiler": "^0.0.0-alpha",
+    "@aldea/compiler": "^0.0.1-beta",
     "@aldea/sdk-js": "^0.0.1-beta"
   },
   "devDependencies": {
+    "@aldea/mocknet": "^0.0.1-beta",
     "assemblyscript": "^0.24.1",
     "dotenv": "^16.0.3",
     "kolorist": "^1.6.0",

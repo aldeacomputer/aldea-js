@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import { resolve } from 'path'
-import { Address, OpCode, Pointer, PubKey, Tx, base16 } from '../../dist/aldea.bundle.mjs'
+import { Address, OpCode, Pointer, PubKey, Tx, base16 } from '../../dist/index.js'
 
 const pagePath = resolve('test/browser/page.html')
 const pageUrl = `file://${pagePath}`

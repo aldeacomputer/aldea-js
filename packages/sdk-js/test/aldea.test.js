@@ -9,7 +9,7 @@ import {
   Pointer,
   Tx,
   base16,
-} from '../dist/aldea.bundle.mjs'
+} from '../dist/index.js'
 
 test('Builds a tx with every opcode and encodes/decodes consistently', async t => {
   const aldea = new Aldea('http://localhost')

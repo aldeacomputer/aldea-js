@@ -1,5 +1,7 @@
 # Aldea JS
 
+![GitHub](https://img.shields.io/github/license/aldeacomputer/aldea-js?style=flat-square)
+
 > Build the future with programmable digital objects
 
 The [Aldea Computer](https://aldea.computer) is a new Layer-1 blockchain built for the metaverse.

@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { KeyPair, base16, ed25519 } from './../dist/aldea.bundle.mjs'
+import { KeyPair, base16, ed25519 } from './../dist/index.js'
 
 function vectorgen(i) {
   const keys = KeyPair.fromRandom()

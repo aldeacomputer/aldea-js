@@ -5,7 +5,7 @@ import {
   ed25519,
   PrivKey,
   PubKey
-} from '../../dist/aldea.bundle.mjs'
+} from '../../dist/index.js'
 
 const file = fs.readFileSync('./test/vectors/ed25519-b3.txt')
 const vectors = file.toString().trim().split('\n').map(line => line.split(':'))
