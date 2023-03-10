@@ -48,9 +48,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/node@workspace:packages/node":
+"@aldea/mocknet@workspace:packages/mocknet":
   version: 0.0.0-use.local
-  resolution: "@aldea/node@workspace:packages/node"
+  resolution: "@aldea/mocknet@workspace:packages/mocknet"
   dependencies:
     "@aldea/sdk-js": "workspace:^"
     "@aldea/vm": "workspace:^"
