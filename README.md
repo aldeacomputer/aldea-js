@@ -14,6 +14,8 @@ This monorepo contains JavaScript tools and packages used by developers to build
 
 [Read the Docs to learn more](https://docs.aldea.computer/).
 
+**🚨 Warning**: Aldea is in early development. We are interating heavily on the design and function of the blockchain and expect frequent breaking changes. This software is not ready for general use.
+
 ## Packages
 
 | Package                                                                                   | Version                                                                          | Description                        |
