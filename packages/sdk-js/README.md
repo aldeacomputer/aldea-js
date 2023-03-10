@@ -1,10 +1,11 @@
-# Aldea SDK (JavaScript)
+# Aldea JavaScript SDK
 
-Aldea is a new layer 1 blockchain that offers developers of decentralized apps, games, and services an unparalleled experience on a platform designed for global scale.
+![Version](https://img.shields.io/npm/v/@aldea/sdk-js?style=flat-square)
+![License](https://img.shields.io/npm/l/@aldea/sdk-js?style=flat-square)
+
+> A Swiss Army knife for Aldea app developers.
 
 The Aldea JavaScript SDK provides utility classes and functions for working with Aldea data types, creating and managing keys, building and signing transactions, and interfacing with an Aldea node.
-
-**Warning**: Aldea is an early development. We are interating heavily on the design and function of the blockchain and expect frequent breaking changes. This software is not ready for general use.
 
 ## Installation
 
@@ -61,3 +62,8 @@ const tx = await aldea.createTx(tx => {
 const txRes = await aldea.commitTx(tx)
 ```
 
+## License
+
+Aldea is open source and released under the [Apache-2 License](https://github.com/aldeacomputer/aldea-js/blob/main/packages/sdk-js/LICENSE).
+
+© Copyright 2023 TODO, inc.
