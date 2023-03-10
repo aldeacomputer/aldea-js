@@ -66,6 +66,8 @@ __metadata:
     nodemon: ^2.0.20
     standard: ^17.0.0
     supertest: ^6.3.2
+  bin:
+    mocknet: src/index.js
   languageName: unknown
   linkType: soft
 

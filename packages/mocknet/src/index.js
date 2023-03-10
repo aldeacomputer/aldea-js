@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { buildApp } from './server.js'
 import {MomentClock} from "@aldea/vm";
 
