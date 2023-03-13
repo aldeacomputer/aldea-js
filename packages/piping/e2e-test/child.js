@@ -6,7 +6,3 @@ server.start()
 server.reactTo('ping', (msg) => {
   return Buffer.from(`pong!, ${msg.body.toString()}`)
 })
-
-// const pong = await client.sendWithResponse('ping', Buffer.from('ping'))
-//
-// console.log('response:', pong)

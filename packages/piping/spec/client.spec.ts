@@ -32,6 +32,7 @@ describe('client', () => {
       read() {}
     })
     const server = new PipeServer(input, output)
+    server.start()
 
 
     const client = new Client(output)

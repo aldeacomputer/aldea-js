@@ -159,16 +159,7 @@ describe('PipeServer', () => {
 
   describe('#reactTo', () => {
     it('receives the right message on the callback', async () => {
-      const input = new Stream.Readable()
-      const received: Buffer[] = []
-      const output = new Stream.Writable({
-        write: function(chunk, encoding, next) {
-          received.push(chunk)
-          next()
-        }
-      });
-      input._read = () => {}
-      const server = new PipeServer(input, output)
+      const {server, input, chunks} = buildServer()
       const body = Buffer.from("somedata");
 
       server.reactTo('foo', async (msg) => {
@@ -180,20 +171,11 @@ describe('PipeServer', () => {
       input.push(buildMessage('foo', body))
       await finish(server, input)
 
-      expect(received).to.have.length(1)
+      expect(chunks).to.have.length(1)
     })
 
     it('sends back a response with the same id and propper topic', async () => {
-      const input = new Stream.Readable()
-      const received: Buffer[] = []
-      const output = new Stream.Writable({
-        write: function(chunk, encoding, next) {
-          received.push(chunk)
-          next()
-        }
-      });
-      input._read = () => {}
-      const server = new PipeServer(input, output)
+      const { server, input, chunks} = buildServer()
       const body = Buffer.from("somedata");
 
       const response = Buffer.from('bar');
@@ -204,8 +186,8 @@ describe('PipeServer', () => {
       input.push(buildMessage('foo', body, 10))
       await finish(server, input)
 
-      expect(received).to.have.length(1)
-      const msg = Message.parse(received[0])
+      expect(chunks).to.have.length(1)
+      const msg = Message.parse(chunks[0])
 
       expect(msg.id).to.eql(10)
       expect(msg.name).to.eql('_response')
