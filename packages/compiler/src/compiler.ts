@@ -23,9 +23,9 @@ const baseOpts = [
 
 export interface CompiledOutput {
   abi: Uint8Array;
+  docs?: string;
   wasm: Uint8Array;
   wat?: string;
-  ['docs.json']: string;
 }
 
 export interface CompilerResult {
@@ -152,7 +152,7 @@ export async function compile(entry: string | string[], src?: CodeBundle): Promi
   function writeFile(filename: string, content: string | Uint8Array): void {
     if (filename === 'abi.json') { return }
     if (filename === 'abi.cbor') { filename = 'abi' }
-    if (filename === 'docs.cbor') { filename = 'docs' }
+    if (filename === 'docs.json') { filename = 'docs' }
     // @ts-ignore
     output[filename] = content
   }

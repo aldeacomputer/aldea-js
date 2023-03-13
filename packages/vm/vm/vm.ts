@@ -67,7 +67,7 @@ export class VM implements PkgRepository {
 
     return new PkgData(
       abiFromCbor(result.output.abi.buffer),
-      Buffer.from(result.output['docs.json']),
+      Buffer.from(result.output.docs || ''),
       entries,
       id,
       new WebAssembly.Module(result.output.wasm),
