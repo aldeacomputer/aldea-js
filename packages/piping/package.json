@@ -1,0 +1,12 @@
+{
+  "name": "@aldea/piping",
+  "version": "0.0.1-beta.0",
+  "packageManager": "yarn@3.2.3",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
+    "typescript": "^4.8.4"
+  }
+}
