@@ -1,7 +1,7 @@
 import {expect} from 'chai'
-import {PipeServer} from "../src/index.js";
 import {Readable, Stream} from 'stream'
-import {Message} from "../src/message.js";
+import {Message} from '../src/message.js';
+import {PipeServer} from '../src/index.js';
 
 
 describe('PipeServer', () => {
@@ -9,29 +9,41 @@ describe('PipeServer', () => {
     return new Message(eventName, body, id).serialize()
   }
 
-  const output = new Stream.Writable({
-    write: function(chunk, encoding, next) {
-      next()
-    }
-  })
+
+
+  function buildServer() {
+    const chunks: Buffer[] = []
+    const output = new Stream.Writable({
+      write: function(chunk, encoding, next) {
+        chunks.push(chunk)
+        next()
+      }
+    })
+    const input = new Stream.Readable()
+    input._read = () => {}
+    const server = new PipeServer(input, output);
+    server.start()
+    return {
+      server: server,
+      input,
+      output,
+      chunks
+    };
+  }
 
   it('executes callbacks when a message arrives', async () => {
-    const readableStream = new Stream.Readable()
-    readableStream._read = () => {}
-    const server = new PipeServer(readableStream, output)
+    const { server, input } = buildServer()
     const body = Buffer.from('bar')
     const promise = new Promise(resolve => server.listen('foo', async (a) =>
       resolve(a)
     ))
 
-    readableStream.push(buildMessage("foo", body))
+    input.push(buildMessage("foo", body))
     await promise
   })
 
   it('sends message as data', async () => {
-    const readableStream = new Stream.Readable()
-    readableStream._read = () => {}
-    const server = new PipeServer(readableStream, output)
+    const {server, input} = buildServer()
     const body = Buffer.from("somedata");
 
     const promise = new Promise(resolve => server.listen('foo', async (msg) =>{
@@ -40,14 +52,12 @@ describe('PipeServer', () => {
         resolve(null)
     }))
 
-    readableStream.push(buildMessage("foo", body))
+    input.push(buildMessage("foo", body))
     await promise
   })
 
   it('can receive 2 messages in the same data event', async () => {
-    const readableStream = new Stream.Readable()
-    readableStream._read = () => {}
-    const server = new PipeServer(readableStream, output)
+    const {server, input} = buildServer()
     const body1 = Buffer.from("somedata1");
     const body2 = Buffer.from("somedata2");
 
@@ -63,7 +73,7 @@ describe('PipeServer', () => {
       resolve(null)
     }))
 
-    readableStream.push(
+    input.push(
       Buffer.concat([
         buildMessage("foo1", body1),
         buildMessage("foo2", body2)
@@ -73,9 +83,7 @@ describe('PipeServer', () => {
   })
 
   it('receives messages in order', async () => {
-    const readableStream = new Stream.Readable()
-    readableStream._read = () => {}
-    const server = new PipeServer(readableStream, output)
+    const {server, input} = buildServer()
     const body1 = Buffer.from("somedata1");
     const body2 = Buffer.from("somedata2");
     const body3 = Buffer.from("somedata3");
@@ -95,9 +103,9 @@ describe('PipeServer', () => {
       resolve(null)
     }))
 
-    readableStream.push(buildMessage('foo1', body1))
-    readableStream.push(buildMessage('foo2', body2))
-    readableStream.push(buildMessage('foo3', body3))
+    input.push(buildMessage('foo1', body1))
+    input.push(buildMessage('foo2', body2))
+    input.push(buildMessage('foo3', body3))
     await promise
     expect(messages.map(m => m.name)).to.eql(['foo1', 'foo2', 'foo3'])
     expect(messages.map(m => m.body.toString())).to.eql(['somedata1', 'somedata2', 'somedata3'])
@@ -113,9 +121,7 @@ describe('PipeServer', () => {
   }
 
   it('can receive a message in 2 halves', async () => {
-    const stream = new Stream.Readable()
-    stream._read = () => {}
-    const server = new PipeServer(stream, output)
+    const {server, input} = buildServer()
     const body1 = Buffer.from("somedata");
 
     let count = 0
@@ -126,16 +132,14 @@ describe('PipeServer', () => {
     })
 
     const data = buildMessage('foo', body1);
-    await stream.push(data.subarray(0, 10))
-    await stream.push(data.subarray(10))
-    await finish(server, stream)
+    await input.push(data.subarray(0, 10))
+    await input.push(data.subarray(10))
+    await finish(server, input)
     expect(count).to.eql(1)
   })
 
   it('can receive a message in really tiny chunks', async () => {
-    const stream = new Stream.Readable()
-    stream._read = () => {}
-    const server = new PipeServer(stream, output)
+    const {server, input} = buildServer()
     const body1 = Buffer.from("somedata");
 
     let count = 0
@@ -147,9 +151,9 @@ describe('PipeServer', () => {
 
     const data = buildMessage('foo', body1);
     for (const byte of Array.from(data)) {
-      stream.push(Buffer.from([byte]))
+      input.push(Buffer.from([byte]))
     }
-    await finish(server, stream)
+    await finish(server, input)
     expect(count).to.eql(1)
   })
 
@@ -210,9 +214,7 @@ describe('PipeServer', () => {
   });
 
   it('can execute multiple times', async () => {
-    const readableStream = new Stream.Readable()
-    readableStream._read = () => {}
-    const server = new PipeServer(readableStream, output)
+    const {server, input} = buildServer()
     const messages: Message[] = []
 
     const promise = new Promise(resolve => {
@@ -225,18 +227,16 @@ describe('PipeServer', () => {
     })
 
 
-    readableStream.push(buildMessage("foo", Buffer.from("")))
-    readableStream.push(buildMessage("foo", Buffer.from("")))
-    readableStream.push(buildMessage("foo", Buffer.from("")))
+    input.push(buildMessage("foo", Buffer.from("")))
+    input.push(buildMessage("foo", Buffer.from("")))
+    input.push(buildMessage("foo", Buffer.from("")))
 
     await promise
     expect(messages).to.have.length(3)
   })
 
   it('can execute different events', async () => {
-    const readableStream = new Stream.Readable()
-    readableStream._read = () => {}
-    const server = new PipeServer(readableStream, output)
+    const {server, input} = buildServer()
     const messages: Message[] = []
 
     const eventNames = ['foo', 'foo2', 'foo3'];
@@ -251,7 +251,7 @@ describe('PipeServer', () => {
 
 
     eventNames.forEach(eventName =>
-      readableStream.push(buildMessage(eventName, Buffer.from("")))
+      input.push(buildMessage(eventName, Buffer.from("")))
     )
 
     await Promise.all(promises)
