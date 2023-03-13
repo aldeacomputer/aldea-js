@@ -4,6 +4,12 @@
   "packageManager": "yarn@3.2.3",
   "license": "MIT",
   "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
   "devDependencies": {
     "chai": "^4.3.7",
     "mocha": "^10.2.0",

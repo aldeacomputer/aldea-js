@@ -1,4 +1,5 @@
 import {StreamReader} from "./stream-reader.js";
+import {ALDEA_STR} from "./constants.js";
 
 export class Message {
   name: string
@@ -20,7 +21,7 @@ export class Message {
     const id = Buffer.alloc(4)
     id.writeUInt32LE(this.id)
     return Buffer.concat([
-      Buffer.from('aldea'),
+      Buffer.from(ALDEA_STR),
       nameLength,
       bodyLength,
       id,

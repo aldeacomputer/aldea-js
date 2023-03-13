@@ -1,6 +1,7 @@
 import {Writable} from "stream";
 import {Message} from "./message.js";
 import {PipeServer} from "./pipe-server.js";
+import {RESPONSE_EVENT} from "./constants.js";
 
 type Pending = {
   resolve: (m: Buffer) => void,
@@ -21,7 +22,7 @@ export class Client {
 
   link (server: PipeServer): void {
     this.server = server
-    this.server.listen('_response', async (msg) => {
+    this.server.listen(RESPONSE_EVENT, async (msg) => {
       const callback = this.pending.get(msg.id)
       if (!callback) {
         return
