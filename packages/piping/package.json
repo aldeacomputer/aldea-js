@@ -9,7 +9,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": ""
+    "test": "mocha",
+    "ci": "yarn test"
   },
   "devDependencies": {
     "chai": "^4.3.7",
