@@ -1,17 +1,42 @@
 import {StreamReader} from "./stream-reader.js";
 import {ALDEA_STR} from "./constants.js";
 
+/**
+ * Message used to communicate between server and client.
+ * The message has 3 attributes:
+ * - name: Used to link messages and handlers.
+ * - body: A plain buffer with the content of the message.
+ * - id: A 32 bit unsigned int used to identify a particular message.
+ *
+ * The message can be serialized as an array of bytes with the following format:
+ *
+ * - protocol identifier: the word `aldea` in ascii. 5 bytes.
+ * - the length of the name of the event. 4 bytes.
+ * - the length of the body.4 bytes.
+ * - the id. 4 bytes.
+ * - the name of the event
+ * - the body of the event.
+ */
 export class Message {
   name: string
   body: Buffer
   id: number;
 
+  /**
+   * Builds a nes message with the desired data.
+   * @param name
+   * @param body
+   * @param id
+   */
   constructor(name: string, body: Buffer, id: number) {
     this.name = name
     this.body = body
     this.id = id
   }
 
+  /**
+   * Serializes the current message into a buffer.
+   */
   serialize(): Buffer {
     const nameBuff = Buffer.from(this.name)
     const nameLength = Buffer.alloc(4)
@@ -31,6 +56,10 @@ export class Message {
   }
 
 
+  /**
+   * Creates a message from its serialized version.
+   * @param buff
+   */
   static parse(buff: Buffer): Message {
     buff = buff.subarray(5)
     const nameLength = buff.readUint32LE()
@@ -41,6 +70,12 @@ export class Message {
     return new Message(name, body, id)
   }
 
+  /**
+   * Extracts an aldea message from a string reader. After this method
+   * called the stream mutates (the message was already read). The returned object
+   * is the parsed messsage.
+   * @param reader
+   */
   static async fromReader(reader: StreamReader): Promise<Message> {
     const aldea = await reader.take(5)
     if (aldea.toString() !== 'aldea') {

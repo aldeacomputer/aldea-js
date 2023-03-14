@@ -6,8 +6,8 @@ This library implements a simple protocol to make 2 processes interact through s
 
 ```js
 // parent.js
-import {PipeServer} from '../dist/index.js'
-import {spawn} from 'child_process'
+import { PipeServer } from '@aldea/pipping' 
+import spawn from 'child_process'
 
 const childProcess = spawn('node', ['./child.js'])
 
@@ -22,14 +22,15 @@ console.log(`Response recieved: ${pong}`)
 
 ```js
 // child.js
-import {PipeServer} from '../dist/index.js'
+import {PipeServer} from '@aldea/pipping'
 
 const server = new PipeServer(process.stdin, process.stdout)
-server.start()
 
 server.reactTo('ping', (msg) => {
-  return Buffer.from(`pong!, ${msg.body.toString()}`)
+    return Buffer.from(`pong!, ${msg.body.toString()}`)
 })
+
+server.start()
 ```
 
 Both, the parent and the child need to craete a server object. Because it's needed to receive
@@ -39,7 +40,7 @@ responses from the othe side of the communication.
 
 The protocol is simple. Each event has an id, a name and a body. All of that gets encoded in the following way:
 
-- protocol identifer: the word `aldea` in ascii. 5 bytes.
+- protocol identifier: the word `aldea` in ascii. 5 bytes.
 - the length of the name of the event. 4 bytes.
 - the length of the body.4 bytes.
 - the id. 4 bytes.

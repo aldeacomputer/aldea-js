@@ -7,6 +7,15 @@ import {ALDEA_STR, RESPONSE_EVENT} from "./constants.js";
 type EventCallback = (event: Message) => Promise<void>
 type ReactCallback = (event: Message) => Promise<Buffer>
 
+/**
+ * Server used to receive aldea messages from a readable stream.
+ * It needs a readable stram to receive messages and a writable stream
+ * to send responses.
+ *
+ * The server ensures that messages received are processed in order.
+ *
+ * The server ignores data received between messages.
+ */
 export class PipeServer {
   private input: Readable;
   private output: Writable
@@ -16,6 +25,12 @@ export class PipeServer {
   private _onDataHandler: ((b: Buffer) => Promise<void>) | null
   private ownClient: Client
 
+  /**
+   * Creates a new instance. The new instance is not listening to new messages.
+   *
+   * @param input stream where incoming messages are going to be received.
+   * @param output stream where responses are going to be sent.
+   */
   constructor(input: Readable, output: Writable) {
     this.input = input
     this.output = output
@@ -27,10 +42,11 @@ export class PipeServer {
     this.ownClient.link(this)
   }
 
-  get client () {
-    return this.ownClient
-  }
-
+  /**
+   * Starts the message listening. After this method is called
+   * the server starts to listen to messages. A good idea to avoid
+   * loose messages define the handlers before calling start.
+   */
   start () {
     this._onDataHandler = async (data: Buffer): Promise<void> => {
       await this.onData(data)
@@ -38,6 +54,16 @@ export class PipeServer {
     this.input.on('data', this._onDataHandler)
   }
 
+  /**
+   * Returns a client already linked with the current server, using the server's output.
+   */
+  get client () {
+    return this.ownClient
+  }
+
+  /**
+   * Steps the server. The method returns after finishing to process all pending messages.
+   */
   async stop () {
     if (!this._onDataHandler) {
       return
@@ -48,10 +74,21 @@ export class PipeServer {
   }
 
 
+  /**
+   * Makes the server listen to a message withouth sending a response.
+   * @param name Name of the event. Selects which messages are going to be handled.
+   * @param callback Code to execute when a message of the desired type arrives
+   */
   listen(name: string, callback: EventCallback): void {
     this.callbacks.set(name, callback)
   }
 
+  /**
+   * Listens to a specific type of message. When that type of message arrives the callback is executed, and
+   * the result of the callback is sent back as response.
+   * @param name
+   * @param callback
+   */
   reactTo(name: string, callback: ReactCallback): void {
     this.listen(name, async (msg) => {
       const chunk = await callback(msg);
