@@ -85,7 +85,7 @@ class TxExecution {
     this.wasms = new Map()
     this.jigs = []
     this.statementResults = []
-    result.finish(this.txContext.clock)
+    result.finish(this.txContext.now())
     return result
   }
 

@@ -16,7 +16,7 @@ import {encodeSequence} from "./cbor.js";
 import {ExecutionResult} from "./execution-result.js";
 import {PkgRepository} from "./state-interfaces.js";
 import {Clock} from "./clock.js";
-import {TxContext} from "./tx-context/tx-context.js";
+import {StorageTxContext} from "./tx-context/storage-tx-context.js";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -39,7 +39,7 @@ export class VM implements PkgRepository {
   }
 
   async execTx(tx: Tx): Promise<ExecutionResult> {
-    const context = new TxContext(tx, this.storage, this, this.clock)
+    const context = new StorageTxContext(tx, this.storage, this, this.clock)
     const currentExecution = new TxExecution(context)
     const result = await currentExecution.run()
     this.storage.persist(result)
