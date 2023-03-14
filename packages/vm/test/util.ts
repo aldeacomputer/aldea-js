@@ -1,6 +1,6 @@
 import {Storage, VM} from "../vm/index.js";
 import {instructions, PrivKey, Tx} from "@aldea/sdk-js";
-import {TxContext} from "../vm/tx-context.js";
+import {TxContext} from "../vm/tx-context/tx-context.js";
 import {TxExecution} from "../vm/tx-execution.js";
 
 export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () => VM) => (privKeys: PrivKey[] = []) => {

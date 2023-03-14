@@ -21,7 +21,7 @@ import {
   ValueStatementResult,
   WasmStatementResult
 } from "./statement-result.js";
-import {TxContext} from "./tx-context.js";
+import {TxContext} from "./tx-context/tx-context.js";
 import {PkgData} from "./storage.js";
 
 class TxExecution {

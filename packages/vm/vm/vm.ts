@@ -16,7 +16,7 @@ import {encodeSequence} from "./cbor.js";
 import {ExecutionResult} from "./execution-result.js";
 import {PkgRepository} from "./state-interfaces.js";
 import {Clock} from "./clock.js";
-import {TxContext} from "./tx-context.js";
+import {TxContext} from "./tx-context/tx-context.js";
 
 const __dir = fileURLToPath(import.meta.url)
 
