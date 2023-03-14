@@ -40,7 +40,7 @@ responses from the othe side of the communication.
 
 The protocol is simple. Each event has an id, a name and a body. All of that gets encoded in the following way:
 
-- protocol identifer: the word `aldea` in ascii. 5 bytes.
+- protocol identifier: the word `aldea` in ascii. 5 bytes.
 - the length of the name of the event. 4 bytes.
 - the length of the body.4 bytes.
 - the id. 4 bytes.
