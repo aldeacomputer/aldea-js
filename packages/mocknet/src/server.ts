@@ -12,11 +12,13 @@ import { CompileError } from "@aldea/compiler"
 import { VM, Storage, Clock,  } from "@aldea/vm"
 import { JigState } from '@aldea/vm/jig-state'
 import { ExecutionResult } from '@aldea/vm/execution-result'
-import { Address, base16, Pointer, Tx } from "@aldea/sdk-js"
+import { Address, base16, Pointer, Tx, instructions } from "@aldea/sdk-js"
 import { buildVm } from "./build-vm.js"
 import { HttpNotFound } from "./errors.js"
 import { logStream, logger } from './globals.js'
 import { createNode } from './p2p/node.js'
+
+const { LoadInstruction, CallInstruction, LockInstruction, SignInstruction, FundInstruction } = instructions
 
 export interface iApp {
   app: Express;
@@ -26,7 +28,7 @@ export interface iApp {
 }
 
 export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Promise<iApp> {
-  const { vm, storage } = buildVm(clock)
+  const { vm, storage, minterPriv, coinOrigin } = buildVm(clock)
   const p2p: Libp2p | undefined = argv.p2p ? await createNode(argv) : undefined
 
   const serializeJigState = (jigState: JigState) => {
@@ -142,8 +144,22 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
 
   app.post('/mint', asyncHandler(async (req, res) => {
     const { address, amount } = req.body
-    const state = vm.mint(Address.fromString(address), amount)
-    res.status(200).json(serializeJigState(state))
+    const coinLocation = storage.tipFor(coinOrigin)
+    const tx = new Tx()
+    tx.push(new LoadInstruction(coinLocation))
+    tx.push(new CallInstruction(0, 1, [amount]))
+    tx.push(new CallInstruction(0, 1, [200]))
+    tx.push(new FundInstruction(2))
+    tx.push(new LockInstruction(1, Address.fromString(address).hash))
+    tx.push(new SignInstruction(tx.createSignature(minterPriv), minterPriv.toPubKey().toBytes()))
+
+    const result = await vm.execTx(tx)
+
+    const coinOutput = result.outputs[1]
+    if (!coinOutput) {
+      throw new Error('coin output should exist')
+    }
+    res.status(200).json(serializeJigState(coinOutput))
   }))
 
   app.get('/package/:packageId/abi.:format', (req, res) => {
