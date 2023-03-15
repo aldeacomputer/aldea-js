@@ -5,6 +5,8 @@ import {emptyExecFactoryFactory} from "./util.js";
 import {TxExecution} from "../vm/tx-execution.js";
 import {ExtendedTx} from "../vm/tx-context/extended-tx.js";
 import {ExTxExecContext} from "../vm/tx-context/ex-tx-exec-context.js";
+import {expect} from "chai";
+import {SignInstruction} from "@aldea/sdk-js/instructions/index";
 
 describe('exec from inputs', () => {
   let vm: VM
@@ -37,7 +39,7 @@ describe('exec from inputs', () => {
     })
   })
 
-  const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
+  const emptyExec = emptyExecFactoryFactory(() => vm['storage'], () => vm)
 
   let exec: TxExecution
   beforeEach(() => {
@@ -48,8 +50,17 @@ describe('exec from inputs', () => {
   it('can execute a tx that depends only on a output id input', () => {
     const coin = vm.mint(userAddr, 1000)
     const tx = new Tx()
+    tx.push(new SignInstruction(tx.createSignature(userPriv), userPub.toBytes()))
     const extx = new ExtendedTx(tx, [coin]);
     const context = new ExTxExecContext(extx, clock, vm, vm)
     const exec = new TxExecution(context)
+
+    const jigIndex = exec.loadJigByOutputId(coin.id())
+    const newCoinIndex = exec.callInstanceMethodByIndex(jigIndex, 'send', [200])
+    exec.fundByIndex(newCoinIndex)
+    const result = exec.finalize()
+
+    expect(result.outputs).to.have.length(2)
   })
+
 })
