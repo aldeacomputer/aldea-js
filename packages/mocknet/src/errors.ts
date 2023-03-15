@@ -1,6 +1,5 @@
 export class HttpNotFound extends Error {
-  constructor (msg, data) {
+  constructor (msg: string, public data: any) {
     super(msg)
-    this.data = data
   }
 }

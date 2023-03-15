@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { buildApp } from './server.js'
-import {MomentClock} from "@aldea/vm";
+import { MomentClock } from "@aldea/vm";
 
 const port = process.env.PORT || 4000
 

@@ -1,8 +1,8 @@
 import { expect } from "chai"
 import request from 'supertest'
-import { buildApp } from "../src/server.js"
 import {Pointer, base16, Tx, PrivKey, instructions, ed25519, Address} from "@aldea/sdk-js"
 import { StubClock } from "@aldea/vm"
+import { buildApp } from "../dist/server.js"
 
 const {
   ImportInstruction,

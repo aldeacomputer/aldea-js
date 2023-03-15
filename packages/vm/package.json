@@ -8,8 +8,15 @@
   "exports": {
     ".": {
       "import": "./tsc/index.js",
+      "require": "./tsc/index.js",
       "types": "./tsc/index.d.ts",
       "default": "./tsc/index.js"
+    },
+    "./*": {
+      "import": "./tsc/*.js",
+      "require": "./tsc/*.js",
+      "types": "./tsc/*.d.ts",
+      "default": "./tsc/*.js"
     }
   },
   "scripts": {

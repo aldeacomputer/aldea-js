@@ -1,22 +1,29 @@
 import express from 'express'
+import { Express, Request, Response, NextFunction } from 'express'
 import cors from 'cors'
 import statuses from 'http-status'
-
+import morgan from 'morgan'
+import asyncHandler from 'express-async-handler'
+import { CBOR, Sequence } from "cbor-redux"
+import { abiToCbor, abiToJson } from "@aldea/compiler/abi"
+import { CompileError } from "@aldea/compiler"
+import { VM, Storage, Clock,  } from "@aldea/vm"
+import { JigState } from '@aldea/vm/jig-state'
+import { ExecutionResult } from '@aldea/vm/execution-result'
+import { Address, base16, Pointer, Tx } from "@aldea/sdk-js"
 import { buildVm } from "./build-vm.js"
 import { HttpNotFound } from "./errors.js"
-import { Tx } from '@aldea/sdk-js'
-import asyncHandler from 'express-async-handler'
-import { Address, base16 } from "@aldea/sdk-js"
-import { abiToCbor, abiToJson } from "@aldea/compiler/abi"
-import { CBOR, Sequence } from "cbor-redux"
-import { Pointer } from "@aldea/sdk-js"
-import { CompileError } from "@aldea/compiler"
-import morgan from 'morgan'
 
-const buildApp = (clock) => {
+export interface iApp {
+  app: Express;
+  storage: Storage;
+  vm: VM;
+}
+
+export function buildApp(clock: Clock): iApp {
   const { vm, storage } = buildVm(clock)
 
-  const serializeJigState = (jigState) => {
+  const serializeJigState = (jigState: JigState) => {
     const lock = jigState.serializedLock
     return {
       id: base16.encode(jigState.id()),
@@ -32,7 +39,7 @@ const buildApp = (clock) => {
     }
   }
 
-  const serializeExecResult = (txExec) => {
+  const serializeExecResult = (txExec: ExecutionResult) => {
     return {
       id: txExec.tx.id,
       rawtx: txExec.tx.toHex(),
@@ -180,7 +187,7 @@ const buildApp = (clock) => {
     res.send(JSON.parse(Buffer.from(data.docs).toString()))
   })
 
-  app.use((err, req, res, _next) => {
+  app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof HttpNotFound) {
       res.status(statuses.NOT_FOUND)
       res.send({
@@ -208,6 +215,3 @@ const buildApp = (clock) => {
   })
   return { app, vm, storage }
 }
-
-
-export { buildApp }
