@@ -20,8 +20,6 @@ export interface TxContext {
   getWasmInstance (pkg: PkgData): WasmInstance
   get tx (): Tx
 
-  hash (): Uint8Array
-
   now (): moment.Moment
 }
 

@@ -17,6 +17,8 @@ import {ExecutionResult} from "./execution-result.js";
 import {PkgRepository} from "./state-interfaces.js";
 import {Clock} from "./clock.js";
 import {StorageTxContext} from "./tx-context/storage-tx-context.js";
+import {ExtendedTx} from "./tx-context/extended-tx.js";
+import {ExTxExecContext} from "./tx-context/ex-tx-exec-context.js";
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -40,6 +42,14 @@ export class VM implements PkgRepository {
 
   async execTx(tx: Tx): Promise<ExecutionResult> {
     const context = new StorageTxContext(tx, this.storage, this, this.clock)
+    const currentExecution = new TxExecution(context)
+    const result = await currentExecution.run()
+    this.storage.persist(result)
+    return result
+  }
+
+  async execTxFromInputs(exTx: ExtendedTx) {
+    const context = new ExTxExecContext(exTx, this.clock, this, this)
     const currentExecution = new TxExecution(context)
     const result = await currentExecution.run()
     this.storage.persist(result)
