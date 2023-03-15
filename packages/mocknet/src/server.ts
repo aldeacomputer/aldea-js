@@ -1,10 +1,12 @@
 import express from 'express'
 import { Express, Request, Response, NextFunction } from 'express'
+import { ParsedArgs } from 'minimist'
 import cors from 'cors'
 import statuses from 'http-status'
 import morgan from 'morgan'
 import asyncHandler from 'express-async-handler'
 import { CBOR, Sequence } from "cbor-redux"
+import { Libp2p } from 'libp2p'
 import { abiToCbor, abiToJson } from "@aldea/compiler/abi"
 import { CompileError } from "@aldea/compiler"
 import { VM, Storage, Clock,  } from "@aldea/vm"
@@ -13,15 +15,19 @@ import { ExecutionResult } from '@aldea/vm/execution-result'
 import { Address, base16, Pointer, Tx } from "@aldea/sdk-js"
 import { buildVm } from "./build-vm.js"
 import { HttpNotFound } from "./errors.js"
+import { logStream, logger } from './globals.js'
+import { createNode } from './p2p/node.js'
 
 export interface iApp {
   app: Express;
+  p2p?: Libp2p;
   storage: Storage;
   vm: VM;
 }
 
-export function buildApp(clock: Clock): iApp {
+export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Promise<iApp> {
   const { vm, storage } = buildVm(clock)
+  const p2p: Libp2p | undefined = argv.p2p ? await createNode(argv) : undefined
 
   const serializeJigState = (jigState: JigState) => {
     const lock = jigState.serializedLock
@@ -62,7 +68,7 @@ export function buildApp(clock: Clock): iApp {
 
   const app = express()
 
-  app.use(morgan('tiny'))
+  app.use(morgan('tiny', { stream: logStream }))
   app.use(express.json())
   app.use(express.raw())
   app.use(cors())
@@ -74,6 +80,7 @@ export function buildApp(clock: Clock): iApp {
   app.post('/tx', asyncHandler(async (req, res) => {
     const tx = Tx.fromBytes(new Uint8Array(req.body))
     const txResult = await vm.execTx(tx)
+    emitTx(tx)
     res.send(serializeExecResult(txResult))
   }))
 
@@ -205,7 +212,7 @@ export function buildApp(clock: Clock): iApp {
         }
       })
     } else {
-      console.log(err)
+      logger.error(err)
       res.status(statuses.BAD_REQUEST)
       res.send({
         message: err.message,
@@ -213,5 +220,24 @@ export function buildApp(clock: Clock): iApp {
       })
     }
   })
-  return { app, vm, storage }
+
+  function emitTx(tx: Tx): void {
+    if (p2p?.isStarted()) {
+      logger.info('⬆️ Outbound TX: %s', tx.id)
+      p2p.pubsub.publish('tx', tx.toBytes())
+    }
+  }
+
+  if (p2p) {
+    p2p.pubsub.subscribe('tx')
+    p2p.pubsub.addEventListener('message', async e => {
+      if (e.detail.topic === 'tx') {
+        const tx = Tx.fromBytes(e.detail.data)
+        const txResult = await vm.execTx(tx)
+        logger.info('⬇️ Inbound TX: %s', txResult.tx.id)
+      }
+    })
+  }
+
+  return { app, p2p, storage, vm }
 }
