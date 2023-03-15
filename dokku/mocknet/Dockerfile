@@ -41,8 +41,7 @@ COPY yarn.lock .
 COPY --from=build /app/packages /app/packages
 COPY --from=build /app/lib lib
 
-RUN yarn workspaces focus --production
-
 WORKDIR /app/packages/mocknet
 RUN yarn workspaces focus --production
-CMD yarn start
+RUN chmod +x startup.sh
+ENTRYPOINT [ "./startup.sh" ]
