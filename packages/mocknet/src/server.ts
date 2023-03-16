@@ -154,6 +154,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     tx.push(new SignInstruction(tx.createSignature(minterPriv), minterPriv.toPubKey().toBytes()))
 
     const result = await vm.execTx(tx)
+    emitTx(tx)
 
     const coinOutput = result.outputs[1]
     if (!coinOutput) {
@@ -248,9 +249,13 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     p2p.pubsub.subscribe('tx')
     p2p.pubsub.addEventListener('message', async e => {
       if (e.detail.topic === 'tx') {
-        const tx = Tx.fromBytes(e.detail.data)
-        const txResult = await vm.execTx(tx)
-        logger.info('⬇️ Inbound TX: %s', txResult.tx.id)
+        try {
+          const tx = Tx.fromBytes(e.detail.data)
+          logger.info('⬇️ Inbound TX: %s', tx.id)
+          await vm.execTx(tx)
+        } catch(e: any) {
+          logger.error('❌ Error: %s', e.message)
+        }
       }
     })
   }

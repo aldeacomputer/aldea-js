@@ -21,8 +21,8 @@ describe('api', () => {
   let vm
   let clock = new StubClock()
 
-  beforeEach(() => {
-    const builded = buildApp(clock)
+  beforeEach(async () => {
+    const builded = await buildApp(clock)
     app = builded.app
     vm = builded.vm
   })

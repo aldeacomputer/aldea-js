@@ -108,10 +108,10 @@ export class VM implements PkgRepository {
     return id
   }
 
-  mint (address: Address, amount: number = 1e6): JigState {
-    const buff = randomBytes(32)
+  mint (address: Address, amount: number = 1e6, locBuf?: Uint8Array): JigState {
+    if (!locBuf) locBuf = randomBytes(32)
 
-    const location = new Pointer(buff, 0);
+    const location = new Pointer(locBuf, 0);
     const minted = new JigState(
       location,
       location,
