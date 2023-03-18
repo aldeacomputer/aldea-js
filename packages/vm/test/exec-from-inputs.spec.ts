@@ -15,13 +15,13 @@ describe('exec from inputs', () => {
   const userAddr = userPub.toAddress()
   const moduleIds = new Map<string, string>()
 
-  function modIdFor (key: string): Uint8Array {
-    const id = moduleIds.get(key)
-    if (!id) {
-      throw new Error(`module was not deployed: ${key}`)
-    }
-    return base16.decode(id)
-  }
+  // function modIdFor (key: string): Uint8Array {
+  //   const id = moduleIds.get(key)
+  //   if (!id) {
+  //     throw new Error(`module was not deployed: ${key}`)
+  //   }
+  //   return base16.decode(id)
+  // }
 
   const clock = new StubClock()
 
@@ -55,9 +55,9 @@ describe('exec from inputs', () => {
     const context = new ExTxExecContext(extx, clock, vm, vm)
     const exec = new TxExecution(context)
 
-    const jigIndex = exec.loadJigByOutputId(coin.id())
-    const newCoinIndex = exec.callInstanceMethodByIndex(jigIndex, 'send', [200])
-    exec.fundByIndex(newCoinIndex)
+    const jigRef = exec.loadJigByOutputId(coin.id()).asJig()
+    const newCoinStmt = exec.callInstanceMethod(jigRef, 'send', [200])
+    exec.fundByIndex(newCoinStmt.idx)
     const result = exec.finalize()
 
     expect(result.outputs).to.have.length(2)

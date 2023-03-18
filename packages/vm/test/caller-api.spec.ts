@@ -50,7 +50,7 @@ describe('execute txs', () => {
         const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
         const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
 
-        expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+          expect(exec.getStatementResult(resultIdx).value).to.eql(true)
 
         exec.lockJigToUser(receiverIdx, userAddr)
         exec.lockJigToUser(senderIdx, userAddr)
@@ -64,7 +64,7 @@ describe('execute txs', () => {
         const senderIdx = exec.instantiateByIndex(modIdx, 'AnotherCaller', [])
         const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
 
-        expect(exec.getStatementResult(resultIdx).value).to.eql(false)
+          expect(exec.getStatementResult(resultIdx).value).to.eql(false)
 
         exec.lockJigToUser(receiverIdx, userAddr)
         exec.lockJigToUser(senderIdx, userAddr)
@@ -77,7 +77,7 @@ describe('execute txs', () => {
         const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
         const resultIdx = exec.callInstanceMethodByIndex(receiverIdx, 'checkCallerType', [])
 
-        expect(exec.getStatementResult(resultIdx).value).to.eql(false)
+          expect(exec.getStatementResult(resultIdx).value).to.eql(false)
 
         exec.lockJigToUser(receiverIdx, userAddr)
         exec.finalize()
@@ -93,7 +93,7 @@ describe('execute txs', () => {
         const senderIdx = exec.instantiateByIndex(modIdx, 'SubclassCaller', [])
         const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
 
-        expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+          expect(exec.getStatementResult(resultIdx).value).to.eql(true)
 
         exec.lockJigToUser(receiverIdx, userAddr)
         exec.lockJigToUser(senderIdx, userAddr)
@@ -110,7 +110,7 @@ describe('execute txs', () => {
         const senderIdx = exec.instantiateByIndex(modIdx, 'SubclassCaller', [])
         const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
 
-        expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+          expect(exec.getStatementResult(resultIdx).value).to.eql(true)
 
         exec.lockJigToUser(receiverIdx, userAddr)
         exec.lockJigToUser(senderIdx, userAddr)
@@ -129,7 +129,7 @@ describe('execute txs', () => {
       const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
       const resultIdx = exec.callInstanceMethodByIndex(receiverIdx, 'callerHasOutput', [])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(false)
+        expect(exec.getStatementResult(resultIdx).value).to.eql(false)
 
       exec.lockJigToUser(receiverIdx, userAddr)
       exec.finalize()
@@ -142,7 +142,7 @@ describe('execute txs', () => {
       const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doIHaveOutput', [ref(receiverIdx)])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+        expect(exec.getStatementResult(resultIdx).value).to.eql(true)
 
       exec.lockJigToUser(receiverIdx, userAddr)
       exec.lockJigToUser(senderIdx, userAddr)
@@ -157,10 +157,10 @@ describe('execute txs', () => {
       const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
       const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const result1Idx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOutputOrigin', [ref(receiverIdx)])
-      const result2Idx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOutputLocation', [ref(receiverIdx)])
-      const result3Idx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOutputClassPtr', [ref(receiverIdx)])
+        const result2Idx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOutputLocation', [ref(receiverIdx)])
+        const result3Idx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOutputClassPtr', [ref(receiverIdx)])
 
-      expect(exec.getStatementResult(result1Idx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
+        expect(exec.getStatementResult(result1Idx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
       expect(exec.getStatementResult(result2Idx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
       expect(exec.getStatementResult(result3Idx).value).to.eql(exec.getStatementResult(senderIdx).asJig().classPtr().toBytes())
 
@@ -176,7 +176,7 @@ describe('execute txs', () => {
       const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'checkMyData', [ref(receiverIdx)])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+        expect(exec.getStatementResult(resultIdx).value).to.eql(true)
 
       exec.lockJigToUser(receiverIdx, userAddr)
       exec.lockJigToUser(senderIdx, userAddr)
@@ -210,7 +210,7 @@ describe('execute txs', () => {
       const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOrigin', [ref(receiverIdx)])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
+        expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
 
       exec.lockJigToUser(receiverIdx, userAddr)
       exec.lockJigToUser(senderIdx, userAddr)
@@ -235,7 +235,7 @@ describe('execute txs', () => {
       const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyLocation', [ref(receiverIdx)])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
+        expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
 
       exec.lockJigToUser(receiverIdx, userAddr)
       exec.lockJigToUser(senderIdx, userAddr)
@@ -261,7 +261,7 @@ describe('execute txs', () => {
         const loadedIdx = exec.loadJigByOutputId(result2.outputs[0].id())
         const receiverIdx = exec.instantiateByIndex(modIdx3, 'Receiver', [])
         const resultIdx = exec.callInstanceMethodByIndex(loadedIdx, 'giveMeMyLocation', [ref(receiverIdx)])
-        const value = exec.getStatementResult(resultIdx).value
+          const value = exec.getStatementResult(resultIdx).value
 
         expect(value).to.eql(new Pointer(prepExec2.txContext.tx.hash, 0).toBytes())
         expect(value).not.to.eql(result1.outputs[0].origin.toBytes())
@@ -290,7 +290,7 @@ describe('execute txs', () => {
       const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
       const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyClassPtr', [ref(receiverIdx)])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().classPtr().toBytes())
+        expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().classPtr().toBytes())
 
       exec.lockJigToUser(receiverIdx, userAddr)
       exec.lockJigToUser(senderIdx, userAddr)

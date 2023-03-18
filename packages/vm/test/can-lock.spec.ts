@@ -47,7 +47,7 @@ describe('execute txs', () => {
       const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
       const jig2Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
       const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(false)
     })
@@ -57,8 +57,8 @@ describe('execute txs', () => {
       const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       exec.callInstanceMethodByIndex(jig2Idx, 'destroy', [])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(false)
     })
@@ -70,7 +70,7 @@ describe('execute txs', () => {
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       exec.lockJigToUser(jig2Idx, userAddr)
       const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(true)
     })
@@ -81,7 +81,7 @@ describe('execute txs', () => {
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       exec.lockJigToUser(jig2Idx, userAddr)
       const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(false)
     })
@@ -91,7 +91,7 @@ describe('execute txs', () => {
       const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(true)
     })
@@ -101,8 +101,8 @@ describe('execute txs', () => {
       const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       exec.callInstanceMethodByIndex(jig1Idx, 'adopt', [ref(jig2Idx)])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(true)
     })
@@ -113,7 +113,7 @@ describe('execute txs', () => {
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       exec.instantiateByIndex(importIdx, 'OwnerJig', [ref(jig2Idx)])
       const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(false)
     })
@@ -126,7 +126,7 @@ describe('execute txs', () => {
       const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
       const jig2Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
       const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(true)
     })
@@ -136,8 +136,8 @@ describe('execute txs', () => {
       const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       exec.callInstanceMethodByIndex(jig2Idx, 'destroy', [])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(false)
     })
@@ -149,7 +149,7 @@ describe('execute txs', () => {
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       exec.lockJigToUser(jig2Idx, userAddr)
       const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(true)
     })
@@ -160,7 +160,7 @@ describe('execute txs', () => {
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       exec.lockJigToUser(jig2Idx, userAddr)
       const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(false)
     })
@@ -170,7 +170,7 @@ describe('execute txs', () => {
       const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(true)
     })
@@ -180,8 +180,8 @@ describe('execute txs', () => {
       const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       exec.callInstanceMethodByIndex(jig1Idx, 'adopt', [ref(jig2Idx)])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(true)
     })
@@ -192,7 +192,7 @@ describe('execute txs', () => {
       const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
       exec.instantiateByIndex(importIdx, 'OwnerJig', [ref(jig2Idx)])
       const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+        const res = exec.getStatementResult(methodIdx)
 
       expect(res.value).to.eql(false)
     })

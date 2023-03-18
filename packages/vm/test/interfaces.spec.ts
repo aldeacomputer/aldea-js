@@ -45,8 +45,8 @@ describe('execute with interfaces', () => {
     const pkgIdx = exec.importModule(modIdFor('runner'))
     const chitaIdx = exec.instantiateByIndex(pkgIdx, 'Chita', [])
     exec.callInstanceMethodByIndex(chitaIdx, 'run', [1])
-    const speedIdx = exec.callInstanceMethodByIndex(chitaIdx, 'speed', [])
-    expect(exec.getStatementResult(speedIdx).value).to.eql(100)
+      const speedIdx = exec.callInstanceMethodByIndex(chitaIdx, 'speed', [])
+      expect(exec.getStatementResult(speedIdx).value).to.eql(100)
     exec.lockJigToUser(chitaIdx, userAddr)
     const ret = exec.finalize()
 
@@ -60,7 +60,7 @@ describe('execute with interfaces', () => {
     const chitaJig = exec.getStatementResult(chitaIdx).asJig()
     const tamerIdx = exec.instantiateByIndex(pkgIdx, 'Tamer', [chitaJig])
     exec.callInstanceMethodByIndex(tamerIdx, 'speedTrain', [])
-    exec.lockJigToUser(chitaIdx, userAddr)
+      exec.lockJigToUser(chitaIdx, userAddr)
     exec.lockJigToUser(tamerIdx, userAddr)
     const ret = exec.finalize()
 
@@ -74,7 +74,7 @@ describe('execute with interfaces', () => {
     const chitaJig = exec.getStatementResult(chitaIdx).asJig()
     const tamerIdx = exec.instantiateByIndex(pkgIdx, 'Tamer', [chitaJig])
     exec.callInstanceMethodByIndex(tamerIdx, 'speedTrain', [])
-    exec.lockJigToUser(chitaIdx, userAddr)
+      exec.lockJigToUser(chitaIdx, userAddr)
     exec.lockJigToUser(tamerIdx, userAddr)
     const ret = exec.finalize()
 
@@ -97,7 +97,7 @@ describe('execute with interfaces', () => {
     // const loadedChitaIdx = exec2.loadJigByOutputId(exec1.outputs[0].id())
     const loadedTamerIdx = exec2.loadJigByOutputId(ret1.outputs[1].id())
     exec2.callInstanceMethodByIndex(loadedTamerIdx, 'speedTrain', [])
-    // exec2.lockJigToUser(chitaIdx, userAddr)
+      // exec2.lockJigToUser(chitaIdx, userAddr)
     exec2.lockJigToUser(loadedTamerIdx, userAddr)
     const ret2 = exec2.finalize()
 

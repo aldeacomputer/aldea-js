@@ -4,22 +4,29 @@ import {WasmInstance} from "./wasm-instance.js";
 import {TypeNode} from "@aldea/compiler/abi";
 
 export abstract class StatementResult {
-  abstract get abiNode(): TypeNode;
+  private _idx: number
+  constructor(idx: number) {
+    this._idx = idx
+  }
 
-  abstract get value(): any;
+  abstract get abiNode(): TypeNode
 
-  abstract get wasm(): WasmInstance;
+  abstract get value(): any
 
-  abstract get instance(): WasmInstance;
+  abstract get asInstance(): WasmInstance
 
-  abstract asJig(): JigRef;
+  abstract asJig(): JigRef
+
+  get idx(): number {
+    return this._idx
+  }
 }
 
 export class WasmStatementResult extends StatementResult {
   private readonly _instance: WasmInstance;
 
-  constructor(instance: WasmInstance) {
-    super()
+  constructor(idx: number, instance: WasmInstance) {
+    super(idx)
     this._instance = instance
   }
 
@@ -35,36 +42,9 @@ export class WasmStatementResult extends StatementResult {
     throw new ExecutionError('statement is not a value');
   }
 
-  get wasm(): WasmInstance {
-    throw new ExecutionError('statement is not a value');
-  }
-
-  get instance(): WasmInstance {
+  get asInstance(): WasmInstance {
     return this._instance;
   }
-}
-
-export class NullStatementResult extends StatementResult {
-  get abiNode(): TypeNode {
-    throw new Error('null')
-  }
-
-  asJig(): JigRef {
-    throw new Error('null')
-  }
-
-  get instance(): WasmInstance {
-    throw new Error('null')
-  }
-
-  get value(): any {
-    throw new Error('null')
-  }
-
-  get wasm(): WasmInstance {
-    throw new Error('null')
-  }
-
 }
 
 export class ValueStatementResult extends StatementResult {
@@ -72,8 +52,8 @@ export class ValueStatementResult extends StatementResult {
   value: any
   wasm: WasmInstance
 
-  constructor(node: TypeNode, value: any, wasm: WasmInstance) {
-    super()
+  constructor(idx: number, node: TypeNode, value: any, wasm: WasmInstance) {
+    super(idx)
     this.abiNode = node
     this.value = value
     this.wasm = wasm
@@ -87,7 +67,7 @@ export class ValueStatementResult extends StatementResult {
     }
   }
 
-  get instance(): WasmInstance {
+  get asInstance(): WasmInstance {
     throw new ExecutionError('statement is not a wasm instance');
   }
 }
@@ -101,15 +81,11 @@ export class EmptyStatementResult extends StatementResult {
     throw new ExecutionError('wrong index')
   }
 
-  get instance(): WasmInstance {
+  get asInstance(): WasmInstance {
     throw new ExecutionError('wrong index')
   }
 
   get value(): any {
-    throw new ExecutionError('wrong index')
-  }
-
-  get wasm(): WasmInstance {
     throw new ExecutionError('wrong index')
   }
 }

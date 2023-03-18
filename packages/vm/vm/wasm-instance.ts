@@ -1,5 +1,5 @@
 import {JigRef} from "./jig-ref.js"
-import {Abi, ArgNode, ClassNode, FieldNode, findField, findFunction, findMethod, TypeNode,} from "@aldea/compiler/abi";
+import {Abi, ArgNode, ClassNode, FieldNode, findField, TypeNode,} from "@aldea/compiler/abi";
 
 import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
@@ -14,7 +14,8 @@ import {LowerArgumentVisitor} from "./abi-helpers/lower-argument-visitor.js";
 import {NoLock} from "./locks/no-lock.js";
 import {
   arrayBufferTypeNode,
-  emptyTn, jigInitParamsTypeNode,
+  emptyTn,
+  jigInitParamsTypeNode,
   outputTypeNode,
   voidNode,
 } from "./abi-helpers/well-known-abi-nodes.js";
@@ -22,6 +23,8 @@ import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
 import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
 import {decodeSequence, encodeSequence} from "./cbor.js";
+import {MethodNodeWrapper} from "./abi-helpers/method-node-wrapper.js";
+import {FunctionNode} from "@aldea/compiler/abi";
 
 export enum LockType {
   FROZEN = -1,
@@ -133,13 +136,14 @@ export class WasmInstance {
           const methodName = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
 
-          const methodResult = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), methodName, argBuf)
-          return this.insertValue(methodResult.value, methodResult.node)
+          const resultValue = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), methodName, argBuf)
+          return this.insertValue(resultValue.value, resultValue.node)
         },
         vm_call_static: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
           const moduleId = this.liftString(originPtr).split('_')[0]
           const fnStr = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
+
           const result = this.currentExec.remoteStaticExecHandler(this, base16.decode(moduleId), fnStr, argBuf)
           return Number(this.insertValue(result.value, result.node))
         },
@@ -150,7 +154,7 @@ export class WasmInstance {
           const argsBuf = this.liftBuffer(argsBufPtr)
           const targetPkg = this.currentExec.loadModule(base16.decode(pkgId))
           const functionNode = targetPkg.abi.functionByName(fnName)
-          const result = targetPkg.functionCall(fnName, this.liftArguments(argsBuf, functionNode.args))
+          const result = targetPkg.functionCall(functionNode, this.liftArguments(argsBuf, functionNode.args))
 
           return this.insertValue(result.value, result.node)
         },
@@ -328,10 +332,8 @@ export class WasmInstance {
     return this.instance.exports as WasmExports
   }
 
-  staticCall (className: string, methodName: string, args: any[]): WasmValue {
-    const fnName = `${className}_${methodName}`
-    const abiObj = this.abi.classByName(className)
-    const method = findMethod(abiObj, methodName, `unknown method: ${methodName}`)
+  staticCall (method: MethodNodeWrapper, args: any[]): WasmValue {
+    const fnName = `${method.className()}_${method.name}`
 
     const ptrs = method.args.map((argNode: ArgNode, i: number) => {
       const visitor = new LowerArgumentVisitor(this.abi, this, args[i])
@@ -340,10 +342,10 @@ export class WasmInstance {
 
     const fn = this.instance.exports[fnName] as Function;
     const retPtr = fn(...ptrs)
-    if (methodName === 'constructor') {
+    if (method.name === 'constructor') {
       return {
         node: method.rtype ? method.rtype : voidNode,
-        value: new Internref(className, retPtr),
+        value: new Internref(method.className(), retPtr),
         mod: this
       }
     } else {
@@ -364,9 +366,7 @@ export class WasmInstance {
     return new Internref(objectNode.name, Number(pointer))
   }
 
-  instanceCall (ref: JigRef, className: string, methodName: string, args: any[] = []): WasmValue {
-    const classNode = this.abi.classByName(className)
-    const method = classNode.methodByName(methodName)
+  instanceCall(ref: JigRef, method: MethodNodeWrapper, args: any[] = []): WasmValue {
     const fnName = `${method.className()}$${method.name}`
 
     const ptrs = [
@@ -400,17 +400,15 @@ export class WasmInstance {
    * The abi now exports plain functions - check this method is OK
    * The static call above should probably look like this too, no?
    */
-  functionCall (fnName: string, args: any[] = []): WasmValue {
-    const abiFn = findFunction(this.abi, fnName, `unknown export: ${fnName}`)
-
-    const ptrs = abiFn.args.map((argNode: ArgNode, i: number) => {
+  functionCall (fnNode: FunctionNode, args: any[] = []): WasmValue {
+    const ptrs = fnNode.args.map((argNode: ArgNode, i: number) => {
       const visitor = new LowerArgumentVisitor(this.abi, this, args[i])
       return visitor.travelFromType(argNode.type)
     })
 
-    const fn = this.instance.exports[fnName] as Function;
+    const fn = this.instance.exports[fnNode.name] as Function;
     const ptr = fn(...ptrs)
-    return this.extractCallResult(ptr, abiFn.rtype)
+    return this.extractCallResult(ptr, fnNode.rtype)
   }
 
   __new (a: number, b: number): number {

@@ -19,6 +19,7 @@ import {
   lockAbiNode,
   outputAbiNode
 } from "./well-known-abi-nodes.js";
+import {ExecutionError} from "../errors.js";
 
 const classNotFound = (className: string): ClassNodeWrapper => {
   throw new Error(`Class with name "${className}" not found.`)
@@ -180,5 +181,13 @@ export class AbiAccess {
       throw new Error(`Unknown interface: ${typeName}`)
     }
     return node.code as InterfaceNode
+  }
+
+  functionByIdx(fnIdx: number): FunctionNode {
+    const exportNode = this.exports[fnIdx]
+    if (exportNode.kind !== CodeKind.FUNCTION) {
+      throw new ExecutionError('')
+    }
+    return exportNode.code as FunctionNode
   }
 }

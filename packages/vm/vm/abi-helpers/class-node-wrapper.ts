@@ -1,4 +1,4 @@
-import {ClassNode, FieldKind, FieldNode, findMethod, MethodNode, TypeNode} from "@aldea/compiler/abi";
+import {ClassNode, FieldKind, FieldNode, findMethod, TypeNode} from "@aldea/compiler/abi";
 import {JIG_TOP_CLASS_NAME, lockTypeNode, outputTypeNode} from "./well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-access.js";
 import {MethodNodeWrapper} from "./method-node-wrapper.js";
@@ -50,8 +50,8 @@ export class ClassNodeWrapper {
     return fields.reverse().flat()
   }
 
-  get methods() : MethodNode[] {
-    return this.node.methods
+  get methods() : MethodNodeWrapper[] {
+    return this.node.methods.map(method => new MethodNodeWrapper(this, method))
   }
 
   get implements(): TypeNode[] {
@@ -76,5 +76,9 @@ export class ClassNodeWrapper {
       throw new Error(`${fieldNode} was not found`)
     }
     return fieldNode
+  }
+
+  methodByIdx(methodIdx: number): MethodNodeWrapper {
+    return this.methods[methodIdx]
   }
 }

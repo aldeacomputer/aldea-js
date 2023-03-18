@@ -52,13 +52,13 @@ describe('execute txs', () => {
     const exec2 = emptyExec([userPriv])
     const jigIdx2 = exec2.loadJigByOutputId(ret1.outputs[0].id())
     exec2.callInstanceMethodByIndex(jigIdx2, 'add', ['key1', 'value1'])
-    const ret2 = exec2.finalize()
+      const ret2 = exec2.finalize()
     storage.persist(ret2)
 
     const exec3 = emptyExec([userPriv])
     const jigIdx3 = exec3.loadJigByOutputId(ret2.outputs[0].id())
     exec3.callInstanceMethodByIndex(jigIdx3, 'add', ['key2', 'value2'])
-    const ret3 = exec3.finalize()
+      const ret3 = exec3.finalize()
 
     const state = ret3.outputs[0].parsedState()
     const map = new Map<string, string>()
@@ -74,7 +74,7 @@ describe('execute txs', () => {
     const valueIdx = exec.instantiateByIndex(modIdx, 'JigValue', [])
     const mapIdx = exec.instantiateByIndex(modIdx, 'JigToJigMap', [])
     exec.callInstanceMethodByIndex(mapIdx, 'add', [ref(keyIdx), ref(valueIdx)])
-    exec.lockJigToUser(mapIdx, userAddr)
+      exec.lockJigToUser(mapIdx, userAddr)
     exec.markAsFunded()
     const ret = exec.finalize()
 

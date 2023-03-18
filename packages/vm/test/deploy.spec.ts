@@ -1,7 +1,7 @@
 import {Storage, StubClock, VM} from '../vm/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {calculatePackageId} from "../vm/calculate-package-id.js";
+import {AldeaCrypto} from '../vm/aldea-crypto.js';
+import {calculatePackageId} from '../vm/index.js';
 import {emptyExecFactoryFactory} from "./util.js";
 
 const someValidModule = `
@@ -97,7 +97,7 @@ describe('deploy code', () => {
       const moduleIndex = exec.importModule(flockId)
       const jigIndex = exec.instantiateByIndex(moduleIndex, 'Flock', [])
       exec.callInstanceMethodByIndex(jigIndex, 'growWithMath', [])
-      exec.lockJigToUser(jigIndex, userAddr)
+        exec.lockJigToUser(jigIndex, userAddr)
       exec.markAsFunded()
       const ret = exec.finalize()
 
@@ -151,7 +151,7 @@ describe('deploy code', () => {
 
       const packageId = calculatePackageId([fileName], sources)
 
-      expect(result.instance.id).to.eql(packageId)
+      expect(result.asInstance.id).to.eql(packageId)
     })
   });
 })

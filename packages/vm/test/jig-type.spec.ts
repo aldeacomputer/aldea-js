@@ -84,7 +84,7 @@ describe('Jig Type', () => {
     const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
     exec.callInstanceMethodByIndex(jigBearerIndex, 'setJig', [anotherJig])
 
-    exec.lockJigToUser(jigBearerIndex, userAddr)
+      exec.lockJigToUser(jigBearerIndex, userAddr)
     exec.lockJigToUser(flockIndex, userAddr)
     exec.lockJigToUser(anotherFlockIndex, userAddr)
     const ret = exec.finalize()
@@ -108,8 +108,8 @@ describe('Jig Type', () => {
 
     const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id())
     const returnedJigIndex = exec2.callInstanceMethodByIndex(jigBearerIndexFromOutside, 'getJig', [])
-    exec2.callInstanceMethodByIndex(returnedJigIndex, 'grow', [])
-    exec2.lockJigToUser(jigBearerIndexFromOutside, userAddr)
+      exec2.callInstanceMethodByIndex(returnedJigIndex, 'grow', [])
+      exec2.lockJigToUser(jigBearerIndexFromOutside, userAddr)
     exec2.lockJigToUser(returnedJigIndex, userAddr)
     exec2.markAsFunded()
     const ret2 = exec2.finalize()
@@ -130,8 +130,8 @@ describe('Jig Type', () => {
 
     const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id())
     const returnedJigIndex = exec2.callInstanceMethodByIndex(jigBearerIndexFromOutside, 'getJig', [])
-    exec2.callInstanceMethodByIndex(returnedJigIndex, 'grow', [])
-    exec2.lockJigToUser(jigBearerIndexFromOutside, userAddr)
+      exec2.callInstanceMethodByIndex(returnedJigIndex, 'grow', [])
+      exec2.lockJigToUser(jigBearerIndexFromOutside, userAddr)
     exec2.lockJigToUser(returnedJigIndex, userAddr)
     exec2.markAsFunded()
     const ret2 = exec2.finalize()

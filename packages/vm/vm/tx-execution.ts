@@ -6,21 +6,13 @@ import {NoLock} from "./locks/no-lock.js"
 import {JigState} from "./jig-state.js"
 import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
-import {Externref, Internref} from "./memory.js";
-import {ClassNode, CodeKind, findClass, findMethod} from '@aldea/compiler/abi'
+import {ClassNode, CodeKind} from '@aldea/compiler/abi'
 import {Address, base16, InstructionRef, instructions, Pointer} from '@aldea/sdk-js';
-import {ArgReader, readType} from "./arg-reader.js";
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
-import {
-  EmptyStatementResult,
-  NullStatementResult,
-  StatementResult,
-  ValueStatementResult,
-  WasmStatementResult
-} from "./statement-result.js";
+import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {TxContext} from "./tx-context/tx-context.js";
 import {PkgData} from "./storage.js";
 
@@ -30,7 +22,7 @@ class TxExecution {
   private wasms: Map<string, WasmInstance>;
   private readonly stack: Pointer[];
   deployments: PkgData[];
-  statementResults: StatementResult[]
+  statements: StatementResult[]
   private funded: boolean;
   private affectedJigs: JigRef[]
 
@@ -39,13 +31,13 @@ class TxExecution {
     this.jigs = []
     this.wasms = new Map()
     this.stack = []
-    this.statementResults = []
+    this.statements = []
     this.funded = false
     this.deployments = []
     this.affectedJigs = []
   }
 
-  finalize (): ExecutionResult {
+  finalize(): ExecutionResult {
     const result = new ExecutionResult(this.txContext.tx)
     if (!this.funded) {
       throw new ExecutionError('tx not funded')
@@ -62,7 +54,7 @@ class TxExecution {
       const serialized = this.serializeJig(jigRef)
       const jigState = new JigState(
         origin,
-        location ,
+        location,
         jigRef.classIdx,
         serialized,
         jigRef.package.id,
@@ -84,25 +76,27 @@ class TxExecution {
 
     this.wasms = new Map()
     this.jigs = []
-    this.statementResults = []
+    this.statements = []
     result.finish(this.txContext.now())
     return result
   }
 
-  private serializeJig (jig: JigRef): Uint8Array {
+  private serializeJig(jig: JigRef): Uint8Array {
     return jig.package.extractState(jig.ref, jig.classIdx)
   }
 
-  loadModule (moduleId: Uint8Array): WasmInstance {
+  loadModule(moduleId: Uint8Array): WasmInstance {
     const existing = this.wasms.get(base16.encode(moduleId))
-    if (existing) { return existing }
+    if (existing) {
+      return existing
+    }
     const wasmInstance = this.txContext.wasmFromPkgId(moduleId)
     wasmInstance.setExecution(this)
     this.wasms.set(base16.encode(moduleId), wasmInstance)
     return wasmInstance
   }
 
-  getLoadedModule (pkgId: string): WasmInstance {
+  getLoadedModule(pkgId: string): WasmInstance {
     const wasm = this.wasms.get(pkgId)
     if (!wasm) {
       throw new Error(`Package with id ${pkgId} was expected to be loaded but it's not.`)
@@ -110,53 +104,41 @@ class TxExecution {
     return wasm
   }
 
-  findRemoteUtxoHandler (origin: ArrayBuffer): JigRef {
+  findRemoteUtxoHandler(origin: ArrayBuffer): JigRef {
     const jigRef = this.jigs.find(j => Buffer.from(j.originBuf).equals(Buffer.from(origin)))
-    if(!jigRef) { throw new Error('should exist')}
+    if (!jigRef) {
+      throw new Error('should exist')
+    }
     return jigRef
   }
 
-  remoteCallHandler (callerInstance: WasmInstance, targetOrigin: Pointer, methodName: string, argBuff: Uint8Array): WasmValue {
+  remoteCallHandler(callerInstance: WasmInstance, targetOrigin: Pointer, methodName: string, argBuff: Uint8Array): WasmValue {
     let targetJig = this.jigs.find(j => j.origin.equals(targetOrigin))
     if (!targetJig) {
       targetJig = this.findJigByOrigin(targetOrigin)
     }
 
     const klassNode = targetJig.package.abi.classByIndex(targetJig.classIdx)
-    const method = findMethod(klassNode, methodName, 'could not find method')
+    const method = klassNode.methodByName(methodName)
 
     const args = callerInstance.liftArguments(argBuff, method.args)
-    this.localCallStartHandler(targetJig, methodName)
-    const wasmValue = this.callInstanceMethod(targetJig, methodName, args);
-    this.localCallEndHandler()
-    return wasmValue
+    return targetJig.package.instanceCall(targetJig, method, args)
   }
 
-  remoteStaticExecHandler (srcModule: WasmInstance, targetModId: Uint8Array, fnStr: string, argBuffer: Uint8Array): WasmValue {
+  remoteStaticExecHandler(srcModule: WasmInstance, targetModId: Uint8Array, fnStr: string, argBuffer: Uint8Array): WasmValue {
     const targetMod = this.loadModule(targetModId)
 
     const [className, methodName] = fnStr.split('_')
 
-    const obj = findClass(targetMod.abi, className, 'could not find object')
-    const method = findMethod(obj, methodName, 'could not find method')
+    const obj = targetMod.abi.classByName(className)
+    const method = obj.methodByName(methodName)
 
-    const argReader = new ArgReader(argBuffer)
-    const argValues = method.args.map((arg) => {
-      const pointer = readType(argReader, arg.type)
-      const wasmValue = srcModule.extractValue(pointer, arg.type);
-      return wasmValue.value
-    }).map((value: any) => {
-      if (value instanceof Externref) {
-        return this.getJigRefByOrigin(Pointer.fromBytes(value.originBuf))
-      } else {
-        return value
-      }
-    })
+    const argValues = srcModule.liftArguments(argBuffer, method.args)
 
-    return targetMod.staticCall(className, methodName, argValues)
+    return targetMod.staticCall(method, argValues)
   }
 
-  getPropHandler (origin: Pointer, propName: string): Prop {
+  getPropHandler(origin: Pointer, propName: string): Prop {
     let jig = this.jigs.find(j => j.origin.equals(origin))
     if (!jig) {
       jig = this.findJigByOrigin(origin)
@@ -164,7 +146,7 @@ class TxExecution {
     return jig.package.getPropValue(jig.ref, jig.classIdx, propName)
   }
 
-  remoteLockHandler (childOrigin: Pointer, type: LockType, extraArg: ArrayBuffer): void {
+  remoteLockHandler(childOrigin: Pointer, type: LockType, extraArg: ArrayBuffer): void {
     const childJigRef = this.getJigRefByOrigin(childOrigin)
     if (!childJigRef.lock.canBeChangedBy(this)) {
       throw new PermissionError('lock cannot be changed')
@@ -202,12 +184,12 @@ class TxExecution {
     this.stack.push(targetJig.origin)
   }
 
-  localCallEndHandler () {
+  localCallEndHandler() {
     this.stack.pop()
   }
 
 
-  remoteAuthCheckHandler (callerOrigin: Pointer, check: AuthCheck): boolean {
+  remoteAuthCheckHandler(callerOrigin: Pointer, check: AuthCheck): boolean {
     const jigRef = this.jigs.find(jigR => jigR.origin.equals(callerOrigin))
     if (!jigRef) {
       throw new Error('jig ref should exists')
@@ -219,7 +201,7 @@ class TxExecution {
     }
   }
 
-  getJigRefByOrigin (origin: Pointer): JigRef {
+  getJigRefByOrigin(origin: Pointer): JigRef {
     const jigRef = this.jigs.find(jr => jr.origin.equals(origin));
     if (!jigRef) {
       throw new Error('does not exists')
@@ -227,46 +209,43 @@ class TxExecution {
     return jigRef
   }
 
-  addNewJigRef (jigRef: JigRef): JigRef {
+  addNewJigRef(jigRef: JigRef): JigRef {
     this.jigs.push(jigRef)
     return jigRef
   }
 
-  linkJig (jigRef: JigRef): void {
+  linkJig(jigRef: JigRef): void {
     this.addNewJigRef(jigRef)
     this.marKJigAsAffected(jigRef)
   }
 
-  async run (): Promise<ExecutionResult> {
+  async run(): Promise<ExecutionResult> {
     await this.txContext.forEachInstruction(async inst => {
       if (inst instanceof instructions.ImportInstruction) {
         this.importModule(inst.pkgId)
       } else if (inst instanceof instructions.NewInstruction) {
-        const wasm = this.getStatementResult(inst.idx).instance
-        const className = wasm.abi.exports[inst.exportIdx].code.name
-        this.instantiateByIndex(inst.idx, className, this.parseArgs(inst.args))
+        this.instantiateByIndex(inst.idx, inst.exportIdx, this.parseArgs(inst.args))
       } else if (inst instanceof instructions.CallInstruction) {
-        const jig = this.getStatementResult(inst.idx).asJig()
-        const classNode = jig.package.abi.exports[jig.classIdx].code as ClassNode
-        const methodName = classNode.methods[inst.methodIdx].name
-        this.callInstanceMethodByIndex(inst.idx, methodName, this.parseArgs(inst.args))
+        this.callInstanceMethodByIndex(inst.idx, inst.methodIdx, this.parseArgs(inst.args))
       } else if (inst instanceof instructions.ExecInstruction) {
-        const wasm = this.getStatementResult(inst.idx).instance
+        const wasm = this.getStatementResult(inst.idx).asInstance
         const exportNode = wasm.abi.exports[inst.exportIdx]
-        if (exportNode.kind !== CodeKind.CLASS) { throw new Error('not a class')}
+        if (exportNode.kind !== CodeKind.CLASS) {
+          throw new Error('not a class')
+        }
         const klassNode = exportNode.code as ClassNode
         const methodNode = klassNode.methods[inst.methodIdx]
         this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, this.parseArgs(inst.args))
       } else if (inst instanceof instructions.LockInstruction) {
-        this.lockJigToUser(inst.idx, new Address(inst.pubkeyHash))
+        this.lockJigToUserByIndex(inst.idx, new Address(inst.pubkeyHash))
       } else if (inst instanceof instructions.LoadInstruction) {
         this.loadJigByOutputId(inst.outputId)
       } else if (inst instanceof instructions.LoadByOriginInstruction) {
         this.loadJigByOrigin(Pointer.fromBytes(inst.origin))
       } else if (inst instanceof instructions.SignInstruction) {
-        this.statementResults.push(new EmptyStatementResult())
+        this.statements.push(new EmptyStatementResult(this.statements.length))
       } else if (inst instanceof instructions.SignToInstruction) {
-        this.statementResults.push(new EmptyStatementResult())
+        this.statements.push(new EmptyStatementResult(this.statements.length))
       } else if (inst instanceof instructions.DeployInstruction) {
         await this.deployPackage(inst.entry, inst.code)
       } else if (inst instanceof instructions.FundInstruction) {
@@ -278,16 +257,16 @@ class TxExecution {
     return this.finalize()
   }
 
-  fundByIndex (coinIdx: number): void {
+  fundByIndex(coinIdx: number): void {
     const coinJig = this.getStatementResult(coinIdx).asJig()
     const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'motos').value
-    if(amount < 100) throw new ExecutionError('not enough coins to fund the transaction')
+    if (amount < 100) throw new ExecutionError('not enough coins to fund the transaction')
     coinJig.changeLock(new FrozenLock())
     this.marKJigAsAffected(coinJig)
     this.markAsFunded()
   }
 
-  findJigByOutputId (outputId: Uint8Array): JigRef {
+  findJigByOutputId(outputId: Uint8Array): JigRef {
     const jigState = this.txContext.stateByOutputId(outputId)
     const existing = this.jigs.find(j => j.origin.equals(jigState.origin))
     if (existing) {
@@ -308,7 +287,7 @@ class TxExecution {
     });
   }
 
-  findJigByOrigin (origin: Pointer): JigRef {
+  findJigByOrigin(origin: Pointer): JigRef {
     const existing = this.jigs.find(j => j.origin.equals(origin))
     if (existing) {
       return existing
@@ -317,38 +296,32 @@ class TxExecution {
     return this.hydrateJigState(jigState)
   }
 
-  findJigByRef (ref: Internref): JigRef {
-    const existing = this.jigs.find(j => j.ref.equals(ref))
-    if (!existing) {
-      throw new Error('should exist')
-    }
-    return existing
-  }
-
   private hydrateJigState(state: JigState): JigRef {
     const module = this.loadModule(state.packageId)
     const ref = module.hidrate(state.classIdx, state)
-    const lock = this.hidrateLock(state.serializedLock)
+    const lock = this.hydrateLock(state.serializedLock)
     const jigRef = new JigRef(ref, state.classIdx, module, state.origin, state.currentLocation, lock)
     this.addNewJigRef(jigRef)
     return jigRef
   }
 
-  loadJigByOutputId (outputId: Uint8Array): number {
+  loadJigByOutputId(outputId: Uint8Array): StatementResult {
     const jigRef = this.findJigByOutputId(outputId)
     const typeNode = emptyTn(jigRef.className())
-    this.statementResults.push(new ValueStatementResult(typeNode, jigRef, jigRef.package))
-    return this.statementResults.length - 1
+    const ret = new ValueStatementResult(this.statements.length, typeNode, jigRef, jigRef.package);
+    this.statements.push(ret)
+    return ret
   }
 
-  loadJigByOrigin (origin: Pointer): number {
+  loadJigByOrigin(origin: Pointer): StatementResult {
     const jigRef = this.findJigByOrigin(origin)
     const typeNode = emptyTn(jigRef.className())
-    this.statementResults.push(new ValueStatementResult(typeNode, jigRef, jigRef.package))
-    return this.statementResults.length - 1
+    const ret = new ValueStatementResult(this.statements.length, typeNode, jigRef, jigRef.package);
+    this.statements.push(ret)
+    return ret
   }
 
-  private hidrateLock (frozenLock: any): Lock {
+  private hydrateLock(frozenLock: any): Lock {
     if (frozenLock.type === LockType.PUBKEY) {
       return new UserLock(new Address(frozenLock.data))
     } else if (frozenLock.type === LockType.CALLER) {
@@ -363,12 +336,14 @@ class TxExecution {
   }
 
   instantiate(wasm: WasmInstance, className: string, args: any[]): WasmValue {
-    const instance = wasm
+    const method =  wasm.abi.classByName(className).methodByName('constructor')
     this.stack.push(this.createNextOrigin())
-    const result = instance.staticCall(className, 'constructor', args)
+    const result = wasm.staticCall(method, args)
     this.stack.pop()
-    const jigRef = this.jigs.find(j => j.package === instance && j.ref.ptr === result.value.ptr)
-    if (!jigRef) { throw new Error('jig should had been created created')}
+    const jigRef = this.jigs.find(j => j.package === wasm && j.ref.ptr === result.value.ptr)
+    if (!jigRef) {
+      throw new Error('jig should had been created created')
+    }
     this.marKJigAsAffected(jigRef)
     return {
       ...result,
@@ -382,94 +357,118 @@ class TxExecution {
     // return ret
   }
 
-  pushToStack (newTop: Pointer) {
-    this.stack.push(newTop)
+  instantiateByIndex(statementIndex: number, classIdx: number, args: any[]): StatementResult {
+    const statement = this.statements[statementIndex]
+    const instance = statement.asInstance
+    const classNode = instance.abi.classByIndex(classIdx)
+    const wasmValue = this.instantiate(instance, classNode.name, args)
+
+    const ret = new ValueStatementResult(this.statements.length, wasmValue.node, wasmValue.value, wasmValue.mod);
+    this.statements.push(ret)
+    return ret
   }
 
-  popFromStack () {
-    this.stack.pop()
-  }
-
-  instantiateByIndex(statementIndex: number, className: string, args: any[]): number {
-    const statement = this.statementResults[statementIndex]
-    const instance = statement.instance
-    const wasmValue = this.instantiate(instance, className, args)
-
-    this.statementResults.push(new ValueStatementResult(wasmValue.node, wasmValue.value, wasmValue.mod))
-    return this.statementResults.length - 1
-  }
-
-  callInstanceMethod (jig: JigRef, methodName: string, args: any[]): WasmValue {
-    const methodResult = jig.package.instanceCall(jig, jig.className(), methodName, args);
-    this.marKJigAsAffected(jig)
-
-    return methodResult
-  }
-
-  callInstanceMethodByIndex (jigIndex: number, methodName: string, args: any[]): number {
-    const jigRef = this.getStatementResult(jigIndex).asJig()
-    this.localCallStartHandler(jigRef, methodName)
-    const methodResult = this.callInstanceMethod(jigRef, methodName, args)
-    this.localCallEndHandler()
-    this.statementResults.push(new ValueStatementResult(methodResult.node, methodResult.value, methodResult.mod))
-    return this.statementResults.length - 1
-  }
-
-  execStaticMethod (wasm: WasmInstance, className: string, methodName: string, args: any[]): ValueStatementResult {
-    const module = wasm
-    const objectNode = findClass(module.abi, className, 'should exist');
-    const methodNode = findMethod(
-      objectNode,
-      methodName,
-      'should exist'
-    )
-
-    if (!methodNode.rtype) {
-      module.staticCall(className, methodName, args)
-      return new NullStatementResult()
+  instantiateByClassName(wasm: WasmInstance, className: string, args: any[]): StatementResult {
+    const knownWasm = this.wasms.get(base16.encode(wasm.id))
+    if (wasm !== knownWasm) {
+      throw new Error('wasm instance does not belong to current execution')
     }
 
-    let {node, value, mod} = module.staticCall(className, methodName, args)
+    const wasmValue = this.instantiate(wasm, className, args)
 
-    return new ValueStatementResult(
+    const ret = new ValueStatementResult(this.statements.length, wasmValue.node, wasmValue.value, wasmValue.mod);
+    this.statements.push(ret)
+    return ret
+  }
+
+  callInstanceMethod(jig: JigRef, methodName: string, args: any[]): StatementResult {
+    if (!this.jigs.includes(jig)) {
+      throw new ExecutionError(`the jig does not belong to the current tx`)
+    }
+    const method = jig.classAbi().methodByName(methodName)
+
+    this.localCallStartHandler(jig, methodName)
+    const methodResult = jig.package.instanceCall(jig, method, args);
+    this.localCallEndHandler()
+    const ret = new ValueStatementResult(this.statements.length, methodResult.node, methodResult.value, methodResult.mod)
+    this.statements.push(ret)
+    return ret
+  }
+
+  callInstanceMethodByIndex(jigIndex: number, methodIdx: number, args: any[]): StatementResult {
+    const jigRef = this.getStatementResult(jigIndex).asJig()
+    const method = jigRef.classAbi().methodByIdx(methodIdx)
+    this.localCallStartHandler(jigRef, method.name)
+    const methodResult = jigRef.package.instanceCall(jigRef, method, args)
+    this.localCallEndHandler()
+    const ret = new ValueStatementResult(this.statements.length, methodResult.node, methodResult.value, methodResult.mod)
+    this.statements.push(ret)
+    return ret
+  }
+
+  execStaticMethod(wasm: WasmInstance, className: string, methodName: string, args: any[]): ValueStatementResult {
+    const method = wasm.abi.classByName(className).methodByName(methodName)
+
+    let {node, value, mod} = wasm.staticCall(method, args)
+    const ret = new ValueStatementResult(
+      this.statements.length,
       node,
       value,
       mod
     )
+
+    this.statements.push(ret)
+    return ret
   }
 
-  execStaticMethodByIndex (moduleIndex: number, className: string, methodName: string, args: any[]): number {
-    const wasm = this.getStatementResult(moduleIndex).instance
-    const result = this.execStaticMethod(wasm, className, methodName, args)
-    this.statementResults.push(result)
-    return this.statementResults.length - 1
+  execStaticMethodByIndex(moduleIndex: number, className: string, methodName: string, args: any[]): number {
+    const wasm = this.getStatementResult(moduleIndex).asInstance
+    this.execStaticMethod(wasm, className, methodName, args)
+    return this.statements.length - 1
   }
 
-  execExportedFnByIndex (moduleIndex: number, fnName: string, args: any[]): number {
-    const wasm = this.getStatementResult(moduleIndex).instance
+  execExportedFnByIndex(moduleIndex: number, fnIdx: number, args: any[]): StatementResult {
+    const wasm = this.getStatementResult(moduleIndex).asInstance
+    const fnNode = wasm.abi.functionByIdx(fnIdx)
 
-    let {node, value, mod} = wasm.functionCall(fnName, args)
+    let {node, value, mod} = wasm.functionCall(fnNode, args)
 
-    const newStatementResult = new ValueStatementResult(
+    const ret = new ValueStatementResult(
+      this.statements.length,
       node,
       value,
       mod
     )
 
-    this.statementResults.push(newStatementResult)
-    return this.statementResults.length - 1
+    this.statements.push(ret)
+    return ret
+  }
+
+  execExportedFnByName(wasm: WasmInstance, fnName: string, args: any[]): StatementResult {
+    const fnNode = wasm.abi.functionByName(fnName)
+    let {node, value, mod} = wasm.functionCall(fnNode, args)
+
+    const ret = new ValueStatementResult(
+      this.statements.length,
+      node,
+      value,
+      mod
+    )
+
+    this.statements.push(ret)
+    return ret
   }
 
 
-  createNextOrigin () {
+  createNextOrigin() {
     return new Pointer(this.txContext.txHash(), this.affectedJigs.length)
   }
 
-  stackTop () {
+  stackTop() {
     return this.stack[this.stack.length - 1]
   }
 
-  stackPreviousToTop (): null | Pointer {
+  stackPreviousToTop(): null | Pointer {
     if (this.stack.length < 2) {
       return null
     }
@@ -477,44 +476,51 @@ class TxExecution {
   }
 
 
-  getStatementResult (index: number): StatementResult {
-    const result = this.statementResults[index]
-    if (!result) { throw new ExecutionError(`undefined index: ${index}`)}
+  getStatementResult(index: number): StatementResult {
+    const result = this.statements[index]
+    if (!result) {
+      throw new ExecutionError(`undefined index: ${index}`)
+    }
     return result
   }
 
-  lockJigToUser(jigIndex: number, address: Address): void {
-    const jigRef = this.getStatementResult(jigIndex).asJig()
+  lockJigToUser(jigRef: JigRef, address: Address): StatementResult {
     if (!jigRef.lock.canBeChangedBy(this)) {
       throw new PermissionError(`no permission to remove lock from jig ${jigRef.origin}`)
     }
     jigRef.changeLock(new UserLock(address))
     jigRef.writeField('$lock', {origin: jigRef.origin.toBytes(), ...jigRef.lock.serialize()})
     this.marKJigAsAffected(jigRef)
-    this.statementResults.push(this.getStatementResult(jigIndex))
+
+    const ret = new EmptyStatementResult(this.statements.length);
+    this.statements.push(ret)
+    return ret
   }
 
-  importModule(modId: Uint8Array): number {
+  lockJigToUserByIndex(jigIndex: number, address: Address): StatementResult {
+    const jigRef = this.getStatementResult(jigIndex).asJig()
+    return this.lockJigToUser(jigRef, address)
+  }
+
+  importModule(modId: Uint8Array): StatementResult {
     const instance = this.loadModule(modId)
-    this.statementResults.push(new WasmStatementResult(instance))
-    return this.statementResults.length - 1
+    const ret = new WasmStatementResult(this.statements.length, instance);
+    this.statements.push(ret)
+    return ret
   }
 
-  async deployPackage(entryPoint: string[], sources: Map<string, string>): Promise<number> {
+  async deployPackage(entryPoint: string[], sources: Map<string, string>): Promise<StatementResult> {
     const pkgData = await this.txContext.compile(entryPoint, sources)
     this.deployments.push(pkgData)
     const wasm = this.txContext.getWasmInstance(pkgData)
     wasm.setExecution(this)
-    this.statementResults.push(new WasmStatementResult(wasm))
-    return this.statementResults.length - 1
+    const ret = new WasmStatementResult(this.statements.length, wasm)
+    this.statements.push(ret)
+    return ret
   }
 
   markAsFunded() {
     this.funded = true
-  }
-
-  outputIndexFor(jigRef: JigRef): number {
-    return this.jigs.findIndex(j => j === jigRef)
   }
 
   signedBy(addr: Address) {
@@ -522,15 +528,15 @@ class TxExecution {
   }
 
   private execLength() {
-    return this.statementResults.length
+    return this.statements.length
   }
 
-  private marKJigAsAffected (jig: JigRef): void {
-    const exists = this.affectedJigs.find(affetedJig => affetedJig.origin.equals(jig.origin))
+  private marKJigAsAffected(jig: JigRef): void {
+    const exists = this.affectedJigs.find(affectedJig => affectedJig.origin.equals(jig.origin))
     if (!exists) {
       this.affectedJigs.push(jig)
     }
   }
 }
 
-export { TxExecution }
+export {TxExecution}
