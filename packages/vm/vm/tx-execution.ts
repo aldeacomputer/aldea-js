@@ -122,7 +122,10 @@ class TxExecution {
     const method = klassNode.methodByName(methodName)
 
     const args = callerInstance.liftArguments(argBuff, method.args)
-    return targetJig.package.instanceCall(targetJig, method, args)
+    this.localCallStartHandler(targetJig, method.name)
+    const result = targetJig.package.instanceCall(targetJig, method, args);
+    this.localCallEndHandler()
+    return result
   }
 
   remoteStaticExecHandler(srcModule: WasmInstance, targetModId: Uint8Array, fnStr: string, argBuffer: Uint8Array): WasmValue {
