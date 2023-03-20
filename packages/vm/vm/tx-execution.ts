@@ -514,6 +514,7 @@ class TxExecution {
     this.deployments.push(pkgData)
     const wasm = this.txContext.getWasmInstance(pkgData)
     wasm.setExecution(this)
+    this.wasms.set(base16.encode(wasm.id), wasm)
     const ret = new WasmStatementResult(this.statements.length, wasm)
     this.statements.push(ret)
     return ret
