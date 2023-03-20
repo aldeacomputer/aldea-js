@@ -5,6 +5,8 @@ import {TxExecution} from "../vm/tx-execution.js";
 import {base16} from "@aldea/sdk-js";
 import {JigRef} from "../vm/jig-ref.js";
 import {emptyExecFactoryFactory} from "./util.js";
+import {WasmInstance} from "../vm/wasm-instance.js";
+import {StatementResult} from "../vm/statement-result.js";
 
 describe('Jig Type', () => {
   let storage: Storage
@@ -40,25 +42,25 @@ describe('Jig Type', () => {
 
   const emptyTx = emptyExecFactoryFactory(() => storage, () => vm)
 
-  let jigBearerModuleIndex: number
-  let flockModuleIndex: number
-  let flockIndex: number
+  let jigBearerPkg: WasmInstance
+  let flockPkg: WasmInstance
+  let flockStmt: StatementResult
   let jig: JigRef
 
   let exec: TxExecution
   beforeEach(() => {
     exec = emptyTx()
     exec.markAsFunded()
-    jigBearerModuleIndex = exec.importModule(modIdFor('jig-type-bearer')) // index 0
-    flockModuleIndex = exec.importModule(modIdFor('flock'))
-    flockIndex = exec.instantiateByIndex(flockModuleIndex, 'Flock', [])
-    jig = exec.getStatementResult(flockIndex).asJig()
+    jigBearerPkg = exec.importModule(modIdFor('jig-type-bearer')).asInstance // index 0
+    flockPkg = exec.importModule(modIdFor('flock')).asInstance
+    flockStmt = exec.instantiateByClassName(flockPkg, 'Flock', [])
+    jig = flockStmt.asJig()
   })
 
   it('can create instances by sending jig typed arguments to constructor properly.', () => {
-    const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
-    exec.lockJigToUser(jigBearerIndex, userAddr)
-    exec.lockJigToUser(flockIndex, userAddr)
+    const jigBearer = exec.instantiateByClassName(jigBearerPkg, 'JigTypeBearer', [jig]).asJig() // index 1
+    exec.lockJigToUser(jigBearer, userAddr)
+    exec.lockJigToUser(flockStmt.asJig(), userAddr)
     const ret = exec.finalize()
 
     const flockOutput = ret.outputs[0]
@@ -67,10 +69,10 @@ describe('Jig Type', () => {
   })
 
   it('can make calls on methods returning jig typed parameters', () => {
-    const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
-    const returnedJig = exec.getStatementResult(exec.callInstanceMethodByIndex(jigBearerIndex, 'getJig', [])).asJig()
-    exec.lockJigToUser(jigBearerIndex, userAddr)
-    exec.lockJigToUser(flockIndex, userAddr)
+    const jigBearer = exec.instantiateByClassName(jigBearerPkg, 'JigTypeBearer', [jig]).asJig() // index 1
+    const returnedJig = exec.callInstanceMethod(jigBearer, 'getJig', []).asJig()
+    exec.lockJigToUser(jigBearer, userAddr)
+    exec.lockJigToUser(flockStmt.asJig(), userAddr)
     const ret = exec.finalize()
 
     const parsed = ret.outputs[1].parsedState()
@@ -78,15 +80,15 @@ describe('Jig Type', () => {
   })
 
   it('can make calls on jigs sending jig typed parameters', () => {
-    const anotherFlockIndex = exec.instantiateByIndex(flockModuleIndex, 'Flock', [])
-    const anotherJig = exec.getStatementResult(anotherFlockIndex).asJig()
+    const anotherFlock = exec.instantiateByClassName(flockPkg, 'Flock', []).asJig()
+    const anotherJig = anotherFlock
 
-    const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
-    exec.callInstanceMethodByIndex(jigBearerIndex, 'setJig', [anotherJig])
+    const jigBearer = exec.instantiateByClassName(jigBearerPkg, 'JigTypeBearer', [jig]).asJig() // index 1
+    exec.callInstanceMethod(jigBearer, 'setJig', [anotherJig])
 
-    exec.lockJigToUser(jigBearerIndex, userAddr)
-    exec.lockJigToUser(flockIndex, userAddr)
-    exec.lockJigToUser(anotherFlockIndex, userAddr)
+    exec.lockJigToUser(jigBearer, userAddr)
+    exec.lockJigToUser(flockStmt.asJig(), userAddr)
+    exec.lockJigToUser(anotherFlock, userAddr)
     const ret = exec.finalize()
 
     const flockOutput = ret.outputs[0]
@@ -97,20 +99,20 @@ describe('Jig Type', () => {
   })
 
   it('can restore jigs that contain jigs of the same package', () => {
-    const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
-    exec.lockJigToUser(jigBearerIndex, userAddr)
-    exec.lockJigToUser(flockIndex, userAddr)
+    const jigBearerStmt = exec.instantiateByClassName(jigBearerPkg, 'JigTypeBearer', [jig]) // index 1
+    exec.lockJigToUser(jigBearerStmt.asJig(), userAddr)
+    exec.lockJigToUser(flockStmt.asJig(), userAddr)
     const ret1 = exec.finalize()
 
     storage.persist(ret1)
 
     const exec2 = emptyTx([userPriv])
 
-    const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id())
-    const returnedJigIndex = exec2.callInstanceMethodByIndex(jigBearerIndexFromOutside, 'getJig', [])
-    exec2.callInstanceMethodByIndex(returnedJigIndex, 'grow', [])
+    const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id()).asJig()
+    const returnedJig = exec2.callInstanceMethod(jigBearerIndexFromOutside, 'getJig', []).asJig()
+    exec2.callInstanceMethod(returnedJig, 'grow', [])
     exec2.lockJigToUser(jigBearerIndexFromOutside, userAddr)
-    exec2.lockJigToUser(returnedJigIndex, userAddr)
+    exec2.lockJigToUser(returnedJig, userAddr)
     exec2.markAsFunded()
     const ret2 = exec2.finalize()
 
@@ -119,20 +121,20 @@ describe('Jig Type', () => {
   })
 
   it('can restore jigs that contain jigs of the same package with the expected type name', () => {
-    const jigBearerIndex = exec.instantiateByIndex(jigBearerModuleIndex, 'JigTypeBearer', [jig]) // index 1
-    exec.lockJigToUser(jigBearerIndex, userAddr)
-    exec.lockJigToUser(flockIndex, userAddr)
+    const jigBearer = exec.instantiateByClassName(jigBearerPkg, 'JigTypeBearer', [jig]).asJig() // index 1
+    exec.lockJigToUser(jigBearer, userAddr)
+    exec.lockJigToUser(flockStmt.asJig(), userAddr)
     const ret1 = exec.finalize()
 
     storage.persist(ret1)
 
     const exec2 = emptyTx([userPriv])
 
-    const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id())
-    const returnedJigIndex = exec2.callInstanceMethodByIndex(jigBearerIndexFromOutside, 'getJig', [])
-    exec2.callInstanceMethodByIndex(returnedJigIndex, 'grow', [])
+    const jigBearerIndexFromOutside = exec2.loadJigByOutputId(ret1.outputs[1].id()).asJig()
+    const returnedJig = exec2.callInstanceMethod(jigBearerIndexFromOutside, 'getJig', []).asJig()
+    exec2.callInstanceMethod(returnedJig, 'grow', [])
     exec2.lockJigToUser(jigBearerIndexFromOutside, userAddr)
-    exec2.lockJigToUser(returnedJigIndex, userAddr)
+    exec2.lockJigToUser(returnedJig, userAddr)
     exec2.markAsFunded()
     const ret2 = exec2.finalize()
 

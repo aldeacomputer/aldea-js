@@ -2,6 +2,7 @@ import {WasmInstance} from './wasm-instance.js';
 import {Lock} from "./locks/lock.js";
 import {Externref, getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
 import {Pointer} from "@aldea/sdk-js";
+import {ClassNodeWrapper} from "./abi-helpers/class-node-wrapper.js";
 
 export class JigRef  {
   ref: Internref;
@@ -69,5 +70,9 @@ export class JigRef  {
     const { align, offset } = layout[fieldName]
 
     mem32[offset >>> align] = this.package.insertValue(propValue, fieldNode.type)
+  }
+
+  classAbi(): ClassNodeWrapper {
+    return this.package.abi.classByName(this.className())
   }
 }

@@ -1,7 +1,7 @@
 import {Storage, StubClock, VM} from '../vm/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {calculatePackageId} from "../vm/calculate-package-id.js";
+import {AldeaCrypto} from '../vm/aldea-crypto.js';
+import {calculatePackageId} from '../vm/index.js';
 import {emptyExecFactoryFactory} from "./util.js";
 
 const someValidModule = `
@@ -37,9 +37,9 @@ describe('deploy code', () => {
       storage.addPackage(pkgData.id, pkgData)
       const pkgId = pkgData.id
       const exec = emptyExec()
-      const moduleIndex = exec.importModule(pkgId)
-      const jigIndex = exec.instantiateByIndex(moduleIndex, 'Foo', [])
-      exec.lockJigToUser(jigIndex, userAddr)
+      const wasm = exec.importModule(pkgId).asInstance
+      const jig = exec.instantiateByClassName(wasm, 'Foo', []).asJig()
+      exec.lockJigToUser(jig, userAddr)
       exec.markAsFunded()
       const ret = exec.finalize()
 
@@ -53,9 +53,9 @@ describe('deploy code', () => {
 
       const vm2 = new VM(storage, new StubClock())
       const exec = emptyExecFactoryFactory(() => storage, () => vm2)()
-      const moduleIndex = exec.importModule(pkgId)
-      const jigIndex = exec.instantiateByIndex(moduleIndex, 'Foo', [])
-      exec.lockJigToUser(jigIndex, userAddr)
+      const wasm = exec.importModule(pkgId).asInstance
+      const jig = exec.instantiateByClassName(wasm, 'Foo', []).asJig()
+      exec.lockJigToUser(jig, userAddr)
       exec.markAsFunded()
       const ret = exec.finalize()
       expect(ret.outputs[0].classIdx).to.eql(0)
@@ -74,9 +74,9 @@ describe('deploy code', () => {
       const moduleId = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
       const exec = emptyExec()
-      const moduleIndex = exec.importModule(moduleId)
-      const jigIndex = exec.instantiateByIndex(moduleIndex, 'Flock', [])
-      exec.lockJigToUser(jigIndex, userAddr)
+      const wasm = exec.importModule(moduleId).asInstance
+      const jig = exec.instantiateByClassName(wasm, 'Flock', []).asJig()
+      exec.lockJigToUser(jig, userAddr)
       exec.markAsFunded()
       const ret = exec.finalize()
       expect(ret.outputs[0].classIdx).to.eql(0)
@@ -94,10 +94,10 @@ describe('deploy code', () => {
       const flockId = vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
 
       const exec = emptyExec()
-      const moduleIndex = exec.importModule(flockId)
-      const jigIndex = exec.instantiateByIndex(moduleIndex, 'Flock', [])
-      exec.callInstanceMethodByIndex(jigIndex, 'growWithMath', [])
-      exec.lockJigToUser(jigIndex, userAddr)
+      const wasm = exec.importModule(flockId).asInstance
+      const jig = exec.instantiateByClassName(wasm, 'Flock', []).asJig()
+      exec.callInstanceMethod(jig, 'growWithMath', [])
+        exec.lockJigToUser(jig, userAddr)
       exec.markAsFunded()
       const ret = exec.finalize()
 
@@ -111,9 +111,9 @@ describe('deploy code', () => {
       const exec = emptyExec()
       const sources = new Map<string, string>()
       sources.set(fileName, someValidModule)
-      const moduleIndex = await exec.deployPackage([fileName],  sources)
-      const jigIndex = exec.instantiateByIndex(moduleIndex, 'Foo', [])
-      exec.lockJigToUser(jigIndex, userAddr)
+      const wasm = await exec.deployPackage([fileName],  sources).then(stmt => stmt.asInstance)
+      const jig = exec.instantiateByClassName(wasm, 'Foo', []).asJig()
+      exec.lockJigToUser(jig, userAddr)
       exec.markAsFunded()
       const ret = exec.finalize()
 
@@ -132,11 +132,12 @@ describe('deploy code', () => {
         }
       `)
 
-      const moduleIndex = await exec.deployPackage([fileName, anotherFileName],  sources)
-      const jig1Index = exec.instantiateByIndex(moduleIndex, 'Foo', [])
-      const jig2Index = exec.instantiateByIndex(moduleIndex, 'Something', [])
-      exec.lockJigToUser(jig1Index, userAddr)
-      exec.lockJigToUser(jig2Index, userAddr)
+      const wasm = await exec.deployPackage([fileName, anotherFileName],  sources)
+        .then(stmt => stmt.asInstance)
+      const jig1 = exec.instantiateByClassName(wasm, 'Foo', []).asJig()
+      const jig = exec.instantiateByClassName(wasm, 'Something', []).asJig()
+      exec.lockJigToUser(jig1, userAddr)
+      exec.lockJigToUser(jig, userAddr)
       const ret = exec.finalize()
 
       expect(ret.outputs[0].classIdx).to.eql(1)
@@ -146,12 +147,12 @@ describe('deploy code', () => {
       const exec = emptyExec()
       const sources = new Map<string, string>()
       sources.set(fileName, someValidModule)
-      const moduleIndex = await exec.deployPackage([fileName], sources)
-      const result = exec.getStatementResult(moduleIndex)
+      const stmt = await exec.deployPackage([fileName], sources)
+      const result = exec.getStatementResult(stmt.idx)
 
       const packageId = calculatePackageId([fileName], sources)
 
-      expect(result.instance.id).to.eql(packageId)
+      expect(result.asInstance.id).to.eql(packageId)
     })
-  });
+  })
 })

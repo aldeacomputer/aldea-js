@@ -4,7 +4,7 @@ import {
 } from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {base16, ref} from "@aldea/sdk-js";
+import {base16} from "@aldea/sdk-js";
 import {emptyExecFactoryFactory} from "./util.js";
 
 describe('execute txs', () => {
@@ -43,77 +43,77 @@ describe('execute txs', () => {
   describe('canLock', function () {
     it('returns false when target is public', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const methodStmt = exec.callInstanceMethod(jig1, 'checkCanLock', [jig2])
+      const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(false)
     })
     it('returns false when target is frozen', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      exec.callInstanceMethodByIndex(jig2Idx, 'destroy', [])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const pkg = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(pkg, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(pkg, 'UserJig', []).asJig()
+      exec.callInstanceMethod(jig2, 'destroy', [])
+      const methodSmt = exec.callInstanceMethod(jig1, 'checkCanLock', [jig2])
+      const res = exec.getStatementResult(methodSmt.idx)
 
       expect(res.value).to.eql(false)
     })
 
     it('returns true when target is user locked and there is a signature', () => {
       const exec = emptyExec([userPriv])
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      exec.lockJigToUser(jig2Idx, userAddr)
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'UserJig', []).asJig()
+      exec.lockJigToUser(jig2, userAddr)
+      const methodStmt = exec.callInstanceMethod(jig1, 'checkCanLock', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(true)
     })
     it('returns false when target is user locked and there is no signature', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      exec.lockJigToUser(jig2Idx, userAddr)
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'UserJig', []).asJig()
+      exec.lockJigToUser(jig2, userAddr)
+      const methodStmt = exec.callInstanceMethod(jig1, 'checkCanLock', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(false)
     })
     it('returns true when no lock', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'UserJig', []).asJig()
+      const methodStmt = exec.callInstanceMethod(jig1, 'checkCanLock', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(true)
     })
     it('returns true when jig is owned by current jig', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      exec.callInstanceMethodByIndex(jig1Idx, 'adopt', [ref(jig2Idx)])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'UserJig', []).asJig()
+      exec.callInstanceMethod(jig1, 'adopt', [jig2])
+        const methodStmt = exec.callInstanceMethod(jig1, 'checkCanLock', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(true)
     })
     it('returns false when jig is owned by another jig', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      exec.instantiateByIndex(importIdx, 'OwnerJig', [ref(jig2Idx)])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanLock', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'UserJig', []).asJig()
+      exec.instantiateByClassName(importIdx, 'OwnerJig', [jig2]).asJig()
+      const methodStmt = exec.callInstanceMethod(jig1, 'checkCanLock', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(false)
     })
@@ -122,77 +122,77 @@ describe('execute txs', () => {
   describe('#canCall()', function () {
     it('returns true when target is public', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const methodStmt = exec.callInstanceMethod(jig1, 'checkCanCall', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(true)
     })
     it('returns false when target is frozen', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      exec.callInstanceMethodByIndex(jig2Idx, 'destroy', [])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'UserJig', []).asJig()
+      exec.callInstanceMethod(jig2, 'destroy', [])
+        const methodStmt = exec.callInstanceMethod(jig1, 'checkCanCall', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(false)
     })
 
     it('returns true when target is user locked and there is a signature', () => {
       const exec = emptyExec([userPriv])
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      exec.lockJigToUser(jig2Idx, userAddr)
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'UserJig', []).asJig()
+      exec.lockJigToUser(jig2, userAddr)
+      const methodStmt = exec.callInstanceMethod(jig1, 'checkCanCall', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(true)
     })
     it('returns false when target is user locked and there is no signature', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      exec.lockJigToUser(jig2Idx, userAddr)
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'UserJig', []).asJig()
+      exec.lockJigToUser(jig2, userAddr)
+      const methodStmt = exec.callInstanceMethod(jig1, 'checkCanCall', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(false)
     })
     it('returns true when no lock', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'UserJig', []).asJig()
+      const methodStmt = exec.callInstanceMethod(jig1, 'checkCanCall', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(true)
     })
     it('returns true when jig is owned by current jig', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      exec.callInstanceMethodByIndex(jig1Idx, 'adopt', [ref(jig2Idx)])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'UserJig', []).asJig()
+      exec.callInstanceMethod(jig1, 'adopt', [jig2])
+        const methodStmt = exec.callInstanceMethod(jig1, 'checkCanCall', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(true)
     })
     it('returns false when jig is owned by another jig', () => {
       const exec = emptyExec()
-      const importIdx = exec.importModule(modIdFor('can-lock'))
-      const jig1Idx = exec.instantiateByIndex(importIdx, 'PublicJig', [])
-      const jig2Idx = exec.instantiateByIndex(importIdx, 'UserJig', [])
-      exec.instantiateByIndex(importIdx, 'OwnerJig', [ref(jig2Idx)])
-      const methodIdx = exec.callInstanceMethodByIndex(jig1Idx, 'checkCanCall', [ref(jig2Idx)])
-      const res = exec.getStatementResult(methodIdx)
+      const importIdx = exec.importModule(modIdFor('can-lock')).asInstance
+      const jig1 = exec.instantiateByClassName(importIdx, 'PublicJig', []).asJig()
+      const jig2 = exec.instantiateByClassName(importIdx, 'UserJig', []).asJig()
+      exec.instantiateByClassName(importIdx, 'OwnerJig', [jig2]).asJig()
+      const methodStmt = exec.callInstanceMethod(jig1, 'checkCanCall', [jig2])
+        const res = exec.getStatementResult(methodStmt.idx)
 
       expect(res.value).to.eql(false)
     })

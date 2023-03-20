@@ -1,14 +1,15 @@
 import {base16, Instruction, Pointer, Tx} from "@aldea/sdk-js";
-import {JigState} from "./jig-state.js";
-import {ExecutionError} from "./errors.js";
-import {Clock} from "./clock.js";
-import moment from "moment";
-import {WasmInstance} from "./wasm-instance.js";
-import {VM} from "./vm.js";
-import {PkgData} from "./storage.js";
-import {StateProvider} from "./state-interfaces.js";
+import {StateProvider} from "../state-interfaces.js";
+import {VM} from "../vm.js";
+import {Clock} from "../clock.js";
+import {JigState} from "../jig-state.js";
+import {ExecutionError} from "../errors.js";
+import {WasmInstance} from "../wasm-instance.js";
+import {PkgData} from "../storage.js";
+import moment from "moment/moment.js";
+import {TxContext} from "./tx-context.js";
 
-export class TxContext {
+export class StorageTxContext implements TxContext {
   private _tx: Tx
   states: StateProvider
   vm: VM
@@ -64,4 +65,3 @@ export class TxContext {
     return this.clock.now()
   }
 }
-

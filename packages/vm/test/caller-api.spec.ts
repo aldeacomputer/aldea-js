@@ -4,7 +4,7 @@ import {
 } from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {base16, ref, Pointer} from "@aldea/sdk-js";
+import {base16, Pointer} from "@aldea/sdk-js";
 import {ExecutionError} from "../vm/errors.js";
 import {emptyExecFactoryFactory} from "./util.js";
 
@@ -45,41 +45,41 @@ describe('execute txs', () => {
     describe('when exact is true', function () {
       it('returns true when the caller is the right caller', () => {
         const exec = emptyExec()
-        const modIdx = exec.importModule(modIdFor('caller-test-code'))
-        const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-        const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
-        const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
+        const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+        const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+        const sender = exec.instantiateByClassName(pkg, 'RightCaller', []).asJig()
+        const resulStmt = exec.callInstanceMethod(sender, 'doTheCall', [receiver])
 
-        expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+        expect(exec.getStatementResult(resulStmt.idx).value).to.eql(true)
 
-        exec.lockJigToUser(receiverIdx, userAddr)
-        exec.lockJigToUser(senderIdx, userAddr)
+        exec.lockJigToUser(receiver, userAddr)
+        exec.lockJigToUser(sender, userAddr)
         exec.finalize()
       })
 
       it('returns false when the caller is the right caller', () => {
         const exec = emptyExec()
-        const modIdx = exec.importModule(modIdFor('caller-test-code'))
-        const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-        const senderIdx = exec.instantiateByIndex(modIdx, 'AnotherCaller', [])
-        const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
+        const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+        const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+        const sender = exec.instantiateByClassName(pkg, 'AnotherCaller', []).asJig()
+        const resultStmt = exec.callInstanceMethod(sender, 'doTheCall', [receiver])
 
-        expect(exec.getStatementResult(resultIdx).value).to.eql(false)
+          expect(exec.getStatementResult(resultStmt.idx).value).to.eql(false)
 
-        exec.lockJigToUser(receiverIdx, userAddr)
-        exec.lockJigToUser(senderIdx, userAddr)
+        exec.lockJigToUser(receiver, userAddr)
+        exec.lockJigToUser(sender, userAddr)
         exec.finalize()
       })
 
       it('returns false when the caller is at top level', () => {
         const exec = emptyExec()
-        const modIdx = exec.importModule(modIdFor('caller-test-code'))
-        const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-        const resultIdx = exec.callInstanceMethodByIndex(receiverIdx, 'checkCallerType', [])
+        const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+        const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+        const resultStmt = exec.callInstanceMethod(receiver, 'checkCallerType', [])
 
-        expect(exec.getStatementResult(resultIdx).value).to.eql(false)
+          expect(exec.getStatementResult(resultStmt.idx).value).to.eql(false)
 
-        exec.lockJigToUser(receiverIdx, userAddr)
+        exec.lockJigToUser(receiver, userAddr)
         exec.finalize()
       })
 
@@ -88,15 +88,15 @@ describe('execute txs', () => {
 
       it('returns false when called from subclass', () => {
         const exec = emptyExec()
-        const modIdx = exec.importModule(modIdFor('caller-test-code'))
-        const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-        const senderIdx = exec.instantiateByIndex(modIdx, 'SubclassCaller', [])
-        const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
+        const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+        const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+        const sender = exec.instantiateByClassName(pkg, 'SubclassCaller', []).asJig()
+        const resultStmt = exec.callInstanceMethod(sender, 'doTheCall', [receiver])
 
-        expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+          expect(exec.getStatementResult(resultStmt.idx).value).to.eql(true)
 
-        exec.lockJigToUser(receiverIdx, userAddr)
-        exec.lockJigToUser(senderIdx, userAddr)
+        exec.lockJigToUser(receiver, userAddr)
+        exec.lockJigToUser(sender, userAddr)
         exec.finalize()
       })
     });
@@ -105,15 +105,15 @@ describe('execute txs', () => {
     describe('when exact is false', () => {
       it('true false when called from subclass', () => {
         const exec = emptyExec()
-        const modIdx = exec.importModule(modIdFor('caller-test-code'))
-        const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-        const senderIdx = exec.instantiateByIndex(modIdx, 'SubclassCaller', [])
-        const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doTheCall', [ref(receiverIdx)])
+        const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+        const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+        const sender = exec.instantiateByClassName(pkg, 'SubclassCaller', []).asJig()
+        const resultStmt = exec.callInstanceMethod(sender, 'doTheCall', [receiver])
 
-        expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+          expect(exec.getStatementResult(resultStmt.idx).value).to.eql(true)
 
-        exec.lockJigToUser(receiverIdx, userAddr)
-        exec.lockJigToUser(senderIdx, userAddr)
+        exec.lockJigToUser(receiver, userAddr)
+        exec.lockJigToUser(sender, userAddr)
         exec.finalize()
       })
 
@@ -125,27 +125,27 @@ describe('execute txs', () => {
   describe('#hasOutput()', () => {
     it('returns false when called from top level', () => {
       const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-      const resultIdx = exec.callInstanceMethodByIndex(receiverIdx, 'callerHasOutput', [])
+      const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+      const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+      const stmt = exec.callInstanceMethod(receiver, 'callerHasOutput', [])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(false)
+      expect(exec.getStatementResult(stmt.idx).value).to.eql(false)
 
-      exec.lockJigToUser(receiverIdx, userAddr)
+      exec.lockJigToUser(receiver, userAddr)
       exec.finalize()
     })
 
     it('returns true when not called from top level', () => {
       const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
-      const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'doIHaveOutput', [ref(receiverIdx)])
+      const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+      const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+      const sender = exec.instantiateByClassName(pkg, 'RightCaller', []).asJig()
+      const result = exec.callInstanceMethod(sender, 'doIHaveOutput', [receiver])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+      expect(exec.getStatementResult(result.idx).value).to.eql(true)
 
-      exec.lockJigToUser(receiverIdx, userAddr)
-      exec.lockJigToUser(senderIdx, userAddr)
+      exec.lockJigToUser(receiver, userAddr)
+      exec.lockJigToUser(sender, userAddr)
       exec.finalize()
     })
   })
@@ -153,42 +153,42 @@ describe('execute txs', () => {
   describe('#getOutputOrFail()', function () {
     it('returns right output when exists', () => {
       const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
-      const result1Idx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOutputOrigin', [ref(receiverIdx)])
-      const result2Idx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOutputLocation', [ref(receiverIdx)])
-      const result3Idx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOutputClassPtr', [ref(receiverIdx)])
+      const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+      const receiverIdx = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+      const sender = exec.instantiateByClassName(pkg, 'RightCaller', []).asJig()
+      const result1 = exec.callInstanceMethod(sender, 'giveMeMyOutputOrigin', [receiverIdx])
+      const result2 = exec.callInstanceMethod(sender, 'giveMeMyOutputLocation', [receiverIdx])
+      const result3 = exec.callInstanceMethod(sender, 'giveMeMyOutputClassPtr', [receiverIdx])
 
-      expect(exec.getStatementResult(result1Idx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
-      expect(exec.getStatementResult(result2Idx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
-      expect(exec.getStatementResult(result3Idx).value).to.eql(exec.getStatementResult(senderIdx).asJig().classPtr().toBytes())
+      expect(exec.getStatementResult(result1.idx).value).to.eql(sender.origin.toBytes())
+      expect(exec.getStatementResult(result2.idx).value).to.eql(sender.origin.toBytes())
+      expect(exec.getStatementResult(result3.idx).value).to.eql(sender.classPtr().toBytes())
 
       exec.lockJigToUser(receiverIdx, userAddr)
-      exec.lockJigToUser(senderIdx, userAddr)
+      exec.lockJigToUser(sender, userAddr)
       exec.finalize()
     })
 
     it('sends data that makes sense with single getters', () => {
       const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
-      const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'checkMyData', [ref(receiverIdx)])
+      const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+      const receiverIdx = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+      const sender = exec.instantiateByClassName(pkg, 'RightCaller', []).asJig()
+      const resultStmt = exec.callInstanceMethod(sender, 'checkMyData', [receiverIdx])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(true)
+      expect(exec.getStatementResult(resultStmt.idx).value).to.eql(true)
 
       exec.lockJigToUser(receiverIdx, userAddr)
-      exec.lockJigToUser(senderIdx, userAddr)
+      exec.lockJigToUser(sender, userAddr)
       exec.finalize()
     })
 
     it('fails if there is no caller', () => {
       const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+      const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+      const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
       expect(() =>
-        exec.callInstanceMethodByIndex(receiverIdx, 'returnCallerOutputOrigin', [ref(receiverIdx)])
+        exec.callInstanceMethod(receiver, 'returnCallerOutputOrigin', [receiver])
       ).to.throw(ExecutionError)
     })
   });
@@ -196,24 +196,26 @@ describe('execute txs', () => {
   describe('#getOriginOrFail', function () {
     it('fails if there is no caller', () => {
       const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+      const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+      const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
       expect(() =>
-        exec.callInstanceMethodByIndex(receiverIdx, 'returnCallerOrigin', [ref(receiverIdx)])
+        exec.callInstanceMethod(receiver, 'returnCallerOrigin', [receiver])
       ).to.throw(ExecutionError)
     })
 
     it('returns origin if exists', () => {
       const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
-      const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyOrigin', [ref(receiverIdx)])
+      const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+      const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+      const sender = exec.instantiateByClassName(pkg, 'RightCaller', []).asJig()
+      const resultStmt = exec.callInstanceMethod(sender, 'giveMeMyOrigin', [receiver])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
+      expect(exec.getStatementResult(resultStmt.idx).value).to.eql(
+        sender.origin.toBytes()
+      )
 
-      exec.lockJigToUser(receiverIdx, userAddr)
-      exec.lockJigToUser(senderIdx, userAddr)
+      exec.lockJigToUser(receiver, userAddr)
+      exec.lockJigToUser(sender, userAddr)
       exec.finalize()
     })
   })
@@ -221,53 +223,53 @@ describe('execute txs', () => {
   describe('#getLocationOrFail', function () {
     it('fails if there is no caller', () => {
       const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+      const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+      const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
       expect(() =>
-        exec.callInstanceMethodByIndex(receiverIdx, 'returnCallerLocation', [ref(receiverIdx)])
+        exec.callInstanceMethod(receiver, 'returnCallerLocation', [receiver])
       ).to.throw(ExecutionError)
     })
 
     it('returns origin if exists', () => {
       const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
-      const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyLocation', [ref(receiverIdx)])
+      const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+      const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+      const sender = exec.instantiateByClassName(pkg, 'RightCaller', []).asJig()
+      const resultStmt = exec.callInstanceMethod(sender, 'giveMeMyLocation', [receiver])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().origin.toBytes())
+      expect(exec.getStatementResult(resultStmt.idx).value).to.eql(sender.origin.toBytes())
 
-      exec.lockJigToUser(receiverIdx, userAddr)
-      exec.lockJigToUser(senderIdx, userAddr)
+      exec.lockJigToUser(receiver, userAddr)
+      exec.lockJigToUser(sender, userAddr)
       exec.finalize()
     })
 
     describe('when the origin and location are not the same', () => {
       it('returns the rignt location', () => {
         const prepExec1 = emptyExec()
-        const modIdx = prepExec1.importModule(modIdFor('caller-test-code'))
-        const senderIdx = prepExec1.instantiateByIndex(modIdx, 'RightCaller', [])
-        prepExec1.lockJigToUser(senderIdx, userAddr)
+        const pkg = prepExec1.importModule(modIdFor('caller-test-code')).asInstance
+        const sender = prepExec1.instantiateByClassName(pkg, 'RightCaller', []).asJig()
+        prepExec1.lockJigToUser(sender, userAddr)
         const result1 = prepExec1.finalize()
         storage.persist(result1)
         const prepExec2 = emptyExec([userPriv])
-        const loadedIdx0 = prepExec2.loadJigByOutputId(result1.outputs[0].id())
-        prepExec2.lockJigToUser(loadedIdx0, userAddr)
+        const loaded0 = prepExec2.loadJigByOutputId(result1.outputs[0].id()).asJig()
+        prepExec2.lockJigToUser(loaded0, userAddr)
         const result2 = prepExec2.finalize()
         storage.persist(result2)
 
         const exec = emptyExec([userPriv])
-        const modIdx3 = exec.importModule(modIdFor('caller-test-code'))
-        const loadedIdx = exec.loadJigByOutputId(result2.outputs[0].id())
-        const receiverIdx = exec.instantiateByIndex(modIdx3, 'Receiver', [])
-        const resultIdx = exec.callInstanceMethodByIndex(loadedIdx, 'giveMeMyLocation', [ref(receiverIdx)])
-        const value = exec.getStatementResult(resultIdx).value
+        const pkg3 = exec.importModule(modIdFor('caller-test-code')).asInstance
+        const loaded = exec.loadJigByOutputId(result2.outputs[0].id()).asJig()
+        const receiver = exec.instantiateByClassName(pkg3, 'Receiver', []).asJig()
+        const resultStmt = exec.callInstanceMethod(loaded, 'giveMeMyLocation', [receiver])
+        const value = exec.getStatementResult(resultStmt.idx).value
 
         expect(value).to.eql(new Pointer(prepExec2.txContext.tx.hash, 0).toBytes())
         expect(value).not.to.eql(result1.outputs[0].origin.toBytes())
 
-        exec.lockJigToUser(loadedIdx, userAddr)
-        exec.lockJigToUser(receiverIdx, userAddr)
+        exec.lockJigToUser(loaded, userAddr)
+        exec.lockJigToUser(receiver, userAddr)
         exec.finalize()
       })
     });
@@ -276,24 +278,24 @@ describe('execute txs', () => {
   describe('#getClassOrFail', function () {
     it('fails if there is no caller', () => {
       const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
+      const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+      const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
       expect(() =>
-        exec.callInstanceMethodByIndex(receiverIdx, 'returnCallerClassPtr', [ref(receiverIdx)])
+        exec.callInstanceMethod(receiver, 'returnCallerClassPtr', [receiver])
       ).to.throw(ExecutionError)
     })
 
     it('returns class ptr if exists', () => {
       const exec = emptyExec()
-      const modIdx = exec.importModule(modIdFor('caller-test-code'))
-      const receiverIdx = exec.instantiateByIndex(modIdx, 'Receiver', [])
-      const senderIdx = exec.instantiateByIndex(modIdx, 'RightCaller', [])
-      const resultIdx = exec.callInstanceMethodByIndex(senderIdx, 'giveMeMyClassPtr', [ref(receiverIdx)])
+      const pkg = exec.importModule(modIdFor('caller-test-code')).asInstance
+      const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
+      const sender = exec.instantiateByClassName(pkg, 'RightCaller', []).asJig()
+      const resultStmt = exec.callInstanceMethod(sender, 'giveMeMyClassPtr', [receiver])
 
-      expect(exec.getStatementResult(resultIdx).value).to.eql(exec.getStatementResult(senderIdx).asJig().classPtr().toBytes())
+        expect(exec.getStatementResult(resultStmt.idx).value).to.eql(sender.classPtr().toBytes())
 
-      exec.lockJigToUser(receiverIdx, userAddr)
-      exec.lockJigToUser(senderIdx, userAddr)
+      exec.lockJigToUser(receiver, userAddr)
+      exec.lockJigToUser(sender, userAddr)
       exec.finalize()
     })
   })

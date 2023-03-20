@@ -4,7 +4,6 @@ import {ExecutionError} from "./errors.js";
 import {Tx} from "@aldea/sdk-js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import moment from "moment";
-import {Clock} from "./clock.js";
 import {Option} from "./support/option.js";
 import {PkgData} from "./storage.js";
 
@@ -78,8 +77,8 @@ export class ExecutionResult {
       .orElse(() => { throw new Error('todo mal') })
   }
 
-  finish(clock: Clock) {
+  finish(time: moment.Moment) {
     this.finished = true
-    this._executedAt = Option.some(clock.now())
+    this._executedAt = Option.some(time)
   }
 }
