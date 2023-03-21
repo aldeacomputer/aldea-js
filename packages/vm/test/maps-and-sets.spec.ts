@@ -4,7 +4,7 @@ import {
 } from '../vm/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {base16, ref} from "@aldea/sdk-js";
+import {base16} from "@aldea/sdk-js";
 import {emptyExecFactoryFactory} from "./util.js";
 
 describe('execute txs', () => {
@@ -42,22 +42,22 @@ describe('execute txs', () => {
 
   it('can be lift and lower maps multiple times', () => {
     const exec1 = emptyExec()
-    const modIdx = exec1.importModule(modIdFor('maps-and-sets'))
-    const jigIdx1 = exec1.instantiateByIndex(modIdx, 'JigMap', [])
-    exec1.lockJigToUser(jigIdx1, userAddr)
+    const pkg = exec1.importModule(modIdFor('maps-and-sets')).asInstance
+    const jig1 = exec1.instantiateByClassName(pkg, 'JigMap', []).asJig()
+    exec1.lockJigToUser(jig1, userAddr)
     exec1.markAsFunded()
     const ret1 = exec1.finalize()
     storage.persist(ret1)
 
     const exec2 = emptyExec([userPriv])
-    const jigIdx2 = exec2.loadJigByOutputId(ret1.outputs[0].id())
-    exec2.callInstanceMethodByIndex(jigIdx2, 'add', ['key1', 'value1'])
+    const jig2 = exec2.loadJigByOutputId(ret1.outputs[0].id()).asJig()
+    exec2.callInstanceMethod(jig2, 'add', ['key1', 'value1'])
       const ret2 = exec2.finalize()
     storage.persist(ret2)
 
     const exec3 = emptyExec([userPriv])
-    const jigIdx3 = exec3.loadJigByOutputId(ret2.outputs[0].id())
-    exec3.callInstanceMethodByIndex(jigIdx3, 'add', ['key2', 'value2'])
+    const jigIdx3 = exec3.loadJigByOutputId(ret2.outputs[0].id()).asJig()
+    exec3.callInstanceMethod(jigIdx3, 'add', ['key2', 'value2'])
       const ret3 = exec3.finalize()
 
     const state = ret3.outputs[0].parsedState()
@@ -69,11 +69,11 @@ describe('execute txs', () => {
 
   it('works with jigs as keys and jigs as values', () => {
     const exec = emptyExec()
-    const modIdx = exec.importModule(modIdFor('maps-and-sets'))
-    const keyIdx = exec.instantiateByIndex(modIdx, 'JigKey', [])
-    const valueIdx = exec.instantiateByIndex(modIdx, 'JigValue', [])
-    const mapIdx = exec.instantiateByIndex(modIdx, 'JigToJigMap', [])
-    exec.callInstanceMethodByIndex(mapIdx, 'add', [ref(keyIdx), ref(valueIdx)])
+    const pkg = exec.importModule(modIdFor('maps-and-sets')).asInstance
+    const keyJig = exec.instantiateByClassName(pkg, 'JigKey', []).asJig()
+    const valueJig = exec.instantiateByClassName(pkg, 'JigValue', []).asJig()
+    const mapIdx = exec.instantiateByClassName(pkg, 'JigToJigMap', []).asJig()
+    exec.callInstanceMethod(mapIdx, 'add', [keyJig, valueJig])
       exec.lockJigToUser(mapIdx, userAddr)
     exec.markAsFunded()
     const ret = exec.finalize()

@@ -43,9 +43,9 @@ describe('execute txs', () => {
   describe('index by address', function () {
     it('saves new utxos', () => {
       const exec = emptyExec()
-      const pkgIndex = exec.importModule(modIdFor('flock'))
-      const jigIndex = exec.instantiateByIndex(pkgIndex, 'Flock', [])
-      exec.lockJigToUser(jigIndex, userAddr)
+      const pkg = exec.importModule(modIdFor('flock')).asInstance
+      const jig = exec.instantiateByClassName(pkg, 'Flock', []).asJig()
+      exec.lockJigToUser(jig, userAddr)
       const result = exec.finalize()
       storage.persist(result)
 
@@ -56,15 +56,15 @@ describe('execute txs', () => {
 
     it('removes old utxos', () => {
       const exec = emptyExec()
-      const pkgIndex = exec.importModule(modIdFor('flock'))
-      const jigIndex = exec.instantiateByIndex(pkgIndex, 'Flock', [])
-      exec.lockJigToUser(jigIndex, userAddr)
+      const pkgIndex = exec.importModule(modIdFor('flock')).asInstance
+      const jig = exec.instantiateByClassName(pkgIndex, 'Flock', []).asJig()
+      exec.lockJigToUser(jig, userAddr)
       const result = exec.finalize()
       storage.persist(result)
 
       const exec2 = emptyExec([userPriv])
-      const loadedIdx = exec2.loadJigByOutputId(result.outputs[0].id())
-      exec2.lockJigToUser(loadedIdx, userAddr)
+      const loaded = exec2.loadJigByOutputId(result.outputs[0].id()).asJig()
+      exec2.lockJigToUser(loaded, userAddr)
       const result2 = exec2.finalize()
       storage.persist(result2)
 
@@ -76,15 +76,15 @@ describe('execute txs', () => {
 
     it('acumulates utxos from different txs', () => {
       const exec = emptyExec()
-      const pkgIndex = exec.importModule(modIdFor('flock'))
-      const jigIndex = exec.instantiateByIndex(pkgIndex, 'Flock', [])
-      exec.lockJigToUser(jigIndex, userAddr)
+      const pkgIndex = exec.importModule(modIdFor('flock')).asInstance
+      const jig = exec.instantiateByClassName(pkgIndex, 'Flock', []).asJig()
+      exec.lockJigToUser(jig, userAddr)
       const result = exec.finalize()
       storage.persist(result)
 
       const exec2 = emptyExec([userPriv])
-      const pkgIndex2 = exec2.importModule(modIdFor('flock'))
-      const jigIndex2 = exec2.instantiateByIndex(pkgIndex2, 'Flock', [])
+      const pkgIndex2 = exec2.importModule(modIdFor('flock')).asInstance
+      const jigIndex2 = exec2.instantiateByClassName(pkgIndex2, 'Flock', []).asJig()
       exec2.lockJigToUser(jigIndex2, userAddr)
       const result2 = exec2.finalize()
       storage.persist(result2)
