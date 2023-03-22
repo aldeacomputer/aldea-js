@@ -43,7 +43,8 @@ describe('execute txs', () => {
       'nft',
       'sheep',
       'sheep-counter',
-      'weapon'
+      'weapon',
+      'tower'
     ]
 
     sources.forEach(src => {
@@ -698,6 +699,25 @@ describe('execute txs', () => {
     const lock = ret.outputs[0].lockObject()
     expect(lock.data).to.eql(addr2.hash)
   })
+
+  // it('tower magic', () => {
+  //   const importStmt = exec.importModule(modIdFor('tower'))
+  //   const towerJigStmt = exec.instantiateByClassName(importStmt.asInstance, 'Tower', [])
+  //   exec.lockJigToUser(towerJigStmt.asJig(), userAddr)
+  //   const result = exec.finalize()
+  //
+  //   expect(result.outputs).to.have.length(1)
+  //
+  // })
+  //
+  // it('tower pkg_id', () => {
+  //   const map = new Map<string, string>();
+  //   const value1 = fs.readFileSync('./assembly/aldea/tower.ts');
+  //   map.set('tower.ts', value1.toString())
+  //   let pkgId = calculatePackageId(['tower.ts'], map)
+  //   console.log(base16.encode(pkgId))
+  // })
+
 
   it('can lock to a new address fails if there is no signature for the previous one', () => {
     const privKey1 = PrivKey.fromRandom()
