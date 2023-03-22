@@ -56,7 +56,7 @@ export class JigState {
     }, {})
   }
 
-  id (): Uint8Array {
+  serialize (): Uint8Array {
     const bufW = new BufWriter()
     bufW.writeBytes(this.origin.toBytes())
     bufW.writeBytes(this.currentLocation.toBytes())
@@ -68,7 +68,11 @@ export class JigState {
     }
     bufW.writeVarInt(this.stateBuf.byteLength)
     bufW.writeBytes(this.stateBuf)
-    return blake3(bufW.data)
+    return bufW.data
+  }
+
+  id (): Uint8Array {
+    return blake3(this.serialize())
   }
 
   outputObject(): any {
