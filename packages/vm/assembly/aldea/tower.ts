@@ -9,7 +9,7 @@ export class Tower extends Jig {
     super();
   }
 
-  spawn(inc: i64): void {
+  spawn(inc: u64): void {
     if(this.dead) throw new Error('Tower is dead');
     this.hoard += inc;
     if(this.hoard > DEATH) {

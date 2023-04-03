@@ -98,7 +98,7 @@ export class WasmInstance {
             classPtr: new ArrayBuffer(0),
             lockType: LockType.NONE,
             lockData: new ArrayBuffer(0),
-          }, emptyTn('JigInitParams'))
+          }, jigInitParamsTypeNode)
         },
         vm_jig_link: (jigPtr: number, rtid: number): WasmPointer =>  {
           const nextOrigin = this.currentExec.createNextOrigin()

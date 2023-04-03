@@ -1,5 +1,5 @@
 import { AuthCheck } from './auth'
-import { Jig, JigInitParams } from './jig'
+import {_RemoteJig, Jig, JigInitParams} from './jig'
 import { LockType } from './lock'
 import { Output } from './output'
 
@@ -12,6 +12,10 @@ export declare function vm_jig_init(): JigInitParams;
 // @ts-ignore
 @external("vm", "vm_jig_link")
 export declare function vm_jig_link(jig: Jig, rtid: i32): ArrayBuffer;
+
+// @ts-ignore
+@external("vm", "vm_proxy_link")
+export declare function vm_proxy_link(jig: _RemoteJig, origin: ArrayBuffer): void;
 
 // Jig auth
 // * ======

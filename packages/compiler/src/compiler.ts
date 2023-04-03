@@ -42,7 +42,10 @@ export interface CompilerResult {
 export async function compileCommand(src: string, opts: any, cmd: Command): Promise<void> {
   const baseDir = resolve(process.cwd(), dirname(src))
   const srcFile = basename(src)
-  const outFile = srcFile.replace(/\.\w+$/, '.wasm')
+
+  const outFile = opts.output
+    ? opts.output
+    : srcFile.replace(/\.\w+$/, '.wasm');
 
   if (!fs.existsSync(join(baseDir, srcFile))) {
     cmd.error(`file does not exist: ${src}`)

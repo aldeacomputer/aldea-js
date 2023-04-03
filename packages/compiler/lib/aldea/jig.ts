@@ -1,4 +1,4 @@
-import { vm_jig_init, vm_jig_link } from './imports';
+import {vm_jig_init, vm_jig_link, vm_proxy_link} from './imports';
 import { Lock, LockType } from './lock'
 import { Output } from './output'
 
@@ -62,5 +62,6 @@ export class _LocalJig extends _BaseJig {
 export class _RemoteJig extends _BaseJig {
   constructor(params: JigInitParams) {
     super(params)
+    vm_proxy_link(this, this.$output.origin)
   }
 }
