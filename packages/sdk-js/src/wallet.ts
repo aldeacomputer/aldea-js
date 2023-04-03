@@ -26,6 +26,8 @@ export interface IWallet {
 
 export interface IWalletStorage {
   getInventory(): Promise<Array<Output>>
+  getKeys(): Promise<Array<Buffer>>
+  saveKey(key: Buffer): Promise<void>
 }
 
 export class Wallet implements IWallet{
@@ -76,5 +78,20 @@ export class SqliteStorage implements IWalletStorage {
       ))
     }
     return outputs
+  }
+
+  async getKeys(): Promise<Array<Buffer>> {
+    const db = await this.db
+    const rows = await db.all("SELECT privkey FROM keys")
+    const keys: Array<Buffer> = [];
+    for (const row of rows) {
+      keys.push(row.privkey)
+    }
+    return keys
+  }
+
+  async saveKey(key: Buffer): Promise<void> {
+    const db = await this.db
+    await db.run("INSERT INTO keys (privkey) VALUES (?)", key)
   }
 }
