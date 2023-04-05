@@ -7,7 +7,7 @@ import {
   Output,
   Pointer,
   Tx,
-  TxBuilder,
+  TxBuilder, Address,
 } from './internal.js'
 
 /**
@@ -80,6 +80,11 @@ export class Aldea {
    */
   getOutputByOrigin(origin: string): Promise<OutputResponse> {
     return this.api.get(`output-by-origin/${origin}`, { cache: 'no-cache' }).json()
+  }
+
+  async getUtxosByAddress(address: Address): Promise<Output[]> {
+    const outputs: OutputResponse[] = await this.api.get(`utxos-by-address/${address.toString()}`, { cache: 'no-cache' }).json()
+    return outputs.map(o => Output.fromJson(o))
   }
 
   /**

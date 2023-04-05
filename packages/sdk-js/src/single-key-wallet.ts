@@ -1,18 +1,30 @@
 import {Output} from "./output.js";
 import {PrivKey} from "./privkey.js";
-import {KeyPair} from "./keypair.js";
 import {Address} from "./address.js";
 import {TxBuilder} from "./tx-builder.js";
 import {Pointer} from "./pointer.js";
+import {Aldea} from "./aldea.js";
 
 const COIN_CLASS_ID = Pointer.fromString("0000000000000000000000000000000000000000000000000000000000000000_0")
 
-export class SingleKeyWallet {
+export interface WalletStateManager {
+  getInventory(): Promise<Array<Output>>;
+
+  fundTx(partialTx: TxBuilder): Promise<TxBuilder>;
+
+  getNextAddress(): Promise<Address>;
+
+  sync(): Promise<void>;
+}
+
+export class SingleKeyWallet implements WalletStateManager {
   private privKey: PrivKey
   private inventory: Output[]
-  constructor(privKeyHex: string) {
+  private client: Aldea;
+  constructor(client: Aldea, privKeyHex: string) {
     this.privKey = PrivKey.fromHex(privKeyHex)
     this.inventory = []
+    this.client = client
   }
 
   async getInventory(): Promise<Array<Output>> {
@@ -38,8 +50,8 @@ export class SingleKeyWallet {
     return partialTx
   }
 
-  async getNextAddress (): Promise<Address> {
-    return this.privKey.toPubKey().toAddress()
+  async getNextAddress(): Promise<Address> {
+    return this.address()
   }
 
   // async signTx(partialTx: TxBuilder): Promise<TxBuilder> {
@@ -54,7 +66,11 @@ export class SingleKeyWallet {
   //
   // }
 
-  // async sync(): Promise<void> {
-  //
-  // }
+  async sync(): Promise<void> {
+    this.inventory = await this.client.getUtxosByAddress(this.address())
+  }
+
+  private address () {
+    return this.privKey.toPubKey().toAddress()
+  }
 }
