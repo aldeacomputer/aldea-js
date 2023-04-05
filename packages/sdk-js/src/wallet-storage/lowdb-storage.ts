@@ -1,14 +1,18 @@
 import { Adapter, Low } from 'lowdb'
-import { IWalletStorage, WalletData } from "../wallet.js"
+import { WalletStorage } from "../wallet.js"
 import { Output } from "../output.js"
-// import { Pointer } from "../pointer.js"
-// import { Lock } from "../lock.js"
 import { PackageResponse } from "../aldea.js"
 
-export class LowDbStorage implements IWalletStorage {
+export interface WalletData {
+  outputs: Output[];
+  packages: PackageResponse[];
+  // keys: KeyPair[];
+}
+
+export class LowDbStorage implements WalletStorage {
   db: Low<WalletData>
   data: Promise<WalletData>
-  constructor(path: string, adapter: Adapter<WalletData>) {
+  constructor(adapter: Adapter<WalletData>) {
     this.db = new Low(adapter)
     this.data = this.db.read()
       .then(() => this.db.data = this.db.data || { outputs: [], packages: [] })

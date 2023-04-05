@@ -22,6 +22,7 @@ export {
 } from './internal.js'
 
 export * as wallet from './wallet.js'
+export * as sqliteStorage from './wallet-storage/sqlite-storage.js'
 // Instructions exports
 export * as instructions from './instructions/index.js'
 

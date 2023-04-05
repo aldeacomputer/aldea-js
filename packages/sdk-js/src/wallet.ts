@@ -4,17 +4,9 @@ import { PackageResponse } from "./aldea.js"
 import { KeyPair } from "./keypair.js"
 import { Output } from "./output.js"
 import { TxBuilder } from "./tx-builder.js"
-import { Pointer } from "./pointer.js"
-import { Lock } from "./lock.js"
 import { InstructionRef } from "./instruction.js"
 
-export interface WalletData {
-  outputs: Output[];
-  packages: PackageResponse[];
-  // keys: KeyPair[];
-}
-
-export interface IWalletStorage {
+export interface WalletStorage {
   getInventory(): Promise<Array<Output>>
   addOutput(output: Output): Promise<void>
   getPackages(): Promise<Array<PackageResponse>>
@@ -24,7 +16,7 @@ export interface IWalletStorage {
 }
 
 export class Wallet {
-  constructor(private storage: IWalletStorage, private aldea: Aldea, private kp: KeyPair) { }
+  constructor(private storage: WalletStorage, private aldea: Aldea, private kp: KeyPair) { }
 
   async getInventory(): Promise<Array<Output>> {
     return this.storage.getInventory()
@@ -69,13 +61,7 @@ export class Wallet {
 
     // Rebuild binary objects
     for (const outResp of resp.outputs) {
-      const output = new Output(
-        Pointer.fromString(outResp.origin),
-        Pointer.fromString(outResp.location),
-        Pointer.fromString(outResp.class),
-        Lock.fromJson(outResp.lock),
-        Buffer.from(outResp.state, 'hex'),
-      )
+      const output = Output.fromJson(outResp)
       await this.storage.addOutput(output)
     }
 
