@@ -14,5 +14,5 @@ CREATE TABLE packages(
 );
 
 CREATE TABLE keys(
-    privkey TEXT PRIMARY KEY,
+    privkey TEXT PRIMARY KEY
 );

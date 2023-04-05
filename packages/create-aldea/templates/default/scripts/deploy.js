@@ -1,6 +1,6 @@
 import minimist from 'minimist'
 import { bold } from 'kolorist'
-import { Address, Aldea, TxBuilder, Wallet } from '@aldea/sdk-js'
+import { Aldea, TxBuilder } from '@aldea/sdk-js'
 import { buildPackage, loadKeys } from './_helpers.js'
 
 /**
@@ -11,11 +11,11 @@ async function deploy(cwd, argv) {
     throw new Error('cannot fund transaction. please specify funding coin with --coin argument.')
   }
 
-  const keys = loadKeys(cwd)
+  const kp = loadKeys(cwd)
   const pkg = buildPackage(cwd, argv._)
   // const address = Address.fromPubKey(keys.pubKey)
   const aldea = new Aldea('https://node.aldea.computer')
-  const wallet = new wallet.Wallet(new LowDbStorage(cwd + '/.aldea-wallet'), aldea)
+  const wallet = new wallet.Wallet(new LowDbStorage(cwd + '/.aldea-wallet'), aldea, kp)
 
   const txBuilder = new TxBuilder(aldea)
   txBuilder.deploy(pkg)

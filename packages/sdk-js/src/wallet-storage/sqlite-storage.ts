@@ -1,22 +1,27 @@
 
 import { Database, open } from "sqlite"
-import * as sqlite3 from "sqlite3"
-import { IWalletStorage } from "../wallet.js"
+import sqlite3 from "sqlite3"
+import { WalletStorage } from "../wallet.js"
 import { Output } from "../output.js"
 import { Pointer } from "../pointer.js"
 import { Lock } from "../lock.js"
 import { PackageResponse } from "../aldea.js"
+import * as url from 'url';
+// const __filename = url.fileURLToPath(import.meta.url);
+const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
-
-export class SqliteStorage implements IWalletStorage {
-    private db: Promise<Database>
+export class SqliteStorage implements WalletStorage {
+    public db: Promise<Database>
     constructor(private path: string) {
+      console.log('Path: ', path)
       this.db = open({
         filename: path,
         driver: sqlite3.Database
       }).then(async (db) => {
+        const migrationsPath = `${__dirname}../../sqlite-migrations`
+        console.log('Migrations path: ', migrationsPath)
         await db.migrate({
-          migrationsPath: `${__dirname}/../migrations`,
+          migrationsPath,
         })
         return db
       })
