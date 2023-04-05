@@ -31,3 +31,6 @@ export * as ed25519 from './support/ed25519.js'
 
 // Legacy exports - these will probably be removed
 export { Signature } from './signature.js'
+
+// SingleKeyWallet
+export * from './single-key-wallet.js'
