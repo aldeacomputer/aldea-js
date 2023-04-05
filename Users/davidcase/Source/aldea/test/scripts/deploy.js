@@ -1,6 +1,6 @@
 import minimist from 'minimist'
 import { bold } from 'kolorist'
-import { Address, Aldea, TxBuilder, Wallet } from '@aldea/sdk-js'
+import { Address, Aldea } from '@aldea/sdk-js'
 import { buildPackage, loadKeys } from './_helpers.js'
 
 /**
@@ -13,14 +13,25 @@ async function deploy(cwd, argv) {
 
   const keys = loadKeys(cwd)
   const pkg = buildPackage(cwd, argv._)
-  // const address = Address.fromPubKey(keys.pubKey)
+  const address = Address.fromPubKey(keys.pubKey)
+
   const aldea = new Aldea('https://node.aldea.computer')
-  const wallet = new wallet.Wallet(new LowDbStorage(cwd + '/.aldea-wallet'), aldea)
+  const coin = await aldea.loadOutput(argv.coin)
 
-  const txBuilder = new TxBuilder(aldea)
-  txBuilder.deploy(pkg)
+  if (coin.props.amount < 100) {
+    throw Error('insufficient balance to fund transaction:', coin.props)
+  }
 
-  const res = await wallet.fundSignAndBroadcastTx(txBuilder).catch(async e => {
+  // Build the deploy transaction
+  const tx = await aldea.createTx(tx => {
+    const coinRef = tx.load(coin.id)
+    tx.deploy(pkg)
+    tx.call(coinRef, 'send', [coin.props.motos - 100, address.hash])
+    tx.fund(coinRef)
+    tx.sign(keys.privKey)
+  })
+
+  const res = await aldea.commitTx(tx).catch(async e => {
     console.error(await e.response.text())
     process.exit()
   })

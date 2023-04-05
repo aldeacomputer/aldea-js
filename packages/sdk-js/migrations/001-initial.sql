@@ -1,15 +1,18 @@
-CREATE TABLE txos(
-    location BLOB PRIMARY KEY,
-    origin BLOB,
+CREATE TABLE outputs(
+    origin BLOB PRIMARY KEY,
+    id TEXT,
+    location BLOB,
     class BLOB,
-    lock BLOB,
+    lock BLOB
     state BLOB,
-    spend BLOB,
+    abi TEXT
 );
-CREATE INDEX idx_txos_spend ON txos(spend);
+
+CREATE TABLE packages(
+    id TEXT PRIMARY KEY,
+    doc TEXT
+);
 
 CREATE TABLE keys(
-    address TEXT PRIMARY KEY,
-    pubkey BLOB,
-    privkey BLOB,
+    privkey TEXT PRIMARY KEY,
 );
