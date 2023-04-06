@@ -26,7 +26,7 @@ esbuild.build({
 
 esbuild.build({
   entryPoints: ['src/index.ts'],
-  outfile: 'dist/aldea.bundle.browser.mjs',
+  outfile: 'dist/aldea.bundle.mjs',
   globalName: 'aldeaJS',
   bundle: true,
   format: 'esm',
