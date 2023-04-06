@@ -1,10 +1,4 @@
-import {
-  BufReader,
-  BufWriter,
-  Instruction,
-  OpCode,
-  Serializable
-} from '../internal.js'
+import {Instruction, OpCode} from '../internal.js'
 
 /**
  * Sign Instruction.
@@ -22,19 +16,3 @@ export class SignInstruction extends Instruction {
   }
 }
 
-/**
- * Sign Args Serializer object - implements the Serializable interface.
- */
-export const SignArgsSerializer: Serializable<SignInstruction> = {
-  read(buf: BufReader): SignInstruction {
-    const sig = buf.readBytes(64)
-    const pubkey = buf.readBytes(32)
-    return new SignInstruction(sig, pubkey)
-  },
-
-  write(buf: BufWriter, instruction: SignInstruction): BufWriter {
-    buf.writeBytes(instruction.sig)
-    buf.writeBytes(instruction.pubkey)
-    return buf
-  }
-}

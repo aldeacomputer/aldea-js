@@ -1,10 +1,4 @@
-import {
-  BufReader,
-  BufWriter,
-  Instruction,
-  OpCode,
-  Serializable
-} from '../internal.js'
+import {Instruction, OpCode} from '../internal.js'
 
 /**
  * Load By Id Instruction.
@@ -20,17 +14,3 @@ export class LoadByOriginInstruction extends Instruction {
   }
 }
 
-/**
- * Load By Origin Args Serializer object - implements the Serializable interface.
- */
-export const LoadByOriginArgsSerializer: Serializable<LoadByOriginInstruction> = {
-  read(buf: BufReader): LoadByOriginInstruction {
-    const origin = buf.readBytes(36)
-    return new LoadByOriginInstruction(origin)
-  },
-
-  write(buf: BufWriter, instruction: LoadByOriginInstruction): BufWriter {
-    buf.writeBytes(instruction.origin)
-    return buf
-  }
-}

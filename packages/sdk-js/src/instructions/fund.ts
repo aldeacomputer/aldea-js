@@ -1,10 +1,4 @@
-import {
-  BufReader,
-  BufWriter,
-  Instruction,
-  OpCode,
-  Serializable
-} from '../internal.js'
+import {Instruction, OpCode} from '../internal.js'
 
 /**
  * Fund Instruction.
@@ -21,17 +15,3 @@ export class FundInstruction extends Instruction {
   }
 }
 
-/**
- * Fund Args Serializer object - implements the Serializable interface.
- */
-export const FundArgsSerializer: Serializable<FundInstruction> = {
-  read(buf: BufReader): FundInstruction {
-    const idx = buf.readU16()
-    return new FundInstruction(idx)
-  },
-
-  write(buf: BufWriter, instruction: FundInstruction): BufWriter {
-    buf.writeU16(instruction.idx)
-    return buf
-  }
-}
