@@ -34,3 +34,5 @@ export { Signature } from './signature.js'
 
 // SingleKeyWallet
 export * from './single-key-wallet.js'
+
+export * from './cbor-tools.js'

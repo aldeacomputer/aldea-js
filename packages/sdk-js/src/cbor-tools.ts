@@ -34,20 +34,11 @@ export function refTagger(_key: any, val: any): any {
 
 
 export function parseCbor (buf: Uint8Array): any[] {
-  console.log(Buffer.from(buf).toString('hex'))
   if (buf.byteLength === 0) {
     return []
   }
 
-  try {
-    console.log('AAAAAAAAAAAAAAAAAAHHHH')
-    console.log(Buffer.from(buf).toString('hex'))
-    CBOR.decode(buf.buffer, refUntagger).data
-  } catch (e) {
-    console.log(e)
-  }
-
-  return CBOR.decode(buf.buffer, refUntagger, { mode: 'sequence' }).data
+  return CBOR.decode(new Uint8Array(buf).buffer, refUntagger, { mode: 'sequence' }).data
 }
 
 

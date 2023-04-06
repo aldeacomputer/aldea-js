@@ -1,9 +1,8 @@
 import {TxVisitor} from "./tx-visitor.js";
-import {BufWriter} from "./buf-writer.js";
 import {Pointer} from "./pointer.js";
 import {Address} from "./address.js";
 import {PubKey} from "./pubkey.js";
-import {CBOR, TaggedValue} from "cbor-redux";
+import {CBOR} from "cbor-redux";
 import {OpCode} from "./instruction.js";
 import {
   CallInstruction, DeployInstruction, ExecFuncInstruction, ExecInstruction, FundInstruction,
@@ -14,9 +13,7 @@ import {
 } from "./instructions/index.js";
 import {BufReader} from "./buf-reader.js";
 import {Tx} from "./tx.js";
-import {InstructionRef, parseCbor, REF_CBOR_TAG} from "./cbor-tools.js";
-
-
+import {parseCbor} from "./cbor-tools.js";
 
 export class TxParser implements TxVisitor<Tx> {
   private reader: BufReader;
@@ -32,8 +29,7 @@ export class TxParser implements TxVisitor<Tx> {
     const instCount = this.reader.readVarInt()
     this.visitTxStart(version, Number(instCount))
 
-    let i = 0
-    while (i < instCount) {
+    for (let i = 0; i < instCount; i++) {
       const opcode = this.reader.readU8()
       const length = Number(this.reader.readVarInt())
       switch (opcode) {
@@ -93,7 +89,7 @@ export class TxParser implements TxVisitor<Tx> {
           )
           break
         case OpCode.DEPLOY:
-          const parsed = CBOR.decode(this.reader.readBytes(length), null, { mode: 'sequence', dictionary: 'map' })
+          const parsed = CBOR.decode(new Uint8Array(this.reader.readBytes(length)).buffer, null, { mode: 'sequence', dictionary: 'map' })
           this.visitDeploy(
             parsed.get(0),
             parsed.get(1)

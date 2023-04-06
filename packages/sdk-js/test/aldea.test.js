@@ -9,8 +9,15 @@ import {
   Pointer,
   Tx,
   base16,
-  PrivKey
+  PrivKey,
+  parseCbor
 } from '../dist/index.js'
+
+test('coso', async t => {
+  const buf = base16.decode('63666f6f')
+  const coso = parseCbor(buf)
+  t.true(coso.length === 1)
+})
 
 test('Builds a tx with every opcode and encodes/decodes consistently', async t => {
   const aldea = new Aldea('http://localhost')

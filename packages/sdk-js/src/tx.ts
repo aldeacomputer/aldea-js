@@ -57,7 +57,6 @@ export class Tx {
    * Returns a Transaction from the given bytes.
    */
   static fromBytes(bytes: Uint8Array): Tx {
-    console.log(bytes)
     if (!ArrayBuffer.isView(bytes)) {
       throw Error('The first argument to `Tx.fromBytes()` must be a `Uint8Array`')
     }
