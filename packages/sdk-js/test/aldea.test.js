@@ -9,6 +9,7 @@ import {
   Pointer,
   Tx,
   base16,
+  PrivKey
 } from '../dist/index.js'
 
 test('Builds a tx with every opcode and encodes/decodes consistently', async t => {
@@ -20,7 +21,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
     mock.get('http://localhost/output-by-origin/675d72e2d567cbe2cb9ef3230cbc4c85e42bcd56ba537f6b65a51b9c6c855281_1', { file: 'test/mocks/txb.jig.json', format: 'string' })
   })
 
-  const keys = KeyPair.fromRandom()
+  const keys = KeyPair.fromPrivKey(PrivKey.fromHex('c80775a751569651acbf2f0de2c30e93df3274bf92430fefb3b41e2f02f0e409'))
   const addr = Address.fromPubKey(keys.pubKey)
 
   const pkg = new Map([
@@ -51,7 +52,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
     tx.sign(keys.privKey)
     tx.signTo(keys.privKey)
   })
-  
+
   const tx2 = Tx.fromHex(tx1.toHex())
   t.true(tx1 instanceof Tx)
   t.true(tx2 instanceof Tx)
