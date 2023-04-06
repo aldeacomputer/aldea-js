@@ -1,9 +1,6 @@
 import {
-  BufReader,
-  BufWriter,
   Instruction,
-  OpCode,
-  Serializable
+  OpCode
 } from '../internal.js'
 
 /**
@@ -17,20 +14,5 @@ export class ImportInstruction extends Instruction {
   constructor(pkgId: Uint8Array) {
     super(OpCode.IMPORT)
     this.pkgId = pkgId
-  }
-}
-
-/**
- * Import Args Serializer object - implements the Serializable interface.
- */
-export const ImportArgsSerializer: Serializable<ImportInstruction> = {
-  read(buf: BufReader): ImportInstruction {
-    const pkgId = buf.readBytes(32)
-    return new ImportInstruction(pkgId)
-  },
-
-  write(buf: BufWriter, inst: ImportInstruction): BufWriter {
-    buf.writeBytes(inst.pkgId)
-    return buf
   }
 }

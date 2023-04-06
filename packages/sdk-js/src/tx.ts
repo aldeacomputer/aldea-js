@@ -1,24 +1,32 @@
 import {base16} from './support/base.js'
 import {blake3} from './support/hash.js'
-import {BufReader} from './buf-reader.js'
-import {BufWriter} from './buf-writer.js'
-import {Instruction, InstructionSerializer, OpCode} from './instruction.js'
-import {Serializable} from './serializable.js'
+import {Instruction, OpCode} from './instruction.js'
 import {Address} from "./address.js";
-import {SignInstruction, SignToInstruction} from "./instructions/index.js";
+import {
+  CallInstruction, DeployInstruction, ExecFuncInstruction, ExecInstruction, FundInstruction,
+  ImportInstruction,
+  LoadByOriginInstruction,
+  LoadInstruction, LockInstruction, NewInstruction,
+  SignInstruction,
+  SignToInstruction, UnknownInstruction
+} from "./instructions/index.js";
 import {PubKey} from "./pubkey.js";
 import {PrivKey} from "./privkey.js";
 import {sign} from "./support/ed25519.js";
+import {TxVisitor} from "./tx-visitor.js";
+import {Pointer} from "./pointer.js";
+import {TxSerializer} from "./tx-serializer.js";
+import {TxParser} from "./tx-parser.js";
 
 const TX_VERSION = 1
 
 /**
  * Aldea Transaction
- * 
+ *
  * A transaction is simply a list of instructions. When a transaction is
  * processed, the instructions are executed in the order they appear in the
  * transaction.
- * 
+ *
  * This class is primarily for working with the underlying data structure of
  * a transaction. To build a transaction, use the TxBuilder class instaed.
  */
@@ -49,11 +57,12 @@ export class Tx {
    * Returns a Transaction from the given bytes.
    */
   static fromBytes(bytes: Uint8Array): Tx {
+    console.log(bytes)
     if (!ArrayBuffer.isView(bytes)) {
       throw Error('The first argument to `Tx.fromBytes()` must be a `Uint8Array`')
     }
-    const buf = new BufReader(bytes)
-    return buf.read<Tx>(TxSerializer)
+
+    return new TxParser(bytes).parse()
   }
 
   /**
@@ -77,7 +86,7 @@ export class Tx {
    * @param privKey
    * @param to
    */
-  createSignature (privKey: PrivKey, to: number = -1): Uint8Array {
+  createSignature(privKey: PrivKey, to: number = -1): Uint8Array {
     const msg = this.sighash(to)
     return sign(msg, privKey)
   }
@@ -87,19 +96,31 @@ export class Tx {
    * an index to return the sighash upto a given instruction.
    */
   sighash(to: number = -1): Uint8Array {
-    const buf = new BufWriter()
-    const instructions = this.instructions
-      .filter(i => i.opcode !== OpCode.SIGN && i.opcode !== OpCode.SIGNTO)
-      .slice(0, to)
-    
-    for (let i = 0; i < instructions.length; i++) {
-      buf.write<Instruction>(InstructionSerializer, instructions[i])
-    }
+    // const buf = new BufWriter()
+    //
+    // const instructions = this.instructions
+    //   .filter(i => i.opcode !== OpCode.SIGN && i.opcode !== OpCode.SIGNTO)
+    //   .slice(0, to)
+    //
+    // for (let i = 0; i < instructions.length; i++) {
+    //   buf.write<Instruction>(InstructionSerializer, instructions[i])
+    // }
+    const sigHash = this
+      .filter((inst, i) => inst.opcode !== OpCode.SIGN && inst.opcode !== OpCode.SIGNTO && i < to)
+      .toBytes()
 
-    return blake3(buf.data)
+    return blake3(sigHash)
   }
 
-  isSignedBy (addr: Address, index: number): boolean {
+  filter (f: (inst: Instruction, i: number) => boolean): Tx {
+    const ret = new Tx()
+    this.instructions
+      .filter(f)
+      .forEach(i => ret.push(i))
+    return ret
+  }
+
+  isSignedBy(addr: Address, index: number): boolean {
     let i = 0
     for (const inst of this.instructions) {
       if (inst instanceof SignInstruction && PubKey.fromBytes(inst.pubkey).toAddress().equals(addr)) {
@@ -117,9 +138,8 @@ export class Tx {
    * Returns the Transaction as bytes.
    */
   toBytes(): Uint8Array {
-    const buf = new BufWriter()
-    buf.write<Tx>(TxSerializer, this)
-    return buf.data
+    const visitor = new TxSerializer()
+    return this.accept(visitor)
   }
 
   /**
@@ -128,27 +148,66 @@ export class Tx {
   toHex(): string {
     return base16.encode(this.toBytes())
   }
-}
 
-/**
- * Tx Serializer object - implements the Serializable interface.
- */
-export const TxSerializer: Serializable<Tx> = {
-  read(buf: BufReader): Tx {
-    const version = buf.readU16()
-    const instructions = new Array<Instruction>(buf.readVarInt() as number)
-    for (let i = 0; i < instructions.length; i++) {
-      instructions[i] = buf.read<Instruction>(InstructionSerializer)
-    }
-    return new Tx(version, instructions)
-  },
-
-  write(buf: BufWriter, tx: Tx): BufWriter {
-    buf.writeU16(tx.version)
-    buf.writeVarInt(tx.instructions.length)
-    for (let i = 0; i < tx.instructions.length; i++) {
-      buf.write<Instruction>(InstructionSerializer, tx.instructions[i])
-    }
-    return buf
+  accept<T>(visitor: TxVisitor<T>): T {
+    visitor.visitTxStart(this.version, this.instructions.length)
+    this.instructions.forEach(inst => {
+      let concrete
+      switch (inst.opcode) {
+        case OpCode.IMPORT:
+          concrete = inst as ImportInstruction
+          visitor.visitImport(concrete.pkgId)
+          break
+        case OpCode.LOAD:
+          concrete = inst as LoadInstruction
+          visitor.visitLoad(concrete.outputId)
+          break
+        case OpCode.LOADBYORIGIN:
+          concrete = inst as LoadByOriginInstruction
+          visitor.visitLoadByOrigin(Pointer.fromBytes(concrete.origin))
+          break
+        case OpCode.NEW:
+          concrete = inst as NewInstruction
+          visitor.visitNew(concrete.idx, concrete.exportIdx, concrete.args)
+          break
+        case OpCode.CALL:
+          concrete = inst as CallInstruction
+          visitor.visitCall(concrete.idx, concrete.methodIdx, concrete.args)
+          break
+        case OpCode.EXEC:
+          concrete = inst as ExecInstruction
+          visitor.visitExec(concrete.idx, concrete.exportIdx, concrete.methodIdx, concrete.args)
+          break
+        case OpCode.EXECFUNC:
+          concrete = inst as ExecFuncInstruction
+          visitor.visitExecFunc(concrete.idx, concrete.exportIdx, concrete.args)
+          break
+        case OpCode.FUND:
+          concrete = inst as FundInstruction
+          visitor.visitFund(concrete.idx)
+          break
+        case OpCode.LOCK:
+          concrete = inst as LockInstruction
+          visitor.visitLock(concrete.idx, new Address(concrete.pubkeyHash))
+          break
+        case OpCode.DEPLOY:
+          concrete = inst as DeployInstruction
+          visitor.visitDeploy(concrete.entry, concrete.code)
+          break
+        case OpCode.SIGN:
+          concrete = inst as SignInstruction
+          visitor.visitSign(concrete.sig, PubKey.fromBytes(concrete.pubkey))
+          break
+        case OpCode.SIGNTO:
+          concrete = inst as SignToInstruction
+          visitor.visitSignTo(concrete.sig, PubKey.fromBytes(concrete.pubkey))
+          break
+        default:
+          concrete = inst as UnknownInstruction
+          visitor.visitUnknown(inst.opcode, concrete.argsBuf)
+          break
+      }
+    })
+    return visitor.visitTxEnd()
   }
 }

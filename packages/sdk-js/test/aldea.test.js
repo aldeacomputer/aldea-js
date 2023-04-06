@@ -52,7 +52,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
     tx.sign(keys.privKey)
     tx.signTo(keys.privKey)
   })
-
+  
   const tx2 = Tx.fromHex(tx1.toHex())
   t.true(tx1 instanceof Tx)
   t.true(tx2 instanceof Tx)

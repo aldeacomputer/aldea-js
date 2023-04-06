@@ -30,7 +30,6 @@ esbuild.build({
   bundle: true,
   format: 'iife',
   platform: 'browser',
-  target: 'es6',
   minify: true,
   keepNames: true,
   sourcemap: true,

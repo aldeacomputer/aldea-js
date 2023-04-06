@@ -13,11 +13,11 @@ export {
   Pointer, PointerSerializer,
   PrivKey,
   PubKey,
-  Tx, TxSerializer,
+  Tx,
   TxBuilder,
   Serializable,
   OpCode,
-  Instruction, InstructionSerializer, InstructionRef, ref,
+  Instruction, InstructionRef, ref,
 } from './internal.js'
 
 // Instructions exports

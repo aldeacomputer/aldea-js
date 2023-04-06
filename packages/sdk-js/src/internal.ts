@@ -21,4 +21,7 @@ export * from './instructions/index.js'
 export * from './buf-reader.js'
 export * from './buf-writer.js'
 export * from './serializable.js'
+export {InstructionRef} from "./cbor-tools.js";
+export {REF_CBOR_TAG} from "./cbor-tools.js";
+export * from './cbor-tools.js';
 

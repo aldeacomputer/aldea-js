@@ -1,9 +1,6 @@
 import {
-  BufReader,
-  BufWriter,
   Instruction,
-  OpCode,
-  Serializable
+  OpCode
 } from '../internal.js'
 
 /**
@@ -20,22 +17,5 @@ export class SignToInstruction extends Instruction {
     super(OpCode.SIGNTO)
     this.sig = sig
     this.pubkey = pubkey
-  }
-}
-
-/**
- * Sign To Args Serializer object - implements the Serializable interface.
- */
-export const SignToArgsSerializer: Serializable<SignToInstruction> = {
-  read(buf: BufReader): SignToInstruction {
-    const sig = buf.readBytes(64)
-    const pubkey = buf.readBytes(32)
-    return new SignToInstruction(sig, pubkey)
-  },
-
-  write(buf: BufWriter, instruction: SignToInstruction): BufWriter {
-    buf.writeBytes(instruction.sig)
-    buf.writeBytes(instruction.pubkey)
-    return buf
   }
 }
