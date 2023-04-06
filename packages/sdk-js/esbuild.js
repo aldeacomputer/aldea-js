@@ -25,6 +25,21 @@ esbuild.build({
 
 esbuild.build({
   entryPoints: ['src/index.ts'],
+  outfile: 'dist/aldea.browser.cjs',
+  bundle: true,
+  format: 'cjs',
+  platform: 'browser',
+  target: 'node16',
+  minify: false,
+  keepNames: true,
+  sourcemap: true,
+  plugins: [
+    makeAllPackagesExternalPlugin
+  ]
+})
+
+esbuild.build({
+  entryPoints: ['src/index.ts'],
   outfile: 'dist/aldea.bundle.min.js',
   globalName: 'aldeaJS',
   bundle: true,
