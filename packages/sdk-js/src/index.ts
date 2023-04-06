@@ -31,17 +31,3 @@ export * as ed25519 from './support/ed25519.js'
 
 // Legacy exports - these will probably be removed
 export { Signature } from './signature.js'
-export {ExecFuncArgsSerializer} from "./instruction-serializer.js";
-export {SignArgsSerializer} from "./instruction-serializer.js";
-export {LoadByOriginArgsSerializer} from "./instruction-serializer.js";
-export {LockArgsSerializer} from "./instruction-serializer.js";
-export {DeployArgsSerializer} from "./instruction-serializer.js";
-export {SignToArgsSerializer} from "./instruction-serializer.js";
-export {CallArgsSerializer} from "./instruction-serializer.js";
-export {NewArgsSerializer} from "./instruction-serializer.js";
-export {FundArgsSerializer} from "./instruction-serializer.js";
-export {LoadArgsSerializer} from "./instruction-serializer.js";
-export {ImportArgsSerializer} from "./instruction-serializer.js";
-export {ExecInstruction} from "./instructions/index.js";
-export {ExecArgsSerializer} from "./instruction-serializer.js";
-export {CallInstruction} from "./instructions/index.js";
