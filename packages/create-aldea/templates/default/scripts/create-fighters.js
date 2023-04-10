@@ -1,6 +1,6 @@
 import minimist from 'minimist'
 import { bold } from 'kolorist'
-import { Address, Aldea } from '@aldea/sdk-js'
+import { Address, Aldea, Storage, TxBuilder, Wallet } from '@aldea/sdk-js'
 import { loadKeys } from './_helpers.js'
 
 /**
@@ -18,31 +18,22 @@ async function createFighters(cwd, argv) {
   const address = Address.fromPubKey(keys.pubKey)
 
   const aldea = new Aldea('https://node.aldea.computer')
-  const coin = await aldea.loadOutput(argv.coin)
+  const store = new Storage.LowDbStorage(cwd + '/.aldea-wallet')
+  const wallet = new Wallet.Wallet(store, aldea, kp)
 
-  if (coin.props.amount < 100) {
-    throw Error('insufficient balance to fund transaction:', coin.props)
-  }
+  const tx = new TxBuilder(aldea)
+  const packages = await store.getPackages();
+  const pkg = packages.find(p => p.entires.includes('fighter.ts'))
+  tx.import(pkg.id)
+  const player1 = tx.new(pkgRef, 'Fighter', ['Scorpion'])
+  const player2 = tx.new(pkgRef, 'Fighter', ['Sub-zero'])
+  const sword   = tx.new(pkgRef, 'Weapon', ['Kunai Spear', 20])
+  tx.call(player1, 'equip', [sword])
 
-  const tx = await aldea.createTx((tx, ref) => {
-    const pkgRef  = tx.import(argv.pkg)
-    const coinRef = tx.load(coin.id)
-
-    const player1 = tx.new(pkgRef, 'Fighter', ['Scorpion'])
-    const player2 = tx.new(pkgRef, 'Fighter', ['Sub-zero'])
-
-    const sword   = tx.new(pkgRef, 'Weapon', ['Kunai Spear', 20])
-    tx.call(player1, 'equip', [sword])
-
-    tx.lock(player1, address)
-    tx.lock(player2, address)
-    
-    tx.call(coinRef, 'send', [coin.props.motos - 100, address.hash])
-    tx.fund(coinRef)
-    tx.sign(keys.privKey)
-  })
-
-  const res = await aldea.commitTx(tx).catch(async e => {
+  tx.lock(player1, address)
+  tx.lock(player2, address)
+  
+  const res = await wallet.fundSignAndBroadcastTx(tx).catch(async e => {
     console.error(await e.response.text())
     process.exit()
   })
