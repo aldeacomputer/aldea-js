@@ -90,7 +90,7 @@ export const coinNode: ImportNode = {
 
 export const jigNode: ImportNode = {
   name: 'Jig',
-  pkg: new Array(32).fill('0').join(''),
+  pkg: new Array(32).fill('1').join(''),
   kind: 0
 }
 
