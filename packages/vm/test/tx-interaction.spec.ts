@@ -1,9 +1,9 @@
 import {base16, Pointer, ref} from "@aldea/sdk-js";
-import {Storage, StubClock, VM} from "../vm/index.js";
-import {AldeaCrypto} from "../vm/aldea-crypto.js";
+import {Storage, StubClock, VM} from "../src/index.js";
+import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {expect} from "chai";
-import {ExecutionError, PermissionError} from "../vm/errors.js";
-import {LockType} from "../vm/wasm-instance.js";
+import {ExecutionError, PermissionError} from "../src/errors.js";
+import {LockType} from "../src/wasm-instance.js";
 import {TxBuilder} from "./tx-builder.js";
 
 describe('tx interaction', () => {

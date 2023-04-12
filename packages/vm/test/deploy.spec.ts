@@ -1,7 +1,7 @@
-import {Storage, StubClock, VM} from '../vm/index.js'
+import {Storage, StubClock, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from '../vm/aldea-crypto.js';
-import {calculatePackageId} from '../vm/index.js';
+import {AldeaCrypto} from '../src/aldea-crypto.js';
+import {calculatePackageId} from '../src/index.js';
 import {emptyExecFactoryFactory} from "./util.js";
 
 const someValidModule = `
@@ -46,7 +46,7 @@ describe('deploy code', () => {
       expect(ret.outputs[0].classIdx).to.eql(0)
     })
 
-    it('module persist on other vm instance', async () => {
+    it('module persist on other src instance', async () => {
       const pkgData = await vm.compileSources([fileName], aMap)
       storage.addPackage(pkgData.id, pkgData)
       const pkgId = pkgData.id

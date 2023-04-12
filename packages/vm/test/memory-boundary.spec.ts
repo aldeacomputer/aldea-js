@@ -1,12 +1,12 @@
 import { assert } from 'chai'
 import { compile } from '@aldea/compiler'
 import { abiFromCbor } from '@aldea/compiler/abi'
-import { WasmInstance } from '../vm/wasm-instance.js'
-import {TxExecution} from "../vm/tx-execution.js";
-import {VM, Storage, MomentClock} from "../vm/index.js";
+import { WasmInstance } from '../src/wasm-instance.js'
+import {TxExecution} from "../src/tx-execution.js";
+import {VM, Storage, MomentClock} from "../src/index.js";
 import {Tx} from "@aldea/sdk-js";
-import {JigRef} from "../vm/jig-ref.js";
-import {StorageTxContext} from "../vm/tx-context/storage-tx-context.js";
+import {JigRef} from "../src/jig-ref.js";
+import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 
 async function compileToWasm(src: string, id: Uint8Array = new Uint8Array([0, 0, 0, 0])): Promise<WasmInstance> {
   try {

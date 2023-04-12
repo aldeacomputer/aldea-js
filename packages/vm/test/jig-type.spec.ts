@@ -1,12 +1,12 @@
-import {Storage, StubClock, VM} from '../vm/index.js'
+import {Storage, StubClock, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {TxExecution} from "../vm/tx-execution.js";
+import {AldeaCrypto} from "../src/aldea-crypto.js";
+import {TxExecution} from "../src/tx-execution.js";
 import {base16} from "@aldea/sdk-js";
-import {JigRef} from "../vm/jig-ref.js";
+import {JigRef} from "../src/jig-ref.js";
 import {emptyExecFactoryFactory} from "./util.js";
-import {WasmInstance} from "../vm/wasm-instance.js";
-import {StatementResult} from "../vm/statement-result.js";
+import {WasmInstance} from "../src/wasm-instance.js";
+import {StatementResult} from "../src/statement-result.js";
 
 describe('Jig Type', () => {
   let storage: Storage

@@ -1,9 +1,9 @@
 import {
   Storage, StubClock,
   VM
-} from '../vm/index.js'
+} from '../src/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from "../vm/aldea-crypto.js";
+import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {base16} from "@aldea/sdk-js";
 import {emptyExecFactoryFactory} from "./util.js";
 

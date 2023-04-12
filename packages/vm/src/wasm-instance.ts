@@ -28,10 +28,10 @@ import {FunctionNode} from "@aldea/compiler/abi";
 
 export enum LockType {
   FROZEN = -1,
-  NONE,     // 0 - default, vm allows anyone to lock, but prevents function calls
-  PUBKEY,   // 1 - vm requires valid signature to call function or change lock
-  CALLER,   // 2 - vm requires parent is caller to call function or change lock
-  ANYONE,   // 3 - can only be set in constructor, vm allows anyone to call function, but prevents lock change
+  NONE,     // 0 - default, src allows anyone to lock, but prevents function calls
+  PUBKEY,   // 1 - src requires valid signature to call function or change lock
+  CALLER,   // 2 - src requires parent is caller to call function or change lock
+  ANYONE,   // 3 - can only be set in constructor, src allows anyone to call function, but prevents lock change
 }
 
 export type Prop = {

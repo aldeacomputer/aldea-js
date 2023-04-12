@@ -1,8 +1,8 @@
-import {JigRef} from "../vm/jig-ref.js";
-import {MomentClock, Storage, VM} from "../vm/index.js";
+import {JigRef} from "../src/jig-ref.js";
+import {MomentClock, Storage, VM} from "../src/index.js";
 import {Pointer} from '@aldea/sdk-js'
-import {PublicLock} from "../vm/locks/public-lock.js";
-import {Internref} from "../vm/memory.js";
+import {PublicLock} from "../src/locks/public-lock.js";
+import {Internref} from "../src/memory.js";
 import {expect} from 'chai'
 
 describe('JigRef', function () {
@@ -25,8 +25,8 @@ describe('JigRef', function () {
   })
 
   // it('returns right reference', () => {
-  //   const id = vm.addPreCompiled(`aldea/flock.wasm`, `aldea/flock.ts`)
-  //   const wasm = vm.createWasmInstance(id)
+  //   const id = src.addPreCompiled(`aldea/flock.wasm`, `aldea/flock.ts`)
+  //   const wasm = src.createWasmInstance(id)
   //   const jig = new JigRef(
   //     new Internref('Flock', 0),
   //     1,

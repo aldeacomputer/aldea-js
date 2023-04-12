@@ -1,15 +1,15 @@
 import {
   Storage, StubClock,
   VM
-} from '../vm/index.js'
+} from '../src/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {TxExecution} from "../vm/tx-execution.js";
+import {AldeaCrypto} from "../src/aldea-crypto.js";
+import {TxExecution} from "../src/tx-execution.js";
 import {base16, Pointer, PrivKey, ref, Tx} from "@aldea/sdk-js";
-import {ExecutionError, PermissionError} from "../vm/errors.js";
-import {LockType} from "../vm/wasm-instance.js";
-import {ExecutionResult} from "../vm/execution-result.js";
-import {emptyTn} from "../vm/abi-helpers/well-known-abi-nodes.js";
+import {ExecutionError, PermissionError} from "../src/errors.js";
+import {LockType} from "../src/wasm-instance.js";
+import {ExecutionResult} from "../src/execution-result.js";
+import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
 import {emptyExecFactoryFactory} from "./util.js";
 
 describe('execute txs', () => {

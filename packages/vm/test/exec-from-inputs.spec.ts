@@ -1,10 +1,10 @@
-import {Storage, StubClock, VM} from "../vm/index.js";
-import {AldeaCrypto} from "../vm/aldea-crypto.js";
+import {Storage, StubClock, VM} from "../src/index.js";
+import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {base16, Tx} from "@aldea/sdk-js";
 import {emptyExecFactoryFactory} from "./util.js";
-import {TxExecution} from "../vm/tx-execution.js";
-import {ExtendedTx} from "../vm/tx-context/extended-tx.js";
-import {ExTxExecContext} from "../vm/tx-context/ex-tx-exec-context.js";
+import {TxExecution} from "../src/tx-execution.js";
+import {ExtendedTx} from "../src/tx-context/extended-tx.js";
+import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
 import {expect} from "chai";
 import {SignInstruction} from "@aldea/sdk-js/instructions/index";
 

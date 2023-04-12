@@ -1,12 +1,12 @@
-import {Storage, StubClock, VM} from '../vm/index.js'
+import {Storage, StubClock, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from "../vm/aldea-crypto.js";
+import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {TxBuilder} from "./tx-builder.js";
-import {LockType} from "../vm/wasm-instance.js";
-import {JigState} from "../vm/jig-state.js";
-import {ExecutionError, PermissionError} from "../vm/errors.js";
+import {LockType} from "../src/wasm-instance.js";
+import {JigState} from "../src/jig-state.js";
+import {ExecutionError, PermissionError} from "../src/errors.js";
 import {ref, Tx} from "@aldea/sdk-js";
-import {ExecutionResult} from "../vm/execution-result.js";
+import {ExecutionResult} from "../src/execution-result.js";
 import moment from "moment";
 
 describe('Coin', () => {
