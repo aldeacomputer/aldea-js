@@ -1,7 +1,7 @@
 import {Clock, Storage, VM} from "../src/index.js";
 import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {Tx} from "@aldea/sdk-js";
-import {buildVm, emptyExecFactoryFactory} from "./util.js";
+import {buildVm} from "./util.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {ExtendedTx} from "../src/tx-context/extended-tx.js";
 import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";

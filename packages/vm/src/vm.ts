@@ -1,4 +1,3 @@
-import { WasmInstance } from './wasm-instance.js'
 import { TxExecution } from './tx-execution.js'
 import {PkgData, Storage} from "./storage.js";
 import {abiFromCbor} from '@aldea/compiler/abi'
@@ -11,7 +10,6 @@ import {UserLock} from "./locks/user-lock.js";
 import {Buffer} from "buffer";
 import {encodeSequence} from "./cbor.js";
 import {ExecutionResult} from "./execution-result.js";
-import {PkgRepository} from "./state-interfaces.js";
 import {Clock} from "./clock.js";
 import {StorageTxContext} from "./tx-context/storage-tx-context.js";
 import {ExtendedTx} from "./tx-context/extended-tx.js";
