@@ -13,7 +13,7 @@ describe('JigRef', function () {
   const vm = new VM(storage, clock, compile)
   it('returns right id', () => {
     const id = addPreCompiled(vm, 'flock')
-    const wasm = vm.wasmForPackageId(id)
+    const wasm = storage.wasmForPackageId(id)
     const jig = new JigRef(
       new Internref('Flock', 0),
       1,

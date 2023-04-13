@@ -32,7 +32,7 @@ const COIN_PKG_ID = new Uint8Array([
 type CodeBundle = { [key: string]: string }
 export type CompileFn = (entry: string[], src: CodeBundle) => Promise<CompilerResult>;
 
-export class VM implements PkgRepository {
+export class VM {
   private readonly storage: Storage;
   clock: Clock;
   private compile: CompileFn;
@@ -53,20 +53,11 @@ export class VM implements PkgRepository {
   }
 
   async execTxFromInputs(exTx: ExtendedTx) {
-    const context = new ExTxExecContext(exTx, this.clock, this, this)
+    const context = new ExTxExecContext(exTx, this.clock, this.storage, this)
     const currentExecution = new TxExecution(context)
     const result = await currentExecution.run()
     this.storage.persist(result)
     return result
-  }
-
-  wasmFromPackageData (pkgData: PkgData): WasmInstance {
-    return new WasmInstance(pkgData.mod, pkgData.abi, pkgData.id)
-  }
-
-  wasmForPackageId (id: Uint8Array): WasmInstance {
-    const pkgData = this.storage.getModule(id)
-    return this.wasmFromPackageData(pkgData)
   }
 
   async compileSources (entries: string[], sources: Map<string, string>): Promise<PkgData> {

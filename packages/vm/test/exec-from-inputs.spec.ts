@@ -1,4 +1,4 @@
-import {Clock, VM} from "../src/index.js";
+import {Clock, Storage, VM} from "../src/index.js";
 import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {Tx} from "@aldea/sdk-js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
@@ -10,6 +10,7 @@ import {SignInstruction} from "@aldea/sdk-js/instructions/index";
 
 describe('exec from inputs', () => {
   let vm: VM
+  let storage: Storage
   const userPriv = AldeaCrypto.randomPrivateKey()
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
   const userAddr = userPub.toAddress()
@@ -19,14 +20,10 @@ describe('exec from inputs', () => {
     const data = buildVm(['flock'])
     vm = data.vm
     clock = data.clock
+    storage = data.storage
   })
 
-  const emptyExec = emptyExecFactoryFactory(() => vm['storage'], () => vm)
-
-  let exec: TxExecution
-  beforeEach(() => {
-    exec = emptyExec()
-  })
+  // const emptyExec = emptyExecFactoryFactory(() => vm['storage'], () => vm)
 
 
   it('can execute a tx that depends only on a output id input', () => {
@@ -34,7 +31,7 @@ describe('exec from inputs', () => {
     const tx = new Tx()
     tx.push(new SignInstruction(tx.createSignature(userPriv), userPub.toBytes()))
     const extx = new ExtendedTx(tx, [coin]);
-    const context = new ExTxExecContext(extx, clock, vm, vm)
+    const context = new ExTxExecContext(extx, clock, storage, vm)
     const exec = new TxExecution(context)
 
     const jigRef = exec.loadJigByOutputId(coin.id()).asJig()

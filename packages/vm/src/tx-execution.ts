@@ -515,7 +515,7 @@ class TxExecution {
   async deployPackage(entryPoint: string[], sources: Map<string, string>): Promise<StatementResult> {
     const pkgData = await this.txContext.compile(entryPoint, sources)
     this.deployments.push(pkgData)
-    const wasm = this.txContext.getWasmInstance(pkgData)
+    const wasm = new WasmInstance(pkgData.mod, pkgData.abi, pkgData.id)
     wasm.setExecution(this)
     this.wasms.set(base16.encode(wasm.id), wasm)
     const ret = new WasmStatementResult(this.statements.length, wasm)

@@ -2,9 +2,9 @@ import {JigState} from './jig-state.js';
 import {Abi} from "@aldea/compiler/abi";
 import {Address, base16, Pointer} from "@aldea/sdk-js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
-import {LockType} from "./wasm-instance.js";
+import {LockType, WasmInstance} from "./wasm-instance.js";
 import {Option} from "./support/option.js";
-import {StateProvider} from "./state-interfaces.js";
+import {PkgRepository, StateProvider} from "./state-interfaces.js";
 
 export class PkgData {
   abi: Abi
@@ -50,7 +50,7 @@ type OnNotFound = (pkgId: string) => PkgData
 
 const throwNotFound = (idHex: string) => { throw new Error(`unknown module: ${idHex}`) }
 
-export class Storage implements StateProvider {
+export class Storage implements StateProvider, PkgRepository {
   private utxosByOid: Map<string, JigState> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, JigState[]> // address -> state. Only utxos
   private tips: Map<string, string> // origin -> latest output_id
@@ -177,5 +177,10 @@ export class Storage implements StateProvider {
 
   byOrigin(origin: Pointer): Option<JigState> {
     return this.getJigStateByOrigin(origin);
+  }
+
+  wasmForPackageId(moduleId: Uint8Array): WasmInstance {
+    let mod = this.getModule(moduleId)
+    return new WasmInstance(mod.mod, mod.abi, mod.id);
   }
 }
