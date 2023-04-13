@@ -2,7 +2,6 @@ import path from 'path'
 import { WasmInstance } from './wasm-instance.js'
 import { fileURLToPath } from 'url'
 import { TxExecution } from './tx-execution.js'
-import fs from "fs"
 import {PkgData, Storage} from "./storage.js";
 import {abiFromCbor, abiFromJson} from '@aldea/compiler/abi'
 import {compile} from '@aldea/compiler'
@@ -19,6 +18,10 @@ import {Clock} from "./clock.js";
 import {StorageTxContext} from "./tx-context/storage-tx-context.js";
 import {ExtendedTx} from "./tx-context/extended-tx.js";
 import {ExTxExecContext} from "./tx-context/ex-tx-exec-context.js";
+import { data as wasm } from './builtins/coin.wasm.js'
+import { data as rawAbi } from './builtins/coin.abi.cbor.js'
+import { data as rawDocs } from './builtins/coin.docs.json.js'
+import { data as rawSource } from './builtins/coin.source.js'
 
 const __dir = fileURLToPath(import.meta.url)
 
@@ -37,7 +40,7 @@ export class VM implements PkgRepository {
   constructor (storage: Storage, clock: Clock) {
     this.storage = storage
     this.clock = clock
-    this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', COIN_PKG_ID)
+    this.addPreCompiled(wasm, rawSource, rawAbi, rawDocs, COIN_PKG_ID)
   }
 
   async execTx(tx: Tx): Promise<ExecutionResult> {
@@ -86,11 +89,10 @@ export class VM implements PkgRepository {
     )
   }
 
-  addPreCompiled (compiledRelative: string, sourceRelative: string, defaultId: Uint8Array | null = null): Uint8Array {
-    const srcPath = path.join(__dir, '../../assembly', sourceRelative)
-    const srcCode = fs.readFileSync(srcPath);
+  addPreCompiled (wasmBin: Uint8Array, sourceStr: string, abiBin: Uint8Array, docs: Uint8Array, defaultId: Uint8Array | null = null): Uint8Array {
+
     const sources = new Map<string, string>()
-    sources.set('index.ts', srcCode.toString())
+    sources.set('index.ts',sourceStr.toString())
     const entries = ['index.ts'];
     const id = defaultId
       ? defaultId
@@ -99,12 +101,7 @@ export class VM implements PkgRepository {
       return id
     }
 
-    const modulePath = path.join(__dir, '../../build', compiledRelative)
-    const wasmBin = fs.readFileSync(modulePath)
-    const abiPath = modulePath.replace('wasm', 'abi.json')
-    const abi = abiFromJson(fs.readFileSync(abiPath).toString())
-    const docsPath = modulePath.replace('wasm', 'docs.json')
-    const docs = fs.readFileSync(docsPath);
+    const abi = abiFromCbor(abiBin.buffer)
 
     this.storage.addPackage(id, new PkgData(
       abi,

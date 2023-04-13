@@ -1,7 +1,7 @@
-import {Storage, StubClock, VM} from "../src/index.js";
+import {Clock, VM} from "../src/index.js";
 import {AldeaCrypto} from "../src/aldea-crypto.js";
-import {base16, Tx} from "@aldea/sdk-js";
-import {emptyExecFactoryFactory} from "./util.js";
+import {Tx} from "@aldea/sdk-js";
+import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {ExtendedTx} from "../src/tx-context/extended-tx.js";
 import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
@@ -15,28 +15,11 @@ describe('exec from inputs', () => {
   const userAddr = userPub.toAddress()
   const moduleIds = new Map<string, string>()
 
-  // function modIdFor (key: string): Uint8Array {
-  //   const id = moduleIds.get(key)
-  //   if (!id) {
-  //     throw new Error(`module was not deployed: ${key}`)
-  //   }
-  //   return base16.decode(id)
-  // }
-
-  const clock = new StubClock()
-
+  let clock: Clock
   beforeEach(() => {
-    const storage = new Storage()
-    vm = new VM(storage, clock)
-
-    const sources = [
-      'flock'
-    ]
-
-    sources.forEach(src => {
-      const id = vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
-      moduleIds.set(src, base16.encode(id))
-    })
+    const data = buildVm(['flock'])
+    vm = data.vm
+    clock = data.clock
   })
 
   const emptyExec = emptyExecFactoryFactory(() => vm['storage'], () => vm)

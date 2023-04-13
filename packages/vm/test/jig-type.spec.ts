@@ -4,7 +4,7 @@ import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {base16} from "@aldea/sdk-js";
 import {JigRef} from "../src/jig-ref.js";
-import {emptyExecFactoryFactory} from "./util.js";
+import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {WasmInstance} from "../src/wasm-instance.js";
 import {StatementResult} from "../src/statement-result.js";
 
@@ -14,30 +14,14 @@ describe('Jig Type', () => {
   const userPriv = AldeaCrypto.randomPrivateKey()
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
   const userAddr = userPub.toAddress()
-  const moduleIds = new Map<string, string>()
 
-  function modIdFor (key: string): Uint8Array {
-    const id = moduleIds.get(key)
-    if (!id) {
-      throw new Error(`module was not deployed: ${key}`)
-    }
-    return base16.decode(id)
-  }
+  let modIdFor: (key: string) => Uint8Array
 
   beforeEach(() => {
-    storage = new Storage()
-    const clock = new StubClock()
-    vm = new VM(storage, clock)
-
-    const sources = [
-      'jig-type-bearer',
-      'flock'
-    ]
-
-    sources.forEach(src => {
-      const id = vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
-      moduleIds.set(src, base16.encode(id))
-    })
+    const data = buildVm(['jig-type-bearer', 'flock'])
+    storage = data.storage
+    vm = data.vm
+    modIdFor = data.modIdFor
   })
 
   const emptyTx = emptyExecFactoryFactory(() => storage, () => vm)

@@ -4,8 +4,7 @@ import {
 } from '../src/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../src/aldea-crypto.js";
-import {base16} from "@aldea/sdk-js";
-import {emptyExecFactoryFactory} from "./util.js";
+import {emptyExecFactoryFactory, buildVm} from "./util.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -15,27 +14,13 @@ describe('execute txs', () => {
   const userAddr = userPub.toAddress()
   const moduleIds = new Map<string, string>()
 
-  function modIdFor (key: string): Uint8Array {
-    const id = moduleIds.get(key)
-    if (!id) {
-      throw new Error(`module was not deployed: ${key}`)
-    }
-    return base16.decode(id)
-  }
+  let modIdFor: (key: string) => Uint8Array
 
   beforeEach(() => {
-    storage = new Storage()
-    const clock = new StubClock()
-    vm = new VM(storage, clock)
-
-    const sources = [
-      'can-lock'
-    ]
-
-    sources.forEach(src => {
-      const id = vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
-      moduleIds.set(src, base16.encode(id))
-    })
+    const data = buildVm(['can-lock'])
+    storage = data.storage
+    vm = data.vm
+    modIdFor = data.modIdFor
   })
 
   const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)

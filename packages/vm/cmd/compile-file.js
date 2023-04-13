@@ -6,24 +6,23 @@ import path from 'path'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-export async function compileFile (file) {
-  const relativePath = file.replace(/.*\/aldea\//, '')
+export async function compileFile (file, outDir) {
+  const fileName = file.replace(/^\/.*\//, '')
   const fileBuf = fs.readFileSync(file)
   try {
     const result = await compile(fileBuf.toString())
-    const dirName = path.dirname(`${__dirname}../build/aldea/${relativePath}`)
-    fs.mkdirSync(dirName, {recursive: true})
-    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.wasm')}`, result.output.wasm)
-    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.wat')}`, result.output.wat)
-    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.docs.json')}`, result.output.docs)
-    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.cbor')}`, result.output.abi)
-    fs.writeFileSync(`${__dirname}../build/aldea/${relativePath.replace('.ts', '.abi.json')}`, abiToJson(abiFromCbor(result.output.abi.buffer)))
-    console.log(`compiled ${relativePath} ok.`)
+    fs.mkdirSync(outDir, {recursive: true})
+    fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.wasm')}`, result.output.wasm)
+    fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.wat')}`, result.output.wat)
+    fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.docs.json')}`, result.output.docs)
+    fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.abi.cbor')}`, result.output.abi)
+    fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.abi.json')}`, abiToJson(abiFromCbor(result.output.abi.buffer)))
+    console.log(`compiled ${fileName} ok.`)
     if (process.env.VERBOSE === 'true') {
       console.log(result.stdout.toString())
     }
   } catch (e) {
-    console.warn(`error compiling ${relativePath}: ${e.message}`)
+    console.warn(`error compiling ${file}: ${e.message}`)
     console.error(e.stderr.toString())
   }
 }
