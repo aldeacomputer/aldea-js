@@ -1,5 +1,5 @@
 import {
-  Storage, StubClock,
+  Storage,
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
@@ -13,7 +13,6 @@ describe('execute txs', () => {
   const userPriv = AldeaCrypto.randomPrivateKey()
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
   const userAddr = userPub.toAddress()
-  const moduleIds = new Map<string, string>()
 
   let modIdFor: (key: string) => Uint8Array
 

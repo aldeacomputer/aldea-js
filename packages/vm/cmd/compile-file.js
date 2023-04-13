@@ -1,10 +1,6 @@
-import { fileURLToPath } from "url"
 import { compile } from '@aldea/compiler'
 import fs from 'fs'
 import { abiFromCbor, abiToJson } from "@aldea/compiler/abi"
-import path from 'path'
-
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export async function compileFile (file, outDir) {
   const fileName = file.replace(/^\/.*\//, '')

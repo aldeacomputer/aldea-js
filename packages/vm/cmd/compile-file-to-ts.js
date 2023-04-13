@@ -1,8 +1,6 @@
 import { fileURLToPath } from "url"
 import { compile } from '@aldea/compiler'
 import fs from 'fs'
-import { abiFromCbor, abiToJson } from "@aldea/compiler/abi"
-import path from 'path'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -10,9 +8,9 @@ function bufferToExportedUint8ArrayExpession (buff) {
   return `export const data = new Uint8Array([${Array.from(buff).join(',')}])`
 }
 
-function jsonToJsonExpression(buff) {
-  return `export const rawJson = ${Buffer.from(buff).toString()}`
-}
+// function jsonToJsonExpression(buff) {
+//   return `export const rawJson = ${Buffer.from(buff).toString()}`
+// }
 
 function buffAsExportedString(buff) {
   return `export const data = \`${buff.toString().replace('`', '\`')}\``

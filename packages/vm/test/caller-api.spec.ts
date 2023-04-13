@@ -1,10 +1,10 @@
 import {
-  Storage, StubClock,
+  Storage,
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../src/aldea-crypto.js";
-import {base16, Pointer} from "@aldea/sdk-js";
+import {Pointer} from "@aldea/sdk-js";
 import {ExecutionError} from "../src/errors.js";
 import {emptyExecFactoryFactory, buildVm} from "./util.js";
 

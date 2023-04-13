@@ -1,10 +1,9 @@
 import {
-  Storage, StubClock,
+  Storage,
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../src/aldea-crypto.js";
-import {base16} from "@aldea/sdk-js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 
 describe('execute txs', () => {
@@ -13,7 +12,6 @@ describe('execute txs', () => {
   const userPriv = AldeaCrypto.randomPrivateKey()
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
   const userAddr = userPub.toAddress()
-  const moduleIds = new Map<string, string>()
 
   let modIdFor: (key: string) => Uint8Array
 

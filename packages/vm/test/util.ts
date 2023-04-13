@@ -24,13 +24,12 @@ export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () =
 }
 
 export function addPreCompiled (vm: VM, src: string ): Uint8Array {
-  const id = vm.addPreCompiled(
+  return vm.addPreCompiled(
     fs.readFileSync(`${__dir}../build/aldea/${src}.wasm`),
     fs.readFileSync(`${__dir}../assembly/aldea/${src}.ts`).toString(),
     new Uint8Array(fs.readFileSync(`${__dir}../build/aldea/${src}.abi.cbor`)),
     fs.readFileSync(`${__dir}../build/aldea/${src}.docs.json`)
   )
-  return id
 }
 
 export function buildVm(sources: string[]) {

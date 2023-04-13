@@ -1,5 +1,5 @@
 import {base16, Pointer, ref} from "@aldea/sdk-js";
-import {Clock, Storage, StubClock, VM} from "../src/index.js";
+import {Clock, Storage, VM} from "../src/index.js";
 import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {expect} from "chai";
 import {ExecutionError, PermissionError} from "../src/errors.js";
@@ -15,7 +15,6 @@ describe('tx interaction', () => {
   const userAddr = userPub.toAddress()
   const fundPriv = AldeaCrypto.randomPrivateKey()
   const fundAddr = fundPriv.toPubKey().toAddress()
-  const moduleIds = new Map<string, string>()
 
   let modIdFor: (key: string) => Uint8Array
 

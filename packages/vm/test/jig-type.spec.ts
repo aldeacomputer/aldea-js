@@ -1,8 +1,7 @@
-import {Storage, StubClock, VM} from '../src/index.js'
+import {Storage, VM} from '../src/index.js'
 import {expect} from 'chai'
 import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {TxExecution} from "../src/tx-execution.js";
-import {base16} from "@aldea/sdk-js";
 import {JigRef} from "../src/jig-ref.js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {WasmInstance} from "../src/wasm-instance.js";
