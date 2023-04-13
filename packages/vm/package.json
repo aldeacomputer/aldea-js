@@ -42,6 +42,7 @@
     "assemblyscript": "^0.21.3",
     "chai": "^4.3.6",
     "chokidar": "^3.5.3",
+    "esbuild": "^0.17.16",
     "eslint": "^8.25.0",
     "glob": "^8.0.3",
     "mocha": "^10.0.0",

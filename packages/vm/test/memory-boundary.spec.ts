@@ -557,7 +557,7 @@ describe('reading complex types from memory', () => {
       const wasm = await compileToWasm(code)
       const storage = new Storage();
       const clock = new MomentClock();
-      const vm = new VM(storage, clock);
+      const vm = new VM(storage, clock, compile);
       wasm.setExecution(new TxExecution(new StorageTxContext(new Tx(), storage, vm, clock)))
       const res = wasm.functionCall(wasm.abi.functionByName('test'), [])
       assert.instanceOf(res.value, JigRef)

@@ -3,6 +3,7 @@ import {expect} from 'chai'
 import {AldeaCrypto} from '../src/aldea-crypto.js';
 import {calculatePackageId} from '../src/index.js';
 import {addPreCompiled, emptyExecFactoryFactory} from "./util.js";
+import {compile} from "@aldea/compiler";
 
 const someValidModule = `
 export class Foo extends Jig {
@@ -23,7 +24,7 @@ describe('deploy code', () => {
   const clock = new StubClock()
   beforeEach(() => {
     storage = new Storage()
-    vm = new VM(storage, clock)
+    vm = new VM(storage, clock, compile)
   })
 
 
@@ -51,7 +52,7 @@ describe('deploy code', () => {
       storage.addPackage(pkgData.id, pkgData)
       const pkgId = pkgData.id
 
-      const vm2 = new VM(storage, new StubClock())
+      const vm2 = new VM(storage, new StubClock(), compile)
       const exec = emptyExecFactoryFactory(() => storage, () => vm2)()
       const wasm = exec.importModule(pkgId).asInstance
       const jig = exec.instantiateByClassName(wasm, 'Foo', []).asJig()

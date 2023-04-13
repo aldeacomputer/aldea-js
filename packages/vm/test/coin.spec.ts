@@ -8,6 +8,7 @@ import {ExecutionError, PermissionError} from "../src/errors.js";
 import {ref, Tx} from "@aldea/sdk-js";
 import {ExecutionResult} from "../src/execution-result.js";
 import moment from "moment";
+import {compile} from "@aldea/compiler";
 
 describe('Coin', () => {
   let storage: Storage
@@ -25,7 +26,7 @@ describe('Coin', () => {
   beforeEach(() => {
     storage = new Storage()
     const clock = new StubClock(moment())
-    vm = new VM(storage, clock)
+    vm = new VM(storage, clock, compile)
   })
 
 

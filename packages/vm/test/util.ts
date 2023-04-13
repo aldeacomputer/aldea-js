@@ -4,6 +4,7 @@ import {TxExecution} from "../src/tx-execution.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import fs from "fs";
 import {fileURLToPath} from "url";
+import {compile} from "@aldea/compiler";
 
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 
@@ -36,7 +37,7 @@ export function buildVm(sources: string[]) {
   const moduleIds = new Map<string, string>()
   const clock = new StubClock()
   const storage = new Storage()
-  const vm = new VM(storage, clock)
+  const vm = new VM(storage, clock, compile)
 
   sources.forEach(src => {
     const id = addPreCompiled(vm, src)

@@ -1,10 +1,8 @@
-import path from 'path'
 import { WasmInstance } from './wasm-instance.js'
-import { fileURLToPath } from 'url'
 import { TxExecution } from './tx-execution.js'
 import {PkgData, Storage} from "./storage.js";
-import {abiFromCbor, abiFromJson} from '@aldea/compiler/abi'
-import {compile} from '@aldea/compiler'
+import {abiFromCbor} from '@aldea/compiler/abi'
+import {CompilerResult} from '@aldea/compiler'
 import {Address, Pointer, Tx} from "@aldea/sdk-js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {JigState} from "./jig-state.js";
@@ -23,8 +21,6 @@ import { data as rawAbi } from './builtins/coin.abi.cbor.js'
 import { data as rawDocs } from './builtins/coin.docs.json.js'
 import { data as rawSource } from './builtins/coin.source.js'
 
-const __dir = fileURLToPath(import.meta.url)
-
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([
   0, 0, 0, 0, 0, 0, 0, 0,
@@ -33,13 +29,18 @@ const COIN_PKG_ID = new Uint8Array([
   0, 0, 0, 0, 0, 0, 0, 0,
 ])
 
+type CodeBundle = { [key: string]: string }
+export type CompileFn = (entry: string[], src: CodeBundle) => Promise<CompilerResult>;
+
 export class VM implements PkgRepository {
   private readonly storage: Storage;
   clock: Clock;
+  private compile: CompileFn;
 
-  constructor (storage: Storage, clock: Clock) {
+  constructor (storage: Storage, clock: Clock, compile: CompileFn) {
     this.storage = storage
     this.clock = clock
+    this.compile = compile
     this.addPreCompiled(wasm, rawSource, rawAbi, rawDocs, COIN_PKG_ID)
   }
 
@@ -76,7 +77,7 @@ export class VM implements PkgRepository {
       obj[key] = value
     }
 
-    const result = await compile(entries, obj)
+    const result = await this.compile(entries, obj)
 
     return new PkgData(
       abiFromCbor(result.output.abi.buffer),

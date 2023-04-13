@@ -21,6 +21,7 @@
     "test": "yarn build && mocha"
   },
   "dependencies": {
+    "@aldea/compiler": "workspace:^",
     "@aldea/sdk-js": "workspace:^",
     "@aldea/vm": "workspace:^",
     "@chainsafe/libp2p-gossipsub": "^6.2.0",

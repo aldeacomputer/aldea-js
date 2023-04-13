@@ -28,7 +28,7 @@ export interface iApp {
 }
 
 export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Promise<iApp> {
-  const { vm, storage, minterPriv, coinOrigin } = buildVm(clock)
+  const { vm, storage, minterPriv, coinOrigin } = await buildVm(clock)
   const p2p: Libp2p | undefined = argv.p2p ? await createNode(argv) : undefined
 
   const serializeJigState = (jigState: JigState) => {
@@ -53,7 +53,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
       rawtx: txExec.tx.toHex(),
       packages: txExec.deploys.map((pkg) => {
         const pkgId = base16.encode(pkg.hash)
-        const data = storage.modIdFor(pkg.hash, () => {
+        const data = storage.getModule(pkg.hash, () => {
 
           throw new HttpNotFound(`Unknown package: ${pkgId}`, { pkg_id: pkgId })
         })
@@ -166,7 +166,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
   app.get('/package/:packageId/abi.:format', (req, res) => {
     const {packageId, format} = req.params
 
-    const data = storage.modIdFor(base16.decode(packageId), (pkgId) => {
+    const data = storage.getModule(base16.decode(packageId), (pkgId) => {
       throw new HttpNotFound(`package with id ${pkgId} not found`, { package_id: packageId })
     })
     if (!data) {
@@ -185,7 +185,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
 
   app.get('/package/:packageId/source', (req, res) => {
     const {packageId} = req.params
-    const data = storage.modIdFor(base16.decode(packageId), () => {
+    const data = storage.getModule(base16.decode(packageId), () => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
     })
     const cborData = CBOR.encode(new Sequence([data.entries, data.sources]));
@@ -195,7 +195,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
 
   app.get('/package/:packageId/wasm', (req, res) => {
     const {packageId} = req.params
-    const data = storage.modIdFor(base16.decode(packageId), () => {
+    const data = storage.getModule(base16.decode(packageId), () => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
     })
     res.set('content-type', 'application/wasm')
@@ -204,7 +204,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
 
   app.get('/package/:packageId/docs', (req, res) => {
     const {packageId} = req.params
-    const data = storage.modIdFor(base16.decode(packageId), () => {
+    const data = storage.getModule(base16.decode(packageId), () => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
     })
     res.set('content-type', 'application/json')
