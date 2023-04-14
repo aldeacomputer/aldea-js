@@ -8,12 +8,10 @@ export class Flock extends Jig {
    * This is a size. The most important property
    */
   size: u32;
-  identifier: string;
 
   constructor() {
     super();
     this.size = 0;
-    this.identifier = 'numero11'
   }
 
   /**

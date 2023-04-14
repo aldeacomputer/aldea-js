@@ -32,7 +32,7 @@ export async function buildVm (clock: Clock): Promise<iVM> {
   const minterAddress = minterPrivKey.toPubKey().toAddress()
 
   const storage = new Storage()
-  const vm = new VM(storage, clock, compile)
+  const vm = new VM(storage, storage, clock, compile)
 
   let result = await compile(['index.ts'], {'index.ts': nftSourceCode})
   // console.log(result)

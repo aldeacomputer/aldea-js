@@ -26,7 +26,7 @@ describe('Coin', () => {
   beforeEach(() => {
     storage = new Storage()
     const clock = new StubClock(moment())
-    vm = new VM(storage, clock, compile)
+    vm = new VM(storage, storage, clock, compile)
   })
 
 

@@ -536,7 +536,7 @@ describe('execute txs', () => {
     const value = exec.getStatementResult(methodStmt.idx).value
     const value2 = exec.getStatementResult(method2Stmt.idx).value
     expect(value).to.eql(3)
-    expect(value2).to.eql('numero11')
+    expect(value2).to.eql(`Flock with size: 3`)
   })
 
   it('can create external jigs from inside asc', () => {
@@ -606,7 +606,7 @@ describe('execute txs', () => {
     const methodIdx = exec.callInstanceMethod(shepherdIdx.asJig(), 'flockIdentifier', [ref(flockIdx.idx)])
 
     const statement = exec.getStatementResult(methodIdx.idx)
-    expect(statement.value).to.eql('numero11')
+    expect(statement.value).to.eql(`Flock with size: 0`)
     expect(statement.abiNode).to.eql(emptyTn('string'))
   })
 

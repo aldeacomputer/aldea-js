@@ -18,6 +18,7 @@ import { data as wasm } from './builtins/coin.wasm.js'
 import { data as rawAbi } from './builtins/coin.abi.cbor.js'
 import { data as rawDocs } from './builtins/coin.docs.json.js'
 import { data as rawSource } from './builtins/coin.source.js'
+import {PkgRepository} from "./state-interfaces.js";
 
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([
@@ -34,10 +35,12 @@ export class VM {
   private readonly storage: Storage;
   clock: Clock;
   private compile: CompileFn;
+  private pkgs: PkgRepository;
 
-  constructor (storage: Storage, clock: Clock, compile: CompileFn) {
+  constructor (storage: Storage, pkgs: PkgRepository, clock: Clock, compile: CompileFn) {
     this.storage = storage
     this.clock = clock
+    this.pkgs = pkgs
     this.compile = compile
     this.addPreCompiled(wasm, rawSource, rawAbi, rawDocs, COIN_PKG_ID)
   }
@@ -51,7 +54,7 @@ export class VM {
   }
 
   async execTxFromInputs(exTx: ExtendedTx) {
-    const context = new ExTxExecContext(exTx, this.clock, this.storage, this)
+    const context = new ExTxExecContext(exTx, this.clock, this.pkgs, this)
     const currentExecution = new TxExecution(context)
     const result = await currentExecution.run()
     this.storage.persist(result)

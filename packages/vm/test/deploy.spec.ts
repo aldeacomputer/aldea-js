@@ -24,7 +24,7 @@ describe('deploy code', () => {
   const clock = new StubClock()
   beforeEach(() => {
     storage = new Storage()
-    vm = new VM(storage, clock, compile)
+    vm = new VM(storage, storage, clock, compile)
   })
 
 
@@ -52,7 +52,7 @@ describe('deploy code', () => {
       storage.addPackage(pkgData.id, pkgData)
       const pkgId = pkgData.id
 
-      const vm2 = new VM(storage, new StubClock(), compile)
+      const vm2 = new VM(storage, storage, new StubClock(), compile)
       const exec = emptyExecFactoryFactory(() => storage, () => vm2)()
       const wasm = exec.importModule(pkgId).asInstance
       const jig = exec.instantiateByClassName(wasm, 'Foo', []).asJig()

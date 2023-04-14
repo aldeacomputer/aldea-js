@@ -81,24 +81,23 @@ export class Storage implements StateProvider, PkgRepository {
 
     if (!jigState.isNew()) {
       const prevLocation = this.tips.get(originStr)
-      if (!prevLocation) {
-        throw new Error(`${originStr} should exist`)
-      }
-      const oldState = this.utxosByOid.get(prevLocation)
-      this.utxosByOid.delete(prevLocation)
-      this.tips.delete(originStr)
-      this.origins.delete(originStr)
-      if (oldState) {
-        oldState.address().ifPresent((addr) => {
-          const list = this.utxosByAddress.get(addr.toString())
-          if (!list) {
-            throw new Error('error')
-          }
-          const filtered = list.filter(s => !s.origin.equals(oldState.origin))
-          this.utxosByAddress.set(addr.toString(), filtered)
-        })
-      }
-      if (jigState.lockType() === LockType.PUBKEY) {
+
+      // if it's not new but there is not prev location that means that is a local client. It's fine.
+      if (prevLocation) {
+        const oldState = this.utxosByOid.get(prevLocation)
+        this.utxosByOid.delete(prevLocation)
+        this.tips.delete(originStr)
+        this.origins.delete(originStr)
+        if (oldState) {
+          oldState.address().ifPresent((addr) => {
+            const list = this.utxosByAddress.get(addr.toString())
+            if (!list) {
+              throw new Error('error')
+            }
+            const filtered = list.filter(s => !s.origin.equals(oldState.origin))
+            this.utxosByAddress.set(addr.toString(), filtered)
+          })
+        }
       }
     }
 

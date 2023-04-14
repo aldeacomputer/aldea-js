@@ -36,7 +36,7 @@ export function buildVm(sources: string[]) {
   const moduleIds = new Map<string, string>()
   const clock = new StubClock()
   const storage = new Storage()
-  const vm = new VM(storage, clock, compile)
+  const vm = new VM(storage, storage, clock, compile)
 
   sources.forEach(src => {
     const id = addPreCompiled(vm, src)

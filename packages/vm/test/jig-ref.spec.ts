@@ -10,7 +10,7 @@ import {compile} from "@aldea/compiler";
 describe('JigRef', function () {
   const storage = new Storage()
   const clock = new MomentClock()
-  const vm = new VM(storage, clock, compile)
+  const vm = new VM(storage, storage, clock, compile)
   it('returns right id', () => {
     const id = addPreCompiled(vm, 'flock')
     const wasm = storage.wasmForPackageId(id)
