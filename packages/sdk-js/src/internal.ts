@@ -4,6 +4,8 @@ export * from './aldea.js'
 // Core Aldea data objects
 export * from './address.js'
 export * from './keypair.js'
+export * from './hd-privkey.js'
+export * from './hd-pubkey.js'
 export * from './lock.js'
 export * from './output.js'
 export * from './pointer.js'

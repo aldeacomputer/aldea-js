@@ -1,5 +1,5 @@
 import { PubKey } from './internal.js';
-import {base16, bech32m} from './support/base.js'
+import { base16, bech32m } from './support/base.js'
 import { blake3 } from './support/hash.js'
 
 const PREFIX = 'aldea:'

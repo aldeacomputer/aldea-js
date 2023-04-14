@@ -6,6 +6,8 @@
 export {
   Aldea,
   Address,
+  HDPrivKey,
+  HDPubKey,
   KeyPair,
   Lock, LockSerializer,
   Output, OutputSerializer,

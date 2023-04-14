@@ -59,8 +59,4 @@ export function verify(sig: Uint8Array, msg: Uint8Array, pubKey: PubKey | Uint8A
   return _verify(sig, msg, pubKey)
 }
 
-const randomPrivateKey = utils.randomPrivateKey
-export {
-  Point,
-  randomPrivateKey,
-}
+export { Point }

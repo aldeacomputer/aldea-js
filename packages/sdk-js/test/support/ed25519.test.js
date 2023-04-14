@@ -7,14 +7,14 @@ import {
   pointToBytes,
   sign,
   verify,
-  randomPrivateKey,
 } from '../../dist/support/ed25519.js'
+import { randomBytes } from '../../dist/support/util.js'
 import { PrivKey } from '../../dist/privkey.js'
 
 await shimCrypto()
 
 test.before(t => {
-  t.context.privBuf = randomPrivateKey()
+  t.context.privBuf = randomBytes(32)
   t.context.point = calcPoint(t.context.privBuf)
   t.context.pubBuf = t.context.point.toRawBytes()
   t.context.sig = sign(Buffer.from('test'), t.context.privBuf)
