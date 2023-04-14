@@ -1,6 +1,6 @@
 import { KeyPair, PubKey } from './internal.js';
 import { base16 } from './support/base.js';
-import { randomBytes } from './support/ed25519.js'
+import { randomPrivateKey } from './support/ed25519.js'
 
 /**
  * Aldea private key
@@ -40,7 +40,7 @@ export class PrivKey {
    * Generates and returns a new random PrivKey.
    */
   static fromRandom(): PrivKey {
-    const d = randomBytes(32)
+    const d = randomPrivateKey()
     return new PrivKey(d)
   }
 

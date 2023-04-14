@@ -6,7 +6,6 @@
 export {
   Aldea,
   Address,
-  HDKey,
   KeyPair,
   Lock, LockSerializer,
   Output, OutputSerializer,
@@ -26,7 +25,6 @@ export * as instructions from './instructions/index.js'
 // Exports support
 export { base16, base64, bech32m } from './support/base.js'
 export * as hash from './support/hash.js'
-export * as bip39 from './support/mnemonic.js'
 export * as ed25519 from './support/ed25519.js'
 
 // Legacy exports - these will probably be removed

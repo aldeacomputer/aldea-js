@@ -1,4 +1,5 @@
 import test from 'ava'
+import { shimCrypto } from '../test-helpers.js'
 import {
   Point,
   calcPoint,
@@ -6,12 +7,14 @@ import {
   pointToBytes,
   sign,
   verify,
-  randomBytes,
+  randomPrivateKey,
 } from '../../dist/support/ed25519.js'
 import { PrivKey } from '../../dist/privkey.js'
 
+await shimCrypto()
+
 test.before(t => {
-  t.context.privBuf = randomBytes(32)
+  t.context.privBuf = randomPrivateKey()
   t.context.point = calcPoint(t.context.privBuf)
   t.context.pubBuf = t.context.point.toRawBytes()
   t.context.sig = sign(Buffer.from('test'), t.context.privBuf)
@@ -25,8 +28,8 @@ test('calcPoint() returns a Point', t => {
 })
 
 test('calcPoint() throws if not 32 bytes', t => {
-  t.throws(() => calcPoint(new Uint8Array(5)), { message: 'Expected 32 bytes' })
-  t.throws(() => calcPoint(new Uint8Array(35)), { message: 'Expected 32 bytes' })
+  t.throws(() => calcPoint(new Uint8Array(5)))
+  t.throws(() => calcPoint(new Uint8Array(35)))
   t.throws(() => calcPoint())
   t.throws(() => calcPoint({}))
   t.throws(() => calcPoint('abc'))
@@ -35,12 +38,12 @@ test('calcPoint() throws if not 32 bytes', t => {
 test('pointFromBytes() returns a Point', t => {
   const point = pointFromBytes(t.context.pubBuf)
   t.true(point instanceof Point)
-  t.deepEqual(point, t.context.point)
+  t.deepEqual(point.toAffine(), t.context.point.toAffine())
 })
 
 test('pointFromBytes() throws if not 32 bytes', t => {
-  t.throws(() => pointFromBytes(new Uint8Array(5)), { message: 'Expected 32 bytes' })
-  t.throws(() => pointFromBytes(new Uint8Array(35)), { message: 'Expected 32 bytes' })
+  t.throws(() => pointFromBytes(new Uint8Array(5)))
+  t.throws(() => pointFromBytes(new Uint8Array(35)))
   t.throws(() => pointFromBytes())
   t.throws(() => pointFromBytes({}))
   t.throws(() => pointFromBytes('abc'))

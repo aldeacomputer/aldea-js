@@ -1,8 +1,11 @@
 import test from 'ava'
+import { shimCrypto } from './test-helpers.js'
 
 import { KeyPair } from '../dist/keypair.js'
 import { PrivKey } from '../dist/privkey.js'
 import { PubKey } from '../dist/pubkey.js'
+
+await shimCrypto()
 
 test.before(t => {
   t.context.privKey = PrivKey.fromRandom()

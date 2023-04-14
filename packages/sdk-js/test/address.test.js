@@ -1,7 +1,10 @@
 import test from 'ava'
+import { shimCrypto } from './test-helpers.js'
 
 import { Address } from '../dist/address.js'
 import { KeyPair } from '../dist/keypair.js'
+
+await shimCrypto()
 
 test.before(t => {
   t.context.keys = KeyPair.fromRandom()

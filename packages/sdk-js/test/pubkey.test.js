@@ -1,8 +1,11 @@
 import test from 'ava'
-import { Address } from '../dist/address.js'
+import { shimCrypto } from './test-helpers.js'
 
+import { Address } from '../dist/address.js'
 import { PubKey } from '../dist/pubkey.js'
 import { PrivKey } from '../dist/privkey.js'
+
+await shimCrypto()
 
 test.before(t => {
   t.context.privKey = PrivKey.fromRandom()
@@ -29,12 +32,12 @@ test('PubKey.fromPrivKey() throws with invalid PrivKey', t => {
 test('PubKey.fromBytes() returns a PubKey with valid bytes', t => {
   const key = PubKey.fromBytes(t.context.pubKeyBuf)
   t.true(key instanceof PubKey)
-  t.deepEqual(key, t.context.pubKey)
+  t.true(key.equals(t.context.pubKey))
 })
 
 test('PubKey.fromBytes() throws with incorrect bytes length', t => {
-  t.throws(() => PubKey.fromBytes(new Uint8Array(5)), { message: 'Expected 32 bytes' })
-  t.throws(() => PubKey.fromBytes(new Uint8Array(35)), { message: 'Expected 32 bytes' })
+  t.throws(() => PubKey.fromBytes(new Uint8Array(5)))
+  t.throws(() => PubKey.fromBytes(new Uint8Array(35)))
 })
 
 test('PubKey.fromBytes() throws with invalid bytes', t => {
@@ -47,7 +50,7 @@ test('PubKey.fromBytes() throws with invalid bytes', t => {
 test('PubKey.fromHex() returns a PubKey', t => {
   const key = PubKey.fromHex(t.context.pubKeyHex)
   t.true(key instanceof PubKey)
-  t.deepEqual(key, t.context.pubKey)
+  t.true(key.equals(t.context.pubKey))
 })
 
 test('PubKey.fromHex() throws with invalid hex', t => {
