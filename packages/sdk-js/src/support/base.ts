@@ -52,7 +52,7 @@ export namespace bech32m {
    */
   export function encode(data: Uint8Array, prefix: string = ''): string {
     const words = b32m.toWords(data)
-    return b32m.encode(prefix, words)
+    return b32m.encode(prefix, words, 192)
   }
 
   /**

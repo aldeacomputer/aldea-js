@@ -1,6 +1,6 @@
 import { PubKey } from './internal.js'
 import { bech32m } from './support/base.js'
-import { hmacSha512 } from './support/hash.js'
+import { hash, keyedHash } from './support/blake3.js'
 import { Point } from './support/ed25519.js'
 import { bytesToBn, concatBytes } from './support/util.js'
 
@@ -41,12 +41,13 @@ export class HDPubKey {
       throw new Error('can not derive hardened child key')
     }
 
+    const ch = hash(this.chainCode, 32)
     const iBuf = new Uint8Array(4)
     const iBufView = new DataView(iBuf.buffer)
     iBufView.setUint32(0, idx, true)
 
-    const z = hmacSha512(this.chainCode, concatBytes(new Uint8Array([2]), this.k, iBuf))
-    const c = hmacSha512(this.chainCode, concatBytes(new Uint8Array([3]), this.k, iBuf)).slice(32, 64)
+    const z = keyedHash(concatBytes(new Uint8Array([2]), this.k, iBuf), ch)
+    const c = keyedHash(concatBytes(new Uint8Array([3]), this.k, iBuf), ch).slice(32, 64)
 
     const zl = z.slice(0, 28)
     const left = bytesToBn(zl) * BigInt(8)

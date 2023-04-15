@@ -1,7 +1,7 @@
 import { Abi, ClassNode, validateAbi } from '@aldea/compiler/abi'
 import { CBOR } from 'cbor-redux';
 import { base16 } from './support/base.js'
-import { blake3 } from './support/hash.js'
+import { hash } from './support/blake3.js'
 
 import {
   BufReader,
@@ -101,7 +101,7 @@ export class Output {
   }
 
   get hash(): Uint8Array {
-    return blake3(this.toBytes())
+    return hash(this.toBytes())
   }
 
   get className(): string | void {

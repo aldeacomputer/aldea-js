@@ -1,8 +1,8 @@
 import { HDPubKey, PubKey } from './internal.js'
 import { bech32m } from './support/base.js'
-import { hmacSha512, blake3 } from './support/hash.js'
+import { hash, keyedHash } from './support/blake3.js'
 import { Point } from './support/ed25519.js'
-import { bnToBytes, bytesToBn, concatBytes, randomBytes, utf8ToBytes } from './support/util.js'
+import { bnToBytes, bytesToBn, concatBytes, randomBytes } from './support/util.js'
 
 const MASTER_SECRET = 'ed25519 seed'
 const HARDENED_OFFSET = 0x80000000
@@ -14,7 +14,7 @@ const PREFIX = 'xsec'
 export class HDPrivKey {
   constructor(private k: Uint8Array, readonly chainCode: Uint8Array) {
     if (this.k.length !== 64) throw new Error('invalid extended key length')
-    if (this.chainCode.length !== 32) throw new Error('invalid chainCode length')
+    if (this.chainCode.length !== 32) throw new Error('invalid chainCode length : '+chainCode.length)
   }
 
   /**
@@ -34,8 +34,8 @@ export class HDPrivKey {
 
     let i = 0
     while (true) {
-      const block = hmacSha512(seed, utf8ToBytes(`${MASTER_SECRET} ${i}`))
-      const extended = blake3(block.slice(0, 32), 64)
+      const block = keyedHash(seed, hash(`${MASTER_SECRET} ${i}`, 32))
+      const extended = hash(block.slice(0, 32), 64)
       if ((extended[31] & 0b00100000) === 0) {
         extended[0] &= ~0b00000111
         extended[31] &= ~0b10000000
@@ -69,6 +69,7 @@ export class HDPrivKey {
   deriveChild(idx: number): HDPrivKey {
     const kl = this.k.slice(0, 32)
     const kr = this.k.slice(32, 64)
+    const ch = hash(this.chainCode, 32)
     const pk = this.pubkeyBytes()
 
     const iBuf = new Uint8Array(4)
@@ -77,11 +78,11 @@ export class HDPrivKey {
 
     let z: Uint8Array, c: Uint8Array;
     if (idx < HARDENED_OFFSET) {
-      z = hmacSha512(this.chainCode, concatBytes(new Uint8Array([2]), pk, iBuf))
-      c = hmacSha512(this.chainCode, concatBytes(new Uint8Array([3]), pk, iBuf)).slice(32, 64)
+      z = keyedHash(concatBytes(new Uint8Array([2]), pk, iBuf), ch)
+      c = keyedHash(concatBytes(new Uint8Array([3]), pk, iBuf), ch).slice(32, 64)
     } else {
-      z = hmacSha512(this.chainCode, concatBytes(new Uint8Array([0]), this.k, iBuf))
-      c = hmacSha512(this.chainCode, concatBytes(new Uint8Array([1]), this.k, iBuf)).slice(32, 64)
+      z = keyedHash(concatBytes(new Uint8Array([0]), this.k, iBuf), ch)
+      c = keyedHash(concatBytes(new Uint8Array([1]), this.k, iBuf), ch).slice(32, 64)
     }
 
     const zl = z.slice(0, 28)
@@ -123,7 +124,7 @@ export class HDPrivKey {
 
   // TODO
   private pubkeyBytes() {
-    return Point.BASE.mul(bytesToBn(this.k.slice(0, 32))).toRawBytes()
+    return Point.BASE._scalarMult(bytesToBn(this.k.slice(0, 32))).toRawBytes()
   }
 }
 

@@ -1,5 +1,5 @@
+import { etc } from '@noble/ed25519'
 import { base16 } from './base.js'
-import { concatBytes, randomBytes, utf8ToBytes } from '@noble/hashes/utils'
 
 /**
  * TODO
@@ -21,8 +21,30 @@ export function bytesToBn(data: Uint8Array): bigint {
   return BigInt(`0x${base16.encode(buf)}`)
 }
 
-export {
+/**
+ * TODO
+ */
+export function utf8ToBytes(str: string): Uint8Array {
+  if (typeof str !== 'string') {
+    throw new TypeError(`utf8ToBytes expected string, got ${typeof str}`);
+  }
+  return new TextEncoder().encode(str);
+}
+
+const {
+  bytesToHex,
+  hexToBytes,
   concatBytes,
   randomBytes,
-  utf8ToBytes,
+  mod,
+  invert,
+} = etc
+
+export {
+  bytesToHex,
+  hexToBytes,
+  concatBytes,
+  randomBytes,
+  mod,
+  invert,
 }

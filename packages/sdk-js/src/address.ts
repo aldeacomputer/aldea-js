@@ -1,6 +1,6 @@
 import { PubKey } from './internal.js';
 import { base16, bech32m } from './support/base.js'
-import { blake3 } from './support/hash.js'
+import { hash } from './support/blake3.js'
 
 const PREFIX = 'aldea:'
 
@@ -28,8 +28,8 @@ export class Address {
     if (!(pubKey instanceof PubKey)) {
       throw Error('The first argument to `Address.fromPubKey()` must be a `PubKey`')
     }
-    const hash = blake3(pubKey.toBytes(), 20)
-    return new Address(hash)
+    const pkh = hash(pubKey.toBytes(), 20)
+    return new Address(pkh)
   }
 
   /**
@@ -51,7 +51,7 @@ export class Address {
     return base16.encode(this.hash)
   }
 
-  equals (another: Address): boolean {
-    return Buffer.from(this.hash).equals(Buffer.from(another.hash))
+  equals (other: Address): boolean {
+    return this.hash.every((byte, i) => byte === other.hash[i])
   }
 }
