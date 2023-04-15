@@ -1,0 +1,17 @@
+import test from 'ava'
+
+test.todo('HDPubKey.fromBytes() returns a HDPubKey with valid bytes')
+test.todo('HDPubKey.fromBytes() throws with incorrect bytes length')
+test.todo('HDPubKey.fromBytes() throws with invalid bytes')
+test.todo('HDPubKey.fromHex() returns a HDPubKey with valid hex')
+test.todo('HDPubKey.fromHex() throws with invalid hex')
+test.todo('HDPubKey.fromString() returns a HDPubKey with valid string')
+test.todo('HDPubKey.fromString() throws with invalid string')
+test.todo('HDPubKey#derive() returns a derived HDPubKey with valid path')
+test.todo('HDPubKey#derive() throws with an invalid path')
+test.todo('HDPubKey#deriveChild() returns a derived HDPubKey with valid index')
+test.todo('HDPubKey#deriveChild() throws with an invalid index')
+test.todo('HDPubKey#toBytes() returns a Uint8Array')
+test.todo('HDPubKey#toHex() returns a string')
+test.todo('HDPubKey#toString() returns a bech32m string')
+test.todo('HDPubKey#toPubKey() returns a PubKey')

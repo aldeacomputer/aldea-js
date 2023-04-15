@@ -17,7 +17,6 @@ etc.sha512Sync = (...m: Uint8Array[]): Uint8Array => {
   return hash(concatBytes(...m), 64)
 }
 
-
 /**
  * Calculates the EdDSA Point (public key) from the given bytes (private key).
  */
@@ -73,9 +72,7 @@ function _signExt(msg: Uint8Array, k: Uint8Array): Uint8Array {
   return concatBytes(rBuf, sBuf)
 }
 
-/**
- * Monkey patch in typescript friendly way
- */
+// Monkey patch in typescript friendly way
 declare module '@noble/ed25519' {
   interface ExtendedPoint {
     _scalarMult(n: bigint): ExtendedPoint;

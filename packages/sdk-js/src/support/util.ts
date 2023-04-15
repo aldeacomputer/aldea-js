@@ -1,8 +1,9 @@
 import { etc } from '@noble/ed25519'
+import { utf8ToBytes } from '@noble/hashes/utils'
 import { base16 } from './base.js'
 
 /**
- * TODO
+ * Encodes the given bigint as a little-endian Uint8Array. 
  */
 export function bnToBytes(num: bigint, len: number = 32): Uint8Array {
   let hex = num.toString(16)
@@ -13,22 +14,12 @@ export function bnToBytes(num: bigint, len: number = 32): Uint8Array {
 }
 
 /**
- * TODO
+ * Decodes the given Uint8Array as a little-endian bigint. 
  */
 export function bytesToBn(data: Uint8Array): bigint {
   const buf = new Uint8Array(data)
   buf.reverse()
   return BigInt(`0x${base16.encode(buf)}`)
-}
-
-/**
- * TODO
- */
-export function utf8ToBytes(str: string): Uint8Array {
-  if (typeof str !== 'string') {
-    throw new TypeError(`utf8ToBytes expected string, got ${typeof str}`);
-  }
-  return new TextEncoder().encode(str);
 }
 
 const {
@@ -47,4 +38,5 @@ export {
   randomBytes,
   mod,
   invert,
+  utf8ToBytes,
 }

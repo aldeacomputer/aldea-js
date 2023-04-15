@@ -15,9 +15,10 @@ const PREFIX = 'aldea:'
  *     aldea:1w9er02jhjq5yxzuc9n6fjqqq8nhqpuhsxe2kfp
  */
 export class Address {
-  hash: Uint8Array;
+  readonly hash: Uint8Array;
 
   constructor(hash: Uint8Array) {
+    if (hash.length !== 20) throw new Error('invalid hash length')
     this.hash = hash
   }
 

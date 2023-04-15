@@ -1,6 +1,6 @@
 import { HDPubKey, PubKey } from './internal.js'
-import { bech32m } from './support/base.js'
-import { hash, keyedHash } from './support/blake3.js'
+import { base16, bech32m } from './support/base.js'
+import { hash, keyedHash, deriveKey } from './support/blake3.js'
 import { Point } from './support/ed25519.js'
 import { bnToBytes, bytesToBn, concatBytes, randomBytes } from './support/util.js'
 
@@ -9,32 +9,88 @@ const HARDENED_OFFSET = 0x80000000
 const PREFIX = 'xsec'
 
 /**
- * TODO
+ * Hierarchical deterministic private key
+ * 
+ * Implements [BIP32-ed25519](https://github.com/LedgerHQ/orakolo/blob/master/papers/Ed25519_BIP%20Final.pdf)
+ * with hashing primitives swapped out for BLAKE3.
+ * 
+ * To use with BIP39, we recommend using [@scure/bip39](https://github.com/paulmillr/scure-bip39).
+ * 
+ * ```ts
+ * import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39'
+ * import { wordlist } from '@scure/bip39/wordlists/english'
+ * import { HDPrivKey } from '@aldea/sdk-js'
+ * 
+ * const mnemonic = generateMnemonic(wordlist)
+ * const seed = mnemonicToSeedSync(mnemonic)
+ * const rootKey = HDPrivKey.fromSeed(seed)
+ * const childKey = rootKey.derive('m/1/2/3')
+ * ```
  */
 export class HDPrivKey {
-  constructor(private k: Uint8Array, readonly chainCode: Uint8Array) {
-    if (this.k.length !== 64) throw new Error('invalid extended key length')
-    if (this.chainCode.length !== 32) throw new Error('invalid chainCode length : '+chainCode.length)
+  private k: Uint8Array;
+  readonly chainCode: Uint8Array;
+
+  constructor(k: Uint8Array, chainCode: Uint8Array) {
+    if (k.length !== 64) throw new Error('invalid extended key length')
+    if (chainCode.length !== 32) throw new Error('invalid chainCode length')
+    this.k = k
+    this.chainCode = chainCode
   }
 
   /**
-   * TODO
+   * Returns a HDPrivKey from the given bytes.
+   * 
+   * HD Private Keys are 96 bytes.
+   */
+  static fromBytes(bytes: Uint8Array): HDPrivKey {
+    if (!ArrayBuffer.isView(bytes)) {
+      throw Error('The first argument to `HDPrivKey.fromBytes()` must be a `Uint8Array`')
+    }
+    return new HDPrivKey(bytes.slice(0, 64), bytes.slice(64))
+  }
+
+  /**
+   * Returns a HDPrivKey from the given hex-encoded string.
+   */
+  static fromHex(str: string): HDPrivKey {
+    if (typeof str !== 'string') {
+      throw Error('The first argument to `HDPrivKey.fromHex()` must be a `string`')
+    }
+    const bytes = base16.decode(str)
+    return HDPrivKey.fromBytes(bytes)
+  }
+
+  /**
+   * Returns a HDPrivKey from the given bech32m-encoded string.
+   */
+  static fromString(str: string): HDPrivKey {
+    if (typeof str !== 'string') {
+      throw Error('The first argument to `HDPrivKey.fromString()` must be a `string`')
+    }
+    const bytes = bech32m.decode(str, PREFIX)
+    return HDPrivKey.fromBytes(bytes)
+  }
+
+  /**
+   * Generates and returns a new random HDPrivKey.
    */
   static fromRandom(): HDPrivKey {
     return HDPrivKey.fromSeed(randomBytes(32))
   }
 
   /**
-   * TODO
+   * Generates and returns an HDPrivKey from the given seed bytes.
    */
   static fromSeed(seed: Uint8Array): HDPrivKey {
     if (![16, 32, 64].includes(seed.length)) {
       throw new Error(`invalid seed length: ${seed.length}`)
     }
 
-    let i = 0
+    const key = deriveKey(seed, MASTER_SECRET)
+    let block = seed
     while (true) {
-      const block = keyedHash(seed, hash(`${MASTER_SECRET} ${i}`, 32))
+      block = keyedHash(block, key)
       const extended = hash(block.slice(0, 32), 64)
       if ((extended[31] & 0b00100000) === 0) {
         extended[0] &= ~0b00000111
@@ -42,12 +98,23 @@ export class HDPrivKey {
         extended[31] |= 0b01000000
         return new HDPrivKey(extended, block.slice(32, 64))
       }
-      i++
     }
   }
 
   /**
-   * TODO
+   * Derives a new HD key from the given derivation path. Returns either a
+   * HDPrivKey or HDPubKey.
+   * 
+   * The derivation path must of the format described in [BIP-32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki).
+   * All of the following examples are valid derivation paths:
+   * 
+   * ```text
+   * m/1/2/3 - derives HDPrivkey
+   * M/1/2/3 - derives HDPubkey
+   * m/1'/200 - derives hardened HDPrivkey
+   * m/1h/200 - equivalent
+   * m/1H/200 - equivalent
+   * ```
    */
   derive(path: string): HDPrivKey | HDPubKey {
     const parts = path.replace(/^[mM]['hH]?/, '')
@@ -64,7 +131,7 @@ export class HDPrivKey {
   }
 
   /**
-   * TODO
+   * Derives new HDPrivKey from the given index integer.
    */
   deriveChild(idx: number): HDPrivKey {
     const kl = this.k.slice(0, 32)
@@ -95,40 +162,49 @@ export class HDPrivKey {
   }
 
   /**
-   * TODO
-   */
-  toHDPubKey(): HDPubKey {
-    return new HDPubKey(this.pubkeyBytes(), this.chainCode)
-  }
-
-  /**
-   * TODO
-   */
-  toPubKey(): PubKey {
-    return PubKey.fromBytes(this.pubkeyBytes())
-  }
-
-  /**
-   * TODO
+   * Returns the HDPrivKey as bytes.
+   * 
+   * HD Private Keys are 96 bytes.
    */
   toBytes(): Uint8Array {
     return concatBytes(this.k, this.chainCode)
   }
 
   /**
-   * TODO
+   * Returns the HDPrivKey as hex-encoded string.
+   */
+  toHex(): string {
+    return base16.encode(this.toBytes())
+  }
+
+  /**
+   * Returns the HDPrivKey as bech32m-encoded string.
    */
   toString(): string {
     return bech32m.encode(this.toBytes(), PREFIX)
   }
 
-  // TODO
+  /**
+   * Returns the HDPrivKey's corresponding HDPubKey.
+   */
+  toHDPubKey(): HDPubKey {
+    return new HDPubKey(this.pubkeyBytes(), this.chainCode)
+  }
+
+  /**
+   * Returns the HDPrivKey's corresponding normal PubKey.
+   */
+  toPubKey(): PubKey {
+    return PubKey.fromBytes(this.pubkeyBytes())
+  }
+
+  // Calculates and returns the HDPrivKey's corresponding 32 byte public key
   private pubkeyBytes() {
     return Point.BASE._scalarMult(bytesToBn(this.k.slice(0, 32))).toRawBytes()
   }
 }
 
-// TODO
+// Maps the derivation path part to an index number
 function toIndex(part: string): number {
   const m = /^(\d+)(['hH])?$/.exec(part)
   if (!m || m.length !== 3) {
