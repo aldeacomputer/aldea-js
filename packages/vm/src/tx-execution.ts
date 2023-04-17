@@ -7,7 +7,7 @@ import {JigState} from "./jig-state.js"
 import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {ClassNode, CodeKind} from '@aldea/compiler/abi'
-import {Address, base16, InstructionRef, instructions, Pointer} from '@aldea/sdk-js';
+import {Address, base16, InstructionRef, instructions, OpCode, Pointer} from '@aldea/sdk-js';
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
@@ -15,6 +15,7 @@ import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {TxContext} from "./tx-context/tx-context.js";
 import {PkgData} from "./storage.js";
+import {ImportInstruction, NewInstruction} from "@aldea/sdk-js/instructions/index";
 
 class TxExecution {
   txContext: TxContext;
@@ -223,14 +224,18 @@ class TxExecution {
   }
 
   async run(): Promise<ExecutionResult> {
-    await this.txContext.forEachInstruction(async inst => {
-      if (inst instanceof instructions.ImportInstruction) {
+    await this.txContext.forEachInstruction(async baseInst => {
+      if (baseInst.opcode === OpCode.IMPORT) {
+        const inst = baseInst as ImportInstruction
         this.importModule(inst.pkgId)
-      } else if (inst instanceof instructions.NewInstruction) {
+      } else if (baseInst.opcode === OpCode.NEW) {
+        const inst = baseInst as NewInstruction
         this.instantiateByIndex(inst.idx, inst.exportIdx, this.parseArgs(inst.args))
-      } else if (inst instanceof instructions.CallInstruction) {
+      } else if (baseInst.opcode === OpCode.CALL) {
+        const inst = baseInst as instructions.CallInstruction
         this.callInstanceMethodByIndex(inst.idx, inst.methodIdx, this.parseArgs(inst.args))
-      } else if (inst instanceof instructions.ExecInstruction) {
+      } else if (baseInst.opcode === OpCode.EXEC) {
+        const inst = baseInst as instructions.ExecInstruction
         const wasm = this.getStatementResult(inst.idx).asInstance
         const exportNode = wasm.abi.exports[inst.exportIdx]
         if (exportNode.kind !== CodeKind.CLASS) {
@@ -239,22 +244,29 @@ class TxExecution {
         const klassNode = exportNode.code as ClassNode
         const methodNode = klassNode.methods[inst.methodIdx]
         this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, this.parseArgs(inst.args))
-      } else if (inst instanceof instructions.LockInstruction) {
+      } else if (baseInst.opcode === OpCode.LOCK) {
+        const inst = baseInst as instructions.LockInstruction
         this.lockJigToUserByIndex(inst.idx, new Address(inst.pubkeyHash))
-      } else if (inst instanceof instructions.LoadInstruction) {
+      } else if (baseInst.opcode === OpCode.LOAD) {
+        const inst = baseInst as instructions.LoadInstruction
         this.loadJigByOutputId(inst.outputId)
-      } else if (inst instanceof instructions.LoadByOriginInstruction) {
+      } else if (baseInst.opcode === OpCode.LOADBYORIGIN) {
+        const inst = baseInst as instructions.LoadByOriginInstruction
         this.loadJigByOrigin(Pointer.fromBytes(inst.origin))
-      } else if (inst instanceof instructions.SignInstruction) {
+      } else if (baseInst.opcode === OpCode.SIGN) {
+        // const inst = baseInst as instructions.SignInstruction
         this.statements.push(new EmptyStatementResult(this.statements.length))
-      } else if (inst instanceof instructions.SignToInstruction) {
+      } else if (baseInst.opcode === OpCode.SIGNTO) {
+        // const inst = baseInst as instructions.SignToInstruction
         this.statements.push(new EmptyStatementResult(this.statements.length))
-      } else if (inst instanceof instructions.DeployInstruction) {
+      } else if (baseInst.opcode === OpCode.DEPLOY) {
+        const inst = baseInst as instructions.DeployInstruction
         await this.deployPackage(inst.entry, inst.code)
-      } else if (inst instanceof instructions.FundInstruction) {
+      } else if (baseInst.opcode === OpCode.FUND) {
+        const inst = baseInst as instructions.FundInstruction
         this.fundByIndex(inst.idx)
       } else {
-        throw new ExecutionError(`unknown instruction: ${inst.opcode}`)
+        throw new ExecutionError(`unknown instruction: ${baseInst.opcode}`)
       }
     })
     return this.finalize()

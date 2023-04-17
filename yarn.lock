@@ -108,6 +108,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/mocknet@workspace:packages/mocknet"
   dependencies:
+    "@aldea/compiler": "workspace:^"
     "@aldea/sdk-js": "workspace:^"
     "@aldea/vm": "workspace:^"
     "@chainsafe/libp2p-gossipsub": ^6.2.0
