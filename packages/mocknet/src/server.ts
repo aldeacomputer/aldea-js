@@ -111,7 +111,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
       base16.decode(outputId),
       () => { throw new HttpNotFound(`state not found: ${outputId}`, { outputId })}
     )
-    const wasm = vm.wasmForPackageId(state.packageId)
+    const wasm = storage.wasmForPackageId(state.packageId)
     res.send({
       state: state.objectState(wasm)
     })
