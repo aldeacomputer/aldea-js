@@ -1,6 +1,5 @@
 import {Clock, Storage, StubClock, VM} from "../src/index.js";
-import {AldeaCrypto} from "../src/aldea-crypto.js";
-import {instructions, Output, Tx, Lock, Pointer} from "@aldea/sdk-js";
+import {instructions, Output, Tx, Lock, Pointer, PrivKey} from "@aldea/sdk-js";
 import {buildVm} from "./util.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {ExtendedTx} from "../src/index.js";
@@ -32,8 +31,8 @@ const outputFromJigState = (jig: JigState): Output => {
 describe('exec from inputs', () => {
   let vm: VM
   let storage: Storage
-  const userPriv = AldeaCrypto.randomPrivateKey()
-  const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
+  const userPriv = PrivKey.fromRandom()
+  const userPub = userPriv.toPubKey()
   const userAddr = userPub.toAddress()
 
   let modIdFor: (k: string) => Uint8Array

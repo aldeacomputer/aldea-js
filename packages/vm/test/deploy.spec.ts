@@ -1,9 +1,9 @@
 import {Storage, StubClock, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from '../src/aldea-crypto.js';
 import {calculatePackageId} from '../src/index.js';
 import {addPreCompiled, emptyExecFactoryFactory} from "./util.js";
 import {compile} from "@aldea/compiler";
+import {PrivKey} from "@aldea/sdk-js";
 
 const someValidModule = `
 export class Foo extends Jig {
@@ -17,8 +17,8 @@ export class Foo extends Jig {
 describe('deploy code', () => {
   let storage: Storage
   let vm: VM
-  const userPriv = AldeaCrypto.randomPrivateKey()
-  const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
+  const userPriv = PrivKey.fromRandom()
+  const userPub = userPriv.toPubKey()
   const userAddr = userPub.toAddress()
   const fileName = 'something.ts'
   const clock = new StubClock()

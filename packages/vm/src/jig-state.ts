@@ -1,8 +1,7 @@
 import {ClassNode, FieldNode} from "@aldea/compiler/abi";
 import {WasmInstance} from "./wasm-instance.js";
-import {Address, Output, Pointer} from "@aldea/sdk-js";
+import {Address, Output, Pointer, blake3} from "@aldea/sdk-js";
 import {BufWriter} from "@aldea/sdk-js/buf-writer";
-import {blake3} from "@aldea/sdk-js/support/hash";
 import {decodeSequence} from "./cbor.js";
 import {Option} from "./support/option.js";
 import {SerializedLock} from "./locks/serialized-lock.js";
@@ -72,7 +71,7 @@ export class JigState {
   }
 
   id (): Uint8Array {
-    return blake3(this.serialize())
+    return blake3.hash(this.serialize())
   }
 
   outputObject(): any {
