@@ -35,8 +35,6 @@ export async function buildVm (clock: Clock): Promise<iVM> {
   const vm = new VM(storage, storage, clock, compile)
 
   let result = await compile(['index.ts'], {'index.ts': nftSourceCode})
-  // console.log(result)
-  // process.exit(0)
   const id = vm.addPreCompiled(
     result.output.wasm,
     nftSourceCode,
