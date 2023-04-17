@@ -188,9 +188,9 @@ test('Aldea.getRawTx() throws error if notfound', async t => {
 test('Aldea.getOutput() returns an Output json object if exists', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/output/1f283ad569e6ddc4b0ba9b18f70692d14183a0bfd9d3d14f20c4e366b453bb7f', { file: 'test/mocks/output.get.json', format: 'string' })
+    mock.get('http://localhost/output/030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e', { file: 'test/mocks/output.get.json', format: 'string' })
   })
-  const res = await aldea.getOutput('1f283ad569e6ddc4b0ba9b18f70692d14183a0bfd9d3d14f20c4e366b453bb7f')
+  const res = await aldea.getOutput('030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e')
   t.true(typeof res.id === 'string')
   t.true(typeof res.origin === 'string')
   t.true(typeof res.location === 'string')
@@ -213,9 +213,9 @@ test('Aldea.getOutput() throws error if notfound', async t => {
 test('Aldea.getOutputByOrigin() returns an Output json object if exists', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/output-by-origin/1f283ad569e6ddc4b0ba9b18f70692d14183a0bfd9d3d14f20c4e366b453bb7f', { file: 'test/mocks/output.get.json', format: 'string' })
+    mock.get('http://localhost/output-by-origin/030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e', { file: 'test/mocks/output.get.json', format: 'string' })
   })
-  const res = await aldea.getOutputByOrigin('1f283ad569e6ddc4b0ba9b18f70692d14183a0bfd9d3d14f20c4e366b453bb7f')
+  const res = await aldea.getOutputByOrigin('030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e')
   t.true(typeof res.id === 'string')
   t.true(typeof res.origin === 'string')
   t.true(typeof res.location === 'string')
@@ -304,10 +304,10 @@ test('Aldea.getPackageWasm() throws error if notfound', async t => {
 test('Aldea.loadOutput() returns an Output json object if exists', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/output/1f283ad569e6ddc4b0ba9b18f70692d14183a0bfd9d3d14f20c4e366b453bb7f', { file: 'test/mocks/output.get.json', format: 'string' })
+    mock.get('http://localhost/output/030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e', { file: 'test/mocks/output.get.json', format: 'string' })
     mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
   })
-  const res = await aldea.loadOutput('1f283ad569e6ddc4b0ba9b18f70692d14183a0bfd9d3d14f20c4e366b453bb7f')
+  const res = await aldea.loadOutput('030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e')
   t.true(res instanceof Output)
   t.true(typeof res.props === 'object')
   t.true(typeof res.props.motos === 'number')
