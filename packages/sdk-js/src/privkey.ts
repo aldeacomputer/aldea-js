@@ -1,6 +1,8 @@
 import { KeyPair, PubKey } from './internal.js';
-import { base16 } from './support/base.js';
+import { base16, bech32m } from './support/base.js';
 import { randomBytes } from './support/util.js'
+
+const PREFIX = 'asec'
 
 /**
  * Aldea private key
@@ -8,7 +10,7 @@ import { randomBytes } from './support/util.js'
  * A private key is a 32 byte random key.
  */
 export class PrivKey {
-  d: Uint8Array;
+  private d: Uint8Array;
 
   constructor(d: Uint8Array) {
     if (d.length !== 32) throw new Error('PrivKey must be 32 bytes')
@@ -37,6 +39,17 @@ export class PrivKey {
   }
 
   /**
+   * Returns a PrivKey from the given bech32m-encoded string.
+   */
+  static fromString(str: string): PrivKey {
+    if (typeof str !== 'string') {
+      throw Error('The first argument to `PrivKey.fromString()` must be a `string`')
+    }
+    const d = bech32m.decode(str, PREFIX)
+    return new PrivKey(d)
+  }
+
+  /**
    * Generates and returns a new random PrivKey.
    */
   static fromRandom(): PrivKey {
@@ -56,6 +69,13 @@ export class PrivKey {
    */
   toHex(): string {
     return base16.encode(this.d)
+  }
+
+  /**
+   * Returns the PrivKey as bech32m-encoded string.
+   */
+  toString(): string {
+    return bech32m.encode(this.d, PREFIX)
   }
 
   /**

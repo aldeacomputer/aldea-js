@@ -30,13 +30,13 @@ test('Address.fromString() throws with invalid string', t => {
   t.throws(() => Address.fromString(undefined))
   t.throws(() => Address.fromString({}))
   t.throws(() => Address.fromString(123))
-  t.throws(() => Address.fromString('aldea:butnotanaddress'))
+  t.throws(() => Address.fromString('addr1butnotanaddress'))
 })
 
 test('Address#toString() returns address string', t => {
   const address = t.context.addr.toString()
   t.true(typeof address === 'string')
-  t.is(address.length, 45)
+  t.is(address.length, 43)
   t.is(address, t.context.addrStr)
 })
 

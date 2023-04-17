@@ -8,6 +8,7 @@ test.before(t => {
   t.context.pubKey = t.context.privKey.toPubKey()
   t.context.pubKeyBuf = t.context.pubKey.toBytes()
   t.context.pubKeyHex = t.context.pubKey.toHex()
+  t.context.pubKeyStr = t.context.pubKey.toString()
 })
 
 test('PubKey.fromPrivKey() returns a PubKey with valid PrivKey', t => {
@@ -71,4 +72,24 @@ test('PubKey#toHex() returns a string', t => {
 test('PubKey#toAddress() returns n Address', t => {
   const address = t.context.pubKey.toAddress()
   t.true(address instanceof Address)
+})
+
+test('PubKey.fromString() returns a PubKey with valid string', t => {
+  const key = PubKey.fromString(t.context.pubKeyStr)
+  t.true(key instanceof PubKey)
+  t.deepEqual({ x: key.x, y: key.y }, { x: t.context.pubKey.x, y: t.context.pubKey.y })
+})
+
+test('PubKey.fromString() throws with invalid string', t => {
+  t.throws(() => PubKey.fromString('apub1notapubkey'))
+  t.throws(() => PubKey.fromString())
+  t.throws(() => PubKey.fromString({}))
+  t.throws(() => PubKey.fromString(123))
+  t.throws(() => PubKey.fromString('abc'))
+})
+
+test('PubKey#toString() returns a bech32m string', t => {
+  const str = t.context.pubKey.toString()
+  t.is(str.length, 63)
+  t.deepEqual(str, t.context.pubKeyStr)
 })

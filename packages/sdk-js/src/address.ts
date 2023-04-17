@@ -1,18 +1,18 @@
 import { PubKey } from './internal.js';
-import { base16, bech32m } from './support/base.js'
+import { bech32m } from './support/base.js'
 import { hash } from './support/blake3.js'
 
-const PREFIX = 'aldea:'
+const PREFIX = 'addr'
 
 /**
  * Aldea address
  * 
  * An address is a 20 byte blake3 hash of a public key. It is encoded as a
- * string using Bech32m with the prefix `aldea:`.
+ * string using Bech32m with the prefix `addr`.
  * 
  * Example:
  * 
- *     aldea:1w9er02jhjq5yxzuc9n6fjqqq8nhqpuhsxe2kfp
+ *     addr1w9er02jhjq5yxzuc9n6fjqqq8nhqpuhsxe2kfp
  */
 export class Address {
   readonly hash: Uint8Array;
@@ -46,10 +46,6 @@ export class Address {
    */
   toString(): string {
     return bech32m.encode(this.hash, PREFIX)
-  }
-
-  toHex(): string {
-    return base16.encode(this.hash)
   }
 
   equals (other: Address): boolean {
