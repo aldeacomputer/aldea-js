@@ -3,7 +3,7 @@ import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {instructions, Output, Tx, Lock, Pointer} from "@aldea/sdk-js";
 import {buildVm} from "./util.js";
 import {TxExecution} from "../src/tx-execution.js";
-import {ExtendedTx} from "../src/tx-context/extended-tx.js";
+import {ExtendedTx} from "../src/index.js";
 import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
 import {expect} from "chai";
 import {LockInstruction} from "@aldea/sdk-js/instructions/index";

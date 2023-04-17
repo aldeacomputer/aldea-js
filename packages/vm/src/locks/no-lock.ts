@@ -10,7 +10,7 @@ export class NoLock implements Lock {
   constructor () {}
 
   serialize (): SerializedLock {
-    throw new Error('a NoLock cannot be serialized')
+    throw new ExecutionError('a NoLock cannot be serialized')
   }
 
   isOpen (): boolean {
