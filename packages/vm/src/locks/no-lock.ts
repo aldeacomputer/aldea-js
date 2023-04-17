@@ -4,12 +4,13 @@ import {TxExecution} from "../tx-execution.js";
 import {LockType} from "../wasm-instance.js";
 import {Address, Pointer} from "@aldea/sdk-js";
 import {Option} from "../support/option.js";
+import {SerializedLock} from "./serialized-lock.js";
 
 export class NoLock implements Lock {
   constructor () {}
 
-  serialize (): string {
-    throw new ExecutionError('NoLocks cannot be serialized')
+  serialize (): SerializedLock {
+    throw new Error('a NoLock cannot be serialized')
   }
 
   isOpen (): boolean {

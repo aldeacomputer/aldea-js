@@ -1,14 +1,14 @@
 import {Clock, Storage, StubClock, VM} from "../src/index.js";
 import {AldeaCrypto} from "../src/aldea-crypto.js";
-import {instructions, Tx} from "@aldea/sdk-js";
-import {addPreCompiled, buildVm} from "./util.js";
+import {instructions, Output, Tx, Lock, Pointer} from "@aldea/sdk-js";
+import {buildVm} from "./util.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {ExtendedTx} from "../src/tx-context/extended-tx.js";
 import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
 import {expect} from "chai";
 import {LockInstruction} from "@aldea/sdk-js/instructions/index";
 import {WasmInstance} from "../src/wasm-instance.js";
-import {ArrayBuffer} from "assemblyscript/std/assembly/arraybuffer.js";
+import {JigState} from "../src/jig-state.js";
 const {
   CallInstruction,
   ImportInstruction,
@@ -17,6 +17,17 @@ const {
   FundInstruction,
   LoadInstruction
 } = instructions
+
+const outputFromJigState = (jig: JigState): Output => {
+  return new Output(
+    jig.origin,
+    jig.currentLocation,
+    new Pointer(jig.packageId, jig.classIdx),
+    new Lock(jig.lockType(), jig.lockData()),
+    jig.stateBuf
+  )
+}
+
 
 describe('exec from inputs', () => {
   let vm: VM
@@ -43,7 +54,7 @@ describe('exec from inputs', () => {
     const coin = vm.mint(userAddr, 1000)
     const tx = new Tx()
     tx.push(new SignInstruction(tx.createSignature(userPriv), userPub.toBytes()))
-    const extx = new ExtendedTx(tx, [coin]);
+    const extx = new ExtendedTx(tx, [outputFromJigState(coin)]);
     const context = new ExTxExecContext(extx, clock, storage, vm)
     const exec = new TxExecution(context)
 
@@ -93,7 +104,7 @@ describe('exec from inputs', () => {
     tx2.push(new FundInstruction(1))
     tx2.push(new SignInstruction(tx2.createSignature(userPriv), userPub.toBytes()))
 
-    const exTx = new ExtendedTx(tx2, tx1Exec.outputs)
+    const exTx = new ExtendedTx(tx2, tx1Exec.outputs.map(outputFromJigState))
     const tx2Exec = await vm2.execTxFromInputs(exTx)
 
     expect(tx2Exec.outputs).to.have.length(2)

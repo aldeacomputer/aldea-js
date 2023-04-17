@@ -3,6 +3,7 @@ import {TxExecution} from "../tx-execution.js";
 import {LockType} from "../wasm-instance.js";
 import {Address, Pointer} from "@aldea/sdk-js";
 import {Option} from "../support/option.js";
+import {SerializedLock} from "./serialized-lock.js";
 
 export class JigLock implements Lock {
   private origin: Pointer;
@@ -11,11 +12,8 @@ export class JigLock implements Lock {
     this.origin = ownerOrigin
   }
 
-  serialize (): any {
-    return {
-      type: this.typeNumber(),
-      data: this.origin.toBytes()
-    }
+  serialize (): SerializedLock {
+    return new SerializedLock(this.typeNumber(), this.data())
   }
 
   isOpen (): boolean {

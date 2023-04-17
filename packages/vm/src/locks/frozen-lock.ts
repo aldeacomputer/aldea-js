@@ -3,15 +3,13 @@ import {TxExecution} from "../tx-execution.js";
 import {LockType} from "../wasm-instance.js";
 import {Address, Pointer} from "@aldea/sdk-js";
 import {Option} from "../support/option.js";
+import {SerializedLock} from "./serialized-lock.js";
 
 export class FrozenLock implements Lock {
   constructor () {}
 
-  serialize (): any {
-    return {
-      type: this.typeNumber(),
-      data: new Uint8Array(0)
-    }
+  serialize (): SerializedLock {
+    return new SerializedLock(this.typeNumber(), this.data())
   }
 
   isOpen (): boolean {

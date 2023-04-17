@@ -1,10 +1,11 @@
 import {TxExecution} from "../tx-execution.js";
 import {Address, Pointer} from "@aldea/sdk-js";
 import {Option} from "../support/option.js";
+import {SerializedLock} from "./serialized-lock.js";
 
 export interface Lock {
   data(): Uint8Array;
-  serialize (): any;
+  serialize (): SerializedLock;
   isOpen (): boolean
 
   acceptsExecution(context: TxExecution): boolean;

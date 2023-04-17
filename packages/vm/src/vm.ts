@@ -1,4 +1,4 @@
-import { TxExecution } from './tx-execution.js'
+import {TxExecution} from './tx-execution.js'
 import {PkgData, Storage} from "./storage.js";
 import {abiFromCbor} from '@aldea/compiler/abi'
 import {CompilerResult} from '@aldea/compiler'
@@ -6,7 +6,6 @@ import {Address, Pointer, Tx} from "@aldea/sdk-js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {JigState} from "./jig-state.js";
 import {randomBytes} from "@aldea/sdk-js/support/ed25519";
-import {UserLock} from "./locks/user-lock.js";
 import {Buffer} from "buffer";
 import {encodeSequence} from "./cbor.js";
 import {ExecutionResult} from "./execution-result.js";
@@ -14,11 +13,13 @@ import {Clock} from "./clock.js";
 import {StorageTxContext} from "./tx-context/storage-tx-context.js";
 import {ExtendedTx} from "./tx-context/extended-tx.js";
 import {ExTxExecContext} from "./tx-context/ex-tx-exec-context.js";
-import { data as wasm } from './builtins/coin.wasm.js'
-import { data as rawAbi } from './builtins/coin.abi.cbor.js'
-import { data as rawDocs } from './builtins/coin.docs.json.js'
-import { data as rawSource } from './builtins/coin.source.js'
+import {data as wasm} from './builtins/coin.wasm.js'
+import {data as rawAbi} from './builtins/coin.abi.cbor.js'
+import {data as rawDocs} from './builtins/coin.docs.json.js'
+import {data as rawSource} from './builtins/coin.source.js'
 import {PkgRepository} from "./state-interfaces.js";
+import {SerializedLock} from "./locks/serialized-lock.js";
+import {LockType} from "./wasm-instance.js";
 
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([
@@ -118,7 +119,7 @@ export class VM {
       0,
       encodeSequence([amount]),
       COIN_PKG_ID,
-      new UserLock(address),
+      new SerializedLock(LockType.PUBKEY, address.hash),
       this.clock.now().unix()
     )
     this.storage.addUtxo(minted)

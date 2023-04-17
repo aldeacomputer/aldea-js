@@ -1,11 +1,11 @@
 import {ClassNode, FieldNode} from "@aldea/compiler/abi";
 import {WasmInstance} from "./wasm-instance.js";
-import {Address, Pointer} from "@aldea/sdk-js";
+import {Address, Output, Pointer} from "@aldea/sdk-js";
 import {BufWriter} from "@aldea/sdk-js/buf-writer";
 import {blake3} from "@aldea/sdk-js/support/hash";
 import {decodeSequence} from "./cbor.js";
-import {Lock} from "./locks/lock.js";
 import {Option} from "./support/option.js";
+import {SerializedLock} from "./locks/serialized-lock.js";
 
 export class JigState {
   origin: Pointer;
@@ -13,7 +13,7 @@ export class JigState {
   classIdx: number;
   stateBuf: Uint8Array;
   packageId: Uint8Array;
-  private lock: Lock;
+  private lock: SerializedLock;
   createdAt: number;
 
   constructor (
@@ -22,7 +22,7 @@ export class JigState {
     classIdx: number,
     stateBuf: Uint8Array,
     moduleId: Uint8Array,
-    lock: Lock,
+    lock: SerializedLock,
     createdAt: number
   ) {
     this.origin = origin
@@ -34,8 +34,8 @@ export class JigState {
     this.createdAt = createdAt
   }
 
-  get serializedLock (): any {
-    return this.lock.serialize()
+  get serializedLock (): SerializedLock {
+    return this.lock
   }
 
   parsedState(): any[] {
@@ -62,9 +62,9 @@ export class JigState {
     bufW.writeBytes(this.currentLocation.toBytes())
     bufW.writeBytes(this.packageId)
     bufW.writeU32(this.classIdx)
-    bufW.writeU8(this.lock.typeNumber())
+    bufW.writeU8(this.lock.type)
     if (this.lock.data) {
-      bufW.writeBytes(this.lock.data())
+      bufW.writeBytes(this.lock.data)
     }
     bufW.writeVarInt(this.stateBuf.byteLength)
     bufW.writeBytes(this.stateBuf)
@@ -86,13 +86,17 @@ export class JigState {
   lockObject() {
     return {
       origin: this.origin.toBytes(),
-      type: this.lock.typeNumber(),
-      data: this.lock.data()
+      type: this.lock.type,
+      data: this.lock.data
     }
   }
 
   lockType (): number {
-    return this.lock.typeNumber()
+    return this.lock.type
+  }
+
+  lockData (): Uint8Array {
+    return this.lock.data
   }
 
   isNew(): boolean {
@@ -101,5 +105,17 @@ export class JigState {
 
   address(): Option<Address> {
     return this.lock.address();
+  }
+
+  static fromSdkOutput (output: Output) {
+    return new this(
+      output.origin,
+      output.location,
+      output.classPtr.idx,
+      output.stateBuf,
+      output.classPtr.idBuf,
+      SerializedLock.fromSdkLock(output.lock),
+      10
+    )
   }
 }

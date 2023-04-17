@@ -7,7 +7,7 @@ import {JigState} from "./jig-state.js"
 import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {ClassNode, CodeKind} from '@aldea/compiler/abi'
-import {Address, base16, InstructionRef, instructions, OpCode, Pointer} from '@aldea/sdk-js';
+import {Address, base16, instructions, OpCode, Pointer} from '@aldea/sdk-js';
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
@@ -59,7 +59,7 @@ class TxExecution {
         jigRef.classIdx,
         serialized,
         jigRef.package.id,
-        jigRef.lock,
+        jigRef.lock.serialize(),
         this.txContext.now().unix()
       )
       result.addOutput(jigState)
