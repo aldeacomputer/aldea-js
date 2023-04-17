@@ -1,12 +1,12 @@
 import { assert } from 'chai'
 import { compile } from '@aldea/compiler'
 import { abiFromCbor } from '@aldea/compiler/abi'
-import { WasmInstance } from '../vm/wasm-instance.js'
-import {TxExecution} from "../vm/tx-execution.js";
-import {VM, Storage, MomentClock} from "../vm/index.js";
+import { WasmInstance } from '../src/wasm-instance.js'
+import {TxExecution} from "../src/tx-execution.js";
+import {VM, Storage, MomentClock} from "../src/index.js";
 import {Tx} from "@aldea/sdk-js";
-import {JigRef} from "../vm/jig-ref.js";
-import {StorageTxContext} from "../vm/tx-context/storage-tx-context.js";
+import {JigRef} from "../src/jig-ref.js";
+import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 
 async function compileToWasm(src: string, id: Uint8Array = new Uint8Array([0, 0, 0, 0])): Promise<WasmInstance> {
   try {
@@ -557,7 +557,7 @@ describe('reading complex types from memory', () => {
       const wasm = await compileToWasm(code)
       const storage = new Storage();
       const clock = new MomentClock();
-      const vm = new VM(storage, clock);
+      const vm = new VM(storage, storage, clock, compile);
       wasm.setExecution(new TxExecution(new StorageTxContext(new Tx(), storage, vm, clock)))
       const res = wasm.functionCall(wasm.abi.functionByName('test'), [])
       assert.instanceOf(res.value, JigRef)

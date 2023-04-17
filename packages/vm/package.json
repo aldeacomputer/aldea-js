@@ -4,29 +4,33 @@
   "version": "0.0.1-beta.1",
   "license": "Apache-2.0",
   "type": "module",
-  "main": "index.js",
+  "main": "dist/index.js",
   "exports": {
     ".": {
-      "import": "./tsc/index.js",
-      "require": "./tsc/index.js",
-      "types": "./tsc/index.d.ts",
-      "default": "./tsc/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./*": {
-      "import": "./tsc/*.js",
-      "require": "./tsc/*.js",
-      "types": "./tsc/*.d.ts",
-      "default": "./tsc/*.js"
+      "import": "./dist/*.js",
+      "require": "./dist/*.js",
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
     }
   },
   "scripts": {
     "test": "ts-mocha test/**/*.spec.ts",
-    "build": "yarn clean && tsc && yarn compile",
+    "build": "yarn clean && yarn build:asc && yarn build:tsc && yarn build:es",
+    "build:publish": "yarn clean && yarn build:asc && yarn build:es",
+    "build:tsc": "tsc",
+    "build:asc": "node cmd/compile-all.js",
+    "build:es": "node esbuild.js",
     "ci": "yarn test",
-    "compile": "node cmd/compile-all.js",
     "dev": "node cmd/watch.js",
     "fileId": "cmd/calculate-package-id.js",
-    "clean": "rm -r tsc/* build/aldea/* || true"
+    "clean": "rm -r dist/* build/* src/builtins/*.ts || true",
+    "prepublishOnly": "yarn build:publish"
   },
   "dependencies": {
     "@aldea/compiler": "workspace:^",
@@ -42,6 +46,7 @@
     "assemblyscript": "^0.21.3",
     "chai": "^4.3.6",
     "chokidar": "^3.5.3",
+    "esbuild": "^0.17.16",
     "eslint": "^8.25.0",
     "glob": "^8.0.3",
     "mocha": "^10.0.0",

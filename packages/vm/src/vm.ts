@@ -1,26 +1,25 @@
-import path from 'path'
-import { WasmInstance } from './wasm-instance.js'
-import { fileURLToPath } from 'url'
-import { TxExecution } from './tx-execution.js'
-import fs from "fs"
+import {TxExecution} from './tx-execution.js'
 import {PkgData, Storage} from "./storage.js";
-import {abiFromCbor, abiFromJson} from '@aldea/compiler/abi'
-import {compile} from '@aldea/compiler'
+import {abiFromCbor} from '@aldea/compiler/abi'
+import {CompilerResult} from '@aldea/compiler'
 import {Address, Pointer, Tx} from "@aldea/sdk-js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {JigState} from "./jig-state.js";
 import {randomBytes} from "@aldea/sdk-js/support/ed25519";
-import {UserLock} from "./locks/user-lock.js";
 import {Buffer} from "buffer";
 import {encodeSequence} from "./cbor.js";
 import {ExecutionResult} from "./execution-result.js";
-import {PkgRepository} from "./state-interfaces.js";
 import {Clock} from "./clock.js";
 import {StorageTxContext} from "./tx-context/storage-tx-context.js";
 import {ExtendedTx} from "./tx-context/extended-tx.js";
 import {ExTxExecContext} from "./tx-context/ex-tx-exec-context.js";
-
-const __dir = fileURLToPath(import.meta.url)
+import {data as wasm} from './builtins/coin.wasm.js'
+import {data as rawAbi} from './builtins/coin.abi.cbor.js'
+import {data as rawDocs} from './builtins/coin.docs.json.js'
+import {data as rawSource} from './builtins/coin.source.js'
+import {PkgRepository} from "./state-interfaces.js";
+import {SerializedLock} from "./locks/serialized-lock.js";
+import {LockType} from "./wasm-instance.js";
 
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([
@@ -30,14 +29,21 @@ const COIN_PKG_ID = new Uint8Array([
   0, 0, 0, 0, 0, 0, 0, 0,
 ])
 
-export class VM implements PkgRepository {
+type CodeBundle = { [key: string]: string }
+export type CompileFn = (entry: string[], src: CodeBundle) => Promise<CompilerResult>;
+
+export class VM {
   private readonly storage: Storage;
   clock: Clock;
+  private compile: CompileFn;
+  private pkgs: PkgRepository;
 
-  constructor (storage: Storage, clock: Clock) {
+  constructor (storage: Storage, pkgs: PkgRepository, clock: Clock, compile: CompileFn) {
     this.storage = storage
     this.clock = clock
-    this.addPreCompiled('aldea/coin.wasm', 'aldea/coin.ts', COIN_PKG_ID)
+    this.pkgs = pkgs
+    this.compile = compile
+    this.addPreCompiled(wasm, rawSource, rawAbi, rawDocs, COIN_PKG_ID)
   }
 
   async execTx(tx: Tx): Promise<ExecutionResult> {
@@ -49,20 +55,11 @@ export class VM implements PkgRepository {
   }
 
   async execTxFromInputs(exTx: ExtendedTx) {
-    const context = new ExTxExecContext(exTx, this.clock, this, this)
+    const context = new ExTxExecContext(exTx, this.clock, this.pkgs, this)
     const currentExecution = new TxExecution(context)
     const result = await currentExecution.run()
     this.storage.persist(result)
     return result
-  }
-
-  wasmFromPackageData (pkgData: PkgData): WasmInstance {
-    return new WasmInstance(pkgData.mod, pkgData.abi, pkgData.id)
-  }
-
-  wasmForPackageId (id: Uint8Array): WasmInstance {
-    const pkgData = this.storage.getModule(id)
-    return this.wasmFromPackageData(pkgData)
   }
 
   async compileSources (entries: string[], sources: Map<string, string>): Promise<PkgData> {
@@ -73,7 +70,7 @@ export class VM implements PkgRepository {
       obj[key] = value
     }
 
-    const result = await compile(entries, obj)
+    const result = await this.compile(entries, obj)
 
     return new PkgData(
       abiFromCbor(result.output.abi.buffer),
@@ -86,11 +83,10 @@ export class VM implements PkgRepository {
     )
   }
 
-  addPreCompiled (compiledRelative: string, sourceRelative: string, defaultId: Uint8Array | null = null): Uint8Array {
-    const srcPath = path.join(__dir, '../../assembly', sourceRelative)
-    const srcCode = fs.readFileSync(srcPath);
+  addPreCompiled (wasmBin: Uint8Array, sourceStr: string, abiBin: Uint8Array, docs: Uint8Array, defaultId: Uint8Array | null = null): Uint8Array {
+
     const sources = new Map<string, string>()
-    sources.set('index.ts', srcCode.toString())
+    sources.set('index.ts',sourceStr.toString())
     const entries = ['index.ts'];
     const id = defaultId
       ? defaultId
@@ -99,12 +95,7 @@ export class VM implements PkgRepository {
       return id
     }
 
-    const modulePath = path.join(__dir, '../../build', compiledRelative)
-    const wasmBin = fs.readFileSync(modulePath)
-    const abiPath = modulePath.replace('wasm', 'abi.json')
-    const abi = abiFromJson(fs.readFileSync(abiPath).toString())
-    const docsPath = modulePath.replace('wasm', 'docs.json')
-    const docs = fs.readFileSync(docsPath);
+    const abi = abiFromCbor(abiBin.buffer)
 
     this.storage.addPackage(id, new PkgData(
       abi,
@@ -128,7 +119,7 @@ export class VM implements PkgRepository {
       0,
       encodeSequence([amount]),
       COIN_PKG_ID,
-      new UserLock(address),
+      new SerializedLock(LockType.PUBKEY, address.hash),
       this.clock.now().unix()
     )
     this.storage.addUtxo(minted)

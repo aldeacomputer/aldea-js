@@ -1,19 +1,20 @@
 import {LowerValueVisitor} from "./lower-value-visitor.js";
 import {ClassNode, InterfaceNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmPointer} from "../arg-reader.js";
-import {base16, InstructionRef} from "@aldea/sdk-js";
+import {base16} from "@aldea/sdk-js";
 import {JigRef} from "../jig-ref.js";
+import {isInstructionRef} from "../statement-result.js";
 
 export class LowerArgumentVisitor extends LowerValueVisitor {
   visitExportedClass(classNode: ClassNode, type: TypeNode): WasmPointer {
-    if (this.value instanceof InstructionRef) {
+    if (isInstructionRef(this.value)) {
       this.value = this.instance.currentExec.getStatementResult(this.value.idx).asJig()
     }
     return super.visitExportedClass(classNode, type);
   }
 
   visitImportedClass(node: TypeNode, pkgId: string): WasmPointer {
-    if (this.value instanceof InstructionRef) {
+    if (isInstructionRef(this.value)) {
       this.value = this.instance.currentExec.getStatementResult(this.value.idx).asJig()
     }
     return super.visitImportedClass(node, pkgId);

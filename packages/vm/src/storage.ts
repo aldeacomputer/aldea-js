@@ -2,9 +2,9 @@ import {JigState} from './jig-state.js';
 import {Abi} from "@aldea/compiler/abi";
 import {Address, base16, Pointer} from "@aldea/sdk-js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
-import {LockType} from "./wasm-instance.js";
+import {LockType, WasmInstance} from "./wasm-instance.js";
 import {Option} from "./support/option.js";
-import {StateProvider} from "./state-interfaces.js";
+import {PkgRepository, StateProvider} from "./state-interfaces.js";
 
 export class PkgData {
   abi: Abi
@@ -50,7 +50,7 @@ type OnNotFound = (pkgId: string) => PkgData
 
 const throwNotFound = (idHex: string) => { throw new Error(`unknown module: ${idHex}`) }
 
-export class Storage implements StateProvider {
+export class Storage implements StateProvider, PkgRepository {
   private utxosByOid: Map<string, JigState> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, JigState[]> // address -> state. Only utxos
   private tips: Map<string, string> // origin -> latest output_id
@@ -81,24 +81,23 @@ export class Storage implements StateProvider {
 
     if (!jigState.isNew()) {
       const prevLocation = this.tips.get(originStr)
-      if (!prevLocation) {
-        throw new Error(`${originStr} should exist`)
-      }
-      const oldState = this.utxosByOid.get(prevLocation)
-      this.utxosByOid.delete(prevLocation)
-      this.tips.delete(originStr)
-      this.origins.delete(originStr)
-      if (oldState) {
-        oldState.address().ifPresent((addr) => {
-          const list = this.utxosByAddress.get(addr.toString())
-          if (!list) {
-            throw new Error('error')
-          }
-          const filtered = list.filter(s => !s.origin.equals(oldState.origin))
-          this.utxosByAddress.set(addr.toString(), filtered)
-        })
-      }
-      if (jigState.lockType() === LockType.PUBKEY) {
+
+      // if it's not new but there is not prev location that means that is a local client. It's fine.
+      if (prevLocation) {
+        const oldState = this.utxosByOid.get(prevLocation)
+        this.utxosByOid.delete(prevLocation)
+        this.tips.delete(originStr)
+        this.origins.delete(originStr)
+        if (oldState) {
+          oldState.address().ifPresent((addr) => {
+            const list = this.utxosByAddress.get(addr.toString())
+            if (!list) {
+              throw new Error('error')
+            }
+            const filtered = list.filter(s => !s.origin.equals(oldState.origin))
+            this.utxosByAddress.set(addr.toString(), filtered)
+          })
+        }
       }
     }
 
@@ -177,5 +176,10 @@ export class Storage implements StateProvider {
 
   byOrigin(origin: Pointer): Option<JigState> {
     return this.getJigStateByOrigin(origin);
+  }
+
+  wasmForPackageId(moduleId: Uint8Array): WasmInstance {
+    let mod = this.getModule(moduleId)
+    return new WasmInstance(mod.mod, mod.abi, mod.id);
   }
 }

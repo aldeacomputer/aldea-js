@@ -1,16 +1,17 @@
 import {
-  Storage, StubClock,
+  Clock,
+  Storage,
   VM
-} from '../vm/index.js'
+} from '../src/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {TxExecution} from "../vm/tx-execution.js";
-import {base16, Pointer, PrivKey, ref, Tx} from "@aldea/sdk-js";
-import {ExecutionError, PermissionError} from "../vm/errors.js";
-import {LockType} from "../vm/wasm-instance.js";
-import {ExecutionResult} from "../vm/execution-result.js";
-import {emptyTn} from "../vm/abi-helpers/well-known-abi-nodes.js";
-import {emptyExecFactoryFactory} from "./util.js";
+import {AldeaCrypto} from "../src/aldea-crypto.js";
+import {TxExecution} from "../src/tx-execution.js";
+import {Pointer, PrivKey, ref, Tx} from "@aldea/sdk-js";
+import {ExecutionError, PermissionError} from "../src/errors.js";
+import {LockType} from "../src/wasm-instance.js";
+import {ExecutionResult} from "../src/execution-result.js";
+import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
+import {buildVm, emptyExecFactoryFactory} from "./util.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -18,23 +19,13 @@ describe('execute txs', () => {
   const userPriv = AldeaCrypto.randomPrivateKey()
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
   const userAddr = userPub.toAddress()
-  const moduleIds = new Map<string, string>()
 
-  function modIdFor (key: string): Uint8Array {
-    const id = moduleIds.get(key)
-    if (!id) {
-      throw new Error(`module was not deployed: ${key}`)
-    }
-    return base16.decode(id)
-  }
+  let modIdFor: (key: string) => Uint8Array
 
-  const clock = new StubClock()
+  let clock: Clock
 
   beforeEach(() => {
-    storage = new Storage()
-    vm = new VM(storage, clock)
-
-    const sources = [
+    const data = buildVm([
       'ant',
       'basic-math',
       'coin-eater',
@@ -45,12 +36,12 @@ describe('execute txs', () => {
       'sheep-counter',
       'weapon',
       'tower'
-    ]
+    ])
 
-    sources.forEach(src => {
-      const id = vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
-      moduleIds.set(src, base16.encode(id))
-    })
+    storage = data.storage
+    vm = data.vm
+    modIdFor = data.modIdFor
+    clock = data.clock
   })
 
   const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
@@ -545,7 +536,7 @@ describe('execute txs', () => {
     const value = exec.getStatementResult(methodStmt.idx).value
     const value2 = exec.getStatementResult(method2Stmt.idx).value
     expect(value).to.eql(3)
-    expect(value2).to.eql('numero11')
+    expect(value2).to.eql(`Flock with size: 3`)
   })
 
   it('can create external jigs from inside asc', () => {
@@ -615,7 +606,7 @@ describe('execute txs', () => {
     const methodIdx = exec.callInstanceMethod(shepherdIdx.asJig(), 'flockIdentifier', [ref(flockIdx.idx)])
 
     const statement = exec.getStatementResult(methodIdx.idx)
-    expect(statement.value).to.eql('numero11')
+    expect(statement.value).to.eql(`Flock with size: 0`)
     expect(statement.abiNode).to.eql(emptyTn('string'))
   })
 

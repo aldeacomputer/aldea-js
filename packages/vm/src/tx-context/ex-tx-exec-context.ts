@@ -52,10 +52,6 @@ export class ExTxExecContext implements TxContext {
     }
   }
 
-  getWasmInstance(pkg: PkgData): WasmInstance {
-    return this.vm.wasmFromPackageData(pkg)
-  }
-
   now(): moment.Moment {
     return this.clock.now();
   }

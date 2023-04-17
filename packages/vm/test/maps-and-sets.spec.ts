@@ -1,11 +1,10 @@
 import {
-  Storage, StubClock,
+  Storage,
   VM
-} from '../vm/index.js'
+} from '../src/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from "../vm/aldea-crypto.js";
-import {base16} from "@aldea/sdk-js";
-import {emptyExecFactoryFactory} from "./util.js";
+import {AldeaCrypto} from "../src/aldea-crypto.js";
+import {buildVm, emptyExecFactoryFactory} from "./util.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -13,29 +12,14 @@ describe('execute txs', () => {
   const userPriv = AldeaCrypto.randomPrivateKey()
   const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
   const userAddr = userPub.toAddress()
-  const moduleIds = new Map<string, string>()
 
-  function modIdFor(key: string): Uint8Array {
-    const id = moduleIds.get(key)
-    if (!id) {
-      throw new Error(`module was not deployed: ${key}`)
-    }
-    return base16.decode(id)
-  }
+  let modIdFor: (key: string) => Uint8Array
 
   beforeEach(() => {
-    storage = new Storage()
-    const clock = new StubClock()
-    vm = new VM(storage, clock)
-
-    const sources = [
-      'maps-and-sets'
-    ]
-
-    sources.forEach(src => {
-      const id = vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
-      moduleIds.set(src, base16.encode(id))
-    })
+    const data = buildVm(['maps-and-sets'])
+    vm = data.vm
+    storage = data.storage
+    modIdFor = data.modIdFor
   })
 
   const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)

@@ -17,7 +17,6 @@ export interface TxContext {
 
   compile (entries: string[], sources: Map<string, string>): Promise<PkgData>
 
-  getWasmInstance (pkg: PkgData): WasmInstance
   get tx (): Tx
 
   now (): moment.Moment

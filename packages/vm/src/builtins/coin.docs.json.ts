@@ -1,0 +1,1 @@
+export const data = new Uint8Array([123,125])

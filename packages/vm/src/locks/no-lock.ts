@@ -1,34 +1,32 @@
-// import { ExecutionError } from '../errors.js'
+import { ExecutionError } from '../errors.js'
 import {Lock} from "./lock.js";
 import {TxExecution} from "../tx-execution.js";
 import {LockType} from "../wasm-instance.js";
 import {Address, Pointer} from "@aldea/sdk-js";
 import {Option} from "../support/option.js";
+import {SerializedLock} from "./serialized-lock.js";
 
-export class PublicLock implements Lock {
+export class NoLock implements Lock {
   constructor () {}
 
-  serialize (): any {
-    return {
-      type: this.typeNumber(),
-      data: new Uint8Array(0)
-    }
+  serialize (): SerializedLock {
+    throw new ExecutionError('a NoLock cannot be serialized')
   }
 
   isOpen (): boolean {
-    return false
+    return true
   }
 
   acceptsExecution(_context: TxExecution): boolean {
     return true;
   }
 
-  canBeChangedBy(context: TxExecution): boolean {
-    return false;
+  canBeChangedBy(_context: TxExecution): boolean {
+    return true
   }
 
   typeNumber(): number {
-    return LockType.ANYONE;
+    return LockType.NONE;
   }
 
   data(): Uint8Array {
@@ -36,7 +34,7 @@ export class PublicLock implements Lock {
   }
 
   acceptsChangeFrom(_callerOrigin: Pointer, _context: TxExecution): boolean {
-    return false;
+    return true;
   }
 
   address(): Option<Address> { return Option.none() }
