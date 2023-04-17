@@ -1,7 +1,7 @@
 import { Adapter, Low } from 'lowdb'
 import { WalletStorage } from "../wallet.js"
-import { Output } from "../output.js"
-import { PackageResponse } from "../aldea.js"
+import { Output } from "../../output.js"
+import { PackageResponse } from "../../aldea.js"
 
 export interface WalletData {
   outputs: Output[];

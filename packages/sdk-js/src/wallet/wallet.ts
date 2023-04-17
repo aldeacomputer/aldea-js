@@ -1,10 +1,10 @@
-import { Aldea } from "./aldea.js"
-import { TxResponse } from "./aldea.js"
-import { PackageResponse } from "./aldea.js"
-import { KeyPair } from "./keypair.js"
-import { Output } from "./output.js"
-import { TxBuilder } from "./tx-builder.js"
-import { InstructionRef } from "./instruction.js"
+import { Aldea } from "../aldea.js"
+import { TxResponse } from "../aldea.js"
+import { PackageResponse } from "../aldea.js"
+import { KeyPair } from "../keypair.js"
+import { Output } from "../output.js"
+import { TxBuilder } from "../tx-builder.js"
+import { InstructionRef } from "../instruction.js"
 
 export interface WalletStorage {
   getInventory(): Promise<Array<Output>>
@@ -15,7 +15,7 @@ export interface WalletStorage {
   // addKey(key: KeyPair): Promise<void>
 }
 
-export class Wallet {
+export class HdWallet implements Wallet {
   constructor(private storage: WalletStorage, private aldea: Aldea, private kp: KeyPair) { }
 
   async getInventory(): Promise<Array<Output>> {
@@ -80,4 +80,15 @@ export class Wallet {
   sync(): Promise<void> {
     return Promise.resolve()
   }
+}
+
+export interface Wallet {
+   getInventory(): Promise<Array<Output>>
+   getPackages(): Promise<Array<PackageResponse>>
+   fundTx(partialTx: TxBuilder): Promise<TxBuilder>
+   signTx(partialTx: TxBuilder): Promise<TxBuilder>
+   processTx(builder: TxBuilder): Promise<TxResponse>
+   fundSignAndBroadcastTx(partialTx: TxBuilder): Promise<TxResponse>
+
+  sync(): Promise<void>
 }

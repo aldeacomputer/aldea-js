@@ -21,8 +21,8 @@ export {
   Instruction, InstructionSerializer, InstructionRef, ref,
 } from './internal.js'
 
-export * as Wallet from './wallet.js'
-export * as Storage from './wallet-storage/index.js'
+export * as Wallet from './wallet/wallet.js'
+export * as Storage from './wallet/storage/index.js'
 // Instructions exports
 export * as instructions from './instructions/index.js'
 

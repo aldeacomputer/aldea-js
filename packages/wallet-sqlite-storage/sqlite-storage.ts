@@ -1,11 +1,11 @@
 
 import { Database, open } from "sqlite"
 import sqlite3 from "sqlite3"
-import { WalletStorage } from "../wallet.js"
-import { Output } from "../output.js"
-import { Pointer } from "../pointer.js"
-import { Lock } from "../lock.js"
-import { PackageResponse } from "../aldea.js"
+import { WalletStorage } from "@aldea/sdk-js/dist/wallet/wallet.js"
+import { Output } from "@aldea/sdk-js/dist/output.js"
+import { Pointer } from "@aldea/sdk-js/dist/pointer.js"
+import { Lock } from "@aldea/sdk-js/dist/lock.js"
+import { PackageResponse } from "@aldea/sdk-js/dist/aldea.js"
 import * as url from 'url';
 // const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
