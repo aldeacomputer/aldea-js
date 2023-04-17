@@ -3,14 +3,14 @@ import {
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
+import {PrivKey} from "@aldea/sdk-js";
 
 describe('execute txs', () => {
   let storage: Storage
   let vm: VM
-  const userPriv = AldeaCrypto.randomPrivateKey()
-  const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
+  const userPriv = PrivKey.fromRandom()
+  const userPub = userPriv.toPubKey()
   const userAddr = userPub.toAddress()
 
   let modIdFor: (key: string) => Uint8Array

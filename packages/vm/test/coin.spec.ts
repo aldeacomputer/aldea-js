@@ -1,11 +1,10 @@
 import {Storage, StubClock, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {TxBuilder} from "./tx-builder.js";
 import {LockType} from "../src/wasm-instance.js";
 import {JigState} from "../src/jig-state.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
-import {ref, Tx} from "@aldea/sdk-js";
+import {PrivKey, ref, Tx} from "@aldea/sdk-js";
 import {ExecutionResult} from "../src/execution-result.js";
 import moment from "moment";
 import {compile} from "@aldea/compiler";
@@ -13,12 +12,12 @@ import {compile} from "@aldea/compiler";
 describe('Coin', () => {
   let storage: Storage
   let vm: VM
-  const userPriv = AldeaCrypto.randomPrivateKey()
-  const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
+  const userPriv = PrivKey.fromRandom()
+  const userPub = userPriv.toPubKey()
   const userAddr = userPub.toAddress()
 
-  const otherUserPriv = AldeaCrypto.randomPrivateKey()
-  const otherUserPub = AldeaCrypto.publicKeyFromPrivateKey(otherUserPriv)
+  const otherUserPriv = PrivKey.fromRandom()
+  const otherUserPub = otherUserPriv.toPubKey()
   const otherUserAddr = otherUserPub.toAddress()
 
   let coin: JigState
