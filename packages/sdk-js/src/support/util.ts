@@ -1,5 +1,5 @@
 import { etc } from '@noble/ed25519'
-import { utf8ToBytes } from '@noble/hashes/utils'
+import { randomBytes, utf8ToBytes } from '@noble/hashes/utils'
 import { base16 } from './base.js'
 
 /**
@@ -26,7 +26,6 @@ const {
   bytesToHex,
   hexToBytes,
   concatBytes,
-  randomBytes,
   mod,
   invert,
 } = etc

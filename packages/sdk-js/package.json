@@ -66,9 +66,6 @@
     "files": [
       "test/**/*.test.js",
       "!test/browser"
-    ],
-    "require": [
-      "./test/helpers/crypto-shim.js"
     ]
   }
 }
