@@ -1,10 +1,5 @@
 import { hex as b16, base64 as b64, bech32m as b32m } from '@scure/base'
 
-export interface Encoder {
-  encode(data: Uint8Array): string;
-  decode(str: string): Uint8Array;
-}
-
 /**
  * Interface for encoding two and from base16 / hex.
  */
@@ -52,14 +47,14 @@ export namespace bech32m {
    */
   export function encode(data: Uint8Array, prefix: string = ''): string {
     const words = b32m.toWords(data)
-    return b32m.encode(prefix, words)
+    return b32m.encode(prefix, words, 192)
   }
 
   /**
    * Decodes the given bech32 string to bytes, ensuring a matching prefix.
    */
   export function decode(str: string, prefix: string = ''): Uint8Array {
-    const result = b32m.decode(str)
+    const result = b32m.decode(str, 192)
     if (result.prefix === prefix) {
       return b32m.fromWords(result.words)
     } else {

@@ -1,6 +1,6 @@
 import { KeyPair, PubKey } from './internal.js';
 import { base16 } from './support/base.js';
-import { randomBytes } from './support/ed25519.js'
+import { randomBytes } from './support/util.js'
 
 /**
  * Aldea private key
