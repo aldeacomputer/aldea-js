@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import request from 'supertest'
-import {Pointer, base16, Tx, PrivKey, instructions, ed25519, Address} from "@aldea/sdk-js"
+import {Pointer, base16, Tx, PrivKey, instructions, util, Address} from "@aldea/sdk-js"
 import { StubClock } from "@aldea/vm"
 import { buildApp } from "../dist/server.js"
 
@@ -412,7 +412,7 @@ describe('api', () => {
 
     it('not found when not found', async () => {
       await request(app)
-        .get(`/package/${base16.encode(ed25519.randomBytes(32))}/source`)
+        .get(`/package/${base16.encode(util.randomBytes(32))}/source`)
         .expect(404)
         .expect('Content-Type', /application\/json/)
 
