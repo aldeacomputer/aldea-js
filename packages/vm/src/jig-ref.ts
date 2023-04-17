@@ -75,4 +75,9 @@ export class JigRef  {
   classAbi(): ClassNodeWrapper {
     return this.package.abi.classByName(this.className())
   }
+
+  static isJigRef(obj: Object): boolean {
+    // This is a little hack to avoid having issues when 2 different builds are used at the same time.
+    return obj instanceof JigRef || obj.constructor.name === 'JigRef'
+  }
 }

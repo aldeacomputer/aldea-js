@@ -230,10 +230,10 @@ class TxExecution {
         this.importModule(inst.pkgId)
       } else if (baseInst.opcode === OpCode.NEW) {
         const inst = baseInst as NewInstruction
-        this.instantiateByIndex(inst.idx, inst.exportIdx, this.parseArgs(inst.args))
+        this.instantiateByIndex(inst.idx, inst.exportIdx, inst.args)
       } else if (baseInst.opcode === OpCode.CALL) {
         const inst = baseInst as instructions.CallInstruction
-        this.callInstanceMethodByIndex(inst.idx, inst.methodIdx, this.parseArgs(inst.args))
+        this.callInstanceMethodByIndex(inst.idx, inst.methodIdx, inst.args)
       } else if (baseInst.opcode === OpCode.EXEC) {
         const inst = baseInst as instructions.ExecInstruction
         const wasm = this.getStatementResult(inst.idx).asInstance
@@ -243,7 +243,7 @@ class TxExecution {
         }
         const klassNode = exportNode.code as ClassNode
         const methodNode = klassNode.methods[inst.methodIdx]
-        this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, this.parseArgs(inst.args))
+        this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, inst.args)
       } else if (baseInst.opcode === OpCode.LOCK) {
         const inst = baseInst as instructions.LockInstruction
         this.lockJigToUserByIndex(inst.idx, new Address(inst.pubkeyHash))
@@ -288,18 +288,6 @@ class TxExecution {
       return existing
     }
     return this.hydrateJigState(jigState)
-  }
-
-  private parseArgs(args: any[]) {
-    return args.map(arg => {
-      if (arg instanceof InstructionRef) {
-        return this.getStatementResult(arg.idx).asJig()
-      } else if (Array.isArray(arg) && arg.length > 0 && arg[0] instanceof InstructionRef) {
-        return arg.map(instRef => this.getStatementResult(instRef.idx).asJig())
-      } else {
-        return arg
-      }
-    });
   }
 
   findJigByOrigin(origin: Pointer): JigRef {

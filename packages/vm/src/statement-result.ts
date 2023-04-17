@@ -2,6 +2,12 @@ import {ExecutionError} from "./errors.js";
 import {JigRef} from "./jig-ref.js";
 import {WasmInstance} from "./wasm-instance.js";
 import {TypeNode} from "@aldea/compiler/abi";
+import {InstructionRef} from "@aldea/sdk-js";
+
+export function isInstructionRef(obj: Object): boolean {
+  // This is a little hack to avoid having issues when 2 different builds are used at the same time.
+  return obj.constructor.name === 'InstructionRef' || obj instanceof InstructionRef
+}
 
 export abstract class StatementResult {
   private _idx: number
@@ -60,7 +66,7 @@ export class ValueStatementResult extends StatementResult {
   }
 
   asJig(): JigRef {
-    if (this.value instanceof JigRef) {
+    if (JigRef.isJigRef(this.value)) {
       return this.value as JigRef
     } else {
       throw new ExecutionError(`${this.abiNode.name} is not a jig`)
