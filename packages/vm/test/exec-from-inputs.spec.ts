@@ -47,8 +47,6 @@ describe('exec from inputs', () => {
     modIdFor = data.modIdFor
   })
 
-  // const emptyExec = emptyExecFactoryFactory(() => vm['storage'], () => vm)
-
 
   it('can execute a tx that depends only on a output id input', () => {
     const coin = vm.mint(userAddr, 1000)
