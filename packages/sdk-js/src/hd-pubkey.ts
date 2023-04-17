@@ -64,6 +64,10 @@ export class HDPubKey {
    * The derivation path must of the format described in [BIP-32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki).
    */
   derive(path: string): HDPubKey {
+    if (!(typeof path === 'string' && /^[mM]['hH]?(\/\d+['hH]?)+/.test(path))) {
+      throw new Error('invalid derivation path')
+    }
+
     const parts = path.replace(/^[mM]['hH]?/, '')
       .split('/')
       .filter(p => !!p)
@@ -81,6 +85,9 @@ export class HDPubKey {
    * Derives new HDPubKey from the given index integer.
    */
   deriveChild(idx: number): HDPubKey {
+    if (!(typeof idx === 'number' && idx >= 0)) {
+      throw new Error(`invalid child index: ${idx}`)
+    }
     if (idx >= HARDENED_OFFSET) {
       throw new Error('can not derive hardened child key')
     }

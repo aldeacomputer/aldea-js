@@ -1,5 +1,4 @@
 import test from 'ava'
-import { shimCrypto } from '../test-helpers.js'
 import {
   Point,
   calcPoint,
@@ -10,8 +9,6 @@ import {
 } from '../../dist/support/ed25519.js'
 import { randomBytes } from '../../dist/support/util.js'
 import { PrivKey } from '../../dist/privkey.js'
-
-await shimCrypto()
 
 test.before(t => {
   t.context.privBuf = randomBytes(32)

@@ -40,8 +40,3 @@ export function mockAldea(aldea, callback) {
   const hooks = { beforeRequest: mock.getHooks() }
   aldea.api = aldea.api.extend({ hooks })
 }
-
-// For node <= 18
-export async function shimCrypto() {
-  if (!globalThis.crypto) await import('./support/crypto-shim.js')
-}

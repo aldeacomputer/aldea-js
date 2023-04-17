@@ -83,6 +83,9 @@ export class HDPrivKey {
    * Generates and returns an HDPrivKey from the given seed bytes.
    */
   static fromSeed(seed: Uint8Array): HDPrivKey {
+    if (!ArrayBuffer.isView(seed)) {
+      throw Error('The first argument to `HDPrivKey.fromSeed()` must be a `Uint8Array`')
+    }
     if (![16, 32, 64].includes(seed.length)) {
       throw new Error(`invalid seed length: ${seed.length}`)
     }
@@ -117,7 +120,11 @@ export class HDPrivKey {
    * ```
    */
   derive(path: string): HDPrivKey | HDPubKey {
-    const parts = path.replace(/^[mM]['hH]?/, '')
+    if (!(typeof path === 'string' && /^[mM]['hH]?(\/\d+['hH]?)+/.test(path))) {
+      throw new Error('invalid derivation path')
+    }
+
+    const parts = path.replace(/^[mM]['hH]?\//, '')
       .split('/')
       .filter(p => !!p)
       .map(toIndex)
@@ -134,6 +141,10 @@ export class HDPrivKey {
    * Derives new HDPrivKey from the given index integer.
    */
   deriveChild(idx: number): HDPrivKey {
+    if (!(typeof idx === 'number' && idx >= 0)) {
+      throw new Error(`invalid child index: ${idx}`)
+    }
+
     const kl = this.k.slice(0, 32)
     const kr = this.k.slice(32, 64)
     const ch = hash(this.chainCode, 32)
@@ -211,7 +222,7 @@ function toIndex(part: string): number {
     throw new Error(`invalid child index: ${part}`)
   }
   let idx = +m[1]
-  if (!Number.isSafeInteger(idx) || idx >= HARDENED_OFFSET) {
+  if (idx < 0 || idx >= HARDENED_OFFSET) {
     throw new Error(`invalid child index: ${part}`)
   }
   if (typeof m[2] !== 'undefined') idx += HARDENED_OFFSET
