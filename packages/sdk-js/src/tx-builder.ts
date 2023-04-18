@@ -27,7 +27,7 @@ import {
   DeployInstruction,
   NewInstruction,
   SignInstruction,
-  SignToInstruction,
+  SignToInstruction, HDPrivKey,
 } from './internal.js'
 
 import { base16 } from './support/base.js'
@@ -225,7 +225,7 @@ export class TxBuilder {
    * Pushes a SIGN instruction onto the Transaction. The given PrivKey is used
    * to create the signature used in the instruction.
    */
-  sign(privKey: PrivKey): InstructionRef {
+  sign(privKey: PrivKey | HDPrivKey): InstructionRef {
     return this.push((tx: Tx) => {
       const msg = tx.sighash()
       const sig = sign(msg, privKey)

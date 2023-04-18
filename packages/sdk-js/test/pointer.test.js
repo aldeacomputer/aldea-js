@@ -1,10 +1,8 @@
 import test from 'ava'
-import crypto from 'crypto'
-import { base16 } from '../dist/support/base.js'
-import { Pointer } from "../dist/index.js"
+import { Pointer, base16, util } from '../dist/index.js'
 
 test.before(t => {
-  t.context.origin = crypto.randomBytes(32)
+  t.context.origin = util.randomBytes(32)
   t.context.idx = 42
   t.context.ptr = new Pointer(t.context.origin, t.context.idx)
 })
@@ -22,7 +20,7 @@ test('Pointer.fromString() throws with invalid string', t => {
 })
 
 test('Pointer#equals() returns false when comparing a different Pointer', t => {
-  const ptr = new Pointer(crypto.randomBytes(32), 1)
+  const ptr = new Pointer(util.randomBytes(32), 1)
   t.false(t.context.ptr.equals(ptr))
 })
 

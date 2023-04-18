@@ -1,5 +1,5 @@
 import {expect} from 'chai'
-import {AbiTraveler} from "../vm/abi-helpers/abi-traveler.js";
+import {AbiTraveler} from "../src/abi-helpers/abi-traveler.js";
 import {
   ExportNode,
   ClassNode,
@@ -12,8 +12,8 @@ import {
   ObjectNode,
   InterfaceNode
 } from "@aldea/compiler/abi";
-import {AbiAccess} from "../vm/abi-helpers/abi-access.js";
-import {emptyTn} from "../vm/abi-helpers/well-known-abi-nodes.js";
+import {AbiAccess} from "../src/abi-helpers/abi-access.js";
+import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
 
 class TestAbiClassBuilder {
   fields: FieldNode[]

@@ -6,7 +6,8 @@
 export {
   Aldea,
   Address,
-  HDKey,
+  HDPrivKey,
+  HDPubKey,
   KeyPair,
   Lock, LockSerializer,
   Output, OutputSerializer,
@@ -20,17 +21,18 @@ export {
   Instruction, InstructionSerializer, InstructionRef, ref,
 } from './internal.js'
 
+export * as Wallet from './wallet/wallet.js'
+export * as Storage from './wallet/storage/index.js'
 // Instructions exports
 export * as instructions from './instructions/index.js'
 
-// Exports support
+// Support exports
 export { base16, base64, bech32m } from './support/base.js'
-export * as hash from './support/hash.js'
-export * as bip39 from './support/mnemonic.js'
+export * as blake3 from './support/blake3.js'
 export * as ed25519 from './support/ed25519.js'
-
-// Legacy exports - these will probably be removed
-export { Signature } from './signature.js'
 
 // SingleKeyWallet
 export * from './single-key-wallet.js'
+
+export * as util from './support/util.js'
+

@@ -1,5 +1,4 @@
 import test from 'ava'
-
 import { PrivKey } from '../dist/privkey.js'
 import { KeyPair } from '../dist/keypair.js'
 import { PubKey } from '../dist/pubkey.js'

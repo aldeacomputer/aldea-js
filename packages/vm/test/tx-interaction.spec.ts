@@ -1,38 +1,27 @@
-import {base16, Pointer, ref} from "@aldea/sdk-js";
-import {Storage, StubClock, VM} from "../vm/index.js";
-import {AldeaCrypto} from "../vm/aldea-crypto.js";
+import {base16, Pointer, PrivKey, ref} from "@aldea/sdk-js";
+import {Clock, Storage, VM} from "../src/index.js";
 import {expect} from "chai";
-import {ExecutionError, PermissionError} from "../vm/errors.js";
-import {LockType} from "../vm/wasm-instance.js";
+import {ExecutionError, PermissionError} from "../src/errors.js";
+import {LockType} from "../src/wasm-instance.js";
 import {TxBuilder} from "./tx-builder.js";
+import {buildVm} from "./util.js";
 
 describe('tx interaction', () => {
   let storage: Storage
   let vm: VM
-  const userPriv = AldeaCrypto.randomPrivateKey()
-  const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
+  const userPriv = PrivKey.fromRandom()
+  const userPub = userPriv.toPubKey()
   const userAddr = userPub.toAddress()
-  const fundPriv = AldeaCrypto.randomPrivateKey()
+  const fundPriv = PrivKey.fromRandom()
   const fundAddr = fundPriv.toPubKey().toAddress()
-  const moduleIds = new Map<string, string>()
 
-  function modIdFor (key: string): string {
-    const id = moduleIds.get(key)
-    if (!id) {
-      throw new Error(`module was not deployed: ${key}`)
-    }
-    return id
-  }
+  let modIdFor: (key: string) => Uint8Array
 
-  const clock = new StubClock()
+  let clock: Clock
 
   let aCoin: Pointer
   beforeEach(() => {
-    storage = new Storage()
-    vm = new VM(storage, clock)
-    aCoin = vm.mint(fundAddr, 1000).currentLocation
-
-    const sources = [
+    const data = buildVm([
       'ant',
       'basic-math',
       'flock',
@@ -40,12 +29,12 @@ describe('tx interaction', () => {
       'sheep-counter',
       'weapon',
       'forever-counter'
-    ]
-
-    sources.forEach(src => {
-      const id = vm.addPreCompiled(`aldea/${src}.wasm`, `aldea/${src}.ts`)
-      moduleIds.set(src, base16.encode(id))
-    })
+    ])
+    storage = data.storage
+    vm = data.vm
+    clock = data.clock
+    modIdFor = data.modIdFor
+    aCoin = vm.mint(fundAddr, 1000).currentLocation
   })
 
   it('can import a module in a tx', async () => {

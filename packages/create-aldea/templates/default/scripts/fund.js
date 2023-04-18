@@ -1,6 +1,6 @@
 import minimist from 'minimist'
 import { bold } from 'kolorist'
-import { Address, Aldea } from '@aldea/sdk-js'
+import { Address, Aldea, Storage } from '@aldea/sdk-js'
 import { loadKeys } from './_helpers.js'
 
 /**
@@ -9,11 +9,14 @@ import { loadKeys } from './_helpers.js'
 async function fund(cwd, _argv) {
   const keys = loadKeys(cwd)
   const address = Address.fromPubKey(keys.pubKey)
-  
+
   const aldea = new Aldea('https://node.aldea.computer')
+  const store = new Storage.LowDbStorage(cwd + '/.aldea-wallet')
   const params = { amount: 10000, address: address.toString() }
   const res = await aldea.api.post('mint', { json: params }).json()
+
   const coin = await aldea.loadOutput(res.id)
+  store.addOutput(coin)
 
   console.log(`You've received ${ coin.props.amount } motos to your address!`)
   console.log()

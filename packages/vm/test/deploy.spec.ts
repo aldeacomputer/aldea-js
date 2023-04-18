@@ -1,8 +1,9 @@
-import {Storage, StubClock, VM} from '../vm/index.js'
+import {Storage, StubClock, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {AldeaCrypto} from '../vm/aldea-crypto.js';
-import {calculatePackageId} from '../vm/index.js';
-import {emptyExecFactoryFactory} from "./util.js";
+import {calculatePackageId} from '../src/index.js';
+import {addPreCompiled, emptyExecFactoryFactory} from "./util.js";
+import {compile} from "@aldea/compiler";
+import {PrivKey} from "@aldea/sdk-js";
 
 const someValidModule = `
 export class Foo extends Jig {
@@ -16,14 +17,14 @@ export class Foo extends Jig {
 describe('deploy code', () => {
   let storage: Storage
   let vm: VM
-  const userPriv = AldeaCrypto.randomPrivateKey()
-  const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
+  const userPriv = PrivKey.fromRandom()
+  const userPub = userPriv.toPubKey()
   const userAddr = userPub.toAddress()
   const fileName = 'something.ts'
   const clock = new StubClock()
   beforeEach(() => {
     storage = new Storage()
-    vm = new VM(storage, clock)
+    vm = new VM(storage, storage, clock, compile)
   })
 
 
@@ -46,12 +47,12 @@ describe('deploy code', () => {
       expect(ret.outputs[0].classIdx).to.eql(0)
     })
 
-    it('module persist on other vm instance', async () => {
+    it('module persist on other src instance', async () => {
       const pkgData = await vm.compileSources([fileName], aMap)
       storage.addPackage(pkgData.id, pkgData)
       const pkgId = pkgData.id
 
-      const vm2 = new VM(storage, new StubClock())
+      const vm2 = new VM(storage, storage, new StubClock(), compile)
       const exec = emptyExecFactoryFactory(() => storage, () => vm2)()
       const wasm = exec.importModule(pkgId).asInstance
       const jig = exec.instantiateByClassName(wasm, 'Foo', []).asJig()
@@ -71,8 +72,7 @@ describe('deploy code', () => {
 
   describe('addPreCompiled', function () {
     it('modules can be pre added from a file', async () => {
-      const moduleId = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
-
+      const moduleId = addPreCompiled(vm, 'flock')
       const exec = emptyExec()
       const wasm = exec.importModule(moduleId).asInstance
       const jig = exec.instantiateByClassName(wasm, 'Flock', []).asJig()
@@ -83,15 +83,14 @@ describe('deploy code', () => {
     })
 
     it('some pre compiled module can be added twice', async () => {
-      const moduleId1 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
-      const moduleId2 = await vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
-
+      const moduleId1 = addPreCompiled(vm, 'flock')
+      const moduleId2 = addPreCompiled(vm, 'flock')
       expect(moduleId1).to.eql(moduleId2)
     })
 
     it('modules can be pre added from a file with dependencies', () => {
-      vm.addPreCompiled('aldea/basic-math.wasm', 'aldea/basic-math.ts')
-      const flockId = vm.addPreCompiled('aldea/flock.wasm', 'aldea/flock.ts')
+      addPreCompiled(vm, 'basic-math')
+      const flockId = addPreCompiled(vm, 'flock')
 
       const exec = emptyExec()
       const wasm = exec.importModule(flockId).asInstance

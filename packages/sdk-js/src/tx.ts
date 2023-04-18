@@ -1,14 +1,15 @@
-import {base16} from './support/base.js'
-import {blake3} from './support/hash.js'
-import {BufReader} from './buf-reader.js'
-import {BufWriter} from './buf-writer.js'
-import {Instruction, InstructionSerializer, OpCode} from './instruction.js'
-import {Serializable} from './serializable.js'
-import {Address} from "./address.js";
-import {SignInstruction, SignToInstruction} from "./instructions/index.js";
-import {PubKey} from "./pubkey.js";
-import {PrivKey} from "./privkey.js";
-import {sign} from "./support/ed25519.js";
+import {
+  Address,
+  BufReader, BufWriter,
+  Instruction, InstructionSerializer, OpCode,
+  PrivKey, PubKey,
+  Serializable,
+  SignInstruction, SignToInstruction
+} from './internal.js'
+
+import { base16 } from './support/base.js'
+import { hash } from './support/blake3.js'
+import { sign } from "./support/ed25519.js"
 
 const TX_VERSION = 1
 
@@ -42,7 +43,7 @@ export class Tx {
    * Transaction hash
    */
   get hash(): Uint8Array {
-    return blake3(this.toBytes())
+    return hash(this.toBytes(), 32)
   }
 
   /**
@@ -96,7 +97,7 @@ export class Tx {
       buf.write<Instruction>(InstructionSerializer, instructions[i])
     }
 
-    return blake3(buf.data)
+    return hash(buf.data, 32)
   }
 
   isSignedBy (addr: Address, index: number): boolean {

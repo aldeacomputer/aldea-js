@@ -1,0 +1,18 @@
+
+import {JigState} from "../jig-state.js";
+import {Output, Tx} from "@aldea/sdk-js";
+export class ExtendedTx {
+  private _tx: Tx
+  private _inputs: JigState[]
+  constructor(tx: Tx, inputs: Output[]) {
+    this._tx = tx
+    this._inputs = inputs.map(output => JigState.fromSdkOutput(output))
+  }
+  get tx(): Tx {
+    return this._tx
+  }
+  get inputs(): JigState[] {
+    return this._inputs
+  }
+}
+

@@ -1,5 +1,4 @@
 import test from 'ava'
-
 import { Address } from '../dist/address.js'
 import { KeyPair } from '../dist/keypair.js'
 
