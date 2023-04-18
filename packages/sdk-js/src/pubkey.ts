@@ -1,6 +1,8 @@
 import { Address, PrivKey } from './internal.js'
-import { base16 } from './support/base.js'
+import { base16, bech32m } from './support/base.js'
 import { Point, calcPoint, pointFromBytes, pointToBytes } from './support/ed25519.js'
+
+const PREFIX = 'apub'
 
 /**
  * Aldea public key
@@ -10,28 +12,11 @@ import { Point, calcPoint, pointFromBytes, pointToBytes } from './support/ed2551
  * of X. 
  */
 export class PubKey {
-  point: Point;
+  readonly point: Point;
 
   constructor(point: Point) {
     this.point = point
   }
-
-  /**
-   * checks if 2 pubkey objects represent the same point
-   */
-  equals (another: PubKey) {
-    return this.x === another.x && this.y === another.y
-  }
-
-  /**
-   * Point X coordiante
-   */
-  get x(): bigint { return this.point.x }
-
-  /**
-   * Point Y coordiante
-   */
-  get y(): bigint { return this.point.y }
 
   /**
    * Returns a PubKey from the given bytes.
@@ -51,9 +36,21 @@ export class PubKey {
     if (typeof str !== 'string') {
       throw Error('The first argument to `PubKey.fromHex()` must be a `string`')
     }
-    const point = pointFromBytes(str)
-    return new PubKey(point)
+    const bytes = base16.decode(str)
+    return PubKey.fromBytes(bytes)
   }
+
+  /**
+   * Returns a PubKey from the given bech32m-encoded string.
+   */
+  static fromString(str: string): PubKey {
+    if (typeof str !== 'string') {
+      throw Error('The first argument to `PubKey.fromString()` must be a `string`')
+    }
+    const bytes = bech32m.decode(str, PREFIX)
+    return PubKey.fromBytes(bytes)
+  }
+
 
   /**
    * Returns a the giveb PrivKey's corresponding PubKey.
@@ -62,8 +59,25 @@ export class PubKey {
     if (!(privKey instanceof PrivKey)) {
       throw Error('The first argument to `PubKey.fromPrivKey()` must be a `PrivKey`')
     }
-    const point = calcPoint(privKey.d)
+    const point = calcPoint(privKey.toBytes())
     return new PubKey(point)
+  }
+
+  /**
+   * Point X coordiante
+   */
+  get x(): bigint { return this.point.x }
+
+  /**
+   * Point Y coordiante
+   */
+  get y(): bigint { return this.point.y }
+
+  /**
+   * checks if 2 pubkey objects represent the same point
+   */
+  equals (another: PubKey) {
+    return this.x === another.x && this.y === another.y
   }
 
   /**
@@ -85,5 +99,12 @@ export class PubKey {
    */
   toHex(): string {
     return base16.encode(this.toBytes())
+  }
+
+  /**
+   * Returns the PubKey as bech32m-encoded string.
+   */
+  toString(): string {
+    return bech32m.encode(this.toBytes(), PREFIX)
   }
 }
