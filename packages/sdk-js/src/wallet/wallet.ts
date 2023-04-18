@@ -13,9 +13,9 @@ export interface HdWalletStorage {
 
   addOutput(output: Output): Promise<boolean>
   currentIndex (): Promise<number>,
-  changeCurrentIndex (f: (newIndex: number) => number): Promise<void>
+  changeCurrentIndex (f: (newIndex: number) => number): Promise<number>
   lastUsedIndex (): Promise<number>
-  changeLastUsedIndex (f: (newIndex: number) => number): Promise<void>
+  changeLastUsedIndex (f: (newIndex: number) => number): Promise<number>
 
   saveAddress(address: Address, path: string): Promise<void>;
 
@@ -117,17 +117,24 @@ export class HdWallet implements Wallet {
   }
 
   async fundSignAndBroadcastTx(partialTx: TxBuilder): Promise<TxResponse> {
-    this.fundTx(partialTx)
-    this.signTx(partialTx)
+    await this.fundTx(partialTx)
+    await this.signTx(partialTx)
     return this.processTx(partialTx)
   }
 
   async getNextAddress(): Promise<Address> {
     const index = await this.storage.currentIndex()
+    const lastUsed = await this.storage.lastUsedIndex()
+
+    const next = index - lastUsed > 20
+      ? lastUsed
+      : index
+
     const path = `M/${PATH_PREFFIX}/${index}`; // Derive pubkey
     const hdPub = this.hd.derive(path);
     const address = hdPub.toPubKey().toAddress();
     await this.storage.saveAddress(address, path)
+    await this.storage.changeCurrentIndex(_ => next + 1)
     return address
   }
 

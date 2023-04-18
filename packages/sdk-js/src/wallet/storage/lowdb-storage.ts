@@ -62,15 +62,13 @@ export class LowDbStorage implements HdWalletStorage {
       return false
     }
 
-    const exists = data.outputs.some((o) => o.output.origin == output.origin)
+    const filtered = data.outputs
+      .filter(o => !buffEquals(o.output.hash, output.hash))
 
-    if (exists) {
-      return false
-    } else {
-      data.outputs.push({ output, path: ownAddress.path })
-      await this.db.write()
-      return true
-    }
+    filtered.push({ output, path: ownAddress.path })
+    data.outputs = filtered
+    await this.db.write()
+    return true
   }
 
   async saveAddress(address: Address, path: string): Promise<void> {
@@ -80,12 +78,21 @@ export class LowDbStorage implements HdWalletStorage {
     }))
   }
 
-  async changeCurrentIndex(f: (newIndex: number) => number): Promise<void> {
-    await this.data().then(data => data.currentIndex = f(data.currentIndex))
+  async changeCurrentIndex(f: (newIndex: number) => number): Promise<number> {
+    return this.data().then(async data => {
+      data.currentIndex = f(data.currentIndex);
+      await this.db.write()
+      return data.currentIndex
+    })
   }
 
-  async changeLastUsedIndex(f: (newIndex: number) => number): Promise<void> {
-    await this.data().then(data => data.latestUsedIndex = f(data.latestUsedIndex))
+  async changeLastUsedIndex(f: (newIndex: number) => number): Promise<number> {
+    return this.data().then(async data => {
+      data.latestUsedIndex = f(data.latestUsedIndex);
+      await this.db.write()
+      return data.latestUsedIndex
+      }
+    )
   }
 
   currentIndex(): Promise<number> {
