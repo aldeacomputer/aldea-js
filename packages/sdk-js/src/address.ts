@@ -1,6 +1,7 @@
 import { PubKey } from './internal.js';
 import { bech32m } from './support/base.js'
 import { hash } from './support/blake3.js'
+import {buffEquals} from "./support/util.js";
 
 const PREFIX = 'addr'
 
@@ -49,6 +50,6 @@ export class Address {
   }
 
   equals (other: Address): boolean {
-    return this.hash.every((byte, i) => byte === other.hash[i])
+    return buffEquals(this.hash, other.hash)
   }
 }

@@ -28,7 +28,7 @@ import {
   DeployInstruction,
   NewInstruction,
   SignInstruction,
-  SignToInstruction,
+  SignToInstruction, HDPrivKey,
 } from './internal.js'
 
 import { base16 } from './support/base.js'

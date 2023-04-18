@@ -22,6 +22,13 @@ export function bytesToBn(data: Uint8Array): bigint {
   return BigInt(`0x${base16.encode(buf)}`)
 }
 
+/**
+ * Check if 2 Uint8Arrays are equal
+ */
+export function buffEquals(a: Uint8Array, b: Uint8Array): boolean {
+  return a.length === b.length && a.every((byte, i) => byte === b[i])
+}
+
 const {
   bytesToHex,
   hexToBytes,
