@@ -1,7 +1,7 @@
 
 import { Database, open } from "sqlite"
 import sqlite3 from "sqlite3"
-import { WalletStorage } from "@aldea/sdk-js/dist/wallet/wallet.js"
+import { HdWalletStorage } from "@aldea/sdk-js/dist/wallet/wallet.js"
 import { Output } from "@aldea/sdk-js/dist/output.js"
 import { Pointer } from "@aldea/sdk-js/dist/pointer.js"
 import { Lock } from "@aldea/sdk-js/dist/lock.js"
@@ -10,7 +10,7 @@ import * as url from 'url';
 // const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
-export class SqliteStorage implements WalletStorage {
+export class SqliteStorage implements HdWalletStorage {
     public db: Promise<Database>
     constructor(private path: string) {
       console.log('Path: ', path)

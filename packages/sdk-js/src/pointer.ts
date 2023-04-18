@@ -5,6 +5,7 @@ import {
 } from './internal.js'
 
 import { base16 } from './support/base.js'
+import {buffEquals} from "./support/util.js";
 
 const POINTER_STR_REGX = /^[a-f0-9]{64}_\d+$/i
 
@@ -52,7 +53,7 @@ export class Pointer {
   }
 
   equals(ptr: Pointer): boolean {
-    return this.idBuf.every((byte, i) => byte === ptr.idBuf[i]) && this.idx === ptr.idx
+    return this.idx === ptr.idx && buffEquals(this.idBuf, ptr.idBuf)
   }
 
   toBytes(): Uint8Array {

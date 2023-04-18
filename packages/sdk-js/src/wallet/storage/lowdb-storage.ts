@@ -1,59 +1,109 @@
-import { Adapter, Low } from 'lowdb'
-import { WalletStorage } from "../wallet.js"
-import { Output } from "../../output.js"
-import { PackageResponse } from "../../aldea.js"
+import {Low} from 'lowdb'
+import {HdWalletStorage, OwnedOutput} from "../wallet.js"
+import {Output} from "../../output.js"
+import {LockType} from "../../lock.js";
+import {Address} from "../../address.js";
+import {buffEquals} from "../../support/util.js";
+import {Pointer} from "../../pointer.js";
 
-export interface WalletData {
-  outputs: Output[];
-  packages: PackageResponse[];
-  // keys: KeyPair[];
+export interface OwnedAddress {
+  buff: Uint8Array,
+  path: string
 }
 
-export class LowDbStorage implements WalletStorage {
+export interface WalletData {
+  outputs: OwnedOutput[]
+  addresses: OwnedAddress[]
+  currentIndex: number
+  latestUsedIndex: number
+}
+
+export class LowDbStorage implements HdWalletStorage {
   db: Low<WalletData>
-  data: Promise<WalletData>
-  constructor(adapter: Adapter<WalletData>) {
-    this.db = new Low(adapter)
-    this.data = this.db.read()
-      .then(() => this.db.data = this.db.data || { outputs: [], packages: [] })
+  seed: Uint8Array
+  constructor(low: Low<WalletData>, seed: Uint8Array) {
+    this.db = low
+    this.seed = seed
+  }
+
+  private async initializeData (): Promise<void> {
+    this.db.data = {
+      outputs: [],
+      addresses: [],
+      currentIndex: 0,
+      latestUsedIndex: 0,
+    }
+  }
+
+  private async data (): Promise<WalletData> {
+    if (!this.db.data) {
+      await this.db.read()
+      if (!this.db.data) {
+        await this.initializeData()
+      }
+    }
+    return this.db.data as WalletData
   }
 
   async getInventory(): Promise<Array<Output>> {
-    const data = await this.data
-    return data.outputs || []
+    return this.data().then(data => data.outputs.map(o => o.output))
   }
 
-  async addOutput(output: Output): Promise<void> {
-    const data = await this.data
-    const prev = data.outputs?.find((o) => o.origin == output.origin)
-    if (prev) {
-      Object.assign(prev, output)
-    } else {
-      data.outputs?.push(output)
+  async addOutput(output: Output): Promise<boolean> {
+    if (output.lock.type !== LockType.ADDRESS) {
+      return false
     }
-    await this.db.write()
+
+    const data = await this.data()
+
+    let ownAddress = data.addresses.find(a => buffEquals(a.buff, output.lock.data));
+
+    if (!ownAddress) {
+      return false
+    }
+
+    const exists = data.outputs.some((o) => o.output.origin == output.origin)
+
+    if (exists) {
+      return false
+    } else {
+      data.outputs.push({ output, path: ownAddress.path })
+      await this.db.write()
+      return true
+    }
   }
 
-  async getPackages(): Promise<Array<PackageResponse>> {
-    const data = await this.data
-    return data.packages || []
+  async saveAddress(address: Address, path: string): Promise<void> {
+    await this.data().then(data => data.addresses.push({
+      buff: address.hash,
+      path
+    }))
   }
 
-  async addPackage(pkg: PackageResponse): Promise<void> {
-    const data = await this.data
-    data.packages?.push(pkg)
-    await this.db.write()
+  async changeCurrentIndex(f: (newIndex: number) => number): Promise<void> {
+    await this.data().then(data => data.currentIndex = f(data.currentIndex))
   }
 
-  // async getKeys(): Promise<Array<KeyPair>> {
-  //   const data = await this.data
-  //   return data.keys || []
-  // }
+  async changeLastUsedIndex(f: (newIndex: number) => number): Promise<void> {
+    await this.data().then(data => data.latestUsedIndex = f(data.latestUsedIndex))
+  }
 
-  // async addKey(key: KeyPair): Promise<void> {
-  //   const data = await this.data
-  //   data.keys?.push(key)
-  //   await this.db.write()
-  // }
+  currentIndex(): Promise<number> {
+    return this.data().then(data => data.currentIndex)
+  }
+
+  lastUsedIndex(): Promise<number> {
+    return this.data().then(data => data.latestUsedIndex)
+  }
+
+  async outputById(outputId: Uint8Array): Promise<OwnedOutput | null> {
+    const data = await this.data()
+    return data.outputs.find(o => buffEquals(o.output.hash, outputId)) || null;
+  }
+
+  async outputByOrigin(origin: Pointer): Promise<OwnedOutput | null> {
+    const data = await this.data()
+    return data.outputs.find(o => o.output.origin.equals(origins)) || null;
+  }
 }
 
