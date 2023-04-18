@@ -13,6 +13,7 @@ import {
   Address,
   Pointer,
   PrivKey,
+  HDPrivKey,
   Tx,
   ref,
   InstructionRef,
@@ -225,8 +226,8 @@ export class TxBuilder {
    * Pushes a SIGN instruction onto the Transaction. The given PrivKey is used
    * to create the signature used in the instruction.
    */
-  sign(privKey: PrivKey): InstructionRef {
-    return this.push((tx: Tx) => {
+  sign(privKey: PrivKey | HDPrivKey): InstructionRef {
+    return this.push(async (tx: Tx) => {
       const msg = tx.sighash()
       const sig = sign(msg, privKey)
       tx.push(new SignInstruction(sig, privKey.toPubKey().toBytes()))
@@ -238,7 +239,7 @@ export class TxBuilder {
    * Pushes a SIGNTO instruction onto the Transaction. The given PrivKey is used
    * to create the signature used in the instruction.
    */
-  signTo(privKey: PrivKey): InstructionRef {
+  signTo(privKey: PrivKey | HDPrivKey): InstructionRef {
     return this.push((tx: Tx) => {
       const msg = tx.sighash(tx.instructions.length)
       const sig = sign(msg, privKey)
@@ -287,8 +288,9 @@ export class TxBuilder {
   }
 }
 
-// BuildStep tyep
+// BuildStep type
 type BuildStep = (tx: Tx) => InstructionResult | Promise<InstructionResult>
+//type Signer = (msg: Uint8Array) => Uint8Array | Promise<Uint8Array>
 
 // InstructionResult type
 enum ResultType {
