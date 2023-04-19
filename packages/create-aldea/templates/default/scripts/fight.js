@@ -1,6 +1,6 @@
 import minimist from 'minimist'
 import { bold } from 'kolorist'
-import { Address, Aldea, Storage, TxBuilder, Wallet } from '@aldea/sdk-js'
+import { Address, Aldea } from '@aldea/sdk-js'
 import { loadKeys } from './_helpers.js'
 
 /**
@@ -21,20 +21,28 @@ async function fight(cwd, argv) {
   const address = Address.fromPubKey(keys.pubKey)
 
   const aldea = new Aldea('https://node.aldea.computer')
-  const store = new Storage.LowDbStorage(cwd + '/.aldea-wallet')
-  const wallet = new Wallet.Wallet(store, aldea, kp)
+  const coin = await aldea.loadOutput(argv.coin)
 
-  const tx = new TxBuilder(aldea)
-  const player1 = tx.load(argv.p1)
-  const player2 = tx.load(argv.p2)
+  if (coin.props.amount < 100) {
+    throw Error('insufficient balance to fund transaction:', coin.props)
+  }
 
-  tx.call(player1, 'attack', [player2])
+  const tx = await aldea.createTx((tx, ref) => {
+    const coinRef = tx.load(coin.id)
+    const player1 = tx.load(argv.p1)
+    const player2 = tx.load(argv.p2)
 
-  tx.lock(player1, address)
-  tx.lock(player2, address)
+    tx.call(player1, 'attack', [player2])
 
+    tx.lock(player1, address)
+    tx.lock(player2, address)
+    
+    tx.call(coinRef, 'send', [coin.props.motos - 100, address.hash])
+    tx.fund(coinRef)
+    tx.sign(keys.privKey)
+  })
 
-  const res = await wallet.fundSignAndBroadcastTx(tx).catch(async e => {
+  const res = await aldea.commitTx(tx).catch(async e => {
     console.error(await e.response.text())
     process.exit()
   })
@@ -46,17 +54,17 @@ async function fight(cwd, argv) {
 
   for (let data of res.outputs) {
     const output = await aldea.loadOutput(data.id)
-
+    
     if (output.className === 'Coin' && output.lock.type === 1) {
       console.log()
       console.log('Coin ID:', output.props)
       console.log(bold(output.id))
     } else
-      if (output.className === 'Fighter') {
-        console.log()
-        console.log('Fighter:', { name: output.props.name, weapons: output.props.weapons.length, health: output.props.health })
-        console.log(bold(output.id))
-      }
+    if (output.className === 'Fighter') {
+      console.log()
+      console.log('Fighter:', { name: output.props.name, weapons: output.props.weapons.length, health: output.props.health })
+      console.log(bold(output.id))
+    }
   }
 }
 

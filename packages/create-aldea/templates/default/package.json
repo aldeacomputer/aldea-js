@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@aldea/compiler": "^0.0.1-beta",
-    "@aldea/sdk-js": "file:/Users/davidcase/Source/aldea/aldea-js/packages/sdk-js"
+    "@aldea/sdk-js": "^0.0.1-beta"
   },
   "devDependencies": {
     "@aldea/mocknet": "^0.0.1-beta",
