@@ -13,7 +13,6 @@ import {
   Address,
   Pointer,
   PrivKey,
-  HDPrivKey,
   Tx,
   ref,
   InstructionRef,
