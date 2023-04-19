@@ -1,9 +1,9 @@
-import {Output} from "./output.js";
-import {PrivKey} from "./privkey.js";
-import {Address} from "./address.js";
-import {TxBuilder} from "./tx-builder.js";
-import {Pointer} from "./pointer.js";
-import {Aldea} from "./aldea.js";
+import {Output} from "../output.js";
+import {PrivKey} from "../privkey.js";
+import {Address} from "../address.js";
+import {TxBuilder} from "../tx-builder.js";
+import {Pointer} from "../pointer.js";
+import {Aldea} from "../aldea.js";
 
 const COIN_CLASS_ID = Pointer.fromString("0000000000000000000000000000000000000000000000000000000000000000_0")
 

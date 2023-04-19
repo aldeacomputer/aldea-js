@@ -1,10 +1,12 @@
 import {Low} from 'lowdb'
-import {HdWalletStorage, OwnedOutput} from "../wallet.js"
+import {OwnedOutput} from "../wallet.js"
 import {Output} from "../../output.js"
 import {LockType} from "../../lock.js";
 import {Address} from "../../address.js";
 import {buffEquals} from "../../support/util.js";
 import {Pointer} from "../../pointer.js";
+import {HdWalletStorage} from "../hd-wallet.js";
+import {Tx} from "../../tx.js";
 
 export interface OwnedAddress {
   buff: Uint8Array,
@@ -16,20 +18,20 @@ export interface WalletData {
   addresses: OwnedAddress[]
   currentIndex: number
   latestUsedIndex: number
+  txs: Uint8Array[]
 }
 
 export class LowDbStorage implements HdWalletStorage {
   db: Low<WalletData>
-  seed: Uint8Array
-  constructor(low: Low<WalletData>, seed: Uint8Array) {
+  constructor(low: Low<WalletData>) {
     this.db = low
-    this.seed = seed
   }
 
   private async initializeData (): Promise<void> {
     this.db.data = {
       outputs: [],
       addresses: [],
+      txs: [],
       currentIndex: 0,
       latestUsedIndex: 0,
     }
@@ -110,7 +112,14 @@ export class LowDbStorage implements HdWalletStorage {
 
   async outputByOrigin(origin: Pointer): Promise<OwnedOutput | null> {
     const data = await this.data()
-    return data.outputs.find(o => o.output.origin.equals(origins)) || null;
+    return data.outputs.find(o => o.output.origin.equals(origin)) || null;
+  }
+
+  async saveTx (tx: Tx): Promise<void> {
+    await this.data().then(data => {
+      data.txs.push(tx.toBytes())
+    })
+    await this.db.write()
   }
 }
 

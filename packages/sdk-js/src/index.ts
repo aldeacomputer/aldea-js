@@ -21,8 +21,6 @@ export {
   Instruction, InstructionSerializer, InstructionRef, ref,
 } from './internal.js'
 
-export * as Wallet from './wallet/wallet.js'
-export * as Storage from './wallet/storage/index.js'
 // Instructions exports
 export * as instructions from './instructions/index.js'
 
@@ -32,5 +30,5 @@ export * as blake3 from './support/blake3.js'
 export * as ed25519 from './support/ed25519.js'
 export * as util from './support/util.js'
 
-// SingleKeyWallet
-export * from './single-key-wallet.js'
+// DevWallet
+export * from './wallet/index.js'

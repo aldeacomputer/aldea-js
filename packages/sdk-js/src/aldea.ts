@@ -10,6 +10,8 @@ import {
   TxBuilder, Address,
 } from './internal.js'
 
+export type CreateTxCallback = (tx: TxBuilder, ref: (idx: number) => InstructionRef) => void
+
 /**
  * The Aldea class connects to a remote Aldea instance and provide a top-level
  * API for interacting with the Node, building and commiting new transactions.
@@ -33,7 +35,7 @@ export class Aldea {
    * TxBuilder instance and a `ref` function for turning integers into
    * Instruction references.
    */
-  async createTx(builder: (tx: TxBuilder, ref: (idx: number) => InstructionRef) => void): Promise<Tx> {
+  async createTx(builder: CreateTxCallback): Promise<Tx> {
     const txBuilder = new TxBuilder(this)
     builder(txBuilder, ref)
     return txBuilder.build()
@@ -43,18 +45,18 @@ export class Aldea {
    * Broadcasts the given transaction to the Aldea Computer and responds with
    * the full transaction execution result.
    */
-  async commitTx(tx: Tx): Promise<TxResponse> {
+  async commitTx(tx: Tx): Promise<CommitTxResponse> {
     const headers = { 'content-type': 'application/octet-stream' }
     const body = tx.toBytes()
-    return this.api.post('tx', { headers, body }).json<TxResponse>()
+    return this.api.post('tx', { headers, body }).json<CommitTxResponse>()
   }
 
   /**
    * Gets a transaction by its `txid` and responds with the full transaction
    * execution result.
    */
-  async getTx(txid: string): Promise<TxResponse> {
-    return this.api.get(`tx/${txid}`).json<TxResponse>()
+  async getTx(txid: string): Promise<CommitTxResponse> {
+    return this.api.get(`tx/${txid}`).json<CommitTxResponse>()
   }
 
   /**
@@ -82,9 +84,16 @@ export class Aldea {
     return this.api.get(`output-by-origin/${origin}`, { cache: 'no-cache' }).json()
   }
 
+  /**
+   * Returns every output in the otxo locked by the given address
+   * @param address
+   */
   async getUtxosByAddress(address: Address): Promise<Output[]> {
     const outputs: OutputResponse[] = await this.api.get(`utxos-by-address/${address.toString()}`, { cache: 'no-cache' }).json()
-    return outputs.map(o => Output.fromJson(o))
+    return Promise.all(outputs.map(async o => {
+      const abi = await this.getPackageAbi(Pointer.fromString(o.class).id)
+      return Output.fromJson(o, abi)
+    }))
   }
 
   /**
@@ -141,7 +150,7 @@ export class Aldea {
 /**
  * HTTP Transaction Execution Response
  */
-export interface TxResponse {
+export interface CommitTxResponse {
   id: string;
   outputs: OutputResponse[];
   packages: PackageResponse[];
