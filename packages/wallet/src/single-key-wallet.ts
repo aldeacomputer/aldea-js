@@ -100,6 +100,10 @@ export class LowDbSingleKeyWalletStorage implements SingleKeyWalletStorage{
     })
   }
 
+  async read (): Promise<void> {
+    await this.low.read()
+  }
+
   private data (): LowDbData {
     return this.low.data
   }
