@@ -24,7 +24,7 @@ async function createFighters(cwd, argv) {
     throw Error('insufficient balance to fund transaction:', coin.props)
   }
 
-  const tx = await aldea.createTx((tx, ref) => {
+  const tx = await aldea.createTx((tx, _ref) => {
     const pkgRef  = tx.import(argv.pkg)
     const coinRef = tx.load(coin.id)
 
