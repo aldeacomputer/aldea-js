@@ -7,7 +7,8 @@
   "type": "module",
   "scripts": {
     "build:ts": "tsc",
-    "build:es": "node esbuild.js"
+    "build:es": "node esbuild.js",
+    "test": "mocha"
   },
   "files": [
     "dist/**/*",
