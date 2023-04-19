@@ -98,8 +98,11 @@ export class SingleKeyWallet implements Wallet {
     return partialTx
   }
 
-  sync(): Promise<void> {
-    return Promise.resolve(undefined);
+  async sync(): Promise<void> {
+    const outputs = await this.client.getUtxosByAddress(this.address())
+    for (const output of outputs) {
+      await this.addOutput(output)
+    }
   }
 
   private address() {
