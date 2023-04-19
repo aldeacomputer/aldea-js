@@ -1,9 +1,12 @@
-import { SingleKeyWallet } from "../dist/single-key-wallet.js"
+import { SingleKeyWallet, LowDbSingleKeyWalletStorage } from "../dist/single-key-wallet.js"
 import { Aldea, Output, PrivKey } from "@aldea/sdk-js"
+import { Memory } from "lowdb"
 
 const aldea = new Aldea('http://localhost:4000')
 const pk = PrivKey.fromRandom()
-const wallet = new SingleKeyWallet(pk, aldea)
+
+const storage = new LowDbSingleKeyWalletStorage(new Memory())
+const wallet = new SingleKeyWallet(pk, aldea, storage)
 
 const kyResponse = await aldea.api.post('mint', { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: wallet.address().toString(), amount: 500 })})
 
@@ -26,7 +29,7 @@ console.log(await wallet.getInventory())
 
 console.log('sync new instance')
 const aldea2 = new Aldea('http://localhost:4000')
-const wallet2 = new SingleKeyWallet(pk, aldea)
+const wallet2 = new SingleKeyWallet(pk, aldea, storage)
 await wallet2.sync()
 console.log('wallet 2 inventory')
 console.log(await wallet2.getInventory())
