@@ -42,7 +42,7 @@ export class SingleKeyWallet implements Wallet {
       output.abi = abi
     }
 
-    this.inventory = this.inventory.filter(o => o.origin.equals(output.origin))
+    this.inventory = this.inventory.filter(o => !o.origin.equals(output.origin))
     this.inventory.push(output)
   }
 
