@@ -3,10 +3,12 @@ import {
   CreateTxCallback,
   Output,
   TxBuilder,
-  Tx
+  Tx, Address
 } from "@aldea/sdk-js"
 
 export interface Wallet {
+  getNextAddress(): Promise<Address>
+
   getInventory(): Promise<Array<Output>>
 
   fundTx(partialTx: TxBuilder): Promise<TxBuilder>

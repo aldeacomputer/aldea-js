@@ -1,76 +1,110 @@
-// import {Output} from "../output.js";
-// import {PrivKey} from "../privkey.js";
-// import {Address} from "../address.js";
-// import {TxBuilder} from "../tx-builder.js";
-// import {Pointer} from "../pointer.js";
-// import {Aldea} from "../aldea.js";
-//
-// const COIN_CLASS_ID = Pointer.fromString("0000000000000000000000000000000000000000000000000000000000000000_0")
-//
-// export interface WalletStateManager {
-//   getInventory(): Promise<Array<Output>>;
-//
-//   fundTx(partialTx: TxBuilder): Promise<TxBuilder>;
-//
-//   getNextAddress(): Promise<Address>;
-//
-//   sync(): Promise<void>;
-// }
-//
-// export class SingleKeyWallet implements WalletStateManager {
-//   private privKey: PrivKey
-//   private inventory: Output[]
-//   private client: Aldea;
-//   constructor(client: Aldea, privKeyHex: string) {
-//     this.privKey = PrivKey.fromHex(privKeyHex)
-//     this.inventory = []
-//     this.client = client
-//   }
-//
-//   async getInventory(): Promise<Array<Output>> {
-//     return this.inventory
-//   }
-//
-//   // async getPackages(): Promise<Array<PackageResponse>> {
-//   //
-//   // }
-//
-//   async fundTx(partialTx: TxBuilder): Promise<TxBuilder> {
-//
-//     let coin = this.inventory.find(output => output.classPtr.equals(COIN_CLASS_ID))
-//     if (!coin) {
-//       throw new Error('not enough funds')
-//     }
-//     // TODO: Consider when the coin has not enough funds.
-//     // TODO: Consider when you need to send change.
-//     // TODO: Consider when you need more than 1 coin.
-//     let coinIdx = partialTx.load(coin.id)
-//     partialTx.fund(coinIdx)
-//     partialTx.sign(this.privKey)
-//     return partialTx
-//   }
-//
-//   async getNextAddress(): Promise<Address> {
-//     return this.address()
-//   }
-//
-//   // async signTx(partialTx: TxBuilder): Promise<TxBuilder> {
-//   //
-//   // }
-//
-//   // async processTx(builder: TxBuilder): Promise<TxResponse> {
-//   //
-//   // }
-//
-//   // async fundSignAndBroadcastTx(partialTx: TxBuilder): Promise<TxResponse> {
-//   //
-//   // }
-//
-//   async sync(): Promise<void> {
-//     this.inventory = await this.client.getUtxosByAddress(this.address())
-//   }
-//
-//   private address () {
-//     return this.privKey.toPubKey().toAddress()
-//   }
-// }
+import {
+  Address,
+  Aldea,
+  CommitTxResponse,
+  CreateTxCallback,
+  LockType,
+  Output,
+  Pointer,
+  PrivKey,
+  Tx,
+  TxBuilder,
+  util
+} from '@aldea/sdk-js'
+import {Wallet} from "./wallet.js";
+import {Abi} from "@aldea/compiler/abi";
+
+const COIN_CLASS_PTR = Pointer.fromString("0000000000000000000000000000000000000000000000000000000000000000_0")
+
+
+export class SingleKeyWallet implements Wallet {
+  private privKey: PrivKey
+  private inventory: Output[]
+  private client: Aldea
+  private txHistory: Tx[]
+  private abis: Map<string, Abi>
+
+  constructor(pk: PrivKey, client: Aldea) {
+    this.privKey = pk
+    this.inventory = []
+    this.client = client
+    this.txHistory = []
+    this.abis = new Map<string, Abi>()
+  }
+
+  async addOutput(output: Output): Promise<void> {
+    if (output.lock.type !== LockType.ADDRESS) return
+
+    if (!util.buffEquals(output.lock.data, this.address().hash)) return
+
+    this.inventory = this.inventory.filter(o => o.origin.equals(output.origin))
+    this.inventory.push(output)
+  }
+
+  async fundSignAndBroadcastTx(fn: CreateTxCallback): Promise<CommitTxResponse> {
+    const tx = await this.client.createTx(async (builder, ref) => {
+      await fn(builder, ref)
+      await this.fundTx(builder)
+      await this.signTx(builder)
+    })
+    const result = await this.client.commitTx(tx)
+
+    const outputs  = await Promise.all(result.outputs.map(async (or) => {
+      const pkgId = Pointer.fromString(or.class).id
+      let abi = this.abis.get(pkgId)
+      if (!abi) {
+        const newAbi = await this.client.getPackageAbi(pkgId)
+        this.abis.set(pkgId, newAbi)
+        abi = newAbi
+      }
+      return Output.fromJson(or, abi)
+    }))
+
+    await this.processTx(tx, outputs)
+    return result
+  }
+
+  async fundTx(partialTx: TxBuilder): Promise<TxBuilder> {
+    const coins = this.inventory.filter((o: Output) => o.classPtr.equals(COIN_CLASS_PTR))
+    const coin  = coins.find(c => {
+      const props = c.props
+      if (!props) { throw Error('error')}
+      const motos = props['motos']
+      return motos > 100
+    })
+    if (!coin) {
+      throw new Error('now enough funds')
+    }
+
+    const coinIdx = partialTx.load(coin.origin.toString())
+    const fundCoinIdx = partialTx.call(coinIdx, 'send', [100])
+    partialTx.fund(fundCoinIdx)
+    return partialTx;
+  }
+
+  async getInventory(): Promise<Array<Output>> {
+    return this.inventory
+  }
+
+  async getNextAddress(): Promise<Address> {
+    return this.privKey.toPubKey().toAddress()
+  }
+
+  async processTx(tx: Tx, outputList: Output[]): Promise<void> {
+    await Promise.all(outputList.map(output => this.addOutput(output)))
+    this.txHistory.push(tx)
+  }
+
+  async signTx(partialTx: TxBuilder): Promise<TxBuilder> {
+    partialTx.sign(this.privKey)
+    return partialTx
+  }
+
+  sync(): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
+  private address() {
+    return this.privKey.toPubKey().toAddress()
+  }
+}

@@ -1,4 +1,4 @@
-import {Low} from 'lowdb'
+import {Adapter, Low} from 'lowdb'
 import {OwnedOutput} from "../wallet.js"
 import {HdWalletStorage} from "../hd-wallet.js"
 import {
@@ -21,6 +21,16 @@ export interface WalletData {
   currentIndex: number
   latestUsedIndex: number
   txs: Uint8Array[]
+}
+
+export function buildLowDb (adapter: Adapter<WalletData>): Low<WalletData> {
+  return new Low<WalletData>(adapter, {
+    outputs: [],
+    addresses: [],
+    txs: [],
+    currentIndex: 0,
+    latestUsedIndex: 0,
+  })
 }
 
 export class LowDbStorage implements HdWalletStorage {

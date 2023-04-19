@@ -1,25 +1,35 @@
-// import test from 'ava'
-// import { Low, Memory } from 'lowdb'
-// import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39'
-// import { wordlist } from '@scure/bip39/wordlists/english.js'
-// import { Aldea, HDPrivKey, LowDbStorage } from "../dist/index.js"
-// import { mockAldea } from "./test-helpers.js"
+import { expect } from 'chai'
+import { Low, Memory } from 'lowdb'
+import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39'
+import { wordlist } from '@scure/bip39/wordlists/english.js'
+import { Aldea, HDPrivKey,  } from "@aldea/sdk-js"
+import {buildLowDb, HdWallet, LowDbStorage, WalletData} from "../src/index.js"
+import {Wallet} from "../src/wallet.js";
+
+
+describe('HdWallet', function () {
+  let aldea: Aldea
+  let wallet: Wallet
+
+  beforeEach(() => {
+    const low = buildLowDb(new Memory())
+    const storage = new LowDbStorage(low)
+    const mnemonic = generateMnemonic(wordlist)
+    const seed = mnemonicToSeedSync(mnemonic)
+    const hdPrivKey = HDPrivKey.fromSeed(seed)
+    aldea = new Aldea('http://localhost')
+    wallet = new HdWallet(storage, aldea, hdPrivKey)
+  })
+
+  it('get 2 addresses in a row returns different addresses', async () => {
+    const addr1 = await wallet.getNextAddress()
+    const addr2 = await wallet.getNextAddress()
+    expect(addr1).not.to.eql(addr2)
+  })
+});
+
+
 //
-// test.before(t => {
-//   const storage = new LowDbStorage(new Low(new Memory()))
-//   const mnemonic = generateMnemonic(wordlist)
-//   const seed = mnemonicToSeedSync(mnemonic)
-//   const hdPrivKey = HDPrivKey.fromSeed(seed)
-//   t.context.aldea = new Aldea('http://localhost')
-//   t.context.wallet = new HdWallet(storage, t.context.aldea, hdPrivKey)
-// })
-//
-// test('get 2 addresses in a row returns different addresses', async t => {
-//   const wallet = t.context.wallet
-//   const addr1 = await wallet.getNextAddress()
-//   const addr2 = await wallet.getNextAddress()
-//   t.notDeepEqual(addr1, addr2)
-// })
 //
 //
 // test('get 21 addresses in a row loops', async t => {

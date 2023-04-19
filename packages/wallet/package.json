@@ -19,6 +19,7 @@
     "lowdb": "^6.0.0"
   },
   "devDependencies": {
+    "@scure/bip39": "^1.2.0",
     "chai": "^4.3.7",
     "esbuild": "^0.15.10",
     "mocha": "^10.2.0",
