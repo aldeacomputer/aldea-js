@@ -37,6 +37,11 @@ export class SingleKeyWallet implements Wallet {
 
     if (!util.buffEquals(output.lock.data, this.address().hash)) return
 
+    if (!output.abi) {
+      const abi = await this.fetchAbi(output.classPtr.id)
+      output.abi = abi
+    }
+
     this.inventory = this.inventory.filter(o => o.origin.equals(output.origin))
     this.inventory.push(output)
   }
@@ -50,14 +55,7 @@ export class SingleKeyWallet implements Wallet {
     const result = await this.client.commitTx(tx)
 
     const outputs  = await Promise.all(result.outputs.map(async (or) => {
-      const pkgId = Pointer.fromString(or.class).id
-      let abi = this.abis.get(pkgId)
-      if (!abi) {
-        const newAbi = await this.client.getPackageAbi(pkgId)
-        this.abis.set(pkgId, newAbi)
-        abi = newAbi
-      }
-      return Output.fromJson(or, abi)
+      return Output.fromJson(or)
     }))
 
     await this.processTx(tx, outputs)
@@ -76,7 +74,7 @@ export class SingleKeyWallet implements Wallet {
       throw new Error('now enough funds')
     }
 
-    const coinIdx = partialTx.load(coin.origin.toString())
+    const coinIdx = partialTx.load(coin.id)
     const fundCoinIdx = partialTx.call(coinIdx, 'send', [100])
     partialTx.fund(fundCoinIdx)
     return partialTx;
@@ -106,5 +104,15 @@ export class SingleKeyWallet implements Wallet {
 
   private address() {
     return this.privKey.toPubKey().toAddress()
+  }
+
+  private async fetchAbi(pkgId: string) {
+    let abi = this.abis.get(pkgId)
+    if (!abi) {
+      const newAbi = await this.client.getPackageAbi(pkgId)
+      this.abis.set(pkgId, newAbi)
+      abi = newAbi
+    }
+    return abi
   }
 }
