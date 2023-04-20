@@ -5,6 +5,25 @@
   "version": "0.0.1-beta.0",
   "license": "Apache-2.0",
   "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/wallet-lib.bundle.cjs",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "import": "./dist/*.js",
+      "require": "./dist/*.js",
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "main": "./dist/wallet-lib.bundle.cjs",
+  "module": "./dist/wallet-lib.bundle.mjs",
+  "browser": "./dist/wallet-lib.bundle.min.js",
+  "unpkg": "./dist/wallet-lib.bundle.min.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "yarn build:ts && yarn build:es",
     "build:ts": "tsc",

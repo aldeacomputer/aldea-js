@@ -13,7 +13,6 @@
     },
     "./*": {
       "import": "./dist/*.js",
-      "node": "./dist/*.js",
       "require": "./dist/*.js",
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"

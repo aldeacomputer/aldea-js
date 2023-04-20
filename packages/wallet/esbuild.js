@@ -23,3 +23,33 @@ await esbuild.build({
     makeAllPackagesExternalPlugin
   ]
 })
+
+// CJS bundle
+esbuild.build({
+  entryPoints: ['src/index.ts'],
+  outfile: 'dist/wallet-lib.bundle.cjs',
+  bundle: true,
+  format: 'cjs',
+  platform: 'node',
+  target: 'node16',
+  minify: false,
+  keepNames: true,
+  sourcemap: true,
+  plugins: [
+    makeAllPackagesExternalPlugin
+  ]
+})
+
+// Browser build
+esbuild.build({
+  entryPoints: ['src/index.ts'],
+  outfile: 'dist/wallet-lib.bundle.min.js',
+  globalName: 'aldeaJS',
+  bundle: true,
+  format: 'iife',
+  platform: 'browser',
+  target: 'esnext',
+  minify: true,
+  keepNames: true,
+  sourcemap: true,
+})
