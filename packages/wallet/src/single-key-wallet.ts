@@ -20,7 +20,7 @@ export class SingleKeyWallet implements Wallet {
   private readonly privKey: PrivKey
   private client: Aldea
 
-  constructor(pk: PrivKey, client: Aldea, storage: WalletStorage) {
+  constructor(pk: PrivKey, storage: WalletStorage, client: Aldea) {
     this.privKey = pk
     this.client = client
     this.storage = storage

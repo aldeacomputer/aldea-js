@@ -7,7 +7,7 @@ const aldea = new Aldea('http://localhost:4000')
 const hdPriv = HDPrivKey.fromSeed( new Uint8Array(32) )
 
 const storage = new LowDbStorage(new Memory())
-const wallet = new HdWallet(storage, aldea, hdPriv)
+const wallet = new HdWallet(hdPriv, storage, aldea)
 
 const kyResponse = await aldea.api.post('mint', { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: await wallet.getNextAddress().then(a => a.toString()), amount: 500 })})
 
@@ -29,9 +29,9 @@ console.log('inventory  after minting')
 console.log(await wallet.getInventory())
 
 
-// console.log('sync new instance')
-// const aldea2 = new Aldea('http://localhost:4000')
-// const wallet2 = new HdWallet(hdPriv, aldea2, storage)
-// await wallet2.sync()
-// console.log('wallet 2 inventory')
-// console.log(await wallet2.getInventory())
+console.log('sync new instance')
+const aldea2 = new Aldea('http://localhost:4000')
+const wallet2 = new HdWallet(hdPriv, storage, aldea2)
+await wallet2.sync()
+console.log('wallet 2 inventory')
+console.log(await wallet2.getInventory().then(i => i.map(a => a.origin.toString())))

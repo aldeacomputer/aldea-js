@@ -8,7 +8,7 @@ const aldea = new Aldea('http://localhost:4000')
 const pk = PrivKey.fromRandom()
 
 const storage = new LowDbStorage(new Memory())
-const wallet = new SingleKeyWallet(pk, aldea, storage)
+const wallet = new SingleKeyWallet(pk, storage, aldea)
 
 const kyResponse = await aldea.api.post('mint', {
   headers: { 'Content-Type': 'application/json' },
@@ -35,7 +35,7 @@ console.log(await wallet.getInventory())
 
 console.log('sync new instance')
 const aldea2 = new Aldea('http://localhost:4000')
-const wallet2 = new SingleKeyWallet(pk, aldea, storage)
+const wallet2 = new SingleKeyWallet(pk, storage, aldea)
 await wallet2.sync()
 console.log('wallet 2 inventory')
 console.log(await wallet2.getInventory())
