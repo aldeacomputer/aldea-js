@@ -1,5 +1,5 @@
 import {
-  Clock,
+  Clock, ExtendedTx,
   Storage,
   VM
 } from '../src/index.js'
@@ -11,6 +11,8 @@ import {LockType} from "../src/wasm-instance.js";
 import {ExecutionResult} from "../src/execution-result.js";
 import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
+import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
+import {SignInstruction} from "@aldea/sdk-js/instructions/index";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -55,7 +57,6 @@ describe('execute txs', () => {
     const instanceIndex = exec.instantiateByClassName(mod.asInstance, 'Flock', [0])
     exec.lockJigToUser(instanceIndex.asJig(), userAddr)
     const result = exec.finalize()
-
     expect(result.executedAt).to.eql(clock.now().unix())
     result.outputs.forEach(o => expect(o.createdAt).to.eql(clock.now().unix()))
   })
@@ -727,5 +728,70 @@ describe('execute txs', () => {
     expect(
       () => exec.lockJigToUser(flockJig, addr2)
     ).to.throw(PermissionError)
+  })
+
+  it('a tx can be funded in parts', () => {
+    const tx = new Tx()
+    tx.push(new SignInstruction(tx.createSignature(userPriv), userPub.toBytes()))
+    const coin = vm.mint(userAddr, 1000)
+    exec = new TxExecution(
+      new ExTxExecContext(
+        new ExtendedTx(tx, [coin.toOutput()]),
+        clock,
+        storage,
+        vm
+      )
+    )
+
+    const loaded = exec.loadJigByOutputId(coin.id())
+    const coin1 = exec.callInstanceMethod(loaded.asJig(), 'send', [20])
+    const coin2 = exec.callInstanceMethod(loaded.asJig(), 'send', [20])
+    const coin3 = exec.callInstanceMethod(loaded.asJig(), 'send', [20])
+    const coin4 = exec.callInstanceMethod(loaded.asJig(), 'send', [20])
+    const coin5 = exec.callInstanceMethod(loaded.asJig(), 'send', [20])
+
+    exec.fundByIndex(coin1.idx)
+    exec.fundByIndex(coin2.idx)
+    exec.fundByIndex(coin3.idx)
+    exec.fundByIndex(coin4.idx)
+    exec.fundByIndex(coin5.idx) // adds up 100
+
+    const result = exec.finalize()
+
+    expect(result.outputs[0].parsedState()[0]).to.eql(900)
+    expect(result.outputs[1].lockType()).to.eql(LockType.FROZEN)
+    expect(result.outputs[2].lockType()).to.eql(LockType.FROZEN)
+    expect(result.outputs[3].lockType()).to.eql(LockType.FROZEN)
+    expect(result.outputs[4].lockType()).to.eql(LockType.FROZEN)
+    expect(result.outputs[5].lockType()).to.eql(LockType.FROZEN)
+  })
+
+  it('fails is not eunogh parts', () => {
+    const tx = new Tx()
+    tx.push(new SignInstruction(tx.createSignature(userPriv), userPub.toBytes()))
+    const coin = vm.mint(userAddr, 1000)
+    exec = new TxExecution(
+      new ExTxExecContext(
+        new ExtendedTx(tx, [coin.toOutput()]),
+        clock,
+        storage,
+        vm
+      )
+    )
+
+    const loaded = exec.loadJigByOutputId(coin.id())
+    const coin1 = exec.callInstanceMethod(loaded.asJig(), 'send', [20])
+    const coin2 = exec.callInstanceMethod(loaded.asJig(), 'send', [20])
+    const coin3 = exec.callInstanceMethod(loaded.asJig(), 'send', [20])
+    const coin4 = exec.callInstanceMethod(loaded.asJig(), 'send', [20])
+    const coin5 = exec.callInstanceMethod(loaded.asJig(), 'send', [19])
+
+    exec.fundByIndex(coin1.idx)
+    exec.fundByIndex(coin2.idx)
+    exec.fundByIndex(coin3.idx)
+    exec.fundByIndex(coin4.idx)
+    exec.fundByIndex(coin5.idx) // adds up 99
+
+    expect(() => exec.finalize()).to.throw(ExecutionError, 'Not enough funding. Provided: 99. Needed: 100')
   })
 })

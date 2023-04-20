@@ -17,6 +17,8 @@ import {TxContext} from "./tx-context/tx-context.js";
 import {PkgData} from "./storage.js";
 import {ImportInstruction, NewInstruction} from "@aldea/sdk-js/instructions/index";
 
+const MIN_FUND_AMOUNT = 100
+
 class TxExecution {
   txContext: TxContext;
   private jigs: JigRef[];
@@ -24,7 +26,7 @@ class TxExecution {
   private readonly stack: Pointer[];
   deployments: PkgData[];
   statements: StatementResult[]
-  private funded: boolean;
+  private fundAmount: number;
   private affectedJigs: JigRef[]
 
   constructor(context: TxContext) {
@@ -33,15 +35,15 @@ class TxExecution {
     this.wasms = new Map()
     this.stack = []
     this.statements = []
-    this.funded = false
+    this.fundAmount = 0
     this.deployments = []
     this.affectedJigs = []
   }
 
   finalize(): ExecutionResult {
     const result = new ExecutionResult(this.txContext.tx)
-    if (!this.funded) {
-      throw new ExecutionError('tx not funded')
+    if (this.fundAmount < MIN_FUND_AMOUNT) {
+      throw new ExecutionError(`Not enough funding. Provided: ${this.fundAmount}. Needed: ${MIN_FUND_AMOUNT}`)
     }
     this.jigs.forEach(jigRef => {
       if (jigRef.lock.isOpen()) {
@@ -275,10 +277,9 @@ class TxExecution {
   fundByIndex(coinIdx: number): void {
     const coinJig = this.getStatementResult(coinIdx).asJig()
     const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'motos').value
-    if (amount < 100) throw new ExecutionError('not enough coins to fund the transaction')
+    this.fundAmount += Number(amount)
     coinJig.changeLock(new FrozenLock())
     this.marKJigAsAffected(coinJig)
-    this.markAsFunded()
   }
 
   findJigByOutputId(outputId: Uint8Array): JigRef {
@@ -524,7 +525,7 @@ class TxExecution {
   }
 
   markAsFunded() {
-    this.funded = true
+    this.fundAmount += MIN_FUND_AMOUNT
   }
 
   signedBy(addr: Address) {

@@ -6,7 +6,7 @@ export class ExtendedTx {
   private _inputs: JigState[]
   constructor(tx: Tx, inputs: Output[]) {
     this._tx = tx
-    this._inputs = inputs.map(output => JigState.fromSdkOutput(output))
+    this._inputs = inputs.map(output => JigState.fromOutput(output))
   }
   get tx(): Tx {
     return this._tx

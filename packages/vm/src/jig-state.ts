@@ -111,7 +111,7 @@ export class JigState {
     return lock.address();
   }
 
-  static fromSdkOutput (output: Output) {
+  static fromOutput (output: Output) {
     return new this(
       output.origin,
       output.location,
@@ -121,5 +121,9 @@ export class JigState {
       SerializedLock.fromSdkLock(output.lock),
       10
     )
+  }
+
+  toOutput (): Output {
+    return this.output
   }
 }
