@@ -1,0 +1,24 @@
+{
+  "name": "@aldea/cli",
+  "description": "TODO",
+  "version": "0.0.1-beta.1",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "aldea": "bin/aldea.js"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "packageManager": "yarn@3.2.3",
+  "dependencies": {
+    "@aldea/sdk-js": "workspace:^",
+    "commander": "^10.0.1",
+    "kolorist": "^1.7.0",
+    "lowdb": "^5.1.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  }
+}
