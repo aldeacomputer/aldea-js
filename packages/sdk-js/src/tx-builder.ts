@@ -13,7 +13,6 @@ import {
   Address,
   Pointer,
   PrivKey,
-  HDPrivKey,
   Tx,
   ref,
   InstructionRef,
@@ -28,7 +27,7 @@ import {
   DeployInstruction,
   NewInstruction,
   SignInstruction,
-  SignToInstruction,
+  SignToInstruction, HDPrivKey,
 } from './internal.js'
 
 import { base16 } from './support/base.js'

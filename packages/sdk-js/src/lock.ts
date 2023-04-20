@@ -68,7 +68,15 @@ export class Lock {
 export const LockSerializer: Serializable<Lock> = {
   read(buf: BufReader): Lock {
     const type = buf.readU8()
-    const data = buf.readBytes(buf.remaining)
+    let data
+    if (type === LockType.ADDRESS) {
+      data = buf.readBytes(20)
+    } else
+    if (type == LockType.CALLER) {
+      data = buf.readBytes(36)
+    } else {
+      data = buf.readBytes(0)
+    }
     return new Lock(type, data)
   },
 

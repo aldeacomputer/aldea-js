@@ -9,16 +9,17 @@ export {
   HDPrivKey,
   HDPubKey,
   KeyPair,
-  Lock, LockSerializer,
+  Lock, LockType, LockSerializer,
   Output, OutputSerializer,
   Pointer, PointerSerializer,
   PrivKey,
   PubKey,
   Tx, TxSerializer,
-  TxBuilder,
+  TxBuilder, CreateTxCallback,
   Serializable,
   OpCode,
   Instruction, InstructionSerializer, InstructionRef, ref,
+  CommitTxResponse
 } from './internal.js'
 
 // Instructions exports

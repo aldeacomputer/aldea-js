@@ -5,7 +5,7 @@ import {CompilerResult} from '@aldea/compiler'
 import {Address, Pointer, Tx} from "@aldea/sdk-js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {JigState} from "./jig-state.js";
-import {randomBytes} from "@aldea/sdk-js/support/ed25519";
+import {util} from "@aldea/sdk-js";
 import {Buffer} from "buffer";
 import {encodeSequence} from "./cbor.js";
 import {ExecutionResult} from "./execution-result.js";
@@ -110,9 +110,9 @@ export class VM {
   }
 
   mint (address: Address, amount: number = 1e6, locBuf?: Uint8Array): JigState {
-    if (!locBuf) locBuf = randomBytes(32)
-
-    const location = new Pointer(locBuf, 0);
+    const location = locBuf
+      ? new Pointer(locBuf, 0)
+      : new Pointer(util.randomBytes(32), 0);
     const minted = new JigState(
       location,
       location,

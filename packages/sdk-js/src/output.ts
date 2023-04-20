@@ -66,6 +66,11 @@ export class Output {
     return output
   }
 
+  static fromHex(hex: string, abi?: Abi): Output {
+    let buff = base16.decode(hex)
+    return this.fromBytes(buff, abi)
+  }
+
   static fromJson(data: OutputResponse, abi?: Abi): Output {
     const output = new Output(
       Pointer.fromString(data.origin),
@@ -116,7 +121,11 @@ export class Output {
 
   get props(): { [key: string]: any } | void {
     if (this.#classNode && typeof this.#props === 'undefined') {
-      const stateSeq = CBOR.decode(this.stateBuf.buffer, null, { mode: 'sequence' })
+      const stateSeq = CBOR.decode(
+        new Uint8Array(this.stateBuf).buffer,
+        null,
+        { mode: 'sequence' }
+      )
       const props = this.#classNode.fields.reduce((props: any, f, i) => {
         props[f.name] = stateSeq.get(i)
         return props
@@ -131,6 +140,10 @@ export class Output {
     const buf = new BufWriter()
     buf.write<Output>(OutputSerializer, this)
     return buf.data
+  }
+
+  toHex(): string {
+    return base16.encode(this.toBytes())
   }
 
   toJson(): OutputResponse {

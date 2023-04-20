@@ -1,6 +1,5 @@
-import {base16, Pointer, ref} from "@aldea/sdk-js";
+import {base16, Pointer, PrivKey, ref} from "@aldea/sdk-js";
 import {Clock, Storage, VM} from "../src/index.js";
-import {AldeaCrypto} from "../src/aldea-crypto.js";
 import {expect} from "chai";
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {LockType} from "../src/wasm-instance.js";
@@ -10,10 +9,10 @@ import {buildVm} from "./util.js";
 describe('tx interaction', () => {
   let storage: Storage
   let vm: VM
-  const userPriv = AldeaCrypto.randomPrivateKey()
-  const userPub = AldeaCrypto.publicKeyFromPrivateKey(userPriv)
+  const userPriv = PrivKey.fromRandom()
+  const userPub = userPriv.toPubKey()
   const userAddr = userPub.toAddress()
-  const fundPriv = AldeaCrypto.randomPrivateKey()
+  const fundPriv = PrivKey.fromRandom()
   const fundAddr = fundPriv.toPubKey().toAddress()
 
   let modIdFor: (key: string) => Uint8Array
