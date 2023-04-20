@@ -32,8 +32,7 @@ export class SingleKeyWallet implements Wallet {
     if (!util.buffEquals(output.lock.data, this.address().hash)) return
 
     if (!output.abi) {
-      const abi = await this.fetchAbi(output.classPtr.id)
-      output.abi = abi
+      output.abi = await this.fetchAbi(output.classPtr.id)
     }
 
     await this.storage.removeUtxoByOrigin(output.origin)
@@ -41,13 +40,11 @@ export class SingleKeyWallet implements Wallet {
   }
 
   async createFundedTx(fn: CreateTxCallback): Promise<Tx> {
-    const tx = await this.client.createTx(async (builder, ref) => {
+    return await this.client.createTx(async (builder, ref) => {
       await fn(builder, ref)
       await this.fundTx(builder)
       await this.signTx(builder)
     })
-
-    return tx
   }
 
   async fundTx(partialTx: TxBuilder): Promise<TxBuilder> {
