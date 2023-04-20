@@ -1,8 +1,10 @@
 import { readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
-import { program } from 'commander'
+import { program, OptionValues } from 'commander'
 
+import { Config as CompleteConfig } from './config.js'
+import { env } from './globals.js'
 import { log, err } from './log.js'
 import * as cmds from './cmds/index.js'
 
@@ -17,12 +19,17 @@ process.on('warning', (e) => {
 
 program
   .name('aldea')
+  .option('-N --node <url>', 'Aldea node URL')
   .addCommand(cmds.code.deploy)
   .addCommand(cmds.wallet.create)
   .addCommand(cmds.wallet.balance)
   .addCommand(cmds.wallet.topup)
-  .version(pkg.version)
   .showHelpAfterError()
+  .version(pkg.version)
+  .hook('preAction', (cmd) => {
+    env.configure(optsToConfig(cmd.opts()))
+    cmd.opts()
+  })
   
 ;(async _ => {
   try {
@@ -41,3 +48,19 @@ program
   }
 })()
 
+// TODO
+export type Config = Partial<CompleteConfig>
+
+function optsToConfig(opts: OptionValues): Config {
+  const optsToConfDictionary: any = {
+    node: 'nodeUrl'
+  }
+  
+  return Object.keys(opts).reduce<Config>((conf, key) => {
+    if (Object.hasOwn(optsToConfDictionary, key)) {
+      const k: keyof Config = optsToConfDictionary[key]
+      conf[k] = opts[key]
+    }
+    return conf
+  }, {})
+}

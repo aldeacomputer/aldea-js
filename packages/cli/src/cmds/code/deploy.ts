@@ -3,7 +3,7 @@ import { join } from 'path'
 import { createCommand, createArgument } from 'commander'
 import { bold, dim, lightGreen } from 'kolorist'
 import { log, ok } from '../../log.js'
-import { env } from '../../env.js'
+import { env } from '../../globals.js'
 
 // Create wallet command
 export const deploy = createCommand('code.deploy')

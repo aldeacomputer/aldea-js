@@ -2,7 +2,7 @@ import { createCommand, createOption, InvalidArgumentError } from 'commander'
 import { bold, dim } from 'kolorist'
 import { OutputResponse } from '@aldea/sdk-js/aldea'
 import { log, ok } from '../../log.js'
-import { env } from '../../env.js'
+import { env } from '../../globals.js'
 
 // Topup wallet command
 export const topup = createCommand('wallet.topup')

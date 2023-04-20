@@ -2,7 +2,7 @@ import fs from 'fs'
 import { createCommand, createOption } from 'commander'
 import { bold } from 'kolorist'
 import { log, ok } from '../../log.js'
-import { env } from '../../env.js'
+import { env } from '../../globals.js'
 
 // Create wallet command
 export const create = createCommand('wallet.create')

@@ -4,6 +4,7 @@
   "version": "0.0.1-beta.1",
   "license": "Apache-2.0",
   "type": "module",
+  "types": "./dist/index.d.ts",
   "bin": {
     "aldea": "bin/aldea.js"
   },

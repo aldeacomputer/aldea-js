@@ -4,6 +4,7 @@ import { Low } from 'lowdb'
 import { JSONFile } from 'lowdb/node'
 import { Aldea, HDPrivKey, PrivKey } from '@aldea/sdk-js'
 import { HdWallet, SingleKeyWallet, LowDbStorage } from '@aldea/wallet-lib'
+import { Config } from './config.js'
 
 const KEY_FILE = 'key.json'
 const WALLET_FILE = 'wallet.json'
@@ -11,40 +12,49 @@ const WALLET_FILE = 'wallet.json'
 /**
  * TODO
  */
-class Env {
+export class Env {
   readonly cwd: string;
-  readonly codeDir: string;
-  readonly walletDir: string;
-  readonly aldea: Aldea;
+  private opts: Config;
+  
+  private _aldea: Aldea;
   private _key?: Low<KeyData>;
-  //private walletData?: Low<LowDbData>;
   private _wallet?: HdWallet | SingleKeyWallet;
 
-  constructor() {
+  constructor(config: Config) {
+    this.opts = config
     this.cwd = process.cwd()
-    this.codeDir = join(this.cwd, '.')
-    this.walletDir = join(this.cwd, '.aldea')
-    //this.aldea = new Aldea('https://node.aldea.computer')
-    this.aldea = new Aldea('http://localhost:4000')
+    this._aldea = new Aldea(this.opts.nodeUrl)
   }
+
+  get codeDir(): string { return join(this.cwd, this.opts.codeDir) }
+  get walletDir(): string { return join(this.cwd, this.opts.walletDir) }
+  get aldea(): Aldea { return this._aldea }
 
   get key(): HDPrivKey | PrivKey {
     if (!this._key) throw new Error('wallet is not initialized')
-    if (this.type === 'hd') {
+    if (this.walletType === 'hd') {
       return HDPrivKey.fromString(this._key.data.key)
     } else {
       return PrivKey.fromString(this._key.data.key)
     }
   }
 
-  get type(): 'hd' | 'sk' {
+  get wallet(): HdWallet | SingleKeyWallet {
+    if (!this._wallet) throw new Error('wallet is not initialized')
+    return this._wallet
+  }
+
+  get walletType(): 'hd' | 'sk' {
     if (!this._key) throw new Error('wallet is not initialized')
     return this._key.data.type
   }
 
-  get wallet(): HdWallet | SingleKeyWallet {
-    if (!this._wallet) throw new Error('wallet is not initialized')
-    return this._wallet
+  /**
+   * TODO
+   */
+  configure(config: Partial<Config>): void {
+    this.opts = { ...this.opts, ...config }
+    this._aldea = new Aldea(this.opts.nodeUrl)
   }
 
   /**
@@ -65,9 +75,7 @@ class Env {
    * TODO
    */
   async loadWallet(): Promise<void> {
-    if (!fs.existsSync(this.walletDir)) {
-      throw new Error('xxxx')
-    }
+    if (!fs.existsSync(this.walletDir)) { throw new Error('wallet not found') }
 
     this._key = initDB<KeyData>(join(this.walletDir, KEY_FILE), { type: 'sk', key: '' })
     await this._key.read()
@@ -77,18 +85,13 @@ class Env {
   }
 
   private initTypedWallet(storage: LowDbStorage): void {
-    if (this.type === 'hd') {
-      this._wallet = new HdWallet(storage, this.aldea, this.key as HDPrivKey)
+    if (this.walletType === 'hd') {
+      this._wallet = new HdWallet(this.key as HDPrivKey, storage, this.aldea)
     } else {
-      this._wallet = new SingleKeyWallet(this.key as PrivKey, this.aldea, storage)
+      this._wallet = new SingleKeyWallet(this.key as PrivKey, storage, this.aldea)
     }
   }
 }
-
-/**
- * TODO
- */
-export const env = new Env()
 
 type KeyData = {
   type: 'hd' | 'sk',

@@ -2,7 +2,7 @@ import { createCommand } from 'commander'
 import { bold, dim,  lightBlue } from 'kolorist'
 import { Pointer } from '@aldea/sdk-js'
 import { log } from '../../log.js'
-import { env } from '../../env.js'
+import { env } from '../../globals.js'
 
 const COIN_PTR = Pointer.fromString('0000000000000000000000000000000000000000000000000000000000000000_0')
 
