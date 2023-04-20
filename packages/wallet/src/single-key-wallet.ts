@@ -35,6 +35,7 @@ export class SingleKeyWallet implements Wallet {
       output.abi = await this.fetchAbi(output.classPtr.id)
     }
 
+    await this.storage.addAbi(output.classPtr.id, output.abi)
     await this.storage.removeUtxoByOrigin(output.origin)
     await this.storage.saveUtxo(output, '')
   }
