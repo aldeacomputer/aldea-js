@@ -15,11 +15,13 @@ export interface Wallet {
 
   signTx(partialTx: TxBuilder): Promise<TxBuilder>
 
-  processTx(tx: Tx, outputList: Output[]): Promise<void>
+  saveTxExec(tx: Tx, outputList: Output[]): Promise<void>
+
+  commitTx(tx: Tx): Promise<CommitTxResponse>
 
   addUtxo(output: Output): Promise<void>
 
-  fundSignAndBroadcastTx(fn: CreateTxCallback): Promise<CommitTxResponse>
+  createFundedTx(fn: CreateTxCallback): Promise<Tx>
 
   sync(): Promise<void>
 }
