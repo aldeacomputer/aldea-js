@@ -36,28 +36,31 @@ export class HdWallet implements Wallet {
 
   async fundTx(partialTx: TxBuilder): Promise<TxBuilder> {
     const outputs = await this.getInventory()
+    const coinOutputs = outputs.filter(o => o.classPtr.equals(COIN_CLASS_PTR))
+
     let motosIn = 0
-    let coins: InstructionRef[] = []
 
-    while (motosIn < 100) {
-      const idx = outputs.findIndex(o => o.classPtr.equals(COIN_CLASS_PTR))
-      if (idx === -1) {
-        throw new Error("No coins available to fund transaction")
-      }
-      const coin = outputs[idx]
-      outputs.splice(idx, 1)
+    for (const coinOutput of coinOutputs) {
+      const coin = coinOutput
       const coinRef = partialTx.load(coin.id)
-      motosIn += (coin.props as any).motos || 0
-      coins.push(coinRef)
+
+      const props = coin.props
+      if (!props) throw new Error('outputs should have abi')
+      motosIn += props.motos
+
+      if (motosIn > 100) {
+        let changeRef = partialTx.call(coinRef, 'send', [motosIn - 100])
+        partialTx.lock(changeRef, await this.getNextAddress())
+        motosIn = 100
+      }
+
+      partialTx.fund(coinRef)
+
+      if (motosIn === 100) {
+        break
+      }
     }
 
-    const fundCoin = coins[0]
-    if (coins.length > 1) {
-      let [first, ...rest] = coins
-      partialTx.call(first, 'combine', [rest])
-    }
-
-    partialTx.fund(fundCoin)
     return partialTx
   }
 
