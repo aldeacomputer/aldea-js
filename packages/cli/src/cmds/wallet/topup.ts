@@ -1,6 +1,5 @@
-import { join } from 'path'
-import { createCommand, createArgument, InvalidArgumentError } from 'commander'
-import { bold } from 'kolorist'
+import { createCommand, createOption, InvalidArgumentError } from 'commander'
+import { bold, dim } from 'kolorist'
 import { OutputResponse } from '@aldea/sdk-js/aldea'
 import { log, ok } from '../../log.js'
 import { env } from '../../env.js'
@@ -9,27 +8,32 @@ import { env } from '../../env.js'
 export const topup = createCommand('wallet.topup')
   .alias('wt')
   .description('Topup your wallet with minted coins from the faucet')
-  .addArgument(createArgument('[motos]', 'Amount of topup motos').default(10000).argParser(toInt))
+  .addOption(createOption('-m, --mint [motos]', 'Amount of topup motos').argParser(toInt))
   .action(walletTopup)
 
 // Topup wallet action
-async function walletTopup(motos: number) {
+async function walletTopup({ mint }: { mint?: number | boolean }) {
   log(bold('Topping up wallet...'))
   log()
 
-  const cwd = process.cwd()
-  const dir = join(cwd, '.aldea')
+  // Set default if motos not specified
+  if (mint === true) mint = 10000
   
-  await env.loadWallet(dir)
-
+  await env.loadWallet()
   const addr = await env.wallet.getNextAddress()
-  const params = { amount: motos, address: addr.toString() }
-  const res = await env.aldea.api.post('mint', { json: params }).json<OutputResponse>()
-  const output = await env.aldea.loadOutput(res.id)
-  await env.wallet.addOutput(output)
 
-  ok(`Minted ${motos} motos`)
-  ok('Coin added to wallet')
+  if (mint) {
+    const params = { amount: mint, address: addr.toString() }
+    const res = await env.aldea.api.post('mint', { json: params }).json<OutputResponse>()
+    const output = await env.aldea.loadOutput(res.id)
+    await env.wallet.addUtxo(output)
+
+    ok(`Minted ${mint} motos`)
+    ok('Coin added to wallet')
+  } else {
+    log(dim('  ❯'), 'Send to address:', bold(addr.toString()))
+  }
+  
   log()
 }
 

@@ -9,6 +9,12 @@ import * as cmds from './cmds/index.js'
 const __dir = dirname(fileURLToPath(import.meta.url))
 const pkg = JSON.parse(readFileSync(join(__dir, '..', 'package.json'), 'utf8'))
 
+// OK this is horrible, but so are those experimental fetch API warnings
+process.removeAllListeners('warning')
+process.on('warning', (e) => {
+  if (e.name !== 'ExperimentalWarning') { console.warn(e) }
+})
+
 program
   .name('aldea')
   .addCommand(cmds.wallet.create)

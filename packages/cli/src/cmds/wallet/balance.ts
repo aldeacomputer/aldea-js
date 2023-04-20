@@ -1,8 +1,10 @@
-import { join } from 'path'
 import { createCommand } from 'commander'
-import { bold } from 'kolorist'
-import { log, ok } from '../../log.js'
+import { bold, dim,  lightBlue } from 'kolorist'
+import { Pointer } from '@aldea/sdk-js'
+import { log } from '../../log.js'
 import { env } from '../../env.js'
+
+const COIN_PTR = Pointer.fromString('0000000000000000000000000000000000000000000000000000000000000000_0')
 
 // Wallet balance command
 export const balance = createCommand('wallet.balance')
@@ -15,13 +17,20 @@ async function walletBalance() {
   log(bold('Fetching wallet balance...'))
   log()
 
-  const cwd = process.cwd()
-  const dir = join(cwd, '.aldea')
-  await env.loadWallet(dir)
-  //await env.wallet.sync()
+  await env.loadWallet()
+  await env.wallet.sync()
 
   const outputs = await env.wallet.getInventory()
-  console.log(outputs)
+  const motos = outputs
+    .filter(o => o.classPtr.equals(COIN_PTR))
+    .reduce((sum, o) => sum += (<{ motos: number }>o.props).motos, 0)
 
+  log(lightBlue('  ₳'), formatMotos(motos))
+  log()
 }
 
+function formatMotos(motos: number): string {
+  const ms = motos.toString()
+  const mf = (motos/100000000).toFixed(8)
+  return dim(mf.slice(0, mf.length - ms.length)) + ms
+}
