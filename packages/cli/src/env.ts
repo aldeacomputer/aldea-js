@@ -22,7 +22,7 @@ class Env {
 
   constructor() {
     this.cwd = process.cwd()
-    this.codeDir = join(this.cwd, 'aldea')
+    this.codeDir = join(this.cwd, '.')
     this.walletDir = join(this.cwd, '.aldea')
     //this.aldea = new Aldea('https://node.aldea.computer')
     this.aldea = new Aldea('http://localhost:4000')

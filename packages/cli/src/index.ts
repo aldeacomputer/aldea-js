@@ -17,6 +17,7 @@ process.on('warning', (e) => {
 
 program
   .name('aldea')
+  .addCommand(cmds.code.deploy)
   .addCommand(cmds.wallet.create)
   .addCommand(cmds.wallet.balance)
   .addCommand(cmds.wallet.topup)
@@ -34,7 +35,8 @@ program
     if (e instanceof Error) {
       log()
       err(e.message)
-      log(e.stack)
+      log()
+      //log(e.stack)
     }
   }
 })()
