@@ -17,7 +17,7 @@ describe('HdWallet', function () {
     const seed = mnemonicToSeedSync(mnemonic)
     const hdPrivKey = HDPrivKey.fromSeed(seed)
     aldea = new Aldea('http://localhost')
-    wallet = new HdWallet(storage, aldea, hdPrivKey)
+    wallet = new HdWallet(hdPrivKey, storage, aldea)
   })
 
   it('get 2 addresses in a row returns different addresses', async () => {

@@ -21,7 +21,14 @@ import {COIN_CLASS_PTR, MAX_GAP_SIZE, PATH_PREFIX} from "./constants.js";
 
 
 export class HdWallet implements Wallet {
-  constructor(private storage: WalletStorage, private aldea: Aldea, private hd: HDPrivKey) {}
+  private hd: HDPrivKey;
+  private storage: WalletStorage;
+  private client: Aldea;
+  constructor(hd: HDPrivKey, storage: WalletStorage, client: Aldea) {
+    this.hd = hd
+    this.storage = storage
+    this.client = client
+  }
 
   async getInventory(): Promise<Array<Output>> {
     return this.storage.allUtxos()
@@ -107,7 +114,7 @@ export class HdWallet implements Wallet {
   }
 
   async createFundedTx(fn: CreateTxCallback): Promise<Tx> {
-    return await this.aldea.createTx(async (builder, ref) => {
+    return await this.client.createTx(async (builder, ref) => {
       await fn(builder, ref)
       await this.fundTx(builder)
       await this.signTx(builder)
@@ -137,7 +144,7 @@ export class HdWallet implements Wallet {
       const path = `M${PATH_PREFIX}${current}`;
       const address = this.hd.derive(path).toPubKey().toAddress()
       await this.storage.saveAddress(address, path)
-      const utxos = await this.aldea.getUtxosByAddress(address)
+      const utxos = await this.client.getUtxosByAddress(address)
       if (utxos.length > 0) {
         lastIndexUsed = current
         await this.storage.changeLastUsedIndex(() => current)
@@ -159,7 +166,7 @@ export class HdWallet implements Wallet {
     }
 
     if (!output.abi) {
-      output.abi = await this.aldea.getPackageAbi(output.classPtr.id)
+      output.abi = await this.client.getPackageAbi(output.classPtr.id)
     }
 
     await this.storage.addAbi(output.classPtr.id, output.abi)
@@ -168,7 +175,7 @@ export class HdWallet implements Wallet {
   }
 
   async commitTx(tx: Tx): Promise<CommitTxResponse> {
-    const response = await this.aldea.commitTx(tx)
+    const response = await this.client.commitTx(tx)
     const outputs = response.outputs.map(o =>Output.fromJson(o))
     await this.saveTxExec(tx, outputs)
     return response
