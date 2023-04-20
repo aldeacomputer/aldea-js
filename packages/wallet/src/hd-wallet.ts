@@ -99,22 +99,19 @@ export class HdWallet implements Wallet {
     return partialTx
   }
 
-  async processTx(tx: Tx, outputs: Output[]): Promise<void> {
+  async saveTxExec(tx: Tx, outputs: Output[]): Promise<void> {
     await this.storage.saveTx(tx)
     for (const output of outputs) {
       await this.addUtxo(output)
     }
   }
 
-  async fundSignAndBroadcastTx(fn: CreateTxCallback): Promise<CommitTxResponse> {
-    const tx = await this.aldea.createTx(async (builder, ref) => {
+  async createFundedTx(fn: CreateTxCallback): Promise<Tx> {
+    return await this.aldea.createTx(async (builder, ref) => {
       await fn(builder, ref)
       await this.fundTx(builder)
       await this.signTx(builder)
     })
-    const txResponse =  await this.aldea.commitTx(tx)
-    await this.processTx(tx, txResponse.outputs.map(or => Output.fromJson(or)))
-    return txResponse
   }
 
   async getNextAddress(): Promise<Address> {
@@ -168,5 +165,12 @@ export class HdWallet implements Wallet {
     await this.storage.addAbi(output.classPtr.id, output.abi)
     await this.storage.removeUtxoByOrigin(output.origin)
     await this.storage.saveUtxo(output, addressOrNull.path)
+  }
+
+  async commitTx(tx: Tx): Promise<CommitTxResponse> {
+    const response = await this.aldea.commitTx(tx)
+    const outputs = response.outputs.map(o =>Output.fromJson(o))
+    await this.saveTxExec(tx, outputs)
+    return response
   }
 }

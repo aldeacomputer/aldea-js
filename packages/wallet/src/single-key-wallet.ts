@@ -32,29 +32,20 @@ export class SingleKeyWallet implements Wallet {
     if (!util.buffEquals(output.lock.data, this.address().hash)) return
 
     if (!output.abi) {
-      const abi = await this.fetchAbi(output.classPtr.id)
-      output.abi = abi
+      output.abi = await this.fetchAbi(output.classPtr.id)
     }
 
+    await this.storage.addAbi(output.classPtr.id, output.abi)
     await this.storage.removeUtxoByOrigin(output.origin)
     await this.storage.saveUtxo(output, '')
   }
 
-  async fundSignAndBroadcastTx(fn: CreateTxCallback): Promise<CommitTxResponse> {
-    const tx = await this.client.createTx(async (builder, ref) => {
+  async createFundedTx(fn: CreateTxCallback): Promise<Tx> {
+    return await this.client.createTx(async (builder, ref) => {
       await fn(builder, ref)
       await this.fundTx(builder)
       await this.signTx(builder)
     })
-
-    const result = await this.client.commitTx(tx)
-
-    const outputs  = await Promise.all(result.outputs.map(async (or) => {
-      return Output.fromJson(or)
-    }))
-
-    await this.processTx(tx, outputs)
-    return result
   }
 
   async fundTx(partialTx: TxBuilder): Promise<TxBuilder> {
@@ -84,7 +75,7 @@ export class SingleKeyWallet implements Wallet {
     return this.privKey.toPubKey().toAddress()
   }
 
-  async processTx(tx: Tx, outputList: Output[]): Promise<void> {
+  async saveTxExec(tx: Tx, outputList: Output[]): Promise<void> {
     await Promise.all(outputList.map(output => this.addUtxo(output)))
     this.storage.saveTx(tx)
   }
@@ -113,5 +104,12 @@ export class SingleKeyWallet implements Wallet {
       abi = newAbi
     }
     return abi
+  }
+
+  async commitTx(tx: Tx): Promise<CommitTxResponse> {
+    const response = await this.client.commitTx(tx)
+    const outputs = response.outputs.map(o =>Output.fromJson(o))
+    await this.saveTxExec(tx, outputs)
+    return response
   }
 }

@@ -22,11 +22,12 @@ console.log('inventory after mint')
 console.log(await wallet.getInventory())
 
 console.log('minting an nft...')
-const response = await wallet.fundSignAndBroadcastTx(builder => {
+const tx = await wallet.createFundedTx(builder => {
   const pkgIdx = builder.import('ea9225bcf8572c3a9fa75d186b62ab976d017d96b0614612f59d5fa5087b7fa3')
   const nftIdx = builder.new(pkgIdx, 'NFT', ['name', 32, 'moreName'])
   builder.lock(nftIdx, wallet.address())
 })
+await wallet.commitTx(tx)
 
 console.log('inventory  after minting')
 console.log(await wallet.getInventory())
