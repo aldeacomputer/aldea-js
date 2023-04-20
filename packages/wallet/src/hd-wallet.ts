@@ -14,7 +14,7 @@ import {
 } from '@aldea/sdk-js'
 import {Wallet} from "./wallet.js";
 import {WalletStorage} from "./storage/index.js";
-import {COIN_CLASS_PTR, MAX_GAP_SIZE, PATH_PREFIX} from "./constants.js";
+import {MAX_GAP_SIZE, PATH_PREFIX} from "./constants.js";
 
 
 export class HdWallet extends Wallet {

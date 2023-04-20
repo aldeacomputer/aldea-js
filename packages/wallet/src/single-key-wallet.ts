@@ -1,7 +1,6 @@
 import {
   Address,
   Aldea,
-  CommitTxResponse,
   LockType,
   Output,
   PrivKey,
@@ -10,7 +9,6 @@ import {
   util
 } from '@aldea/sdk-js'
 import {Wallet} from "./wallet.js";
-import {COIN_CLASS_PTR} from "./constants.js";
 import {WalletStorage} from "./storage/index.js";
 
 

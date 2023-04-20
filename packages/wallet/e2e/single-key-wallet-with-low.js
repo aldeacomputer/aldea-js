@@ -1,5 +1,4 @@
-import { SingleKeyWallet } from "../dist/single-key-wallet.js"
-
+import { SingleKeyWallet } from "../dist/index.js"
 import { Aldea, Output, PrivKey } from "@aldea/sdk-js"
 import { Memory } from "lowdb"
 import { LowDbStorage } from "../dist/index.js"
@@ -35,7 +34,7 @@ console.log(await wallet.getInventory())
 
 console.log('sync new instance')
 const aldea2 = new Aldea('http://localhost:4000')
-const wallet2 = new SingleKeyWallet(pk, storage, aldea)
+const wallet2 = new SingleKeyWallet(pk, storage, aldea2)
 await wallet2.sync()
 console.log('wallet 2 inventory')
 console.log(await wallet2.getInventory())

@@ -1,6 +1,6 @@
-import { HdWallet } from "../dist/hd-wallet.js"
-import { LowDbStorage } from '../dist/storage/lowdb-storage.js'
-import { Aldea, HDPrivKey, Output, PrivKey } from "@aldea/sdk-js"
+import { HdWallet } from "../dist/index.js"
+import { LowDbStorage } from '../dist/index.js'
+import { Aldea, HDPrivKey, Output } from "@aldea/sdk-js"
 import { Memory } from "lowdb"
 
 const aldea = new Aldea('http://localhost:4000')
