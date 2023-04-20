@@ -27,7 +27,7 @@ type TxItem = {
   txHex: string
 }
 
-export interface HdWalletData {
+export interface LowDbData {
   utxos: OutputItem[]
   addresses: AddressItem[]
   abis: AbiItem[]
@@ -37,8 +37,8 @@ export interface HdWalletData {
 }
 
 export class LowDbStorage implements WalletStorage {
-  db: Low<HdWalletData>
-  constructor(adapter: Adapter<HdWalletData>) {
+  db: Low<LowDbData>
+  constructor(adapter: Adapter<LowDbData>) {
     this.db = new Low(adapter, {
       utxos: [],
       txs: [],
@@ -49,7 +49,7 @@ export class LowDbStorage implements WalletStorage {
     })
   }
 
-  private data (): HdWalletData {
+  private data (): LowDbData {
     return this.db.data
   }
 

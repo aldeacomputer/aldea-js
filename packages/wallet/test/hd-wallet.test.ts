@@ -3,7 +3,7 @@ import { Low, Memory } from 'lowdb'
 import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english.js'
 import { Aldea, HDPrivKey,  } from "@aldea/sdk-js"
-import {buildLowDb, HdWallet, LowDbStorage, HdWalletData} from "../src/index.js"
+import {HdWallet, LowDbStorage, LowDbData} from "../src/index.js"
 import {Wallet} from "../src/wallet.js";
 
 
@@ -12,8 +12,7 @@ describe('HdWallet', function () {
   let wallet: Wallet
 
   beforeEach(() => {
-    const low = buildLowDb(new Memory())
-    const storage = new LowDbStorage(low)
+    const storage = new LowDbStorage(new Memory())
     const mnemonic = generateMnemonic(wordlist)
     const seed = mnemonicToSeedSync(mnemonic)
     const hdPrivKey = HDPrivKey.fromSeed(seed)
@@ -27,7 +26,6 @@ describe('HdWallet', function () {
     expect(addr1).not.to.eql(addr2)
   })
 });
-
 
 //
 //
