@@ -49,9 +49,10 @@ __metadata:
   resolution: "@aldea/cli@workspace:packages/cli"
   dependencies:
     "@aldea/sdk-js": "workspace:^"
+    "@aldea/wallet-lib": "workspace:^"
     commander: ^10.0.1
     kolorist: ^1.7.0
-    lowdb: ^5.1.0
+    lowdb: ^6.0.0
     prompts: ^2.4.2
     typescript: ^5.0.4
   bin:
@@ -220,7 +221,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/wallet-lib@workspace:packages/wallet":
+"@aldea/wallet-lib@workspace:^, @aldea/wallet-lib@workspace:packages/wallet":
   version: 0.0.0-use.local
   resolution: "@aldea/wallet-lib@workspace:packages/wallet"
   dependencies:

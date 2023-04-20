@@ -2,8 +2,8 @@ import { readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import { program } from 'commander'
-import { red } from 'kolorist'
 
+import { log, err } from './log.js'
 import * as cmds from './cmds/index.js'
 
 const __dir = dirname(fileURLToPath(import.meta.url))
@@ -19,14 +19,16 @@ program
   
 ;(async _ => {
   try {
+    log()
     await program.parseAsync()
     if (process.argv.length <= 2 || !program.commands.length) {
       program.outputHelp()
     }
   } catch(e: unknown) {
     if (e instanceof Error) {
-      console.log()
-      console.log(red('✖'), e.message)
+      log()
+      err(e.message)
+      log(e.stack)
     }
   }
 })()

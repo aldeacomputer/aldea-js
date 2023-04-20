@@ -1,12 +1,27 @@
-import { Command } from 'commander'
+import { join } from 'path'
+import { createCommand } from 'commander'
+import { bold } from 'kolorist'
+import { log, ok } from '../../log.js'
+import { env } from '../../env.js'
 
-export const balance =
-  new Command('wallet.balance')
-    .alias('wb')
-    .description('Show your wallet balance')
-    .action(walletBalance)
+// Wallet balance command
+export const balance = createCommand('wallet.balance')
+  .alias('wb')
+  .description('Show your wallet balance')
+  .action(walletBalance)
 
-function walletBalance() {
-  console.log('showing balance')
+// Wallet balance action
+async function walletBalance() {
+  log(bold('Fetching wallet balance...'))
+  log()
+
+  const cwd = process.cwd()
+  const dir = join(cwd, '.aldea')
+  await env.loadWallet(dir)
+  //await env.wallet.sync()
+
+  const outputs = await env.wallet.getInventory()
+  console.log(outputs)
+
 }
 
