@@ -1,8 +1,8 @@
 import fs from 'fs'
 import { join } from 'path'
 import { createCommand, createArgument } from 'commander'
-import { bold, dim } from 'kolorist'
-import { log, ok, err } from '../../log.js'
+import { bold, dim, lightGreen } from 'kolorist'
+import { log, ok } from '../../log.js'
 import { env } from '../../env.js'
 
 // Create wallet command
@@ -20,25 +20,27 @@ async function codeDeploy(sources: string[]) {
   await env.loadWallet()
   const pkg = buildPkg(sources)
 
-  const res = await env.wallet.fundSignAndBroadcastTx(txb => {
+  const tx = await env.wallet.createFundedTx(txb => {
     txb.deploy(pkg)
   })
 
-  console.log(res)
-  
+  const res = await env.wallet.commitTx(tx)
+
+  log()
+  log(' ', dim('-'), 'Txn ID:', lightGreen(res.id))
+  log(' ', dim('-'), 'Pkg ID:', lightGreen(res.packages[0].id))
+  log()
+  ok('Package successfully deployed')
+  log()
 }
 
+// Builds the package map
 function buildPkg(sources: string[]): Map<string, string> {
   return sources.reduce((pkg, src) => {
     const srcPath = join(env.codeDir, src)
-    try {
-      const code = fs.readFileSync(srcPath, 'utf8')
-      pkg.set(src, code)
-      ok(srcPath)
-      return pkg
-    } catch(e) {
-      log(' ', dim('-'), srcPath)
-      throw e
-    }
+    log(' ', dim('-'), srcPath)
+    const code = fs.readFileSync(srcPath, 'utf8')
+    pkg.set(src, code)
+    return pkg
   }, new Map<string, string>())
 }
