@@ -17,7 +17,7 @@ import {
 } from '@aldea/sdk-js'
 import {Wallet} from "./wallet.js";
 import {WalletStorage} from "./storage/index.js";
-import {MAX_GAP_SIZE, PATH_PREFIX} from "./constants.js";
+import {COIN_CLASS_PTR, MAX_GAP_SIZE, PATH_PREFIX} from "./constants.js";
 
 
 export class HdWallet implements Wallet {
@@ -33,7 +33,7 @@ export class HdWallet implements Wallet {
     let coins: InstructionRef[] = []
 
     while (motosIn < 100) {
-      const idx = outputs.findIndex(o => o.classPtr.toString() === "0000000000000000000000000000000000000000000000000000000000000000_0")
+      const idx = outputs.findIndex(o => o.classPtr.equals(COIN_CLASS_PTR))
       if (idx === -1) {
         throw new Error("No coins available to fund transaction")
       }
