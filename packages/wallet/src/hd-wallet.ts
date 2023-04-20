@@ -107,14 +107,11 @@ export class HdWallet implements Wallet {
   }
 
   async createFundedTx(fn: CreateTxCallback): Promise<Tx> {
-    const tx = await this.aldea.createTx(async (builder, ref) => {
+    return await this.aldea.createTx(async (builder, ref) => {
       await fn(builder, ref)
       await this.fundTx(builder)
       await this.signTx(builder)
     })
-    const txResponse =  await this.aldea.commitTx(tx)
-    await this.saveTxExec(tx, txResponse.outputs.map(or => Output.fromJson(or)))
-    return tx
   }
 
   async getNextAddress(): Promise<Address> {
