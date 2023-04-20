@@ -15,55 +15,16 @@ import {
   Tx,
   TxBuilder
 } from '@aldea/sdk-js'
-
-
 import {Wallet} from "./wallet.js";
-import {Abi} from "@aldea/compiler/abi";
+import {WalletStorage} from "./storage/index.js";
+import {MAX_GAP_SIZE, PATH_PREFIX} from "./constants.js";
 
-
-const PATH_PREFIX = "/0/"
-
-export interface OwnedAddress {
-  address: Address
-  path: string
-}
-
-export interface OwnedOutput {
-  output: Output
-  path: string
-}
-
-export interface HdWalletStorage {
-  getInventory(): Promise<Array<Output>>
-
-  currentIndex(): Promise<number>,
-  changeCurrentIndex(f: (newIndex: number) => number): Promise<number>
-
-  lastUsedIndex(): Promise<number>
-  changeLastUsedIndex(f: (newIndex: number) => number): Promise<number>
-
-
-  saveAddress(address: Address, path: string): Promise<void>;
-
-  saveUtxo(output: Output, path: string): Promise<void>
-  utxoById(outputId: string): Promise<OwnedOutput | null>;
-  utxoByOrigin(outputId: Pointer): Promise<OwnedOutput | null>;
-  removeUtxoByOrigin(origin: Pointer): Promise<void>
-
-  saveTx(tx: Tx): Promise<void>
-
-  addressByPubKeyHash(pubKeHashStr: string): Promise<OwnedAddress | null>
-
-  addAbi(pkgId: string, abi: Abi): Promise<void>;
-}
-
-const MAX_GAP_SIZE = 20
 
 export class HdWallet implements Wallet {
-  constructor(private storage: HdWalletStorage, private aldea: Aldea, private hd: HDPrivKey) {}
+  constructor(private storage: WalletStorage, private aldea: Aldea, private hd: HDPrivKey) {}
 
   async getInventory(): Promise<Array<Output>> {
-    return this.storage.getInventory()
+    return this.storage.allUtxos()
   }
 
   async fundTx(partialTx: TxBuilder): Promise<TxBuilder> {
@@ -158,7 +119,7 @@ export class HdWallet implements Wallet {
 
   async getNextAddress(): Promise<Address> {
     const index = await this.storage.currentIndex()
-    const lastUsed = await this.storage.lastUsedIndex()
+    const lastUsed = await this.storage.latestUsedIndex()
 
     const next = index - lastUsed > MAX_GAP_SIZE
       ? lastUsed
@@ -173,7 +134,7 @@ export class HdWallet implements Wallet {
   }
 
   async sync(): Promise<void> {
-    let lastIndexUsed = await this.storage.lastUsedIndex()
+    let lastIndexUsed = await this.storage.latestUsedIndex()
     let current = lastIndexUsed
     while (current < lastIndexUsed + MAX_GAP_SIZE) {
       const path = `M${PATH_PREFIX}${current}`;

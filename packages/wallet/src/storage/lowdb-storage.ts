@@ -1,7 +1,7 @@
 import {Adapter, Low} from 'lowdb'
-import {HdWalletStorage, OwnedAddress, OwnedOutput} from "../hd-wallet.js"
 import {Address, base16, Output, Pointer, Tx} from '@aldea/sdk-js'
 import {Abi, abiFromCbor, abiToCbor} from "@aldea/compiler/abi";
+import {OwnedAddress, OwnedOutput, WalletStorage} from "./wallet-storage.js";
 
 
 type OutputItem = {
@@ -36,7 +36,7 @@ export interface HdWalletData {
   txs: TxItem[]
 }
 
-export class LowDbStorage implements HdWalletStorage {
+export class LowDbStorage implements WalletStorage {
   db: Low<HdWalletData>
   constructor(adapter: Adapter<HdWalletData>) {
     this.db = new Low(adapter, {
@@ -53,7 +53,7 @@ export class LowDbStorage implements HdWalletStorage {
     return this.db.data
   }
 
-  async getInventory(): Promise<Array<Output>> {
+  async allUtxos(): Promise<Array<Output>> {
     this.data().utxos.map(o => o)
     return this.data().utxos.map(ownedUtxo => {
       const output = Output.fromHex(ownedUtxo.outputHex)
@@ -102,7 +102,7 @@ export class LowDbStorage implements HdWalletStorage {
     return this.data().currentIndex
   }
 
-  async lastUsedIndex(): Promise<number> {
+  async latestUsedIndex(): Promise<number> {
     return this.data().latestUsedIndex
   }
 
@@ -171,6 +171,14 @@ export class LowDbStorage implements HdWalletStorage {
       })
       return Promise.resolve(undefined);
     }
+  }
+
+  async abiByPkgId(pkgId: string): Promise<Abi | null> {
+    const abiItem = this.data().abis.find(a => a.pkgId === pkgId);
+    if (!abiItem) {
+      return null
+    }
+    return abiFromCbor(base16.decode(abiItem.abiStr).buffer)
   }
 }
 

@@ -1,17 +1,22 @@
-import { SingleKeyWallet, LowDbSingleKeyWalletStorage } from "../dist/single-key-wallet.js"
+import { SingleKeyWallet } from "../dist/single-key-wallet.js"
+
 import { Aldea, Output, PrivKey } from "@aldea/sdk-js"
 import { Memory } from "lowdb"
+import { LowDbStorage } from "../dist/index.js"
 
 const aldea = new Aldea('http://localhost:4000')
 const pk = PrivKey.fromRandom()
 
-const storage = new LowDbSingleKeyWalletStorage(new Memory())
+const storage = new LowDbStorage(new Memory())
 const wallet = new SingleKeyWallet(pk, aldea, storage)
 
-const kyResponse = await aldea.api.post('mint', { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: wallet.getNextAddress().toString(), amount: 500 })})
+const kyResponse = await aldea.api.post('mint', {
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ address: await wallet.getNextAddress().then(a => a.toString()), amount: 500 })
+})
 
 const output = Output.fromJson(await kyResponse.json())
-await wallet.addOutput(output)
+await wallet.addUtxo(output)
 
 console.log('inventory after mint')
 console.log(await wallet.getInventory())
