@@ -172,7 +172,7 @@ export class SingleKeyWallet implements Wallet {
     this.storage = storage
   }
 
-  async addOutput(output: Output): Promise<void> {
+  async addUtxo(output: Output): Promise<void> {
     if (output.lock.type !== LockType.ADDRESS) return
 
     if (!util.buffEquals(output.lock.data, this.address().hash)) return
@@ -231,7 +231,7 @@ export class SingleKeyWallet implements Wallet {
   }
 
   async processTx(tx: Tx, outputList: Output[]): Promise<void> {
-    await Promise.all(outputList.map(output => this.addOutput(output)))
+    await Promise.all(outputList.map(output => this.addUtxo(output)))
     this.storage.addTx(tx)
   }
 
@@ -243,7 +243,7 @@ export class SingleKeyWallet implements Wallet {
   async sync(): Promise<void> {
     const outputs = await this.client.getUtxosByAddress(this.address())
     for (const output of outputs) {
-      await this.addOutput(output)
+      await this.addUtxo(output)
     }
   }
 

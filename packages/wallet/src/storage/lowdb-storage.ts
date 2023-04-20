@@ -1,137 +1,176 @@
 import {Adapter, Low} from 'lowdb'
-import {OwnedOutput} from "../wallet.js"
-import {HdWalletStorage} from "../hd-wallet.js"
-import {
-  Output,
-  LockType,
-  Address,
-  util,
-  Pointer,
-  Tx
-} from '@aldea/sdk-js'
+import {HdWalletStorage, OwnedAddress, OwnedOutput} from "../hd-wallet.js"
+import {Address, base16, Output, Pointer, Tx} from '@aldea/sdk-js'
+import {Abi, abiFromCbor, abiToCbor} from "@aldea/compiler/abi";
 
-export interface OwnedAddress {
-  buff: Uint8Array,
+
+type OutputItem = {
+  origin: string,
+  id: string,
+  outputHex: string
   path: string
 }
 
-export interface WalletData {
-  outputs: OwnedOutput[]
-  addresses: OwnedAddress[]
-  currentIndex: number
-  latestUsedIndex: number
-  txs: Uint8Array[]
+type AddressItem = {
+  addrStr: string,
+  hash: string,
+  path: string
 }
 
-export function buildLowDb (adapter: Adapter<WalletData>): Low<WalletData> {
-  return new Low<WalletData>(adapter, {
-    outputs: [],
-    addresses: [],
-    txs: [],
-    currentIndex: 0,
-    latestUsedIndex: 0,
-  })
+type AbiItem = {
+  abiStr: string,
+  pkgId: string
+}
+
+type TxItem = {
+  id: string,
+  txHex: string
+}
+
+export interface HdWalletData {
+  utxos: OutputItem[]
+  addresses: AddressItem[]
+  abis: AbiItem[]
+  currentIndex: number
+  latestUsedIndex: number
+  txs: TxItem[]
 }
 
 export class LowDbStorage implements HdWalletStorage {
-  db: Low<WalletData>
-  constructor(low: Low<WalletData>) {
-    this.db = low
-  }
-
-  private async initializeData (): Promise<void> {
-    this.db.data = {
-      outputs: [],
-      addresses: [],
+  db: Low<HdWalletData>
+  constructor(adapter: Adapter<HdWalletData>) {
+    this.db = new Low(adapter, {
+      utxos: [],
       txs: [],
+      addresses: [],
+      abis: [],
       currentIndex: 0,
-      latestUsedIndex: 0,
-    }
+      latestUsedIndex: 0
+    })
   }
 
-  private async data (): Promise<WalletData> {
-    if (!this.db.data) {
-      await this.db.read()
-      if (!this.db.data) {
-        await this.initializeData()
-      }
-    }
-    return this.db.data as WalletData
+  private data (): HdWalletData {
+    return this.db.data
   }
 
   async getInventory(): Promise<Array<Output>> {
-    return this.data().then(data => data.outputs.map(o => o.output))
+    this.data().utxos.map(o => o)
+    return this.data().utxos.map(ownedUtxo => {
+      const output = Output.fromHex(ownedUtxo.outputHex)
+      const abi = this.data().abis.find(u => u.pkgId === output.classPtr.id)
+      if (abi === undefined) {
+        throw new Error('abi should be present')
+      }
+      output.abi = abiFromCbor(base16.decode(abi.abiStr).buffer)
+      return output
+    })
   }
 
-  async addOutput(output: Output): Promise<boolean> {
-    if (output.lock.type !== LockType.ADDRESS) {
-      return false
-    }
+  async saveUtxo(output: Output, path: string): Promise<void> {
+    this.data().utxos.push({
+      id: output.id,
+      origin: output.origin.toString(),
+      outputHex: output.toHex(),
+      path: path
+    })
 
-    const data = await this.data()
-
-    let ownAddress = data.addresses.find(a => util.buffEquals(a.buff, output.lock.data));
-
-    if (!ownAddress) {
-      return false
-    }
-
-    const filtered = data.outputs
-      .filter(o => !util.buffEquals(o.output.hash, output.hash))
-
-    filtered.push({ output, path: ownAddress.path })
-    data.outputs = filtered
     await this.db.write()
-    return true
   }
 
   async saveAddress(address: Address, path: string): Promise<void> {
-    await this.data().then(data => data.addresses.push({
-      buff: address.hash,
-      path
-    }))
+    this.data().addresses.push({
+      addrStr: address.toString(),
+      hash: base16.encode(address.hash),
+      path: path
+    })
+    await this.db.write()
   }
 
   async changeCurrentIndex(f: (newIndex: number) => number): Promise<number> {
-    return this.data().then(async data => {
-      data.currentIndex = f(data.currentIndex);
-      await this.db.write()
-      return data.currentIndex
-    })
+    this.data().currentIndex = f(this.data().currentIndex)
+    await this.db.write()
+    return this.data().currentIndex
   }
 
   async changeLastUsedIndex(f: (newIndex: number) => number): Promise<number> {
-    return this.data().then(async data => {
-      data.latestUsedIndex = f(data.latestUsedIndex);
-      await this.db.write()
-      return data.latestUsedIndex
-      }
-    )
+    this.data().latestUsedIndex = f(this.data().latestUsedIndex)
+    await this.db.write()
+    return this.data().latestUsedIndex
   }
 
-  currentIndex(): Promise<number> {
-    return this.data().then(data => data.currentIndex)
+  async currentIndex(): Promise<number> {
+    return this.data().currentIndex
   }
 
-  lastUsedIndex(): Promise<number> {
-    return this.data().then(data => data.latestUsedIndex)
+  async lastUsedIndex(): Promise<number> {
+    return this.data().latestUsedIndex
   }
 
-  async outputById(outputId: Uint8Array): Promise<OwnedOutput | null> {
-    const data = await this.data()
-    return data.outputs.find(o => util.buffEquals(o.output.hash, outputId)) || null;
+  async utxoById(outputId: string): Promise<OwnedOutput | null> {
+    const outputItem = this.data().utxos.find(u => u.id === outputId);
+    if (!outputItem) {
+      return null
+    }
+    const output = Output.fromHex(outputItem.outputHex)
+    const abiItem = this.data().abis.find(a => a.pkgId === output.classPtr.id)
+    if (!abiItem) {
+      throw new Error('abi should be present')
+    }
+    output.abi = abiFromCbor(base16.decode(abiItem.abiStr).buffer)
+    return {
+      output: output,
+      path: outputItem.path
+    }
   }
 
-  async outputByOrigin(origin: Pointer): Promise<OwnedOutput | null> {
-    const data = await this.data()
-    return data.outputs.find(o => o.output.origin.equals(origin)) || null;
+  async utxoByOrigin(origin: Pointer): Promise<OwnedOutput | null> {
+    const outputItem = this.data().utxos.find(u => u.origin === origin.toString());
+    if (!outputItem) {
+      return null
+    }
+    const output = Output.fromHex(outputItem.outputHex)
+    const abiItem = this.data().abis.find(a => a.pkgId === output.classPtr.id)
+    if (!abiItem) {
+      throw new Error('abi should be present')
+    }
+    output.abi = abiFromCbor(base16.decode(abiItem.abiStr).buffer)
+    return {
+      output: output,
+      path: outputItem.path
+    }
   }
 
   async saveTx (tx: Tx): Promise<void> {
-    await this.data().then(data => {
-      data.txs.push(tx.toBytes())
+    this.data().txs.push({
+      id: tx.id,
+      txHex: tx.toHex()
     })
     await this.db.write()
+  }
+
+  async removeUtxoByOrigin(origin: Pointer): Promise<void> {
+    this.data().utxos = this.data().utxos.filter(u => u.origin !== origin.toString())
+    await this.db.write()
+  }
+
+  async addressByPubKeyHash(pubKeHashStr: string): Promise<OwnedAddress | null> {
+    let addr = this.db.data.addresses.find(a => a.hash === pubKeHashStr)
+    if (!addr) return null
+    return {
+      address: Address.fromString(addr.addrStr),
+      path: addr.path
+    }
+  }
+
+  async addAbi(pkgId: string, abi: Abi): Promise<void> {
+    const exists = this.data().abis.some(a => a.pkgId === pkgId)
+    if (!exists) {
+      this.data().abis.push({
+        abiStr: base16.encode(new Uint8Array(abiToCbor(abi))) ,
+        pkgId
+      })
+      return Promise.resolve(undefined);
+    }
   }
 }
 

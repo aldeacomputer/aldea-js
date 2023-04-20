@@ -1,45 +1,60 @@
 import {
   Address,
   Aldea,
+  base16,
   CommitTxResponse,
   CreateTxCallback,
   HDPrivKey,
   HDPubKey,
   InstructionRef,
+  instructions,
+  LockType,
   OpCode,
   Output,
   Pointer,
   Tx,
-  TxBuilder,
-  instructions
+  TxBuilder
 } from '@aldea/sdk-js'
 
 
-import {OwnedOutput, Wallet} from "./wallet.js";
+import {Wallet} from "./wallet.js";
+import {Abi} from "@aldea/compiler/abi";
 
 
-const PATH_PREFFIX = "/0/"
+const PATH_PREFIX = "/0/"
+
+export interface OwnedAddress {
+  address: Address
+  path: string
+}
+
+export interface OwnedOutput {
+  output: Output
+  path: string
+}
 
 export interface HdWalletStorage {
   getInventory(): Promise<Array<Output>>
 
-  addOutput(output: Output): Promise<boolean>
-
   currentIndex(): Promise<number>,
-
   changeCurrentIndex(f: (newIndex: number) => number): Promise<number>
 
   lastUsedIndex(): Promise<number>
-
   changeLastUsedIndex(f: (newIndex: number) => number): Promise<number>
+
 
   saveAddress(address: Address, path: string): Promise<void>;
 
-  outputById(outputId: Uint8Array): Promise<OwnedOutput | null>;
-
-  outputByOrigin(outputId: Pointer): Promise<OwnedOutput | null>;
+  saveUtxo(output: Output, path: string): Promise<void>
+  utxoById(outputId: string): Promise<OwnedOutput | null>;
+  utxoByOrigin(outputId: Pointer): Promise<OwnedOutput | null>;
+  removeUtxoByOrigin(origin: Pointer): Promise<void>
 
   saveTx(tx: Tx): Promise<void>
+
+  addressByPubKeyHash(pubKeHashStr: string): Promise<OwnedAddress | null>
+
+  addAbi(pkgId: string, abi: Abi): Promise<void>;
 }
 
 const MAX_GAP_SIZE = 20
@@ -87,8 +102,9 @@ export class HdWallet implements Wallet {
         const inst = i as instructions.LoadInstruction
         return inst.outputId
       })
+      .map(base16.encode)
 
-    const originsAsBytes = tx.instructions
+    const originsAsStr = tx.instructions
       .filter(i => i.opcode === OpCode.LOADBYORIGIN)
       .map(i => {
         const inst = i as instructions.LoadByOriginInstruction
@@ -98,14 +114,14 @@ export class HdWallet implements Wallet {
     const paths = []
 
     for (const outputId of outputIds) {
-      const ownedOutput = await this.storage.outputById(outputId)
+      const ownedOutput = await this.storage.utxoById(outputId)
       if (ownedOutput) {
         paths.push(ownedOutput.path)
       }
     }
 
-    for (const originBytes of originsAsBytes) {
-      const ownedOutput = await this.storage.outputByOrigin(Pointer.fromBytes(originBytes))
+    for (const originBytes of originsAsStr) {
+      const ownedOutput = await this.storage.utxoByOrigin(Pointer.fromBytes(originBytes))
       if (ownedOutput) {
         paths.push(ownedOutput.path)
       }
@@ -125,15 +141,15 @@ export class HdWallet implements Wallet {
   async processTx(tx: Tx, outputs: Output[]): Promise<void> {
     await this.storage.saveTx(tx)
     for (const output of outputs) {
-      await this.storage.addOutput(output)
+      await this.addUtxo(output)
     }
   }
 
   async fundSignAndBroadcastTx(fn: CreateTxCallback): Promise<CommitTxResponse> {
-    const tx = await this.aldea.createTx((builder, ref) => {
-      fn(builder, ref)
-      this.fundTx(builder)
-      this.signTx(builder)
+    const tx = await this.aldea.createTx(async (builder, ref) => {
+      await fn(builder, ref)
+      await this.fundTx(builder)
+      await this.signTx(builder)
     })
     const txResponse =  await this.aldea.commitTx(tx)
     await this.processTx(tx, txResponse.outputs.map(or => Output.fromJson(or)))
@@ -148,7 +164,7 @@ export class HdWallet implements Wallet {
       ? lastUsed
       : index
 
-    const path = `M${PATH_PREFFIX}${index}`; // Derive pubkey
+    const path = `M${PATH_PREFIX}${index}`; // Derive pubkey
     const hdPub = this.hd.derive(path);
     const address = hdPub.toPubKey().toAddress();
     await this.storage.saveAddress(address, path)
@@ -160,7 +176,7 @@ export class HdWallet implements Wallet {
     let lastIndexUsed = await this.storage.lastUsedIndex()
     let current = lastIndexUsed
     while (current < lastIndexUsed + MAX_GAP_SIZE) {
-      const path = `M${PATH_PREFFIX}${current}`;
+      const path = `M${PATH_PREFIX}${current}`;
       const address = this.hd.derive(path).toPubKey().toAddress()
       await this.storage.saveAddress(address, path)
       const utxos = await this.aldea.getUtxosByAddress(address)
@@ -170,14 +186,26 @@ export class HdWallet implements Wallet {
         await this.storage.changeCurrentIndex(() => current)
       }
       await Promise.all(utxos.map(async (utxo) => {
-        await this.storage.addOutput(utxo)
+        await this.addUtxo(utxo)
       }))
       current++
     }
     return Promise.resolve()
   }
 
-  async addOutput (output: Output): Promise<void> {
-    await this.storage.addOutput(output)
+  async addUtxo (output: Output): Promise<void> {
+    if (output.lock.type !== LockType.ADDRESS) return
+    let addressOrNull = await this.storage.addressByPubKeyHash(base16.encode(output.lock.data))
+    if (addressOrNull === null) { // address does not belong to wallet.
+      return
+    }
+
+    if (!output.abi) {
+      output.abi = await this.aldea.getPackageAbi(output.classPtr.id)
+    }
+
+    await this.storage.addAbi(output.classPtr.id, output.abi)
+    await this.storage.removeUtxoByOrigin(output.origin)
+    await this.storage.saveUtxo(output, addressOrNull.path)
   }
 }

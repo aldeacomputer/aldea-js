@@ -10,7 +10,7 @@ import {
   TxBuilder, Address,
 } from './internal.js'
 
-export type CreateTxCallback = (tx: TxBuilder, ref: (idx: number) => InstructionRef) => void
+export type CreateTxCallback = (tx: TxBuilder, ref: (idx: number) => InstructionRef) => void | Promise<void>
 
 /**
  * The Aldea class connects to a remote Aldea instance and provide a top-level
@@ -37,7 +37,7 @@ export class Aldea {
    */
   async createTx(builder: CreateTxCallback): Promise<Tx> {
     const txBuilder = new TxBuilder(this)
-    builder(txBuilder, ref)
+    await builder(txBuilder, ref)
     return txBuilder.build()
   }
 

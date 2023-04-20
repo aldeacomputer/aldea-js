@@ -8,7 +8,7 @@ const pk = PrivKey.fromRandom()
 const storage = new LowDbSingleKeyWalletStorage(new Memory())
 const wallet = new SingleKeyWallet(pk, aldea, storage)
 
-const kyResponse = await aldea.api.post('mint', { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: wallet.address().toString(), amount: 500 })})
+const kyResponse = await aldea.api.post('mint', { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: wallet.getNextAddress().toString(), amount: 500 })})
 
 const output = Output.fromJson(await kyResponse.json())
 await wallet.addOutput(output)

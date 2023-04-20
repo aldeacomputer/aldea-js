@@ -17,14 +17,9 @@ export interface Wallet {
 
   processTx(tx: Tx, outputList: Output[]): Promise<void>
 
-  addOutput(output: Output): Promise<void>
+  addUtxo(output: Output): Promise<void>
 
   fundSignAndBroadcastTx(fn: CreateTxCallback): Promise<CommitTxResponse>
 
   sync(): Promise<void>
-}
-
-export interface OwnedOutput {
-  output: Output
-  path: string
 }

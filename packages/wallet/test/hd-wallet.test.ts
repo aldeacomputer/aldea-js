@@ -3,7 +3,7 @@ import { Low, Memory } from 'lowdb'
 import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english.js'
 import { Aldea, HDPrivKey,  } from "@aldea/sdk-js"
-import {buildLowDb, HdWallet, LowDbStorage, WalletData} from "../src/index.js"
+import {buildLowDb, HdWallet, LowDbStorage, HdWalletData} from "../src/index.js"
 import {Wallet} from "../src/wallet.js";
 
 
