@@ -2,11 +2,8 @@ import {
   Address,
   Aldea,
   base16,
-  CommitTxResponse,
-  CreateTxCallback,
   HDPrivKey,
   HDPubKey,
-  InstructionRef,
   instructions,
   LockType,
   OpCode,
@@ -20,48 +17,17 @@ import {WalletStorage} from "./storage/index.js";
 import {COIN_CLASS_PTR, MAX_GAP_SIZE, PATH_PREFIX} from "./constants.js";
 
 
-export class HdWallet implements Wallet {
+export class HdWallet extends Wallet {
   private hd: HDPrivKey;
   private storage: WalletStorage;
-  private client: Aldea;
   constructor(hd: HDPrivKey, storage: WalletStorage, client: Aldea) {
+    super(client)
     this.hd = hd
     this.storage = storage
-    this.client = client
   }
 
   async getInventory(): Promise<Array<Output>> {
     return this.storage.allUtxos()
-  }
-
-  async fundTx(partialTx: TxBuilder): Promise<TxBuilder> {
-    const outputs = await this.getInventory()
-    const coinOutputs = outputs.filter(o => o.classPtr.equals(COIN_CLASS_PTR))
-
-    let motosIn = 0
-
-    for (const coinOutput of coinOutputs) {
-      const coin = coinOutput
-      const coinRef = partialTx.load(coin.id)
-
-      const props = coin.props
-      if (!props) throw new Error('outputs should have abi')
-      motosIn += props.motos
-
-      if (motosIn > 100) {
-        let changeRef = partialTx.call(coinRef, 'send', [motosIn - 100])
-        partialTx.lock(changeRef, await this.getNextAddress())
-        motosIn = 100
-      }
-
-      partialTx.fund(coinRef)
-
-      if (motosIn === 100) {
-        break
-      }
-    }
-
-    return partialTx
   }
 
   async signTx(partialTx: TxBuilder): Promise<TxBuilder> {
@@ -114,14 +80,6 @@ export class HdWallet implements Wallet {
     for (const output of outputs) {
       await this.addUtxo(output)
     }
-  }
-
-  async createFundedTx(fn: CreateTxCallback): Promise<Tx> {
-    return await this.client.createTx(async (builder, ref) => {
-      await fn(builder, ref)
-      await this.fundTx(builder)
-      await this.signTx(builder)
-    })
   }
 
   async getNextAddress(): Promise<Address> {
@@ -177,10 +135,5 @@ export class HdWallet implements Wallet {
     await this.storage.saveUtxo(output, addressOrNull.path)
   }
 
-  async commitTx(tx: Tx): Promise<CommitTxResponse> {
-    const response = await this.client.commitTx(tx)
-    const outputs = response.outputs.map(o =>Output.fromJson(o))
-    await this.saveTxExec(tx, outputs)
-    return response
-  }
+
 }

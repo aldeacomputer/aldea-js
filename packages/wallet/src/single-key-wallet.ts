@@ -2,7 +2,6 @@ import {
   Address,
   Aldea,
   CommitTxResponse,
-  CreateTxCallback,
   LockType,
   Output,
   PrivKey,
@@ -15,14 +14,13 @@ import {COIN_CLASS_PTR} from "./constants.js";
 import {WalletStorage} from "./storage/index.js";
 
 
-export class SingleKeyWallet implements Wallet {
+export class SingleKeyWallet extends Wallet {
   private storage: WalletStorage
   private readonly privKey: PrivKey
-  private client: Aldea
 
   constructor(pk: PrivKey, storage: WalletStorage, client: Aldea) {
+    super(client)
     this.privKey = pk
-    this.client = client
     this.storage = storage
   }
 
@@ -40,32 +38,7 @@ export class SingleKeyWallet implements Wallet {
     await this.storage.saveUtxo(output, '')
   }
 
-  async createFundedTx(fn: CreateTxCallback): Promise<Tx> {
-    return await this.client.createTx(async (builder, ref) => {
-      await fn(builder, ref)
-      await this.fundTx(builder)
-      await this.signTx(builder)
-    })
-  }
 
-  async fundTx(partialTx: TxBuilder): Promise<TxBuilder> {
-    const coins = await this.storage.allUtxos()
-      .then(utxos => utxos.filter((o: Output) => o.classPtr.equals(COIN_CLASS_PTR)))
-    const coin  = coins.find(c => {
-      const props = c.props
-      if (!props) { throw Error('error')}
-      const motos = props['motos']
-      return motos > 100
-    })
-    if (!coin) {
-      throw new Error('now enough funds')
-    }
-
-    const coinIdx = partialTx.load(coin.id)
-    const fundCoinIdx = partialTx.call(coinIdx, 'send', [100])
-    partialTx.fund(fundCoinIdx)
-    return partialTx;
-  }
 
   async getInventory(): Promise<Array<Output>> {
     return this.storage.allUtxos()
@@ -104,12 +77,5 @@ export class SingleKeyWallet implements Wallet {
       abi = newAbi
     }
     return abi
-  }
-
-  async commitTx(tx: Tx): Promise<CommitTxResponse> {
-    const response = await this.client.commitTx(tx)
-    const outputs = response.outputs.map(o =>Output.fromJson(o))
-    await this.saveTxExec(tx, outputs)
-    return response
   }
 }
