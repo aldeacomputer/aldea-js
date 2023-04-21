@@ -44,6 +44,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@aldea/assemblyscript@npm:^0.0.0, assemblyscript@npm:@aldea/assemblyscript@^0.0.0":
+  version: 0.0.0
+  resolution: "@aldea/assemblyscript@npm:0.0.0"
+  dependencies:
+    binaryen: 112.0.0-nightly.20230411
+    long: ^5.2.1
+  bin:
+    asc: bin/asc.js
+    asinit: bin/asinit.js
+  checksum: b92d024f7c8b6253e1428ff70497b625018bfe4c2bff29a6695526d278b29e928653680acdb51c08bca543a669f1ce891024ae5bcbe3cc0d576ab6061dbce3cd
+  languageName: node
+  linkType: hard
+
 "@aldea/compiler@npm:^0.0.0-alpha.5":
   version: 0.0.0-alpha.7
   resolution: "@aldea/compiler@npm:0.0.0-alpha.7"
@@ -65,12 +78,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/compiler@workspace:packages/compiler"
   dependencies:
+    "@aldea/assemblyscript": ^0.0.0
     "@as-pect/cli": ^8.0.1
     "@assemblyscript/loader": 0.27.0
     "@noble/hashes": ^1.1.5
     "@scure/base": ^1.1.1
     "@types/node": ^18.11.18
-    assemblyscript: 0.27.0
+    assemblyscript: "npm:@aldea/assemblyscript@^0.0.0"
     ava: ^5.1.0
     cbor-redux: ^1.0.0-3
     commander: ^9.4.1
@@ -3120,6 +3134,16 @@ __metadata:
     wasm-opt: bin/wasm-opt
     wasm2js: bin/wasm2js
   checksum: b361f946d91c82b8dbebca81cfb85feebac02995707bb0def66e8d78b22ea6a666a892d7acbd5efa19b4c54cbe53f2e2e10bd17302a7321c236293a20fc52193
+  languageName: node
+  linkType: hard
+
+"binaryen@npm:112.0.0-nightly.20230411":
+  version: 112.0.0-nightly.20230411
+  resolution: "binaryen@npm:112.0.0-nightly.20230411"
+  bin:
+    wasm-opt: bin/wasm-opt
+    wasm2js: bin/wasm2js
+  checksum: 2ff22208a10a8977254eae227de7ef7234affd3d8504f102d19a2c7e8c2108a1ba074bac1ce5f32cdecbefe12624cef016a491b4e7c4a9de91653a59540cf4e3
   languageName: node
   linkType: hard
 
