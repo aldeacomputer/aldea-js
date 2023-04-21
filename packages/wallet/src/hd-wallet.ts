@@ -134,6 +134,4 @@ export class HdWallet extends Wallet {
     await this.storage.removeUtxoByOrigin(output.origin)
     await this.storage.saveUtxo(output, addressOrNull.path)
   }
-
-
 }

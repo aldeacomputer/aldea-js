@@ -7,7 +7,7 @@ import {JigState} from "./jig-state.js"
 import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {ClassNode, CodeKind} from '@aldea/compiler/abi'
-import {Address, base16, instructions, OpCode, Pointer} from '@aldea/sdk-js';
+import {Address, base16, instructions, OpCode, Output, Pointer} from '@aldea/sdk-js';
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
@@ -28,6 +28,7 @@ class TxExecution {
   statements: StatementResult[]
   private fundAmount: number;
   private affectedJigs: JigRef[]
+  private inputs: Output[]
 
   constructor(context: TxContext) {
     this.txContext = context
@@ -38,6 +39,7 @@ class TxExecution {
     this.fundAmount = 0
     this.deployments = []
     this.affectedJigs = []
+    this.inputs = []
   }
 
   finalize(): ExecutionResult {
@@ -301,6 +303,7 @@ class TxExecution {
   }
 
   private hydrateJigState(state: JigState): JigRef {
+    this.inputs.push(state.toOutput())
     const module = this.loadModule(state.packageId)
     const ref = module.hidrate(state.classIdx, state)
     const lock = this.hydrateLock(state.serializedLock)

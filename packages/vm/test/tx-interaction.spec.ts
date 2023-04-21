@@ -340,7 +340,7 @@ describe('tx interaction', () => {
     } catch (e) {
       expect(e).to.be.instanceof(ExecutionError)
       const error = e as ExecutionError
-      expect(error.message).to.eql('tx not funded')
+      expect(error.message).to.eql('Not enough funding. Provided: 0. Needed: 100')
       return
     }
     expect.fail('should have failed because not funded')
@@ -364,17 +364,18 @@ describe('tx interaction', () => {
     const coinState = vm.mint(userAddr, 90)
     const tx = new TxBuilder()
       .load(coinState.id())
-      .fund(0) // not implemented yet
-      .lock(0, userAddr)
+      .fund(0)
       .sign(userPriv)
       .build()
+
+    // await vm.execTx(tx)
 
     try {
       await vm.execTx(tx)
     } catch (e) {
       expect(e).to.be.instanceof(ExecutionError)
       const error = e as ExecutionError
-      expect(error.message).to.eql('not enough coins to fund the transaction')
+      expect(error.message).to.eql('Not enough funding. Provided: 90. Needed: 100')
       return
     }
     expect.fail('should fail because not enough coins')
