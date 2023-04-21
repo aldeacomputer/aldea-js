@@ -4,9 +4,10 @@
   "version": "0.0.1-beta.1",
   "license": "Apache-2.0",
   "type": "module",
+  "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "aldea": "bin/aldea.js"
+    "aldea": "./bin/aldea.js"
   },
   "scripts": {
     "build": "tsc"
@@ -15,12 +16,14 @@
   "dependencies": {
     "@aldea/sdk-js": "workspace:^",
     "@aldea/wallet-lib": "workspace:^",
+    "columnify": "^1.6.0",
     "commander": "^10.0.1",
     "kolorist": "^1.7.0",
     "lowdb": "^6.0.0",
     "prompts": "^2.4.2"
   },
   "devDependencies": {
+    "@types/columnify": "^1.5.1",
     "typescript": "^5.0.4"
   }
 }

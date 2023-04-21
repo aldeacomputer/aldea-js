@@ -50,13 +50,15 @@ __metadata:
   dependencies:
     "@aldea/sdk-js": "workspace:^"
     "@aldea/wallet-lib": "workspace:^"
+    "@types/columnify": ^1.5.1
+    columnify: ^1.6.0
     commander: ^10.0.1
     kolorist: ^1.7.0
     lowdb: ^6.0.0
     prompts: ^2.4.2
     typescript: ^5.0.4
   bin:
-    aldea: bin/aldea.js
+    aldea: ./bin/aldea.js
   languageName: unknown
   linkType: soft
 
@@ -89,7 +91,7 @@ __metadata:
     assemblyscript: 0.27.0
     ava: ^5.1.0
     cbor-redux: ^1.0.0-3
-    commander: ^9.4.1
+    commander: ^10.0.1
     comment-parser: ^1.3.1
     concat: ^1.0.3
     docblock: ^0.4.5
@@ -186,7 +188,6 @@ __metadata:
     esbuild: ^0.15.10
     ky: ^0.33.1
     ky-universal: ^0.11.0
-    lowdb: ^5.1.0
     micro-ed25519-hdkey: ^0.1.2
     npm-run-all: ^4.1.5
     rimraf: ^3.0.2
@@ -1901,6 +1902,13 @@ __metadata:
   version: 4.3.4
   resolution: "@types/chai@npm:4.3.4"
   checksum: 571184967beb03bf64c4392a13a7d44e72da9af5a1e83077ff81c39cf59c0fda2a5c78d2005084601cf8f3d11726608574d8b5b4a0e3e9736792807afd926cd0
+  languageName: node
+  linkType: hard
+
+"@types/columnify@npm:^1.5.1":
+  version: 1.5.1
+  resolution: "@types/columnify@npm:1.5.1"
+  checksum: b377e961e38f1f3ad96ce6832349b3a04ae3e09695ab7f16d80f456fb292686cdd32d7040481e29e38b37cee0f3add34a09d2085d11ed8cd1fd71ad031eb6798
   languageName: node
   linkType: hard
 
@@ -3953,6 +3961,16 @@ __metadata:
   version: 1.4.0
   resolution: "colors@npm:1.4.0"
   checksum: 98aa2c2418ad87dedf25d781be69dc5fc5908e279d9d30c34d8b702e586a0474605b3a189511482b9d5ed0d20c867515d22749537f7bc546256c6014f3ebdcec
+  languageName: node
+  linkType: hard
+
+"columnify@npm:^1.6.0":
+  version: 1.6.0
+  resolution: "columnify@npm:1.6.0"
+  dependencies:
+    strip-ansi: ^6.0.1
+    wcwidth: ^1.0.0
+  checksum: 0d590023616a27bcd2135c0f6ddd6fac94543263f9995538bbe391068976e30545e5534d369737ec7c3e9db4e53e70a277462de46aeb5a36e6997b4c7559c335
   languageName: node
   linkType: hard
 
@@ -9052,15 +9070,6 @@ __metadata:
   dependencies:
     get-func-name: ^2.0.0
   checksum: cc83f1b124a1df7384601d72d8d1f5fe95fd7a8185469fec48bb2e4027e45243949e7a013e8d91051a138451ff0552310c32aa9786e60b6a30d1e801bdc2163f
-  languageName: node
-  linkType: hard
-
-"lowdb@npm:^5.1.0":
-  version: 5.1.0
-  resolution: "lowdb@npm:5.1.0"
-  dependencies:
-    steno: ^3.0.0
-  checksum: 4913d6fbfe8d5ee659a797c1ad7bcd7ba7505a22d6b3fb9967f69588b77360e896dc6e0e218b281065a38f47a0127dbd16373fc8bb9a1776113ee572888bbc90
   languageName: node
   linkType: hard
 
