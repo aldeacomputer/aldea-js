@@ -794,4 +794,9 @@ describe('execute txs', () => {
 
     expect(() => exec.finalize()).to.throw(ExecutionError, 'Not enough funding. Provided: 99. Needed: 100')
   })
+
+  // it('saves the inputs in the result', () => {
+  //   const exec = emptyExec()
+  //   exec.loadJigByOutputId()
+  // })
 })

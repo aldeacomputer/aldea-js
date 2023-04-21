@@ -82,6 +82,8 @@ class TxExecution {
     this.wasms = new Map()
     this.jigs = []
     this.statements = []
+
+    result.addInputs(this.inputs)
     result.finish(this.txContext.now())
     return result
   }

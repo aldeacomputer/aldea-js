@@ -66,8 +66,8 @@ export class ExecutionResult {
     this.outputs.push(output)
   }
 
-  addInput(output: Output) {
-    this.inputs.push(output)
+  addInputs(output: Output[]) {
+    this.inputs.push(...output)
   }
 
   addDeploy(deploy: PackageDeploy) {
