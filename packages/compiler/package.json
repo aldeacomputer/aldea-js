@@ -1,7 +1,7 @@
 {
   "name": "@aldea/compiler",
   "description": "Compiles AssemblyScript code into Aldea-flavoured WASM packages.",
-  "version": "0.0.1-beta.2",
+  "version": "0.0.1-beta.3",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
