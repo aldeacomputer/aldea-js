@@ -5,7 +5,6 @@ import {Address, Pointer, Tx} from "@aldea/sdk-js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {JigState} from "./jig-state.js";
 import {util} from "@aldea/sdk-js";
-import {Buffer} from "buffer";
 import {encodeSequence} from "./cbor.js";
 import {ExecutionResult} from "./execution-result.js";
 import {Clock} from "./clock.js";
