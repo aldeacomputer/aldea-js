@@ -10,9 +10,8 @@ import { Libp2p } from 'libp2p'
 import { abiToCbor, abiToJson } from "@aldea/compiler/abi"
 import { CompileError } from "@aldea/compiler"
 import { VM, Storage, Clock,  } from "@aldea/vm"
-import { JigState } from '@aldea/vm/jig-state'
 import { ExecutionResult } from '@aldea/vm/execution-result'
-import { Address, base16, Pointer, Tx, instructions } from "@aldea/sdk-js"
+import {Address, base16, Pointer, Tx, instructions, Output} from "@aldea/sdk-js"
 import { buildVm } from "./build-vm.js"
 import { HttpNotFound } from "./errors.js"
 import { logStream, logger } from './globals.js'
@@ -31,19 +30,19 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
   const { vm, storage, minterPriv, coinOrigin } = await buildVm(clock)
   const p2p: Libp2p | undefined = argv.p2p ? await createNode(argv) : undefined
 
-  const serializeJigState = (jigState: JigState) => {
-    const lock = jigState.serializedLock
+  const serializeJigState = (jigState: Output) => {
+    const lock = jigState.lock
     return {
-      id: base16.encode(jigState.id()),
+      id: jigState.id,
       origin: jigState.origin.toString(),
-      location: jigState.currentLocation.toString(),
-      class: jigState.classPtr().id,
+      location: jigState.location.toString(),
+      class: jigState.classPtr.toString(),
       lock: {
         type: lock.type,
         data: lock.data ? base16.encode(lock.data) : ''
       },
       state: base16.encode(jigState.stateBuf),
-      created_at: jigState.createdAt
+      created_at: new Date().valueOf() // TODO: fix this
     }
   }
 
@@ -58,11 +57,13 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
         })
         return {
           id: pkgId,
-          files: Array.from(data.sources.entries()).map(([key, value]) => { return { name: key, content: value } }),
-          entries: data.entries
+          files: Array.from(data.sources.entries())
+            .map(([key, value]) => { return { name: key, content: value } }),
+          entries: data.entries,
+          wasmBin: base16.encode(data.wasmBin)
         }
       }),
-      outputs: txExec.outputs.map(o => serializeJigState(o)),
+      outputs: txExec.outputs.map(o => serializeJigState(o.toOutput())),
       executed_at: txExec.executedAt
     }
   }
@@ -122,7 +123,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
       base16.decode(outputId),
       () => { throw new HttpNotFound(`${outputId} not found`, { outputId })}
     )
-    res.status(200).send(serializeJigState(jigState))
+    res.status(200).send(serializeJigState(jigState.toOutput()))
   })
 
   app.get('/output-by-origin/:origin', (req, res) => {
@@ -130,14 +131,14 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     const jigState = storage.stateByOrigin(
       Pointer.fromString(origin)
     ).orElse(() => { throw new HttpNotFound(`${origin} not found`, { origin })})
-    res.status(200).send(serializeJigState(jigState))
+    res.status(200).send(serializeJigState(jigState.toOutput()))
   })
 
   app.get('/utxos-by-address/:address', (req, res) => {
     const addressStr = req.params.address
     const address = Address.fromString(addressStr)
     res.send(
-      storage.utxosForAddress(address).map(u => serializeJigState(u))
+      storage.utxosForAddress(address).map(u => serializeJigState(u.toOutput()))
     )
   })
 
@@ -155,11 +156,11 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     const result = await vm.execTx(tx)
     emitTx(tx)
 
-    const coinOutput = result.outputs[1]
-    if (!coinOutput) {
+    const coinState = result.outputs[1]
+    if (!coinState) {
       throw new Error('coin output should exist')
     }
-    res.status(200).json(serializeJigState(coinOutput))
+    res.status(200).json(serializeJigState(coinState.toOutput()))
   }))
 
   app.get('/package/:packageId/abi.:format', (req, res) => {

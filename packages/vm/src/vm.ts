@@ -53,7 +53,7 @@ export class VM {
     return result
   }
 
-  async execTxFromInputs(exTx: ExtendedTx) {
+  async execTxFromInputs(exTx: ExtendedTx): Promise<ExecutionResult> {
     const context = new ExTxExecContext(exTx, this.clock, this.pkgs, this.compiler)
     const currentExecution = new TxExecution(context)
     const result = await currentExecution.run()

@@ -1,4 +1,4 @@
-import { VM, Storage, Clock } from "@aldea/vm"
+import { VM, Storage, Clock, Compiler } from "@aldea/vm"
 import {base16, Pointer, PrivKey} from "@aldea/sdk-js"
 import {compile} from "@aldea/compiler";
 import { logger } from './globals.js'
@@ -32,7 +32,7 @@ export async function buildVm (clock: Clock): Promise<iVM> {
   const minterAddress = minterPrivKey.toPubKey().toAddress()
 
   const storage = new Storage()
-  const vm = new VM(storage, storage, clock, compile)
+  const vm = new VM(storage, storage, storage, clock, new Compiler(compile))
 
   let result = await compile(['index.ts'], {'index.ts': nftSourceCode})
   const id = vm.addPreCompiled(
