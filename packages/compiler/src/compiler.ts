@@ -18,6 +18,7 @@ const baseOpts = [
   '--importMemory',
   '--exportRuntime',
   '--exportStart',
+  '--allowRestarts',
   '--lib', join(rootDir, 'lib'),
 ]
 
