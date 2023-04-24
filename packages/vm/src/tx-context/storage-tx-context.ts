@@ -34,13 +34,13 @@ export class StorageTxContext implements TxContext {
   }
 
   stateByOutputId (id: Uint8Array): JigState {
-    return this.states.byOutputId(id).orElse(() => {
+    return this.states.stateByOutputId(id).orElse(() => {
       throw new ExecutionError(`output not present in utxo set: ${base16.encode(id)}`)
     })
   }
 
   stateByOrigin (origin: Pointer): JigState {
-    return this.states.byOrigin(origin).orElse(() => { throw new ExecutionError(`unknown jig: ${origin.toString()}`)})
+    return this.states.stateByOrigin(origin).orElse(() => { throw new ExecutionError(`unknown jig: ${origin.toString()}`)})
   }
 
   wasmFromPkgId (pkgId: Uint8Array): WasmInstance {

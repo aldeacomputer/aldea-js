@@ -46,16 +46,12 @@ export class PkgData {
   }
 }
 
-type OnNotFound = (pkgId: string) => PkgData
-
-const throwNotFound = (idHex: string) => { throw new Error(`unknown module: ${idHex}`) }
-
 export class Storage implements StateProvider, PkgRepository {
   private utxosByOid: Map<string, JigState> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, JigState[]> // address -> state. Only utxos
   private tips: Map<string, string> // origin -> latest output_id
   private origins: Map<string, string> // utxo -> origin. Only utxos
-  private transactions: Map<string, ExecutionResult> // txid -> transaction execution.
+  private transactions: Map<string, ExecutionResult> // txId -> transaction execution.
   private packages: Map<string, PkgData> // pkg_id -> pkg data
   private historicalUtxos: Map<string, JigState>
 
@@ -116,18 +112,6 @@ export class Storage implements StateProvider, PkgRepository {
     }
   }
 
-  getJigStateByOrigin(origin: Pointer): Option<JigState> {
-    const latestLocation = this.tips.get(origin.toString())
-    if (!latestLocation) return Option.none()
-    const ret = this.utxosByOid.get(latestLocation)
-    return Option.fromNullable(ret)
-  }
-
-  getJigStateByOutputId (outputId: Uint8Array): Option<JigState> {
-    const state = this.utxosByOid.get(base16.encode(outputId))
-    return Option.fromNullable(state)
-  }
-
   tipFor(origin: Pointer): Uint8Array {
     const tip = this.tips.get(origin.toString());
     if (!tip) throw new Error('not found')
@@ -138,25 +122,12 @@ export class Storage implements StateProvider, PkgRepository {
     this.transactions.set(exec.tx.id, exec)
   }
 
-  getTransaction(txid: string): ExecutionResult | undefined {
-    return this.transactions.get(txid)
+  getTransaction(txId: string): ExecutionResult | undefined {
+    return this.transactions.get(txId)
   }
 
   addPackage(id: Uint8Array, pkgData: PkgData): void {
     this.packages.set(base16.encode(id), pkgData)
-  }
-
-  getModule (id: Uint8Array, onNotFound: OnNotFound = throwNotFound): PkgData {
-    const idHex = base16.encode(id)
-    const module =  this.packages.get(idHex)
-    if (!module) {
-      return onNotFound(idHex)
-    }
-    return module
-  }
-
-  hasModule(id: Uint8Array): boolean {
-    return this.packages.has(base16.encode(id));
   }
 
   getHistoricalUtxo (outputId: Uint8Array, onNotFound: () => JigState): JigState {
@@ -170,16 +141,35 @@ export class Storage implements StateProvider, PkgRepository {
       .orDefault([])
   }
 
-  byOutputId(id: Uint8Array): Option<JigState> {
-    return this.getJigStateByOutputId(id);
+
+  //
+  // StateProvider methods
+  //
+
+  stateByOutputId(outputId: Uint8Array): Option<JigState> {
+    const state = this.utxosByOid.get(base16.encode(outputId))
+    return Option.fromNullable(state)
   }
 
-  byOrigin(origin: Pointer): Option<JigState> {
-    return this.getJigStateByOrigin(origin);
+  stateByOrigin(origin: Pointer): Option<JigState> {
+    const latestLocation = this.tips.get(origin.toString())
+    if (!latestLocation) return Option.none()
+    const ret = this.utxosByOid.get(latestLocation)
+    return Option.fromNullable(ret)
   }
 
+  //
+  // PkgRepository methods
+  //
   wasmForPackageId(moduleId: Uint8Array): WasmInstance {
-    let mod = this.getModule(moduleId)
+    let mod = this.getRawPackage(moduleId).get()
     return new WasmInstance(mod.mod, mod.abi, mod.id);
   }
+
+  getRawPackage (id: Uint8Array): Option<PkgData> {
+    const idHex = base16.encode(id)
+    const pkg =  this.packages.get(idHex)
+    return Option.fromNullable(pkg)
+  }
+
 }

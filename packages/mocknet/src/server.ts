@@ -37,7 +37,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
       id: base16.encode(jigState.id()),
       origin: jigState.origin.toString(),
       location: jigState.currentLocation.toString(),
-      class: jigState.classId().toString(),
+      class: jigState.classPtr().id,
       lock: {
         type: lock.type,
         data: lock.data ? base16.encode(lock.data) : ''
@@ -53,8 +53,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
       rawtx: txExec.tx.toHex(),
       packages: txExec.deploys.map((pkg) => {
         const pkgId = base16.encode(pkg.hash)
-        const data = storage.getModule(pkg.hash, () => {
-
+        const data = storage.getRawPackage(pkg.hash).orElse(() => {
           throw new HttpNotFound(`Unknown package: ${pkgId}`, { pkg_id: pkgId })
         })
         return {
@@ -128,7 +127,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
 
   app.get('/output-by-origin/:origin', (req, res) => {
     const origin = req.params.origin
-    const jigState = storage.getJigStateByOrigin(
+    const jigState = storage.stateByOrigin(
       Pointer.fromString(origin)
     ).orElse(() => { throw new HttpNotFound(`${origin} not found`, { origin })})
     res.status(200).send(serializeJigState(jigState))
@@ -166,8 +165,8 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
   app.get('/package/:packageId/abi.:format', (req, res) => {
     const {packageId, format} = req.params
 
-    const data = storage.getModule(base16.decode(packageId), (pkgId) => {
-      throw new HttpNotFound(`package with id ${pkgId} not found`, { package_id: packageId })
+    const data = storage.getRawPackage(base16.decode(packageId)).orElse(() => {
+      throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
     })
     if (!data) {
 
@@ -185,7 +184,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
 
   app.get('/package/:packageId/source', (req, res) => {
     const {packageId} = req.params
-    const data = storage.getModule(base16.decode(packageId), () => {
+    const data = storage.getRawPackage(base16.decode(packageId)).orElse(() => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
     })
     const cborData = CBOR.encode(new Sequence([data.entries, data.sources]));
@@ -195,7 +194,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
 
   app.get('/package/:packageId/wasm', (req, res) => {
     const {packageId} = req.params
-    const data = storage.getModule(base16.decode(packageId), () => {
+    const data = storage.getRawPackage(base16.decode(packageId)).orElse(() => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
     })
     res.set('content-type', 'application/wasm')
@@ -204,7 +203,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
 
   app.get('/package/:packageId/docs', (req, res) => {
     const {packageId} = req.params
-    const data = storage.getModule(base16.decode(packageId), () => {
+    const data = storage.getRawPackage(base16.decode(packageId)).orElse(() => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
     })
     res.set('content-type', 'application/json')

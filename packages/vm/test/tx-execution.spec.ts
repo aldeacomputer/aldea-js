@@ -251,7 +251,7 @@ describe('execute txs', () => {
     })
 
     it('saves correctly serialized lock', () => {
-      const state = storage.getJigStateByOrigin(new Pointer(freezeTx.hash, 0)).orElse(() => expect.fail('should exist'))
+      const state = storage.stateByOrigin(new Pointer(freezeTx.hash, 0)).orElse(() => expect.fail('should exist'))
       expect(state.serializedLock).to.eql({type: LockType.FROZEN, data: new Uint8Array(0)})
     })
   });
@@ -412,7 +412,7 @@ describe('execute txs', () => {
 
     storage.persist(ret)
 
-    const mod = storage.getModule(modIdFor('flock'))
+    const mod = storage.getRawPackage(modIdFor('flock')).get()
 
     const utxoNode = mod.abi.exports.find(e => e.code.name === 'UtxoState')
     const lockNode = mod.abi.exports.find(e => e.code.name === 'LockState')

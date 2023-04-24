@@ -84,14 +84,13 @@ export class VM {
   }
 
   addPreCompiled (wasmBin: Uint8Array, sourceStr: string, abiBin: Uint8Array, docs: Uint8Array, defaultId: Uint8Array | null = null): Uint8Array {
-
     const sources = new Map<string, string>()
     sources.set('index.ts',sourceStr.toString())
     const entries = ['index.ts'];
     const id = defaultId
       ? defaultId
       : calculatePackageId(entries, sources)
-    if (this.storage.hasModule(id)) {
+    if (this.storage.getRawPackage(id).isFull()) {
       return id
     }
 

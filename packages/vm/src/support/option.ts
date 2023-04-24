@@ -10,7 +10,9 @@ export abstract class Option<T> {
   abstract or(another: Option<T>): Option<T>
   abstract ifPresent(fn: (t: T) => void): void
 
+  abstract isEmpty (): boolean
 
+  abstract isFull (): boolean
   static none<Y> () {
     return new None<Y>()
   }
@@ -58,6 +60,14 @@ export class Some<T> extends Option<T> {
   ifPresent(fn: (t: T) => void): void {
     fn(this.value)
   }
+
+  isEmpty(): boolean {
+    return true;
+  }
+
+  isFull(): boolean {
+    return false;
+  }
 }
 
 export class None<T> extends Option<T> {
@@ -83,5 +93,13 @@ export class None<T> extends Option<T> {
 
   ifPresent(fn: (t: T) => void): void {
     // no-op
+  }
+
+  isEmpty(): boolean {
+    return false;
+  }
+
+  isFull(): boolean {
+    return true;
   }
 }

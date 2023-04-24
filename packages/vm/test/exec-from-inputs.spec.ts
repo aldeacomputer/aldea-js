@@ -1,4 +1,4 @@
-import {Clock, Storage, StubClock, VM} from "../src/index.js";
+import {Clock, PkgData, Storage, StubClock, VM} from "../src/index.js";
 import {instructions, Output, Tx, Lock, Pointer, PrivKey} from "@aldea/sdk-js";
 import {buildVm} from "./util.js";
 import {TxExecution} from "../src/tx-execution.js";
@@ -8,6 +8,8 @@ import {expect} from "chai";
 import {LockInstruction} from "@aldea/sdk-js/instructions/index";
 import {WasmInstance} from "../src/wasm-instance.js";
 import {JigState} from "../src/jig-state.js";
+import {PkgRepository} from "../src/state-interfaces.js";
+import {Option} from "../src/support/option.js";
 const {
   CallInstruction,
   ImportInstruction,
@@ -81,7 +83,10 @@ describe('exec from inputs', () => {
     const tx1Exec = await vm.execTx(tx)
 
     // now exec with no context other than the package code
-    const justFlockAndCoinPkg = {
+    const justFlockAndCoinPkg: PkgRepository = {
+      getRawPackage(_id: Uint8Array): Option<PkgData> {
+        return Option.none()
+      },
       wasmForPackageId(moduleId: Uint8Array): WasmInstance {
         if (Buffer.compare(moduleId, modIdFor('flock'))) {
           return storage.wasmForPackageId(moduleId)

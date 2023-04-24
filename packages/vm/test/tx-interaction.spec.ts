@@ -47,7 +47,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx)
 
-    const state = storage.getJigStateByOrigin(new Pointer(tx.hash, 0))
+    const state = storage.stateByOrigin(new Pointer(tx.hash, 0))
       .orElse(() => expect.fail('state should be present'))
     expect(state.classIdx).to.eql(0)
   })
@@ -64,7 +64,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx)
 
-    const state = storage.getJigStateByOrigin(
+    const state = storage.stateByOrigin(
       new Pointer(tx.hash, 1),
     ).orElse(() => expect.fail('state should be present'))
 
@@ -82,7 +82,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx)
 
-    const state = storage.getJigStateByOrigin(
+    const state = storage.stateByOrigin(
       new Pointer(tx.hash, 0)
     ).orElse(() => expect.fail('state should be present'))
 
@@ -104,7 +104,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx)
 
-    const state = storage.getJigStateByOrigin(
+    const state = storage.stateByOrigin(
       new Pointer(tx.hash, 1)
     ).orElse(() => expect.fail('state should be present'))
 
@@ -145,7 +145,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx3)
 
-    const state = storage.getJigStateByOrigin(new Pointer(tx1.hash, 0))
+    const state = storage.stateByOrigin(new Pointer(tx1.hash, 0))
       .orElse(() => expect.fail('state should be present'))
     expect(state.parsedState()[0]).to.eql(2)
   })
@@ -178,7 +178,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx3)
 
-    const state = storage.getJigStateByOrigin(new Pointer(tx1.hash, 0)).orElse(() => expect.fail('state should be present'))
+    const state = storage.stateByOrigin(new Pointer(tx1.hash, 0)).orElse(() => expect.fail('state should be present'))
     expect(state.parsedState()[0]).to.eql(2)
   })
 
@@ -238,7 +238,7 @@ describe('tx interaction', () => {
 
     const exec2 = await vm.execTx(tx2)
 
-    const state = storage.getJigStateByOutputId(exec2.outputs[0].id()).orElse(() => expect.fail('state should be present'))
+    const state = storage.stateByOutputId(exec2.outputs[0].id()).orElse(() => expect.fail('state should be present'))
     expect(state.parsedState()[0]).to.eql(1)
   })
 
@@ -290,7 +290,7 @@ describe('tx interaction', () => {
     const result = await vm.execTx(tx)
 
     const deploy = result.deploys[0]
-    const module = storage.getModule(deploy.hash)
+    const module = storage.getRawPackage(deploy.hash).get()
     expect(module.abi.exports[0].code.name).to.eql('Foo')
   })
 
@@ -305,7 +305,7 @@ describe('tx interaction', () => {
 
     await vm.execTx(tx)
 
-    const state = storage.getJigStateByOrigin(
+    const state = storage.stateByOrigin(
       new Pointer(tx.hash, 0)
     ).orElse(() => expect.fail('state should be present'))
 
@@ -355,7 +355,7 @@ describe('tx interaction', () => {
       .build()
 
     await vm.execTx(tx)
-    const coin = storage.getJigStateByOrigin(coinState.origin)
+    const coin = storage.stateByOrigin(coinState.origin)
       .orElse(() => expect.fail('should be present'))
     expect(coin.serializedLock.type).to.eql(LockType.FROZEN)
   })
