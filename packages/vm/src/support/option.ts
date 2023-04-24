@@ -96,10 +96,10 @@ export class None<T> extends Option<T> {
   }
 
   isEmpty(): boolean {
-    return false;
+    return true;
   }
 
   isFull(): boolean {
-    return true;
+    return false;
   }
 }

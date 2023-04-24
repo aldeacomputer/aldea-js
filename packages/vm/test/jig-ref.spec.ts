@@ -6,11 +6,12 @@ import {Internref} from "../src/memory.js";
 import {expect} from 'chai'
 import {addPreCompiled} from "./util.js";
 import {compile} from "@aldea/compiler";
+import {Compiler} from "../src/compiler.js";
 
 describe('JigRef', function () {
   const storage = new Storage()
   const clock = new MomentClock()
-  const vm = new VM(storage, storage, clock, compile)
+  const vm = new VM(storage, storage, storage, clock, new Compiler(compile))
   it('returns right id', () => {
     const id = addPreCompiled(vm, 'flock')
     const wasm = storage.wasmForPackageId(id)

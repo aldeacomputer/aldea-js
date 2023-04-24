@@ -1,25 +1,25 @@
 import {base16, Instruction, Pointer, Tx} from "@aldea/sdk-js";
 import {PkgRepository, StateProvider} from "../state-interfaces.js";
-import {VM} from "../vm.js";
 import {Clock} from "../clock.js";
 import {JigState} from "../jig-state.js";
 import {ExecutionError} from "../errors.js";
 import {WasmInstance} from "../wasm-instance.js";
-import {PkgData, Storage} from "../storage.js";
+import {PkgData} from "../storage.js";
 import moment from "moment/moment.js";
 import {TxContext} from "./tx-context.js";
+import {Compiler} from "../compiler.js";
 
 export class StorageTxContext implements TxContext {
   private _tx: Tx
   private pkgs: PkgRepository
-  states: StateProvider
-  vm: VM
+  private states: StateProvider
+  private compiler: Compiler
   clock: Clock
-  constructor(tx: Tx, storage: Storage, vm: VM, clock: Clock) {
+  constructor(tx: Tx, states: StateProvider, pkgs: PkgRepository, compiler: Compiler, clock: Clock) {
     this._tx = tx
-    this.states = storage
-    this.pkgs = storage
-    this.vm = vm
+    this.states = states
+    this.pkgs = pkgs
+    this.compiler = compiler
     this.clock = clock
   }
 
@@ -48,7 +48,7 @@ export class StorageTxContext implements TxContext {
   }
 
   compile (entries: string[], sources: Map<string, string>): Promise<PkgData> {
-    return this.vm.compileSources(entries, sources)
+    return this.compiler.compileSources(entries, sources)
   }
 
   get tx (): Tx {

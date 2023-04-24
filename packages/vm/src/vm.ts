@@ -1,7 +1,6 @@
 import {TxExecution} from './tx-execution.js'
-import {PkgData, Storage} from "./storage.js";
+import {DataSave, PkgData} from "./storage.js";
 import {abiFromCbor} from '@aldea/compiler/abi'
-import {CompilerResult} from '@aldea/compiler'
 import {Address, Pointer, Tx} from "@aldea/sdk-js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {JigState} from "./jig-state.js";
@@ -17,9 +16,10 @@ import {data as wasm} from './builtins/coin.wasm.js'
 import {data as rawAbi} from './builtins/coin.abi.cbor.js'
 import {data as rawDocs} from './builtins/coin.docs.json.js'
 import {data as rawSource} from './builtins/coin.source.js'
-import {PkgRepository} from "./state-interfaces.js";
+import {PkgRepository, StateProvider} from "./state-interfaces.js";
 import {SerializedLock} from "./locks/serialized-lock.js";
 import {LockType} from "./wasm-instance.js";
+import {Compiler} from "./compiler.js";
 
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([
@@ -29,25 +29,25 @@ const COIN_PKG_ID = new Uint8Array([
   0, 0, 0, 0, 0, 0, 0, 0,
 ])
 
-type CodeBundle = { [key: string]: string }
-export type CompileFn = (entry: string[], src: CodeBundle) => Promise<CompilerResult>;
 
 export class VM {
-  private readonly storage: Storage;
+  private readonly storage: DataSave;
   clock: Clock;
-  private compile: CompileFn;
+  compiler: Compiler;
   private pkgs: PkgRepository;
+  private states: StateProvider;
 
-  constructor (storage: Storage, pkgs: PkgRepository, clock: Clock, compile: CompileFn) {
+  constructor (states: StateProvider, pkgs: PkgRepository, storage: DataSave,  clock: Clock, compiler: Compiler) {
     this.storage = storage
     this.clock = clock
     this.pkgs = pkgs
-    this.compile = compile
+    this.states = states
+    this.compiler = compiler
     this.addPreCompiled(wasm, rawSource, rawAbi, rawDocs, COIN_PKG_ID)
   }
 
   async execTx(tx: Tx): Promise<ExecutionResult> {
-    const context = new StorageTxContext(tx, this.storage, this, this.clock)
+    const context = new StorageTxContext(tx, this.states, this.pkgs, this.compiler, this.clock)
     const currentExecution = new TxExecution(context)
     const result = await currentExecution.run()
     this.storage.persist(result)
@@ -55,32 +55,11 @@ export class VM {
   }
 
   async execTxFromInputs(exTx: ExtendedTx) {
-    const context = new ExTxExecContext(exTx, this.clock, this.pkgs, this)
+    const context = new ExTxExecContext(exTx, this.clock, this.pkgs, this.compiler)
     const currentExecution = new TxExecution(context)
     const result = await currentExecution.run()
     this.storage.persist(result)
     return result
-  }
-
-  async compileSources (entries: string[], sources: Map<string, string>): Promise<PkgData> {
-    const id = calculatePackageId(entries, sources)
-
-    const obj: {[key: string]: string} = {}
-    for (const [key, value] of sources.entries()) {
-      obj[key] = value
-    }
-
-    const result = await this.compile(entries, obj)
-
-    return new PkgData(
-      abiFromCbor(result.output.abi.buffer),
-      Buffer.from(result.output.docs || ''),
-      entries,
-      id,
-      new WebAssembly.Module(result.output.wasm),
-      sources,
-      result.output.wasm
-    )
   }
 
   addPreCompiled (wasmBin: Uint8Array, sourceStr: string, abiBin: Uint8Array, docs: Uint8Array, defaultId: Uint8Array | null = null): Uint8Array {
@@ -90,13 +69,13 @@ export class VM {
     const id = defaultId
       ? defaultId
       : calculatePackageId(entries, sources)
-    if (this.storage.getRawPackage(id).isFull()) {
+    if (this.pkgs.getRawPackage(id).isFull()) {
       return id
     }
 
     const abi = abiFromCbor(abiBin.buffer)
 
-    this.storage.addPackage(id, new PkgData(
+    this.storage.addPackage(new PkgData(
       abi,
       docs,
       entries,

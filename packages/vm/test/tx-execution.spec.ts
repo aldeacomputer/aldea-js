@@ -739,7 +739,7 @@ describe('execute txs', () => {
         new ExtendedTx(tx, [coin.toOutput()]),
         clock,
         storage,
-        vm
+        vm.compiler
       )
     )
 
@@ -775,7 +775,7 @@ describe('execute txs', () => {
         new ExtendedTx(tx, [coin.toOutput()]),
         clock,
         storage,
-        vm
+        vm.compiler
       )
     )
 

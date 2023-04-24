@@ -7,6 +7,7 @@ import {VM, Storage, MomentClock} from "../src/index.js";
 import {Tx} from "@aldea/sdk-js";
 import {JigRef} from "../src/jig-ref.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
+import {Compiler} from "../src/compiler.js";
 
 async function compileToWasm(src: string, id: Uint8Array = new Uint8Array([0, 0, 0, 0])): Promise<WasmInstance> {
   try {
@@ -557,8 +558,8 @@ describe('reading complex types from memory', () => {
       const wasm = await compileToWasm(code)
       const storage = new Storage();
       const clock = new MomentClock();
-      const vm = new VM(storage, storage, clock, compile);
-      wasm.setExecution(new TxExecution(new StorageTxContext(new Tx(), storage, vm, clock)))
+      const compiler = new Compiler(compile);
+      wasm.setExecution(new TxExecution(new StorageTxContext(new Tx(), storage, storage, compiler, clock)))
       const res = wasm.functionCall(wasm.abi.functionByName('test'), [])
       assert.instanceOf(res.value, JigRef)
       assert.typeOf(res.value.ref.ptr, 'number')

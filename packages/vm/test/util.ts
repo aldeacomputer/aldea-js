@@ -5,6 +5,7 @@ import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import fs from "fs";
 import {fileURLToPath} from "url";
 import {compile} from "@aldea/compiler";
+import {Compiler} from "../src/compiler.js";
 
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 
@@ -17,7 +18,7 @@ export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () =
     const sig = tx.createSignature(pk)
     tx.push(new instructions.SignInstruction(sig, pk.toPubKey().toBytes()))
   })
-  const context = new StorageTxContext(tx, storage, vm, vm.clock)
+  const context = new StorageTxContext(tx, storage, storage, vm.compiler, vm.clock)
   const exec = new TxExecution(context)
     exec.markAsFunded()
   return exec
@@ -36,7 +37,8 @@ export function buildVm(sources: string[]) {
   const moduleIds = new Map<string, string>()
   const clock = new StubClock()
   const storage = new Storage()
-  const vm = new VM(storage, storage, clock, compile)
+  const compiler = new Compiler(compile)
+  const vm = new VM(storage, storage, storage, clock, compiler)
 
   sources.forEach(src => {
     const id = addPreCompiled(vm, src)
@@ -53,6 +55,7 @@ export function buildVm(sources: string[]) {
     },
     clock,
     storage,
-    vm
+    vm,
+    compiler
   }
 }

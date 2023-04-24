@@ -46,7 +46,19 @@ export class PkgData {
   }
 }
 
-export class Storage implements StateProvider, PkgRepository {
+export interface DataSave {
+  persist(txExecution: ExecutionResult): void;
+  addUtxo(jigState: JigState): void;
+  addPackage(pkgData: PkgData): void;
+}
+
+export interface HistoricalRecord {
+  getHistoricalUtxo(outputId: Uint8Array, onNotFound: () => JigState): JigState;
+
+  utxosForAddress(userAddr: Address): JigState[];
+}
+
+export class Storage implements StateProvider, PkgRepository, DataSave, HistoricalRecord {
   private utxosByOid: Map<string, JigState> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, JigState[]> // address -> state. Only utxos
   private tips: Map<string, string> // origin -> latest output_id
@@ -68,7 +80,7 @@ export class Storage implements StateProvider, PkgRepository {
   persist(txExecution: ExecutionResult) {
     this.addTransaction(txExecution)
     txExecution.outputs.forEach((state: JigState) => this.addUtxo(state))
-    txExecution.deploys.forEach(pkgDeploy => this.addPackage(pkgDeploy.hash, PkgData.fromPackageDeploy(pkgDeploy)))
+    txExecution.deploys.forEach(pkgDeploy => this.addPackage(PkgData.fromPackageDeploy(pkgDeploy)))
   }
 
   addUtxo(jigState: JigState) {
@@ -126,11 +138,11 @@ export class Storage implements StateProvider, PkgRepository {
     return this.transactions.get(txId)
   }
 
-  addPackage(id: Uint8Array, pkgData: PkgData): void {
-    this.packages.set(base16.encode(id), pkgData)
+  addPackage(pkgData: PkgData): void {
+    this.packages.set(base16.encode(pkgData.id), pkgData)
   }
 
-  getHistoricalUtxo (outputId: Uint8Array, onNotFound: () => JigState): JigState {
+  getHistoricalUtxo(outputId: Uint8Array, onNotFound: () => JigState): JigState {
     const state = this.historicalUtxos.get(base16.encode(outputId))
     if (!state) return onNotFound()
     return state

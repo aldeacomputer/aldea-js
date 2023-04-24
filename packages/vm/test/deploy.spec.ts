@@ -4,6 +4,7 @@ import {calculatePackageId} from '../src/index.js';
 import {addPreCompiled, emptyExecFactoryFactory} from "./util.js";
 import {compile} from "@aldea/compiler";
 import {PrivKey} from "@aldea/sdk-js";
+import {Compiler} from "../src/compiler.js";
 
 const someValidModule = `
 export class Foo extends Jig {
@@ -24,7 +25,7 @@ describe('deploy code', () => {
   const clock = new StubClock()
   beforeEach(() => {
     storage = new Storage()
-    vm = new VM(storage, storage, clock, compile)
+    vm = new VM(storage, storage, storage, clock, new Compiler(compile))
   })
 
 
@@ -34,8 +35,8 @@ describe('deploy code', () => {
     const aMap = new Map<string, string>()
     aMap.set(fileName, someValidModule)
     it('makes the module available', async () => {
-      const pkgData = await vm.compileSources([fileName], aMap)
-      storage.addPackage(pkgData.id, pkgData)
+      const pkgData = await vm.compiler.compileSources([fileName], aMap)
+      storage.addPackage(pkgData)
       const pkgId = pkgData.id
       const exec = emptyExec()
       const wasm = exec.importModule(pkgId).asInstance
@@ -48,11 +49,11 @@ describe('deploy code', () => {
     })
 
     it('module persist on other src instance', async () => {
-      const pkgData = await vm.compileSources([fileName], aMap)
-      storage.addPackage(pkgData.id, pkgData)
+      const pkgData = await vm.compiler.compileSources([fileName], aMap)
+      storage.addPackage(pkgData)
       const pkgId = pkgData.id
 
-      const vm2 = new VM(storage, storage, new StubClock(), compile)
+      const vm2 = new VM(storage, storage, storage, new StubClock(), new Compiler(compile))
       const exec = emptyExecFactoryFactory(() => storage, () => vm2)()
       const wasm = exec.importModule(pkgId).asInstance
       const jig = exec.instantiateByClassName(wasm, 'Foo', []).asJig()
@@ -63,8 +64,8 @@ describe('deploy code', () => {
     })
 
     it('can deploy same module twice', async () => {
-      const moduleId1 = (await vm.compileSources([fileName], aMap)).id
-      const moduleId2 = (await vm.compileSources([fileName], aMap)).id
+      const moduleId1 = (await vm.compiler.compileSources([fileName], aMap)).id
+      const moduleId2 = (await vm.compiler.compileSources([fileName], aMap)).id
 
       expect(moduleId1).to.eql(moduleId2)
     })

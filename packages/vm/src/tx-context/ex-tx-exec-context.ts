@@ -7,6 +7,7 @@ import {JigState} from "../jig-state.js";
 import {PkgData} from "../storage.js";
 import {VM} from "../vm.js";
 import {WasmInstance} from "../wasm-instance.js";
+import {Compiler} from "../compiler.js";
 
 
 const cmpBuff = (buff1: Uint8Array, buff2: Uint8Array): number => {
@@ -33,17 +34,17 @@ export class ExTxExecContext implements TxContext {
   private exTx: ExtendedTx
   private clock: Clock;
   private pkgs: PkgRepository
-  private vm: VM
+  private compiler: Compiler
 
-  constructor(exTx: ExtendedTx, clock: Clock, pkgRepo: PkgRepository, vm: VM) {
+  constructor(exTx: ExtendedTx, clock: Clock, pkgRepo: PkgRepository, compiler: Compiler) {
     this.exTx = exTx
     this.clock = clock
     this.pkgs = pkgRepo
-    this.vm = vm
+    this.compiler = compiler
   }
 
   compile(entries: string[], sources: Map<string, string>): Promise<PkgData> {
-    return this.vm.compileSources(entries, sources);
+    return this.compiler.compileSources(entries, sources);
   }
 
   async forEachInstruction(fn: (i: Instruction) => Promise<void>): Promise<void> {

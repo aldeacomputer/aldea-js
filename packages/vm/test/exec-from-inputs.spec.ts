@@ -10,6 +10,7 @@ import {WasmInstance} from "../src/wasm-instance.js";
 import {JigState} from "../src/jig-state.js";
 import {PkgRepository} from "../src/state-interfaces.js";
 import {Option} from "../src/support/option.js";
+import {Compiler} from "../src/compiler.js";
 const {
   CallInstruction,
   ImportInstruction,
@@ -33,6 +34,7 @@ const outputFromJigState = (jig: JigState): Output => {
 describe('exec from inputs', () => {
   let vm: VM
   let storage: Storage
+  let compiler: Compiler
   const userPriv = PrivKey.fromRandom()
   const userPub = userPriv.toPubKey()
   const userAddr = userPub.toAddress()
@@ -46,6 +48,7 @@ describe('exec from inputs', () => {
     clock = data.clock
     storage = data.storage
     modIdFor = data.modIdFor
+    compiler = data.compiler
   })
 
 
@@ -54,7 +57,7 @@ describe('exec from inputs', () => {
     const tx = new Tx()
     tx.push(new SignInstruction(tx.createSignature(userPriv), userPub.toBytes()))
     const extx = new ExtendedTx(tx, [outputFromJigState(coin)]);
-    const context = new ExTxExecContext(extx, clock, storage, vm)
+    const context = new ExTxExecContext(extx, clock, storage, compiler)
     const exec = new TxExecution(context)
 
     const jigRef = exec.loadJigByOutputId(coin.id()).asJig()
@@ -98,7 +101,8 @@ describe('exec from inputs', () => {
       }
     }
 
-    const vm2 = new VM(new Storage(), justFlockAndCoinPkg, new StubClock(), () => expect.fail('should not try to compile') )
+    const emptyStorage = new Storage();
+    const vm2 = new VM(emptyStorage, justFlockAndCoinPkg, emptyStorage, new StubClock(), new Compiler(() => expect.fail('should not try to compile')))
     const tx2 = new Tx()
     tx2.push(new LoadInstruction(tx1Exec.outputs[0].id())) // flock
     tx2.push(new LoadInstruction(tx1Exec.outputs[2].id())) // coin
