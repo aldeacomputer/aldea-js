@@ -64,6 +64,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
         }
       }),
       outputs: txExec.outputs.map(o => serializeJigState(o.toOutput())),
+      inputs: txExec.inputs.map(i => serializeJigState(i)),
       executed_at: txExec.executedAt
     }
   }

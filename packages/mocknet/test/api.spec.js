@@ -71,7 +71,7 @@ describe('api', () => {
         .expect('Content-Type', /application\/json/)
         .expect(200)
 
-      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs', 'executed_at'])
+      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'inputs', 'outputs', 'executed_at'])
       expect(response.body.id).to.eql(tx.id)
       expect(response.body.executed_at).to.eql(clock.now().unix())
       expect(response.body.outputs).to.have.length(2)
@@ -133,7 +133,7 @@ describe('api', () => {
         .expect('Content-Type', /application\/json/)
         .expect(200)
 
-      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs', 'executed_at'])
+      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'inputs', 'outputs', 'executed_at'])
       expect(response.body.id).to.eql(txid)
       expect(response.body.executed_at).to.eql(clock.now().unix())
       expect(response.body.outputs).to.have.length(2)
