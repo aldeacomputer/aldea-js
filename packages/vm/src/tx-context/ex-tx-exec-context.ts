@@ -5,7 +5,6 @@ import {TxContext} from "./tx-context.js";
 import {base16, Instruction, Pointer, Tx} from "@aldea/sdk-js";
 import {JigState} from "../jig-state.js";
 import {PkgData} from "../storage.js";
-import {VM} from "../vm.js";
 import {WasmInstance} from "../wasm-instance.js";
 import {Compiler} from "../compiler.js";
 
