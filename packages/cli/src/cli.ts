@@ -18,8 +18,9 @@ process.on('warning', (e) => {
 
 program
   .name('aldea')
+  .usage('<command> [options]')
   .option('-N --node <url>', 'Aldea node URL')
-  .addCommand(cmds.code.deploy)
+  .addCommand(cmds.pkg.deploy)
   .addCommand(cmds.wallet.create)
   .addCommand(cmds.wallet.balance)
   .addCommand(cmds.wallet.topup)

@@ -1,2 +1,2 @@
-export * as code from './code/index.js'
+export * as pkg from './pkg/index.js'
 export * as wallet from './wallet/index.js'

@@ -6,8 +6,8 @@ import { log, ok } from '../../log.js'
 import { env } from '../../globals.js'
 
 // Create wallet command
-export const deploy = createCommand('code.deploy')
-  .alias('cd')
+export const deploy = createCommand('pkg.deploy')
+  .alias('pd')
   .description('Deploy a code package')
   .addArgument(createArgument('<source...>', 'One or more source files to deploy'))
   .action(codeDeploy)
