@@ -4,22 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "keygen": "node scripts/keygen.js",
-    "fund": "node scripts/fund.js",
-    "deploy": "node scripts/deploy.js",
-    "create-fighters": "node scripts/create-fighters.js",
-    "fight": "node scripts/fight.js",
-    "mocknet": "npx mocknet"
+    "mocknet": "npx @aldea/mocknet",
+    "script": "bash -c 'fn () { TS_NODE_TRANSPILE_ONLY=true node --loader=ts-node/esm --experimental-specifier-resolution=node --no-warnings=ExperimentalWarning scripts/$0; }; fn'"
   },
   "dependencies": {
+    "@aldea/cli": "^0.0.1-beta",
     "@aldea/compiler": "^0.0.1-beta",
     "@aldea/sdk-js": "^0.0.1-beta"
   },
   "devDependencies": {
     "@aldea/mocknet": "^0.0.1-beta",
-    "assemblyscript": "^0.24.1",
-    "dotenv": "^16.0.3",
-    "kolorist": "^1.6.0",
-    "minimist": "^1.2.7"
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.4"
   }
 }
