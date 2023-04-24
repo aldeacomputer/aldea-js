@@ -33,7 +33,7 @@ test('Pointer#toBytes() returns a Uint8Array', t => {
   const bytes = t.context.ptr.toBytes()
 
   t.true(bytes instanceof Uint8Array)
-  t.is(bytes.byteLength, 36)
+  t.is(bytes.byteLength, 34)
 })
 
 test('Pointer#toString() returns a pointer string', t => {
