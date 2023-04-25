@@ -75,23 +75,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/compiler@npm:^0.0.0-alpha.5":
-  version: 0.0.0-alpha.7
-  resolution: "@aldea/compiler@npm:0.0.0-alpha.7"
-  dependencies:
-    "@noble/hashes": ^1.1.5
-    "@scure/base": ^1.1.1
-    assemblyscript: 0.27.0
-    cbor-redux: ^1.0.0-3
-    commander: ^9.4.1
-    comment-parser: ^1.3.1
-    docblock: ^0.4.5
-  bin:
-    aldea: bin/aldea.js
-  checksum: 11be7d06a1159b384fb695279ae5f7ea6d38cacebb106434f3dd380b9bfa36da4dc4f200ea3b10b8e29acbda66a27caff09b9ff6a1866ff86ce20b42fadb286d
-  languageName: node
-  linkType: hard
-
 "@aldea/compiler@workspace:^, @aldea/compiler@workspace:packages/compiler":
   version: 0.0.0-use.local
   resolution: "@aldea/compiler@workspace:packages/compiler"
@@ -172,7 +155,7 @@ __metadata:
     supertest: ^6.3.2
     typescript: ^4.9.5
   bin:
-    mocknet: dist/index.js
+    mocknet: bin/mocknet.js
   languageName: unknown
   linkType: soft
 
@@ -190,7 +173,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/sdk-js@workspace:packages/sdk-js"
   dependencies:
-    "@aldea/compiler": ^0.0.0-alpha.5
+    "@aldea/compiler": "workspace:^"
     "@mxssfd/typedoc-theme": ^1.0.3
     "@noble/ed25519": ^2.0.0
     "@noble/hashes": ^1.3.0
@@ -2799,19 +2782,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"assemblyscript@npm:0.27.0":
-  version: 0.27.0
-  resolution: "assemblyscript@npm:0.27.0"
-  dependencies:
-    binaryen: 111.0.0-nightly.20230111
-    long: ^5.2.0
-  bin:
-    asc: bin/asc.js
-    asinit: bin/asinit.js
-  checksum: f5e641de723a4774e695f696427b412adbadd04f493aeb4ab814e78f193791546a9d372c1b675a04e1c9a8cd9ddb54527c37d03aec404b025b40e491764f2705
-  languageName: node
-  linkType: hard
-
 "assemblyscript@npm:@aldea/assemblyscript@^0.1.0":
   version: 0.1.0
   resolution: "@aldea/assemblyscript@npm:0.1.0"
@@ -3127,16 +3097,6 @@ __metadata:
     wasm-opt: bin/wasm-opt
     wasm2js: bin/wasm2js
   checksum: 1ce1b184c4d953e311e2198e8da724f17a83db25d237a92b8e28be69d1adcb12b44ca49c35a3bf59b1c6c0031b4394d2c7b32b4b5a7d4002edabbb37425c11d2
-  languageName: node
-  linkType: hard
-
-"binaryen@npm:111.0.0-nightly.20230111":
-  version: 111.0.0-nightly.20230111
-  resolution: "binaryen@npm:111.0.0-nightly.20230111"
-  bin:
-    wasm-opt: bin/wasm-opt
-    wasm2js: bin/wasm2js
-  checksum: b361f946d91c82b8dbebca81cfb85feebac02995707bb0def66e8d78b22ea6a666a892d7acbd5efa19b4c54cbe53f2e2e10bd17302a7321c236293a20fc52193
   languageName: node
   linkType: hard
 

@@ -1,16 +1,15 @@
 {
   "name": "@aldea/mocknet",
   "description": "A mocked blockchain environment for building on the Aldea Computer.",
-  "version": "0.0.1-beta.1",
+  "version": "0.0.1-beta.2",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",
-  "bin": "dist/index.js",
+  "bin": "bin/mocknet.js",
   "files": [
     "dist/**/*",
     "src/**/*"
   ],
-  "packageManager": "yarn@3.2.3",
   "scripts": {
     "build": "yarn clean && tsc",
     "clean": "rimraf dist/* || true",
@@ -20,6 +19,7 @@
     "start": "node .",
     "test": "yarn build && mocha"
   },
+  "packageManager": "yarn@3.2.3",
   "dependencies": {
     "@aldea/compiler": "workspace:^",
     "@aldea/sdk-js": "workspace:^",
