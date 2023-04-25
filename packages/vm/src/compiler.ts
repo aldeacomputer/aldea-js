@@ -1,7 +1,7 @@
 import {CompilerResult} from "@aldea/compiler";
-import {PkgData} from "./storage.js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {abiFromCbor} from "@aldea/compiler/abi";
+import {PkgData} from "./pkg-data.js";
 
 
 export type CodeBundle = { [key: string]: string }

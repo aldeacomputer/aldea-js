@@ -1,4 +1,4 @@
-import {Clock, PkgData, Storage, StubClock, VM} from "../src/index.js";
+import {Clock, PkgData, MemoryStorage, StubClock, VM} from "../src/index.js";
 import {instructions, Output, Tx, Lock, Pointer, PrivKey} from "@aldea/sdk-js";
 import {buildVm} from "./util.js";
 import {TxExecution} from "../src/tx-execution.js";
@@ -33,7 +33,7 @@ const outputFromJigState = (jig: JigState): Output => {
 
 describe('exec from inputs', () => {
   let vm: VM
-  let storage: Storage
+  let storage: MemoryStorage
   let compiler: Compiler
   const userPriv = PrivKey.fromRandom()
   const userPub = userPriv.toPubKey()
@@ -101,7 +101,7 @@ describe('exec from inputs', () => {
       }
     }
 
-    const emptyStorage = new Storage();
+    const emptyStorage = new MemoryStorage();
     const vm2 = new VM(emptyStorage, justFlockAndCoinPkg, emptyStorage, new StubClock(), new Compiler(() => expect.fail('should not try to compile')))
     const tx2 = new Tx()
     tx2.push(new LoadInstruction(tx1Exec.outputs[0].id())) // flock

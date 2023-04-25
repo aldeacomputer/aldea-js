@@ -1,5 +1,5 @@
 import {
-  Storage,
+  MemoryStorage,
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
@@ -7,7 +7,7 @@ import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {PrivKey} from "@aldea/sdk-js";
 
 describe('execute with interfaces', () => {
-  let storage: Storage
+  let storage: MemoryStorage
   let vm: VM
 
   const userPriv = PrivKey.fromRandom()

@@ -5,7 +5,7 @@ import {Output, Tx} from "@aldea/sdk-js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import moment from "moment";
 import {Option} from "./support/option.js";
-import {PkgData} from "./storage.js";
+import {PkgData} from "./pkg-data.js";
 
 export class PackageDeploy {
   sources: Map<string, string>

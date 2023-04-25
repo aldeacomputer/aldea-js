@@ -1,5 +1,4 @@
 import {TxExecution} from './tx-execution.js'
-import {DataSave, PkgData} from "./storage.js";
 import {abiFromCbor} from '@aldea/compiler/abi'
 import {Address, Pointer, Tx} from "@aldea/sdk-js";
 import {calculatePackageId} from "./calculate-package-id.js";
@@ -19,6 +18,8 @@ import {PkgRepository, StateProvider} from "./state-interfaces.js";
 import {SerializedLock} from "./locks/serialized-lock.js";
 import {LockType} from "./wasm-instance.js";
 import {Compiler} from "./compiler.js";
+import {PkgData} from "./pkg-data.js";
+import {DataSave} from "./storage/interfaces.js";
 
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([

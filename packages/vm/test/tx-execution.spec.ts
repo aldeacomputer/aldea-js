@@ -1,6 +1,6 @@
 import {
   Clock, ExtendedTx,
-  Storage,
+  MemoryStorage,
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
@@ -15,7 +15,7 @@ import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
 import {SignInstruction} from "@aldea/sdk-js/instructions/index";
 
 describe('execute txs', () => {
-  let storage: Storage
+  let storage: MemoryStorage
   let vm: VM
   const userPriv = PrivKey.fromRandom()
   const userPub = userPriv.toPubKey()

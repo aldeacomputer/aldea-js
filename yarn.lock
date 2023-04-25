@@ -229,6 +229,7 @@ __metadata:
     glob: ^8.0.3
     mocha: ^10.0.0
     moment: ^2.29.4
+    node-redis: ^0.1.7
     nodemon: ^2.0.19
     ts-mocha: ^10.0.0
     ts-node: ^10.9.1
@@ -10464,6 +10465,13 @@ __metadata:
   bin:
     node-gyp: bin/node-gyp.js
   checksum: b860e9976fa645ca0789c69e25387401b4396b93c8375489b5151a6c55cf2640a3b6183c212b38625ef7c508994930b72198338e3d09b9d7ade5acc4aaf51ea7
+  languageName: node
+  linkType: hard
+
+"node-redis@npm:^0.1.7":
+  version: 0.1.7
+  resolution: "node-redis@npm:0.1.7"
+  checksum: 8b4bdef449558754e0cd60763b7f7d3708df3dd52e64079faca52732cc9741e816a78f8e01b7f4a19e173553d3c0fbc1aa468cad5395acb8fb054d9e97394668
   languageName: node
   linkType: hard
 

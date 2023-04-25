@@ -36,7 +36,8 @@
     "@aldea/compiler": "workspace:^",
     "@aldea/sdk-js": "workspace:^",
     "cbor-redux": "1.0.0-3",
-    "moment": "^2.29.4"
+    "moment": "^2.29.4",
+    "node-redis": "^0.1.7"
   },
   "devDependencies": {
     "@types/chai": "^4.3.3",

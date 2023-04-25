@@ -1,4 +1,4 @@
-import {Storage, VM} from '../src/index.js'
+import {MemoryStorage, VM} from '../src/index.js'
 import {expect} from 'chai'
 import {TxExecution} from "../src/tx-execution.js";
 import {JigRef} from "../src/jig-ref.js";
@@ -8,7 +8,7 @@ import {StatementResult} from "../src/statement-result.js";
 import {PrivKey} from "@aldea/sdk-js";
 
 describe('Jig Type', () => {
-  let storage: Storage
+  let storage: MemoryStorage
   let vm: VM
   const userPriv = PrivKey.fromRandom()
   const userPub = userPriv.toPubKey()

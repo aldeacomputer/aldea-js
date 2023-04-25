@@ -1,4 +1,4 @@
-import {Storage, StubClock, VM} from "../src/index.js";
+import {MemoryStorage, StubClock, VM} from "../src/index.js";
 import {base16, instructions, PrivKey, Tx} from "@aldea/sdk-js";
 import {TxExecution} from "../src/tx-execution.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
@@ -10,7 +10,7 @@ import {Compiler} from "../src/compiler.js";
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 
 
-export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () => VM) => (privKeys: PrivKey[] = []) => {
+export const emptyExecFactoryFactory = (lazyStorage: () => MemoryStorage, lazyVm: () => VM) => (privKeys: PrivKey[] = []) => {
   const storage = lazyStorage()
   const vm = lazyVm()
   const tx = new Tx()
@@ -36,7 +36,7 @@ export function addPreCompiled (vm: VM, src: string ): Uint8Array {
 export function buildVm(sources: string[]) {
   const moduleIds = new Map<string, string>()
   const clock = new StubClock()
-  const storage = new Storage()
+  const storage = new MemoryStorage()
   const compiler = new Compiler(compile)
   const vm = new VM(storage, storage, storage, clock, compiler)
 

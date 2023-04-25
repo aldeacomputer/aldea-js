@@ -4,10 +4,10 @@ import {Clock} from "../clock.js";
 import {JigState} from "../jig-state.js";
 import {ExecutionError} from "../errors.js";
 import {WasmInstance} from "../wasm-instance.js";
-import {PkgData} from "../storage.js";
 import moment from "moment/moment.js";
 import {TxContext} from "./tx-context.js";
 import {Compiler} from "../compiler.js";
+import {PkgData} from "../pkg-data.js";
 
 export class StorageTxContext implements TxContext {
   private _tx: Tx

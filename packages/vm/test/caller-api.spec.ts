@@ -1,5 +1,5 @@
 import {
-  Storage,
+  MemoryStorage,
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
@@ -8,7 +8,7 @@ import {ExecutionError} from "../src/errors.js";
 import {emptyExecFactoryFactory, buildVm} from "./util.js";
 
 describe('execute txs', () => {
-  let storage: Storage
+  let storage: MemoryStorage
   let vm: VM
   const userPriv = PrivKey.fromRandom()
   const userPub = userPriv.toPubKey()

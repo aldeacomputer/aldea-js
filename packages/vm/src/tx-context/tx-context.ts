@@ -2,7 +2,7 @@ import {Instruction, Pointer, Tx} from "@aldea/sdk-js";
 import {JigState} from "../jig-state.js";
 import moment from "moment";
 import {WasmInstance} from "../wasm-instance.js";
-import {PkgData} from "../storage.js";
+import {PkgData} from "../pkg-data.js";
 
 export interface TxContext {
   forEachInstruction (fn: (i: Instruction) => Promise<void>): Promise<void>

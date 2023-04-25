@@ -1,64 +1,13 @@
-import {JigState} from './jig-state.js';
-import {Abi} from "@aldea/compiler/abi";
+import {JigState} from '../jig-state.js';
 import {Address, base16, Pointer} from "@aldea/sdk-js";
-import {ExecutionResult, PackageDeploy} from "./execution-result.js";
-import {LockType, WasmInstance} from "./wasm-instance.js";
-import {Option} from "./support/option.js";
-import {PkgRepository, StateProvider} from "./state-interfaces.js";
+import {ExecutionResult} from "../execution-result.js";
+import {LockType, WasmInstance} from "../wasm-instance.js";
+import {Option} from "../support/option.js";
+import {PkgRepository, StateProvider} from "../state-interfaces.js";
+import {PkgData} from "../pkg-data.js";
+import {DataSave, HistoricalRecord} from "./interfaces.js";
 
-export class PkgData {
-  abi: Abi
-  docs: Uint8Array
-  entries: string[]
-  id: Uint8Array
-  mod: WebAssembly.Module
-  sources: Map<string, string>
-  wasmBin: Uint8Array
-
-  constructor(
-    abi: Abi,
-    docs: Uint8Array,
-    entries: string[],
-    id: Uint8Array,
-    mod: WebAssembly.Module,
-    sources: Map<string, string>,
-    wasmBin: Uint8Array
-  ) {
-    this.abi = abi
-    this.docs = docs
-    this.entries = entries
-    this.id = id
-    this.mod = mod
-    this.sources = sources
-    this.wasmBin = wasmBin
-  }
-
-  static fromPackageDeploy(deploy: PackageDeploy) {
-    return new this(
-      deploy.abi,
-      deploy.docs,
-      deploy.entries,
-      deploy.hash,
-      new WebAssembly.Module(deploy.bytecode),
-      deploy.sources,
-      deploy.bytecode
-    )
-  }
-}
-
-export interface DataSave {
-  persist(txExecution: ExecutionResult): void;
-  addUtxo(jigState: JigState): void;
-  addPackage(pkgData: PkgData): void;
-}
-
-export interface HistoricalRecord {
-  getHistoricalUtxo(outputId: Uint8Array, onNotFound: () => JigState): JigState;
-
-  utxosForAddress(userAddr: Address): JigState[];
-}
-
-export class Storage implements StateProvider, PkgRepository, DataSave, HistoricalRecord {
+export class MemoryStorage implements StateProvider, PkgRepository, DataSave, HistoricalRecord {
   private utxosByOid: Map<string, JigState> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, JigState[]> // address -> state. Only utxos
   private tips: Map<string, string> // origin -> latest output_id

@@ -1,4 +1,4 @@
-import {Storage, StubClock, VM} from '../src/index.js'
+import {MemoryStorage, StubClock, VM} from '../src/index.js'
 import {expect} from 'chai'
 import {TxBuilder} from "./tx-builder.js";
 import {LockType} from "../src/wasm-instance.js";
@@ -11,7 +11,7 @@ import {compile} from "@aldea/compiler";
 import {Compiler} from "../src/compiler.js";
 
 describe('Coin', () => {
-  let storage: Storage
+  let storage: MemoryStorage
   let vm: VM
   const userPriv = PrivKey.fromRandom()
   const userPub = userPriv.toPubKey()
@@ -24,7 +24,7 @@ describe('Coin', () => {
   let coin: JigState
 
   beforeEach(() => {
-    storage = new Storage()
+    storage = new MemoryStorage()
     const clock = new StubClock(moment())
     const compiler = new Compiler(compile)
     vm = new VM(storage, storage, storage, clock, compiler)

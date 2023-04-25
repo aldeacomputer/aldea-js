@@ -1,4 +1,4 @@
-import {Storage, StubClock, VM} from '../src/index.js'
+import {MemoryStorage, StubClock, VM} from '../src/index.js'
 import {expect} from 'chai'
 import {calculatePackageId} from '../src/index.js';
 import {addPreCompiled, emptyExecFactoryFactory} from "./util.js";
@@ -16,7 +16,7 @@ export class Foo extends Jig {
 }
 `
 describe('deploy code', () => {
-  let storage: Storage
+  let storage: MemoryStorage
   let vm: VM
   const userPriv = PrivKey.fromRandom()
   const userPub = userPriv.toPubKey()
@@ -24,7 +24,7 @@ describe('deploy code', () => {
   const fileName = 'something.ts'
   const clock = new StubClock()
   beforeEach(() => {
-    storage = new Storage()
+    storage = new MemoryStorage()
     vm = new VM(storage, storage, storage, clock, new Compiler(compile))
   })
 

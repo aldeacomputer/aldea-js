@@ -14,8 +14,8 @@ import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {TxContext} from "./tx-context/tx-context.js";
-import {PkgData} from "./storage.js";
 import {ImportInstruction, NewInstruction} from "@aldea/sdk-js/instructions/index";
+import {PkgData} from "./pkg-data.js";
 
 const MIN_FUND_AMOUNT = 100
 

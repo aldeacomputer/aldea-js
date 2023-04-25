@@ -4,9 +4,9 @@ import {PkgRepository} from "../state-interfaces.js";
 import {TxContext} from "./tx-context.js";
 import {base16, Instruction, Pointer, Tx} from "@aldea/sdk-js";
 import {JigState} from "../jig-state.js";
-import {PkgData} from "../storage.js";
 import {WasmInstance} from "../wasm-instance.js";
 import {Compiler} from "../compiler.js";
+import {PkgData} from "../pkg-data.js";
 
 
 const cmpBuff = (buff1: Uint8Array, buff2: Uint8Array): number => {

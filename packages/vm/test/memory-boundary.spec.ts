@@ -3,7 +3,7 @@ import { compile } from '@aldea/compiler'
 import { abiFromCbor } from '@aldea/compiler/abi'
 import { WasmInstance } from '../src/wasm-instance.js'
 import {TxExecution} from "../src/tx-execution.js";
-import {Storage, MomentClock} from "../src/index.js";
+import {MemoryStorage, MomentClock} from "../src/index.js";
 import {Tx} from "@aldea/sdk-js";
 import {JigRef} from "../src/jig-ref.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
@@ -556,7 +556,7 @@ describe('reading complex types from memory', () => {
       `.trim()
   
       const wasm = await compileToWasm(code)
-      const storage = new Storage();
+      const storage = new MemoryStorage();
       const clock = new MomentClock();
       const compiler = new Compiler(compile);
       wasm.setExecution(new TxExecution(new StorageTxContext(new Tx(), storage, storage, compiler, clock)))
