@@ -56,6 +56,10 @@ $title-height: 4em;
       width: 86%;
       max-height: calc(var(--max-height-content-panel) - 2em);
     }
+
+    ::selection {
+      background-color: var(--code-text-selection-color);
+    }
   }
 }
 
