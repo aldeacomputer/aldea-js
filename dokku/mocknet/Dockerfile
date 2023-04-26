@@ -37,7 +37,6 @@ COPY .yarn .yarn
 COPY yarn.lock .
 
 COPY --from=build /app/packages /app/packages
-COPY --from=build /app/lib lib
 
 WORKDIR /app/packages/mocknet
 RUN yarn workspaces focus --production
