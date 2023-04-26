@@ -7,7 +7,6 @@ import {SerializedLock} from "./locks/serialized-lock.js";
 
 export class JigState {
   private output: Output
-  createdAt: number;
 
   constructor (
     origin: Pointer,
@@ -16,7 +15,6 @@ export class JigState {
     stateBuf: Uint8Array,
     moduleId: Uint8Array,
     lock: SerializedLock,
-    createdAt: number
   ) {
     this.output = new Output(
       origin,
@@ -25,7 +23,6 @@ export class JigState {
       new Lock(Number(lock.type), lock.data),
       stateBuf
     )
-    this.createdAt = createdAt
   }
 
   get serializedLock (): SerializedLock {
@@ -118,8 +115,7 @@ export class JigState {
       output.classPtr.idx,
       output.stateBuf,
       output.classPtr.idBuf,
-      SerializedLock.fromSdkLock(output.lock),
-      10
+      SerializedLock.fromSdkLock(output.lock)
     )
   }
 

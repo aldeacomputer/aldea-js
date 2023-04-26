@@ -38,7 +38,7 @@ export class PackageDeploy {
 }
 
 export class ExecutionResult {
-  outputs: JigState[]
+  outputs: Output[]
   inputs: Output[]
   deploys: PackageDeploy[]
   private finished: boolean
@@ -63,7 +63,7 @@ export class ExecutionResult {
     if (this.finished) {
       throw new ExecutionError('Execution already finished')
     }
-    this.outputs.push(output)
+    this.outputs.push(output.toOutput())
   }
 
   addInputs(output: Output[]) {

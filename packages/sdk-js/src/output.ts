@@ -86,6 +86,10 @@ export class Output {
     return output
   }
 
+  isNew(): boolean {
+    return this.origin.equals(this.location);
+  }
+
   set abi(abi: Abi | void) {
     if (typeof abi === 'undefined') {
       this.#abi = undefined

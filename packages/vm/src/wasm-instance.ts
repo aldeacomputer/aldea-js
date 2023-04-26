@@ -1,7 +1,7 @@
 import {JigRef} from "./jig-ref.js"
 import {Abi, ArgNode, ClassNode, FieldNode, findField, TypeNode,} from "@aldea/compiler/abi";
 
-import {base16, Pointer} from "@aldea/sdk-js";
+import {base16, Pointer, LockType} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
 import {getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
@@ -26,13 +26,8 @@ import {decodeSequence, encodeSequence} from "./cbor.js";
 import {MethodNodeWrapper} from "./abi-helpers/method-node-wrapper.js";
 import {FunctionNode} from "@aldea/compiler/abi";
 
-export enum LockType {
-  FROZEN = -1,
-  NONE,     // 0 - default, src allows anyone to lock, but prevents function calls
-  PUBKEY,   // 1 - src requires valid signature to call function or change lock
-  CALLER,   // 2 - src requires parent is caller to call function or change lock
-  ANYONE,   // 3 - can only be set in constructor, src allows anyone to call function, but prevents lock change
-}
+
+export { LockType }
 
 export type Prop = {
   node: TypeNode;
