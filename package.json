@@ -3,7 +3,6 @@
   "packageManager": "yarn@3.2.3",
   "private": true,
   "workspaces": [
-    "lib/assemblyscript",
     "docs",
     "packages/*"
   ],
