@@ -66,4 +66,4 @@ const txRes = await aldea.commitTx(tx)
 
 Aldea is open source and released under the [Apache-2 License](https://github.com/aldeacomputer/aldea-js/blob/main/packages/sdk-js/LICENSE).
 
-© Copyright 2023 TODO, inc.
+© Copyright 2023 Run Computer Company, inc.

@@ -13,4 +13,4 @@ Developers won't usually have need to interract with the VM directly, but instea
 
 Aldea is open source and released under the [Apache-2 License](https://github.com/aldeacomputer/aldea-js/blob/main/packages/vm/LICENSE).
 
-© Copyright 2023 TODO, inc.
+© Copyright 2023 Run Computer Company, inc.

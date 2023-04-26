@@ -57,22 +57,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aldea/compiler@npm:^0.0.0-alpha.5":
-  version: 0.0.0-alpha.7
-  resolution: "@aldea/compiler@npm:0.0.0-alpha.7"
+"@aldea/cli@workspace:packages/cli":
+  version: 0.0.0-use.local
+  resolution: "@aldea/cli@workspace:packages/cli"
   dependencies:
-    "@noble/hashes": ^1.1.5
-    "@scure/base": ^1.1.1
-    assemblyscript: 0.27.0
-    cbor-redux: ^1.0.0-3
-    commander: ^9.4.1
-    comment-parser: ^1.3.1
-    docblock: ^0.4.5
+    "@aldea/sdk-js": "workspace:^"
+    "@aldea/wallet-lib": "workspace:^"
+    "@types/columnify": ^1.5.1
+    columnify: ^1.6.0
+    commander: ^10.0.1
+    kolorist: ^1.7.0
+    lowdb: ^6.0.0
+    prompts: ^2.4.2
+    typescript: ^5.0.4
   bin:
-    aldea: bin/aldea.js
-  checksum: 11be7d06a1159b384fb695279ae5f7ea6d38cacebb106434f3dd380b9bfa36da4dc4f200ea3b10b8e29acbda66a27caff09b9ff6a1866ff86ce20b42fadb286d
-  languageName: node
-  linkType: hard
+    aldea: ./bin/aldea.js
+  languageName: unknown
+  linkType: soft
 
 "@aldea/compiler@workspace:^, @aldea/compiler@workspace:packages/compiler":
   version: 0.0.0-use.local
@@ -87,7 +88,7 @@ __metadata:
     assemblyscript: "npm:@aldea/assemblyscript@^0.1.0"
     ava: ^5.1.0
     cbor-redux: ^1.0.0-3
-    commander: ^9.4.1
+    commander: ^10.0.1
     comment-parser: ^1.3.1
     concat: ^1.0.3
     docblock: ^0.4.5
@@ -154,7 +155,7 @@ __metadata:
     supertest: ^6.3.2
     typescript: ^4.9.5
   bin:
-    mocknet: dist/index.js
+    mocknet: bin/mocknet.js
   languageName: unknown
   linkType: soft
 
@@ -172,7 +173,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/sdk-js@workspace:packages/sdk-js"
   dependencies:
-    "@aldea/compiler": ^0.0.0-alpha.5
+    "@aldea/compiler": "workspace:^"
     "@mxssfd/typedoc-theme": ^1.0.3
     "@noble/ed25519": ^2.0.0
     "@noble/hashes": ^1.3.0
@@ -184,7 +185,6 @@ __metadata:
     esbuild: ^0.15.10
     ky: ^0.33.1
     ky-universal: ^0.11.0
-    lowdb: ^5.1.0
     micro-ed25519-hdkey: ^0.1.2
     npm-run-all: ^4.1.5
     rimraf: ^3.0.2
@@ -219,7 +219,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/wallet-lib@workspace:packages/wallet":
+"@aldea/wallet-lib@workspace:^, @aldea/wallet-lib@workspace:packages/wallet":
   version: 0.0.0-use.local
   resolution: "@aldea/wallet-lib@workspace:packages/wallet"
   dependencies:
@@ -1895,6 +1895,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/columnify@npm:^1.5.1":
+  version: 1.5.1
+  resolution: "@types/columnify@npm:1.5.1"
+  checksum: b377e961e38f1f3ad96ce6832349b3a04ae3e09695ab7f16d80f456fb292686cdd32d7040481e29e38b37cee0f3add34a09d2085d11ed8cd1fd71ad031eb6798
+  languageName: node
+  linkType: hard
+
 "@types/connect@npm:*":
   version: 3.4.35
   resolution: "@types/connect@npm:3.4.35"
@@ -2775,19 +2782,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"assemblyscript@npm:0.27.0":
-  version: 0.27.0
-  resolution: "assemblyscript@npm:0.27.0"
-  dependencies:
-    binaryen: 111.0.0-nightly.20230111
-    long: ^5.2.0
-  bin:
-    asc: bin/asc.js
-    asinit: bin/asinit.js
-  checksum: f5e641de723a4774e695f696427b412adbadd04f493aeb4ab814e78f193791546a9d372c1b675a04e1c9a8cd9ddb54527c37d03aec404b025b40e491764f2705
-  languageName: node
-  linkType: hard
-
 "assemblyscript@npm:@aldea/assemblyscript@^0.1.0":
   version: 0.1.0
   resolution: "@aldea/assemblyscript@npm:0.1.0"
@@ -3103,16 +3097,6 @@ __metadata:
     wasm-opt: bin/wasm-opt
     wasm2js: bin/wasm2js
   checksum: 1ce1b184c4d953e311e2198e8da724f17a83db25d237a92b8e28be69d1adcb12b44ca49c35a3bf59b1c6c0031b4394d2c7b32b4b5a7d4002edabbb37425c11d2
-  languageName: node
-  linkType: hard
-
-"binaryen@npm:111.0.0-nightly.20230111":
-  version: 111.0.0-nightly.20230111
-  resolution: "binaryen@npm:111.0.0-nightly.20230111"
-  bin:
-    wasm-opt: bin/wasm-opt
-    wasm2js: bin/wasm2js
-  checksum: b361f946d91c82b8dbebca81cfb85feebac02995707bb0def66e8d78b22ea6a666a892d7acbd5efa19b4c54cbe53f2e2e10bd17302a7321c236293a20fc52193
   languageName: node
   linkType: hard
 
@@ -3943,6 +3927,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"columnify@npm:^1.6.0":
+  version: 1.6.0
+  resolution: "columnify@npm:1.6.0"
+  dependencies:
+    strip-ansi: ^6.0.1
+    wcwidth: ^1.0.0
+  checksum: 0d590023616a27bcd2135c0f6ddd6fac94543263f9995538bbe391068976e30545e5534d369737ec7c3e9db4e53e70a277462de46aeb5a36e6997b4c7559c335
+  languageName: node
+  linkType: hard
+
 "columnify@npm:~1.5.4":
   version: 1.5.4
   resolution: "columnify@npm:1.5.4"
@@ -3966,6 +3960,13 @@ __metadata:
   version: 2.0.3
   resolution: "comma-separated-tokens@npm:2.0.3"
   checksum: e3bf9e0332a5c45f49b90e79bcdb4a7a85f28d6a6f0876a94f1bb9b2bfbdbbb9292aac50e1e742d8c0db1e62a0229a106f57917e2d067fca951d81737651700d
+  languageName: node
+  linkType: hard
+
+"commander@npm:^10.0.1":
+  version: 10.0.1
+  resolution: "commander@npm:10.0.1"
+  checksum: 436901d64a818295803c1996cd856621a74f30b9f9e28a588e726b2b1670665bccd7c1a77007ebf328729f0139838a88a19265858a0fa7a8728c4656796db948
   languageName: node
   linkType: hard
 
@@ -8247,7 +8248,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kolorist@npm:^1.6.0":
+"kolorist@npm:^1.6.0, kolorist@npm:^1.7.0":
   version: 1.7.0
   resolution: "kolorist@npm:1.7.0"
   checksum: 0eb64d22a204be11ddd7d2017525bf2603de38b15c571f79d6f0c5f1c869b8adfd40c3aa71c12e0cfe5496c25b2bbe891267cbc11f5b3fbc858d74ae79bac293
@@ -8818,15 +8819,6 @@ __metadata:
   dependencies:
     get-func-name: ^2.0.0
   checksum: cc83f1b124a1df7384601d72d8d1f5fe95fd7a8185469fec48bb2e4027e45243949e7a013e8d91051a138451ff0552310c32aa9786e60b6a30d1e801bdc2163f
-  languageName: node
-  linkType: hard
-
-"lowdb@npm:^5.1.0":
-  version: 5.1.0
-  resolution: "lowdb@npm:5.1.0"
-  dependencies:
-    steno: ^3.0.0
-  checksum: 4913d6fbfe8d5ee659a797c1ad7bcd7ba7505a22d6b3fb9967f69588b77360e896dc6e0e218b281065a38f47a0127dbd16373fc8bb9a1776113ee572888bbc90
   languageName: node
   linkType: hard
 
@@ -14323,6 +14315,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typescript@npm:^5.0.4":
+  version: 5.0.4
+  resolution: "typescript@npm:5.0.4"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 82b94da3f4604a8946da585f7d6c3025fff8410779e5bde2855ab130d05e4fd08938b9e593b6ebed165bda6ad9292b230984f10952cf82f0a0ca07bbeaa08172
+  languageName: node
+  linkType: hard
+
 "typescript@patch:typescript@^4.8.4#~builtin<compat/typescript>, typescript@patch:typescript@^4.9.3#~builtin<compat/typescript>, typescript@patch:typescript@^4.9.4#~builtin<compat/typescript>, typescript@patch:typescript@^4.9.5#~builtin<compat/typescript>":
   version: 4.9.5
   resolution: "typescript@patch:typescript@npm%3A4.9.5#~builtin<compat/typescript>::version=4.9.5&hash=a1c5e5"
@@ -14330,6 +14332,16 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 2eee5c37cad4390385db5db5a8e81470e42e8f1401b0358d7390095d6f681b410f2c4a0c496c6ff9ebd775423c7785cdace7bcdad76c7bee283df3d9718c0f20
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^5.0.4#~builtin<compat/typescript>":
+  version: 5.0.4
+  resolution: "typescript@patch:typescript@npm%3A5.0.4#~builtin<compat/typescript>::version=5.0.4&hash=a1c5e5"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 6a1fe9a77bb9c5176ead919cc4a1499ee63e46b4e05bf667079f11bf3a8f7887f135aa72460a4c3b016e6e6bb65a822cb8689a6d86cbfe92d22cc9f501f09213
   languageName: node
   linkType: hard
 

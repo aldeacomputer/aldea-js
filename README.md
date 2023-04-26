@@ -23,6 +23,7 @@ This monorepo contains JavaScript tools and packages used by developers to build
 | Package                                                                                   | Version                                                                          | Description                        |
 | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------- |
 | [create-aldea](https://github.com/aldeacomputer/aldea-js/tree/main/packages/create-aldea) | ![npm](https://img.shields.io/npm/v/create-aldea?style=flat-square&label=%20)    | Scaffold new Aldea projects        |
+| [@aldea/cli](https://github.com/aldeacomputer/aldea-js/tree/main/packages/cli)            | ![npm](https://img.shields.io/npm/v/@aldea/cli?style=flat-square&label=%20)      | Command-line utility belt          |
 | [@aldea/compiler](https://github.com/aldeacomputer/aldea-js/tree/main/packages/compiler)  | ![npm](https://img.shields.io/npm/v/@aldea/compiler?style=flat-square&label=%20) | AssemblyScript compiler            |
 | [@aldea/mocknet](https://github.com/aldeacomputer/aldea-js/tree/main/packages/mocknet)    | ![npm](https://img.shields.io/npm/v/@aldea/mocknet?style=flat-square&label=%20)  | A mock node for development        |
 | [@aldea/sdk-js](https://github.com/aldeacomputer/aldea-js/tree/main/packages/sdk-js)      | ![npm](https://img.shields.io/npm/v/@aldea/sdk-js?style=flat-square&label=%20)   | JavaScript development toolkit     |
@@ -32,4 +33,4 @@ This monorepo contains JavaScript tools and packages used by developers to build
 
 Aldea is open source and released under the [Apache-2 License](https://github.com/aldeacomputer/aldea-js/blob/main/LICENSE).
 
-© Copyright 2023 TODO, inc.
+© Copyright 2023 Run Computer Company, inc.

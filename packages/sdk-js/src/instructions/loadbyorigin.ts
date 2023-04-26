@@ -25,7 +25,7 @@ export class LoadByOriginInstruction extends Instruction {
  */
 export const LoadByOriginArgsSerializer: Serializable<LoadByOriginInstruction> = {
   read(buf: BufReader): LoadByOriginInstruction {
-    const origin = buf.readBytes(36)
+    const origin = buf.readBytes(34)
     return new LoadByOriginInstruction(origin)
   },
 

@@ -1,8 +1,7 @@
 {
   "name": "@aldea/wallet-lib",
   "description": "High level and versatile wallet tool for Aldea Blockchain",
-  "packageManager": "yarn@3.2.3",
-  "version": "0.0.1-beta.0",
+  "version": "0.0.1-beta.1",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -24,6 +23,10 @@
   "browser": "./dist/wallet-lib.bundle.min.js",
   "unpkg": "./dist/wallet-lib.bundle.min.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
   "scripts": {
     "build": "yarn build:ts && yarn build:es",
     "build:ts": "tsc",
@@ -31,10 +34,7 @@
     "test": "mocha",
     "ci": "yarn test"
   },
-  "files": [
-    "dist/**/*",
-    "src/**/*"
-  ],
+  "packageManager": "yarn@3.2.3",
   "dependencies": {
     "@aldea/sdk-js": "workspace:^",
     "lowdb": "^6.0.0"

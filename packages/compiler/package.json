@@ -1,7 +1,7 @@
 {
   "name": "@aldea/compiler",
   "description": "Compiles AssemblyScript code into Aldea-flavoured WASM packages.",
-  "version": "0.0.1-beta.3",
+  "version": "0.0.1-beta.4",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -42,7 +42,7 @@
     "@scure/base": "^1.1.1",
     "assemblyscript": "npm:@aldea/assemblyscript@^0.1.0",
     "cbor-redux": "^1.0.0-3",
-    "commander": "^9.4.1",
+    "commander": "^10.0.1",
     "comment-parser": "^1.3.1",
     "docblock": "^0.4.5"
   },
@@ -63,6 +63,5 @@
       "test/**/*.test.js",
       "!test/support"
     ]
-  },
-  "stableVersion": "0.0.0-alpha.4"
+  }
 }

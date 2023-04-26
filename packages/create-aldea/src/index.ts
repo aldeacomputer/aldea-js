@@ -3,7 +3,7 @@ import { basename, join, relative, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import minimist from 'minimist'
 import prompts from 'prompts'
-import { red } from 'kolorist'
+import { red, dim } from 'kolorist'
 
 const defaultDir = 'aldea-project'
 const defaultTmp = 'default'
@@ -65,8 +65,16 @@ async function create(cwd: string, argv: minimist.ParsedArgs): Promise<void> {
   const root = join(cwd, tgtDir || defaultDir)
 
   const templateDir = resolve(
-    fileURLToPath(import.meta.url), '../..', 'templates', defaultTmp
+    fileURLToPath(import.meta.url),
+    '../..',
+    'templates',
+    argv.template,
   )
+
+  if (!fs.existsSync(templateDir)) {
+    console.log(red('✖') + ` Template not found: ${argv.template}`)
+    return
+  }
 
   const pkg = JSON.parse(
     fs.readFileSync(join(templateDir, `package.json`), 'utf-8')
@@ -84,11 +92,10 @@ async function create(cwd: string, argv: minimist.ParsedArgs): Promise<void> {
   writeFile(join(root, 'package.json'), JSON.stringify(pkg, null, 2))
 
   console.log(`\nDone. Now run:\n`)
-
   if (root !== cwd) {
-    const install = pkgManager === 'yarn' ? 'yarn' : `${ pkgManager } i`
-    console.log(`  cd ${relative(cwd, root)} && ${install}`)
+    console.log(`  ${dim('❯')} cd ${relative(cwd, root)}`)
   }
+  console.log(`  ${dim('❯')} ${pkgManager === 'yarn' ? 'yarn' : `${ pkgManager } i`}`)
   console.log()
 }
 
@@ -168,7 +175,9 @@ function writeFile(path: string, data: string) {
 }
 
 const argv = minimist(process.argv.slice(2), {
-  string: ['_']
+  string: ['_'],
+  alias:    { template: 't' },
+  default:  { template: defaultTmp },
 })
 
 create(process.cwd(), argv).catch((e) => {

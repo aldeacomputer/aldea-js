@@ -27,4 +27,4 @@ Once setup, follow through the [walkthrough in the Aldea documentation](https://
 
 Aldea is open source and released under the [Apache-2 License](https://github.com/aldeacomputer/aldea-js/blob/main/packages/compiler/LICENSE).
 
-© Copyright 2023 TODO, inc.
+© Copyright 2023 Run Computer Company, inc.

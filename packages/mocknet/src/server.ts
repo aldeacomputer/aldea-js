@@ -37,7 +37,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
       id: base16.encode(jigState.id()),
       origin: jigState.origin.toString(),
       location: jigState.currentLocation.toString(),
-      class: jigState.classId().toString(),
+      class: jigState.classPtr().toString(),
       lock: {
         type: lock.type,
         data: lock.data ? base16.encode(lock.data) : ''
