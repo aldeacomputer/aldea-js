@@ -1,7 +1,6 @@
 {
   "index": "Introduction",
-  "aldea": "Aldea",
+  "getting-started": "Getting started",
   "concepts": "Key concepts",
-  "assemblyscript": "AssemblyScript",
-  "getting-started": "Getting started"
+  "assemblyscript": "AssemblyScript"
 }

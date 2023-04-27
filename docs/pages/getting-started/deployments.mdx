@@ -6,154 +6,61 @@ import {CodeContainer} from '../../customComponents/codeContainer'
 
 # Deploy your first package
 
-In the previous steps, you have created a project, generated a new key pair, and received a coin to use for a transaction. Now, let's move on to deploying some code.
+In the previous step, you created a blank starter kit project, and created and topped up a new wallet. You're ready to start deploying some code.
 
 ## What is a package?
 
-A package is a collection of files and exports, written in AssemblyScript, that can be deployed to the Aldea Computer.
+A package is a collection of files and exports, written in AssemblyScript, that can be deployed to the Aldea Computer. A package exports one or more classes or functions.
+
+Classes that extend from the built-in `Jig` class have some magical properties. Instances of classes that inherit from `Jig` can be owned, locked, transferred and interacted with. Jigs are the fundamental building blocks of the Aldea Computer.
 
 <CodeContainer lang="ts">
     ```
-    export class Counter extends Jig {
-      count: i64 = 0
+    export class Item extends Jig {
+      name: string;
+      power: u8;
 
-      increase(): void {
-        this.count++
+      constructor(name: string) {
+        super()
+        this.name = name
+        this.power = 1
       }
 
-      decrease(): void {
-        this.count--
-      }
-
-      reset(): void {
-        this.count = 0
+      addPower(val: u8): void {
+        if (val < 1 || val > 10) {
+          throw new Error('power can only be increased by 1-10')
+        }
+        this.power = min(this.power + val, 100)
       }
     }
     ```
 </CodeContainer>
 
-In the example above, the `Counter` class extends from the `Jig` class, which means that every instance of the `Counter` class becomes part of the Aldea Computer and can be interacted with through transactions.
+The example above can be found in your project at `aldea/item.ts`. The `Item` class has two typed propteries, `"name"` and `"power"`. The `"power"` propery defaults to `1` and can be increased by calling the `addPower()` method until it reaches the maximum of `100`.
 
-This example found in `aldea/counter.ts` is very simple, but packages can also be more complex, with multiple files and exports.
+It's a very simple example, but with a bit of imagination we can visualize a game where the player collects items and the player's power is the sum of all their items.
 
 ## Deploy a package
 
-Your starter kit includes a more complex example of a Jig in `aldea/fighter.ts` that you can deploy. Take a moment to familiarize yourself with the code.
+The CLI gives us a nice simple way to deploy a package. The following code will bundle our package, create a transaction and fund it with a coin in our wallet.
 
-The kit also includes a script for deploying packages. To use it, you will need the `output_id` of the coin you received from the faucet.
-
-<CodeContainer lang="base" lines={false}>
+<CodeContainer lang="bash" lines={false}>
     ```
-    npm run deploy -- fighter.ts --coin <OUTPUT_ID>
+    npx aldea package.deploy item.ts
     ```
 </CodeContainer>
 
-The script will create a transaction using your coin and will provide a JSON output similar to:
+The command prints a response containing some useful information.
 
-<CodeContainer lang="json" lines={false}>
-    ```
-    {
-      "txid": "1767774b77aabbddbf307c3176466584ff3256de8561e1612ace44b5196a2e6d",
-      "outputs": [
-        {
-          "id": "f48ba904eeb603806ac41930df8063b5ab3ab5af80d0a8fefdf3ec681ea54f79",
-          "origin": "305601c5834cb3b43fe68f6e4c580fd1d60afc74d69addfdd9739462bfa82877_0",
-          "location": "1767774b77aabbddbf307c3176466584ff3256de8561e1612ace44b5196a2e6d_0",
-          "class": "0000000000000000000000000000000000000000000000000000000000000000_0",
-          "lock": { "type": 1, "data": "cbff30f7a721e4105f80f2d58a6caad4d6ae8242" },
-          "state": "192648"
-        }
-      ],
-      "packages": [
-        {
-          "id": "018cb96f98167917c9339e4f90c5863aff6d756083e742256c80cf9c9b99d78b",
-          "files": [ "fighter.ts" ],
-          "entries": [ "fighter.ts "],
-        }
-      ]
-    }
-    ```
-</CodeContainer>
+- `txid` - The transaction ID.
+- `pkg_id` - The ID of the deployed package. This is a content-addressable hash of the package source code, so will always be the same for identical packages.
 
-This is the JSON representation of a transaction result. It contains the following properties:
-
-- `txid` - The transaction ID
-- `outputs` - An array of outputs (Jigs) created by the transaction. This transaction has one output, which is change from the coin used to fund it. You still control this coin, so make a note of the new `output_id` for use in future transactions.
-- `packages` - An array of packages deployed as a result of the transaction's instructions. The `fighter.ts` package is now deployed and has a package ID. Make a note of the package ID for use in future transactions.
-
-## Transaction builder
-
-Before moving on to the next section, let's examine the code in `scripts/deploy.js` to understand how the transaction was created. Find the code that looks like this:
-
-<CodeContainer lang="ts">
-    ```
-     const tx = await aldea.createTx(tx => {
-      const coinRef = tx.load(coin.id)
-      tx.deploy(pkg)
-      tx.call(coinRef, 'send', [coin.props.motos - 100, address.hash])
-      tx.fund(coinRef)
-      tx.sign(keys.privKey)
-    })
-
-    await aldea.commitTx(tx)
-    ```
-</CodeContainer>
-
-Here's what each line does:
-
-1. Firstly we load the output of the coin that will be used to fund the transaction. The state of the coin is loaded to ensure it has enough motos to fund the transaction.
-    
-    <CodeContainer lang="ts" lines={false}>
-        ```
-        const coin = await aldea.loadOutput(argv.coin)
-        ```
-    </CodeContainer>
-    
-2. The `createTx` function takes a callback function that receives a `TxBuilder` instance. Within the callback, you can add instructions to build the transaction. The function returns the built transaction.
-    
-    <CodeContainer lang="ts" lines={false}>
-        ```
-        const tx = await aldea.createTx(tx => {
-          // builder code
-        })
-        ```
-    </CodeContainer>
-    
-3. Even though the coin output has already been loaded outside of the transaction, a `LoadInstruction` must be added to the transaction. The builder function returns a reference to the instruction, which can be stored in a variable for use later in the transaction.
-    
-    <CodeContainer lang="ts" lines={false}>
-        ```
-        const coinRef = tx.load(coin.ref)
-        ```
-    </CodeContainer>
-    
-4. The `DeployInstruction` deploys a package of code to the Aldea Computer.
-    
-    <CodeContainer lang="ts" lines={false}>
-        ```
-        tx.deploy(pkg)
-        ```
-    </CodeContainer>
-    
-5. The `FundInstruction` specifies a coin to use to fund the transaction. The entire coin is given to the transaction processor as a fee. It is common to use the "send" method on the coin to send change back to yourself first, especially if the coin has more motos than the cost of the transaction.
-    
-    <CodeContainer lang="ts" lines={false}>
-        ```
-        tx.call(coinRef, "send", [coin.motos - 100, address])
-        tx.fund(coinRef)
-        ```
-    </CodeContainer>
-    
-6. Finally, the transaction is committed to the Aldea computer with `adea.commitTx(tx)`. This returns the response we looked at earlier.
-    
-    <CodeContainer lang="ts" lines={false}>
-        ```
-        await aldea.commitTx(tx)
-        ```
-    </CodeContainer>
-    
+**Keep a note of the package ID, we'll need it in the next step!**
 
 ## Next steps
 
-- [Create and equip a fighter](/getting-started/instances)
-- [Enter into battle](/getting-started/interacting)
+You've just deployed your first package! That was pretty easy, right? If you're feeling adventurous, try making some changes to the `Item` class and deploying a new package.
+
+When ready, move on to the next step where we'll build transactions to create and update `Item` instances.
+
+- [Working with Jigs](/getting-started/transactions)

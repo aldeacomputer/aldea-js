@@ -8,7 +8,7 @@ import "prismjs/components/prism-typescript"
 import styles from './codeContainer.module.scss'
 
 // Expected codeSnippets prop structure: [{:title, :code, :lang}, ...]
-export function CodeContainer({lang, children, title, lines}) {
+export function CodeContainer({ lang, children, title, lines, 'line-start': startAt }) {
   if (typeof lines === 'undefined') lines = true
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export function CodeContainer({lang, children, title, lines}) {
       {title && <div className={styles.title}>
         <span>{title}</span>
       </div>}
-      <pre className={`${lineClass} ${mapLanguageToPrismPreset(lang)}`} data-start="1">
+      <pre className={`${lineClass} ${mapLanguageToPrismPreset(lang)}`} data-start={Number(startAt) || 1}>
         <code className={mapLanguageToPrismPreset(lang)}>
           {children}
         </code>

@@ -6,9 +6,9 @@ import {CodeContainer} from '../../customComponents/codeContainer'
 
 # Install the starter kit
 
-The Aldea Starter Kit is a simple way to set up an Aldea project and start writing and deploying code on the Aldea Computer blockchain.
+The Aldea Starter Kit is the recommended way to set up a new Aldea project for beginners and pros alike. In this guide you'll use the starter kit to create a blank project, you'll deploy your first code to the Aldea Computer, and we'll explore how transactions can be constructed to create and update instances of Jigs.
 
-To use it, you need to have a Node.js development environment with `npm` or `yarn` installed. In these examples, we'll use `npm`.
+You'll need to have a Node.js development environment on your machine. In these examples, we'll use `npm`, but similar tools like `yarn` and `pnpm` will also do the job.
 
 ## Initialize an Aldea project
 
@@ -20,7 +20,7 @@ To create a new Aldea project, run the following command. It will create a direc
     ```
 </CodeContainer>
 
-Once it's done, go into the directory and install the dependencies.
+Once it's done, enter the directory and install the dependencies.
 
 <CodeContainer lang="bash" lines={false}>
     ```
@@ -28,18 +28,39 @@ Once it's done, go into the directory and install the dependencies.
     ```
 </CodeContainer>
 
-You're now ready to start working on your Aldea project!
-
 ## Project structure
 
-The generated project includes a few files and directories that you should know about. These are:
+The generated project includes a few files and directories that you should know about.
 
-- `/aldea` - this directory contains the AssemblyScript code that you can deploy on the blockchain. It comes with some simple examples to get you started.
-- `/scripts` - this directory contains JavaScript files with scripts that will help you create, deploy, and interact with the code on the blockchain.
+- `/aldea` - this directory contains the AssemblyScript code that you can deploy on the blockchain. It comes with a simple example to get you started.
+- `/scripts` - this directory is where to put TypeScript (or JavaScript) files with scripts to build the transactions that will interact with your on-chain code.
+- `/aldea.config.cjs` - Aldea CLI configuration file. It can be useful to change the `"nodeUrl"` option if you are running a local mocknet instance.
+
+## Create a wallet
+
+Every transaction committed to the Aldea Computer incurs a small fee. That means, before you start writing and deploying code to the Aldea Computer, you'll need to create a wallet and find some coins to fund our transactions.
+
+Your starter kit project is pre-installed with the Aldea CLI which provides all the tools necessarily to setup your wallet.
+
+The following command will create a hidden directory in your project folder, containing your keys and wallet data.
+
+<CodeContainer lang="bash" lines={false}>
+    ```
+    npx aldea wallet.create
+    ```
+</CodeContainer>
+
+You can topup the wallet by minting new coins (before you get too excited, this magical money tree feature is limited to Aldea's mocknet environment). The following command will add the specified number of motos to your wallet.
+
+<CodeContainer lang="bash" lines={false}>
+    ```
+    npx aldea wallet.topup --mint 50000
+    ```
+</CodeContainer>
 
 ## Next steps
 
-- [Create a new key pair](/getting-started/key-pairs)
+You've used the starter kit to create a new Aldea development project, and created a new wallet with funds. You're ready to start deploying some code to the Aldea Computer!
+
 - [Deploy your first package](/getting-started/deployments)
-- [Create and equip a fighter](/getting-started/instances)
-- [Enter into battle](/getting-started/interacting)
+- [Working with Jigs](/getting-started/transactions)

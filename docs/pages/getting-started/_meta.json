@@ -1,7 +1,5 @@
 {
   "starter-kit": "Install the starter kit",
-  "key-pairs": "Create a new key pair",
   "deployments": "Deploy your first package",
-  "instances": "Create and equip a fighter",
-  "interacting": "Enter into battle"
+  "transactions": "Create your first transactions"
 }
