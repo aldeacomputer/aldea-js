@@ -15,19 +15,19 @@ const KEYS = {
 
 const HD_KEYS = {
   seed: 'air above edge runway time admit escape improve glad tissue burden scale',
-  rootPriv: 'xsec1rr45d02ucg2vvjdkqcks0ssacmn28wpy29j7hg62sd9msu30p4fuf26scwxe7q0akxeqlz9axf8z29c0wfwqzndz7409mxrd504dnulh9ctuwmvysde7vu6djfzhe5htjcm5jd0tt2zvxr8mhhwmnc7kvc2zkhrp',
-  rootPub: 'xpub17w04x3j25p83fw3cnmepta84p9qemwlgsm038kd7sw29gka00ll0wtshcakcfqmnuee5myj90nfwh93hfy67kk5ycvx0h0wah83avescn0wef',
+  rootPriv: 'xsec1qr44uvl2jpu7u25wnlrcm2x8dvdqxqm4k4vpycufj3k2wvzu5426le4sp8w7q2ma2hj82pe9cueaffs8xx2eycry64kd48crhq4a2c6ffzs07509xnn86yqz574zsnn88s8t7zd0npd42ku0rkgyaa5epyezrywe',
+  rootPub: 'xpub1r5zfwsd7q0avgl4watqccuvqu5mjszejss3c28ukr389syergce5jj9qlag72d8x05gq9fa29p8xw0qwhuy6lxzm24dc78vsfmmfjzg0e6j4f',
   child: {
     path: 'm/1/2/3/4',
-    priv: 'xsec1lphrwy4xk03rwpup20r6nw4433jsw8lltndgf9v44xwteq30p4f7k74v5h4sh2dmwz47smdtuq0a0mzg2rtlma2qv2gsctmyrl69uncplyuw36jh4fv7cnn0lfjut2xtcumsqp4cj7n69pswazyj5nzmxq4j432e',
-    pub: 'xpub133ygulga7gfpgjjw6urysszncdcuj9y6pjhevx6jcgy5nhtjtursr7fcar4902jea38xl7n9ck5vh3ehqqrt39a852rqa6yf9fx9kvqed0k6y',
-    addr: 'addr1cdhu52udrezjx9m6nc4rhsvzpanupu26ep0mgc',
+    priv: 'xsec1jp4gasqd6y0l5w9659vw5jtxed3k9a8r699jklzhv4m8v0ju5426ermksh60csthg5kjgstf2mzgs3a3t4saea4pr0hzcg34ku57n8w8vlvpxej3d8m76zzu4pm7l3hmp45yr97xxmdx2ccz9duqjz2fqslnlsaj',
+    pub: 'xpub1wmsgv4zjs4gvtkls85p9hx33zw036ndrpnyyg34x2kydjw0wczmvwe7czdn9z60ha5y9e2rhalr0krtggxtuvdk6v43sy2mcpyy5jpqasysut',
+    addr: 'addr1t66yrtwuka6nvw0dcydd62justftrach3g6fmx',
   },
   hardChild: {
     path: 'm/1h/2h/3/4',
-    priv: 'xsec1fprjr4p3764gr694lmm6q9c3weyyy9amc99qjehnvza457f0p4fawff56g6l8y5z2x4ehaq2sty3dl35asfxsrxu39zsaef4x78mxl983e4xms9x6z8nk9af8lhzaatxev3mx50q9sf574rum94g2qylgyldve9q',
-    pub: 'xpub1nmxayj4rxd5dwj0943tqhzyu8k0twn5nr4644p29cryhlxs2xyq20rn2dhq2d5y08vt6j0lw9m6kdjerkdg7qtqnfa28ekt2s5qf7sgzstn7z',
-    addr: 'addr1xq6jyxenxhgg56empx79ggmvfhxadgelcjwpln',
+    priv: 'xsec1wzyqvpy7y8xcw9vv99wejrluvpua39t30fevdezrz3qu5sju542lxy4d3j795kfszpaz9jkdjz96f7xktlkm29fuz65s9jathpe8p3lsgxauc75nzm4z0m9dum9yhmr6cf4m7z283urrgtehjpjgtn2e0ul4c8rk',
+    pub: 'xpub1egr5ejcv5fr0gx0jaktugn687kjlsr95p8atgx3hnwhfyhst8w7lqsdme3afx9h2ylk2mek2f0k84snthuy50rcxxshn0yryshx4jlc3uycuv',
+    addr: 'addr125y02awwkjgj5vg3v3vxv2g44pywluer4jern9',
   }
 }
 

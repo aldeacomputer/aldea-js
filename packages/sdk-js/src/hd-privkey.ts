@@ -95,6 +95,7 @@ export class HDPrivKey {
     while (true) {
       block = keyedHash(block, key)
       const extended = hash(block.slice(0, 32), 64)
+      //console.log({ block, extended })
       if ((extended[31] & 0b00100000) === 0) {
         extended[0] &= ~0b00000111
         extended[31] &= ~0b10000000

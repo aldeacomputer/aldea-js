@@ -12,7 +12,9 @@ export function hash(data: Uint8Array | string, bytes: number = 32): Uint8Array 
  * must be 32 bytes.
  */
 export function keyedHash(data: Uint8Array | string, key: Uint8Array | string, bytes: number = 64): Uint8Array {
-  return blake3(data, { dkLen: bytes, key })
+  // todo - workaround for this bug: https://github.com/paulmillr/noble-hashes/issues/50
+  const keyCopy = typeof key === 'string' ? key : new Uint8Array(key)
+  return blake3(data, { dkLen: bytes, key: keyCopy })
 }
 
 /**
