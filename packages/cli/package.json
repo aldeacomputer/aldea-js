@@ -1,7 +1,7 @@
 {
   "name": "@aldea/cli",
   "description": "A command-line utility belt for Aldea app developers.",
-  "version": "0.0.1-beta.2",
+  "version": "0.0.1-beta.3",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -9,6 +9,10 @@
   "bin": {
     "aldea": "./bin/aldea.js"
   },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
   "scripts": {
     "build": "tsc"
   },
