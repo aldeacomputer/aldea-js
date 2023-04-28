@@ -1,5 +1,5 @@
 import {Adapter, Low} from 'lowdb'
-import {Address, base16, Output, Pointer, Tx} from '@aldea/sdk-js'
+import {Address, base16, instructions, OpCode, Output, Pointer, Tx} from '@aldea/sdk-js'
 import {Abi, abiFromCbor, abiToCbor} from "@aldea/compiler/abi";
 import {OwnedAddress, OwnedOutput, WalletStorage} from "./wallet-storage.js";
 
@@ -141,6 +141,24 @@ export class LowDbStorage implements WalletStorage {
   }
 
   async saveTx (tx: Tx): Promise<void> {
+    const loadInputs = tx.instructions
+      .filter(inst => inst.opcode === OpCode.LOAD)
+      .map(inst => {
+        const casted = inst as instructions.LoadInstruction
+        return base16.encode(casted.outputId)
+      })
+    const originInputs = tx.instructions
+      .filter(inst => inst.opcode === OpCode.LOADBYORIGIN)
+      .map(inst => {
+        const casted = inst as instructions.LoadByOriginInstruction
+        return base16.encode(casted.origin)
+      })
+
+    this.data().utxos = this.data().utxos.filter(u =>
+      !loadInputs.some(outputId => outputId === u.id) &&
+      !originInputs.some(origin => origin === u.origin)
+    )
+
     this.data().txs.push({
       id: tx.id,
       txHex: tx.toHex()
@@ -150,6 +168,11 @@ export class LowDbStorage implements WalletStorage {
 
   async removeUtxoByOrigin(origin: Pointer): Promise<void> {
     this.data().utxos = this.data().utxos.filter(u => u.origin !== origin.toString())
+    await this.db.write()
+  }
+
+  async removeUtxoByOutputId(id: string): Promise<void> {
+    this.data().utxos = this.data().utxos.filter(u => u.id !== id)
     await this.db.write()
   }
 

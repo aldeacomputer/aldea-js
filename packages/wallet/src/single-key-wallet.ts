@@ -6,7 +6,7 @@ import {
   PrivKey,
   Tx,
   TxBuilder,
-  util
+  util,
 } from '@aldea/sdk-js'
 import {Wallet} from "./wallet.js";
 import {WalletStorage} from "./storage/index.js";
@@ -48,7 +48,7 @@ export class SingleKeyWallet extends Wallet {
 
   async saveTxExec(tx: Tx, outputList: Output[]): Promise<void> {
     await Promise.all(outputList.map(output => this.addUtxo(output)))
-    this.storage.saveTx(tx)
+    await this.storage.saveTx(tx)
   }
 
   async signTx(partialTx: TxBuilder): Promise<TxBuilder> {

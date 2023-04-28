@@ -33,6 +33,8 @@ export interface WalletStorage {
 
   removeUtxoByOrigin(origin: Pointer): Promise<void>
 
+  removeUtxoByOutputId(id: string): Promise<void>
+
   saveTx(tx: Tx): Promise<void>
 
   addressByPubKeyHash(pubKeHashStr: string): Promise<OwnedAddress | null>

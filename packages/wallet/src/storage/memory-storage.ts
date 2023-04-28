@@ -1,6 +1,6 @@
 import {OwnedAddress, OwnedOutput, WalletStorage} from "./wallet-storage.js";
 import {Abi} from "@aldea/compiler/abi";
-import {Address, base16, Output, Pointer, Tx} from "@aldea/sdk-js";
+import {Address, base16, instructions, OpCode, Output, Pointer, Tx} from "@aldea/sdk-js";
 
 type AbiItem = {
   abi: Abi,
@@ -67,11 +67,34 @@ export class MemoryStorage implements WalletStorage {
     this.utxos = this.utxos.filter(u => !u.output.origin.equals(origin))
   }
 
+  async removeUtxoByOutputId(id: string): Promise<void> {
+    this.utxos = this.utxos.filter(u => u.output.id !== id)
+  }
+
+
   async saveAddress(address: Address, path: string): Promise<void> {
     this.addresses.push({ address, path })
   }
 
   async saveTx(tx: Tx): Promise<void> {
+    const loadInputs = tx.instructions
+      .filter(inst => inst.opcode === OpCode.LOAD)
+      .map(inst => {
+        const casted = inst as instructions.LoadInstruction
+        return base16.encode(casted.outputId)
+      })
+    const originInputs = tx.instructions
+      .filter(inst => inst.opcode === OpCode.LOADBYORIGIN)
+      .map(inst => {
+        const casted = inst as instructions.LoadByOriginInstruction
+        return base16.encode(casted.origin)
+      })
+
+    this.utxos = this.utxos.filter(u =>
+      !loadInputs.some(outputId => outputId === u.output.id) &&
+      !originInputs.some(origin => origin === u.output.origin.toString())
+    )
+
     this.txs.push(tx)
   }
 

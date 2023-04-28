@@ -17,7 +17,7 @@ const kyResponse = await aldea.api.post('mint', {
 const output = Output.fromJson(await kyResponse.json())
 await wallet.addUtxo(output)
 
-console.log('inventory after mint')
+console.log('inventory before mint')
 console.log(await wallet.getInventory())
 
 console.log('minting an nft...')
@@ -32,9 +32,9 @@ console.log('inventory  after minting')
 console.log(await wallet.getInventory())
 
 
-console.log('sync new instance')
-const aldea2 = new Aldea('http://localhost:4000')
-const wallet2 = new SingleKeyWallet(pk, storage, aldea2)
-await wallet2.sync()
-console.log('wallet 2 inventory')
-console.log(await wallet2.getInventory())
+// console.log('sync new instance')
+// const aldea2 = new Aldea('http://localhost:4000')
+// const wallet2 = new SingleKeyWallet(pk, storage, aldea2)
+// await wallet2.sync()
+// console.log('wallet 2 inventory')
+// console.log(await wallet2.getInventory())
