@@ -1,7 +1,7 @@
 {
   "name": "@aldea/vm",
   "description": "The Aldea Computer virtual machine implemented in JavaScript.",
-  "version": "0.0.1-beta.2",
+  "version": "0.0.1-beta.3",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.js",
@@ -19,6 +19,11 @@
       "default": "./dist/*.js"
     }
   },
+  "files": [
+    "build/**/*",
+    "dist/**/*",
+    "src/**/*"
+  ],
   "scripts": {
     "test": "ts-mocha test/**/*.spec.ts",
     "build": "yarn clean && yarn build:asc && yarn build:tsc && yarn build:es",
@@ -32,6 +37,7 @@
     "clean": "rm -r dist/* build/* src/builtins/*.ts || true",
     "prepublishOnly": "yarn build:publish"
   },
+  "packageManager": "yarn@3.2.3",
   "dependencies": {
     "@aldea/compiler": "workspace:^",
     "@aldea/sdk-js": "workspace:^",
