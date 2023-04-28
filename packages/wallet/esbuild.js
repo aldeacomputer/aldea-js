@@ -53,3 +53,16 @@ esbuild.build({
   keepNames: true,
   sourcemap: true,
 })
+
+// Wallet Ui build
+esbuild.build({
+  entryPoints: ['src/index.ts'],
+  outfile: 'dist/wallet-lib.browser.bundle.mjs',
+  bundle: true,
+  format: 'esm',
+  platform: 'browser',
+  target: 'esnext',
+  minify: false,
+  keepNames: true,
+  sourcemap: true
+})
