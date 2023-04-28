@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 import { program, OptionValues } from 'commander'
 import { Config } from './config.js'
 import { env } from './globals.js'
-import { log, err, logErrAndQuit } from './log.js'
+import { log, logErrAndQuit } from './log.js'
 import * as cmds from './cmds/index.js'
 
 const __dir = dirname(fileURLToPath(import.meta.url))
