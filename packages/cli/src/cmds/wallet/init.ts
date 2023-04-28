@@ -4,9 +4,9 @@ import { bold } from 'kolorist'
 import { log, ok } from '../../log.js'
 import { env } from '../../globals.js'
 
-// Create wallet command
-export const create = createCommand('wallet.create')
-  .alias('wc')
+// Init wallet command
+export const init = createCommand('wallet.init')
+  .alias('wi')
   .description('Create a new wallet in the current directory')
   .addOption(createOption('-f, --force', 'Force create').default(false))
   .addOption(createOption('-t, --type <type>', 'Wallet type').choices(['hd', 'sk']).default('sk'))
