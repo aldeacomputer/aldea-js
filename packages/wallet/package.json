@@ -1,7 +1,7 @@
 {
   "name": "@aldea/wallet-lib",
   "description": "High level and versatile wallet tool for Aldea Blockchain",
-  "version": "0.0.1-beta.1",
+  "version": "0.0.1-beta.2",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
