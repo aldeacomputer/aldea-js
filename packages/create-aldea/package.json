@@ -1,7 +1,7 @@
 {
   "name": "create-aldea",
   "description": "Quickly and easily scaffold new Aldea projects.",
-  "version": "0.0.1-beta.5",
+  "version": "0.0.1-beta.6",
   "license": "Apache-2.0",
   "type": "module",
   "bin": "index.js",
