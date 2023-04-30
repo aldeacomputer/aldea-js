@@ -55,9 +55,9 @@ The script will respond with an output similar to:
 <CodeContainer lang="text" lines={false}>
     ```
     Created item:
-    ID       9dfb57316a29491a197444176a7248453b70b5e91e8c1e1addac134d58c51489
-    Location 978bc5870544cc18524604adb1d80ec91c3a3160109cf5cb7418145420895af6_0
-    Origin   978bc5870544cc18524604adb1d80ec91c3a3160109cf5cb7418145420895af6_0
+    ID       ce790f779716232159d0e882b631563b70b07ec010d9c21e6a5e97ae45d66b24
+    Origin   95609cecfcef323b1383aa4ae20c0f0b7c7bda84a5ac16192e951ea3c0c92021_0
+    Location 95609cecfcef323b1383aa4ae20c0f0b7c7bda84a5ac16192e951ea3c0c92021_0
     Class    03dfd237e64e98c891fdcd177dc5fa28fe6bd817f915cea9d7ddb0a025aba5b1_0
     State    { name: 'Ray Gun', power: 1 }       
     ```
@@ -90,7 +90,7 @@ In the `/scripts` directory create a new script called `powerup.ts`. Copy and pa
 
     const res = await env.wallet.commitTx(tx).catch(logErrAndQuit)
     const out = await env.aldea.loadOutput(res.outputs[0].id)
-    log('Created item:')
+    log('Updated item:')
     logOutput(out)
     ```
 </CodeContainer>
@@ -112,10 +112,10 @@ The command will respond with an output like this:
 
 <CodeContainer lang="text" lines={false}>
     ```
-    Created item:
-    ID       9dfb57316a29491a197444176a7248453b70b5e91e8c1e1addac134d58c51489
-    Location 978bc5870544cc18524604adb1d80ec91c3a3160109cf5cb7418145420895af6_0
-    Origin   978bc5870544cc18524604adb1d80ec91c3a3160109cf5cb7418145420895af6_0
+    Updated item:
+    ID       88a2c7b84d3629d104a3599a87cca5063597a1a22a40c7dee1a43db1e59eb833
+    Origin   95609cecfcef323b1383aa4ae20c0f0b7c7bda84a5ac16192e951ea3c0c92021_0
+    Location 3d689fb0aac98da988b8b5a6fc721ebbd4392739a89aa752dbcfcfdb59baf4a0_0
     Class    03dfd237e64e98c891fdcd177dc5fa28fe6bd817f915cea9d7ddb0a025aba5b1_0
     State    { name: 'Ray Gun', power: 11 }       
     ```
@@ -146,4 +146,4 @@ Try defining a `Powerup` class in `item.ts` and updating the `Item#addPower()` m
 
 ## What next?
 
-Hopefully this guide has allowed you to appreciate the simplicity and familiarity of the Jig programming model. But don't be fooled, that simplicity belies the power of Jigs. From tokens and game items through to smart contracts and metaverse virtual worlds, Jigs offer an exciting vision of a future on-chain world. A world that is waiting for you to build.
+The simplicity of the Jig programming model opens up a world of endless possibilities, from creating tokens and game items to developing smart contracts and metaverse virtual worlds. On the Aldea Computer, you have the power to build the future of the on-chain world alongside a community of like-minded individuals. Start building today and see where the limitless potential of Jigs can take you.
