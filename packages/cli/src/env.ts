@@ -10,7 +10,7 @@ const KEY_FILE = 'key.json'
 const WALLET_FILE = 'wallet.json'
 
 /**
- * TODO
+ * Aldea CLI Environment
  */
 export class Env {
   readonly cwd: string;
@@ -50,7 +50,7 @@ export class Env {
   }
 
   /**
-   * TODO
+   * Reconfigures the environment with the config config
    */
   configure(config: Partial<Config>): void {
     this.opts = { ...this.opts, ...config }
@@ -58,7 +58,7 @@ export class Env {
   }
 
   /**
-   * TODO
+   * Creates a new wallet in the current directory
    */
   async initWallet(type: string): Promise<void> {
     if (fs.existsSync(this.walletDir)) { fs.rmSync(this.walletDir, { recursive: true }) }
@@ -72,7 +72,7 @@ export class Env {
   }
 
   /**
-   * TODO
+   * Loads the wallet from the current directory
    */
   async loadWallet(): Promise<void> {
     if (!fs.existsSync(this.walletDir)) { throw new Error('wallet not found') }

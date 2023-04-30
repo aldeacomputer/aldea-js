@@ -1,5 +1,5 @@
 /**
- * TODO
+ * Config interface
  */
 export interface Config {
   // Paths
@@ -11,7 +11,7 @@ export interface Config {
 }
 
 /**
- * TODO
+ * Default config
  */
 export const defaultConfig: Config = {
   codeDir: '.',

@@ -6,11 +6,11 @@ const conf: Partial<Config> = await loadConfig('aldea.config.cjs')
 const config: Config = { ...defaultConfig, ...conf }
 
 /**
- * TODO
+ * Global CLI environment instance
  */
 export const env: Env = new Env(config)
 
-// TODO
+// Loads configuration from the working directory
 async function loadConfig(fileName: string): Promise<Partial<Config>> {
   const path = join(join(process.cwd(), fileName))
   const conf: Partial<Config> = await import(path).then(c => c.default).catch(e => ({}))
