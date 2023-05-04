@@ -1,6 +1,5 @@
 import {
   Address,
-  Aldea,
   base16,
   HDPrivKey,
   HDPubKey,
@@ -15,12 +14,13 @@ import {
 import {Wallet} from "./wallet.js";
 import {WalletStorage} from "./storage/index.js";
 import {MAX_GAP_SIZE, PATH_PREFIX} from "./constants.js";
+import {AldeaClient} from "./aldea-client.js";
 
 
 export class HdWallet extends Wallet {
   private hd: HDPrivKey;
   private storage: WalletStorage;
-  constructor(hd: HDPrivKey, storage: WalletStorage, client: Aldea) {
+  constructor(hd: HDPrivKey, storage: WalletStorage, client: AldeaClient) {
     super(client)
     this.hd = hd
     this.storage = storage
