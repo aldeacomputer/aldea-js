@@ -2,36 +2,39 @@ import {
   Abi,
   ClassNode,
   findClass,
-  findMethod,
   findFunction,
   findImport,
+  findMethod,
+  FunctionNode,
   TypeNode
 } from '@aldea/compiler/abi'
 
 import {
-  Aldea,
   Address,
+  Aldea,
+  CallInstruction,
+  DeployInstruction,
+  ExecFuncInstruction,
+  ExecInstruction,
+  FundInstruction,
+  HDPrivKey,
+  ImportInstruction,
+  InstructionRef,
+  LoadByOriginInstruction,
+  LoadInstruction,
+  LockInstruction,
+  NewInstruction,
+  OpCode,
   Pointer,
   PrivKey,
-  Tx,
   ref,
-  InstructionRef,
-  CallInstruction,
-  ExecInstruction,
-  ExecFuncInstruction,
-  FundInstruction,
-  ImportInstruction,
-  LoadInstruction,
-  LoadByOriginInstruction,
-  LockInstruction,
-  DeployInstruction,
-  NewInstruction,
   SignInstruction,
-  SignToInstruction, HDPrivKey,
+  SignToInstruction,
+  Tx,
 } from './internal.js'
 
-import { base16 } from './support/base.js'
-import { sign } from './support/ed25519.js'
+import {base16} from './support/base.js'
+import {sign} from './support/ed25519.js'
 
 /**
  * Transaction Builder
@@ -57,6 +60,80 @@ export class TxBuilder {
       this.results[i] = await this.steps[i](tx)
     }
     return tx
+  }
+
+  concat(tx: Tx): TxBuilder {
+    tx.instructions.forEach((i) => {
+      switch (i.opcode) {
+        case OpCode.IMPORT:
+          const importInst = i as ImportInstruction
+          this.import(base16.encode(importInst.pkgId))
+          break
+        case OpCode.LOAD: null
+          const load = i as LoadInstruction
+          this.import(base16.encode(load.outputId))
+          break
+        case OpCode.LOADBYORIGIN: null
+          const loadByOrigin = i as LoadByOriginInstruction
+          this.load(base16.encode(loadByOrigin.origin))
+          break
+        case OpCode.NEW:
+          const newInst = i as NewInstruction
+          this.steps.push(async tx => {
+            const newPackageRes = await this.pull(ref(newInst.idx), ResultType.PKG) as PkgResult
+            tx.push(i)
+            return jigResult(newPackageRes.abi, newInst.exportIdx)
+          })
+          break
+        case OpCode.CALL:
+          const callInst = i as CallInstruction
+          this.steps.push(async tx => {
+            const callPulled = await this.pull(ref(callInst.idx), ResultType.JIG) as JigResult
+            tx.push(i)
+            const callClassNode = callPulled.abi.exports[callPulled.exportIdx].code as ClassNode
+            return this.resultFromReturnType(callPulled.abi, callClassNode.methods[callInst.methodIdx].rtype)
+          })
+          break
+        case OpCode.EXEC:
+          const exec = i as ExecInstruction
+          this.steps.push(async tx => {
+            const execPulled = await this.pull(ref(exec.idx), ResultType.PKG) as PkgResult
+            tx.push(i)
+            const callClassNode = execPulled.abi.exports[exec.exportIdx].code as ClassNode
+            return this.resultFromReturnType(execPulled.abi, callClassNode.methods[exec.methodIdx].rtype)
+          })
+          break
+        case OpCode.EXECFUNC:
+          const execFunc = i as ExecInstruction
+          this.steps.push(async tx => {
+            const execFuncPulled = await this.pull(ref(execFunc.idx), ResultType.PKG) as PkgResult
+            tx.push(i)
+            const callFunctionNode = execFuncPulled.abi.exports[execFunc.exportIdx].code as FunctionNode
+            return this.resultFromReturnType(execFuncPulled.abi, callFunctionNode.rtype)
+          })
+          break
+        case OpCode.FUND:
+          const fund = i as FundInstruction
+          this.fund(ref(fund.idx))
+          break
+        case OpCode.LOCK:
+          const lock = i as LockInstruction
+          this.fund(ref(lock.idx))
+          break
+        case OpCode.DEPLOY:
+          const deploy = i as DeployInstruction
+          this.deploy(deploy.entry, deploy.code)
+          break
+        case OpCode.SIGN:
+        case OpCode.SIGNTO:
+          this.push((tx) => {
+            tx.push(i)
+            return noResult()
+          })
+      }
+    })
+
+    return this
   }
 
   /**

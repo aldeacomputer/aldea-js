@@ -1,15 +1,22 @@
 import {
+  Address,
   CommitTxResponse,
   CreateTxCallback,
+  OpCode,
   Output,
+  Tx,
   TxBuilder,
-  Tx, Address, Aldea
+  instructions,
+  base16, Pointer
 } from "@aldea/sdk-js"
 import {COIN_CLASS_PTR} from "./constants.js";
+import {AldeaClient} from "./aldea-client.js";
+const {LoadInstruction} = instructions
+
 
 export abstract class Wallet {
-  protected client: Aldea
-  constructor (client: Aldea) {
+  protected client: AldeaClient
+  constructor (client: AldeaClient) {
     this.client = client
   }
 
@@ -21,12 +28,27 @@ export abstract class Wallet {
   abstract sync(): Promise<void>
 
   async fundTx(partialTx: TxBuilder): Promise<TxBuilder> {
+    const snapshot = await partialTx.build()
     const outputs = await this.getInventory()
     const coinOutputs = outputs.filter(o => o.classPtr.equals(COIN_CLASS_PTR))
 
     let motosIn = 0
 
     for (const coinOutput of coinOutputs) {
+      const alreadyLoaded = snapshot.instructions.some(i => {
+        if (i.opcode === OpCode.LOAD) {
+          const inst =  i as any
+          return coinOutput.id === base16.encode(inst.outputId)
+        } else if (i.opcode === OpCode.LOADBYORIGIN) {
+          const inst =  i as any
+          return coinOutput.origin.equals(Pointer.fromBytes(inst.origin))
+        }
+        return false
+      })
+      if (alreadyLoaded) {
+        continue
+      }
+
       const coin = coinOutput
       const coinRef = partialTx.load(coin.id)
 
@@ -57,8 +79,6 @@ export abstract class Wallet {
     return response
   }
 
-
-
   async createFundedTx(fn: CreateTxCallback): Promise<Tx> {
     return await this.client.createTx(async (builder, ref) => {
       await fn(builder, ref)
@@ -66,5 +86,4 @@ export abstract class Wallet {
       await this.signTx(builder)
     })
   }
-
 }

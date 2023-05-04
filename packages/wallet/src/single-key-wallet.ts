@@ -1,6 +1,5 @@
 import {
   Address,
-  Aldea,
   LockType,
   Output,
   PrivKey,
@@ -10,13 +9,13 @@ import {
 } from '@aldea/sdk-js'
 import {Wallet} from "./wallet.js";
 import {WalletStorage} from "./storage/index.js";
-
+import {AldeaClient} from "./aldea-client.js";
 
 export class SingleKeyWallet extends Wallet {
   private storage: WalletStorage
   private readonly privKey: PrivKey
 
-  constructor(pk: PrivKey, storage: WalletStorage, client: Aldea) {
+  constructor(pk: PrivKey, storage: WalletStorage, client: AldeaClient) {
     super(client)
     this.privKey = pk
     this.storage = storage
