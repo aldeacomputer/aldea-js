@@ -5,6 +5,7 @@
 // Core exports
 export {
   Aldea,
+  BCS, BCSWriter, BCSReader,
   Address,
   HDPrivKey,
   HDPubKey,

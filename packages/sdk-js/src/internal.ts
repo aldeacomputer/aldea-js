@@ -18,6 +18,11 @@ export * from './tx-builder.js'
 export * from './instruction.js'
 export * from './instructions/index.js'
 
+// Serialization (BCS)
+export * from './bcs/reader.js'
+export * from './bcs/writer.js'
+export * from './bcs.js'
+
 // Serialization
 export * from './buf-reader.js'
 export * from './buf-writer.js'
