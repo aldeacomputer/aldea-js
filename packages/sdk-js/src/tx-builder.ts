@@ -12,6 +12,7 @@ import {
 import {
   Address,
   Aldea,
+  BCS,
   CallInstruction,
   DeployInstruction,
   ExecFuncInstruction,
@@ -62,79 +63,79 @@ export class TxBuilder {
     return tx
   }
 
-  concat(tx: Tx): TxBuilder {
-    tx.instructions.forEach((i) => {
-      switch (i.opcode) {
-        case OpCode.IMPORT:
-          const importInst = i as ImportInstruction
-          this.import(base16.encode(importInst.pkgId))
-          break
-        case OpCode.LOAD: null
-          const load = i as LoadInstruction
-          this.import(base16.encode(load.outputId))
-          break
-        case OpCode.LOADBYORIGIN: null
-          const loadByOrigin = i as LoadByOriginInstruction
-          this.load(base16.encode(loadByOrigin.origin))
-          break
-        case OpCode.NEW:
-          const newInst = i as NewInstruction
-          this.steps.push(async tx => {
-            const newPackageRes = await this.pull(ref(newInst.idx), ResultType.PKG) as PkgResult
-            tx.push(i)
-            return jigResult(newPackageRes.abi, newInst.exportIdx)
-          })
-          break
-        case OpCode.CALL:
-          const callInst = i as CallInstruction
-          this.steps.push(async tx => {
-            const callPulled = await this.pull(ref(callInst.idx), ResultType.JIG) as JigResult
-            tx.push(i)
-            const callClassNode = callPulled.abi.exports[callPulled.exportIdx].code as ClassNode
-            return this.resultFromReturnType(callPulled.abi, callClassNode.methods[callInst.methodIdx].rtype)
-          })
-          break
-        case OpCode.EXEC:
-          const exec = i as ExecInstruction
-          this.steps.push(async tx => {
-            const execPulled = await this.pull(ref(exec.idx), ResultType.PKG) as PkgResult
-            tx.push(i)
-            const callClassNode = execPulled.abi.exports[exec.exportIdx].code as ClassNode
-            return this.resultFromReturnType(execPulled.abi, callClassNode.methods[exec.methodIdx].rtype)
-          })
-          break
-        case OpCode.EXECFUNC:
-          const execFunc = i as ExecInstruction
-          this.steps.push(async tx => {
-            const execFuncPulled = await this.pull(ref(execFunc.idx), ResultType.PKG) as PkgResult
-            tx.push(i)
-            const callFunctionNode = execFuncPulled.abi.exports[execFunc.exportIdx].code as FunctionNode
-            return this.resultFromReturnType(execFuncPulled.abi, callFunctionNode.rtype)
-          })
-          break
-        case OpCode.FUND:
-          const fund = i as FundInstruction
-          this.fund(ref(fund.idx))
-          break
-        case OpCode.LOCK:
-          const lock = i as LockInstruction
-          this.fund(ref(lock.idx))
-          break
-        case OpCode.DEPLOY:
-          const deploy = i as DeployInstruction
-          this.deploy(deploy.entry, deploy.code)
-          break
-        case OpCode.SIGN:
-        case OpCode.SIGNTO:
-          this.push((tx) => {
-            tx.push(i)
-            return noResult()
-          })
-      }
-    })
-
-    return this
-  }
+  //concat(tx: Tx): TxBuilder {
+  //  tx.instructions.forEach((i) => {
+  //    switch (i.opcode) {
+  //      case OpCode.IMPORT:
+  //        const importInst = i as ImportInstruction
+  //        this.import(base16.encode(importInst.pkgId))
+  //        break
+  //      case OpCode.LOAD: null
+  //        const load = i as LoadInstruction
+  //        this.import(base16.encode(load.outputId))
+  //        break
+  //      case OpCode.LOADBYORIGIN: null
+  //        const loadByOrigin = i as LoadByOriginInstruction
+  //        this.load(base16.encode(loadByOrigin.origin))
+  //        break
+  //      case OpCode.NEW:
+  //        const newInst = i as NewInstruction
+  //        this.steps.push(async tx => {
+  //          const newPackageRes = await this.pull(ref(newInst.idx), ResultType.PKG) as PkgResult
+  //          tx.push(i)
+  //          return jigResult(newPackageRes.abi, newInst.exportIdx)
+  //        })
+  //        break
+  //      case OpCode.CALL:
+  //        const callInst = i as CallInstruction
+  //        this.steps.push(async tx => {
+  //          const callPulled = await this.pull(ref(callInst.idx), ResultType.JIG) as JigResult
+  //          tx.push(i)
+  //          const callClassNode = callPulled.abi.exports[callPulled.exportIdx].code as ClassNode
+  //          return this.resultFromReturnType(callPulled.abi, callClassNode.methods[callInst.methodIdx].rtype)
+  //        })
+  //        break
+  //      case OpCode.EXEC:
+  //        const exec = i as ExecInstruction
+  //        this.steps.push(async tx => {
+  //          const execPulled = await this.pull(ref(exec.idx), ResultType.PKG) as PkgResult
+  //          tx.push(i)
+  //          const callClassNode = execPulled.abi.exports[exec.exportIdx].code as ClassNode
+  //          return this.resultFromReturnType(execPulled.abi, callClassNode.methods[exec.methodIdx].rtype)
+  //        })
+  //        break
+  //      case OpCode.EXECFUNC:
+  //        const execFunc = i as ExecInstruction
+  //        this.steps.push(async tx => {
+  //          const execFuncPulled = await this.pull(ref(execFunc.idx), ResultType.PKG) as PkgResult
+  //          tx.push(i)
+  //          const callFunctionNode = execFuncPulled.abi.exports[execFunc.exportIdx].code as FunctionNode
+  //          return this.resultFromReturnType(execFuncPulled.abi, callFunctionNode.rtype)
+  //        })
+  //        break
+  //      case OpCode.FUND:
+  //        const fund = i as FundInstruction
+  //        this.fund(ref(fund.idx))
+  //        break
+  //      case OpCode.LOCK:
+  //        const lock = i as LockInstruction
+  //        this.fund(ref(lock.idx))
+  //        break
+  //      case OpCode.DEPLOY:
+  //        const deploy = i as DeployInstruction
+  //        this.deploy(deploy.entry, deploy.code)
+  //        break
+  //      case OpCode.SIGN:
+  //      case OpCode.SIGNTO:
+  //        this.push((tx) => {
+  //          tx.push(i)
+  //          return noResult()
+  //        })
+  //    }
+  //  })
+  //
+  //  return this
+  //}
 
   /**
    * Pushes an IMPORT instruction onto the Transaction. Accepts the pkgId as
@@ -189,8 +190,9 @@ export class TxBuilder {
       const res = this.pull(ref, ResultType.PKG) as PkgResult
       const klass = findClass(res.abi, className, `class not found: ${ className }`)
       const exportIdx = res.abi.exports.findIndex(e => e.code === klass)
+      const argsBuf = new BCS(res.abi).encode(`${klass.name}_constructor`, args)
 
-      tx.push(new NewInstruction(ref.idx, exportIdx, args))
+      tx.push(new NewInstruction(ref.idx, exportIdx, argsBuf))
       return jigResult(res.abi, exportIdx)
     })
   }
@@ -205,48 +207,43 @@ export class TxBuilder {
       const klass = res.abi.exports[res.exportIdx].code as ClassNode
       const method = findMethod(klass, methodName, `method not found: ${ methodName }`)
       const methodIdx = klass.methods.findIndex(m => m === method)
+      const argsBuf = new BCS(res.abi).encode(`${klass.name}$${method.name}`, args)
 
-      tx.push(new CallInstruction(ref.idx, methodIdx, args))
+      tx.push(new CallInstruction(ref.idx, methodIdx, argsBuf))
       return this.resultFromReturnType(res.abi, method.rtype)
     })
   }
 
   /**
    * Pushes an EXEC instruction onto the Transaction. Accepts an InstructionRef
-   * (which must refer to a PkgResult), a static method or function name and a
-   * list of args.
-   * 
-   * If the static name is in the format of `ClassName.methodName` is will
-   * attempt to locate the static method. Otherwise it will attempt to locate an
-   * exported function.
+   * (which must refer to a PkgResult), a class name and static method name,
+   * and a list of args.
    */
-  exec(ref: InstructionRef, staticName: string, args: any[] = []): InstructionRef {
+  exec(ref: InstructionRef, className: string, methodName: string, args: any[] = []): InstructionRef {
     return this.push((tx: Tx) => {
       const res = this.pull(ref, ResultType.PKG) as PkgResult
-      const parts = staticName.split('.')
-      
-      switch (parts.length) {
-        case 2:
-          const [className, methodName] = parts
-          const klass = findClass(res.abi, className, `class not found: ${ className }`)
-          const method = findMethod(klass, methodName, `method not found: ${ methodName }`)
-          const klassIdx = res.abi.exports.findIndex(e => e.code === klass)
-          const methodIdx = klass.methods.findIndex(m => m === method)
+      const klass = findClass(res.abi, className, `class not found: ${ className }`)
+      const method = findMethod(klass, methodName, `method not found: ${ methodName }`)
+      const klassIdx = res.abi.exports.findIndex(e => e.code === klass)
+      const methodIdx = klass.methods.findIndex(m => m === method)
+      const argsBuf = new BCS(res.abi).encode(`${klass.name}_${method.name}`, args)
+      tx.push(new ExecInstruction(ref.idx, klassIdx, methodIdx, argsBuf))
+      return this.resultFromReturnType(res.abi, method.rtype)
+    })
+  }
 
-          tx.push(new ExecInstruction(ref.idx, klassIdx, methodIdx, args))
-          return this.resultFromReturnType(res.abi, method.rtype)
-
-        case 1:
-          const [funcName] = parts
-          const func = findFunction(res.abi, funcName, `function not found: ${ funcName }`)
-          const funcIdx = res.abi.exports.findIndex(e => e.code === func)
-
-          tx.push(new ExecFuncInstruction(ref.idx, funcIdx, args))
-          return this.resultFromReturnType(res.abi, func.rtype)
-
-        default:
-          throw new Error(`invalid static function or method name: ${ staticName }`)
-      }
+  /**
+   * Pushes an EXECFUNC instruction onto the Transaction. Accepts an InstructionRef
+   * (which must refer to a PkgResult), a function name and a list of args.
+   */
+  execFunc(ref: InstructionRef, functionName: string, args: any[] = []): InstructionRef {
+    return this.push((tx: Tx) => {
+      const res = this.pull(ref, ResultType.PKG) as PkgResult
+      const func = findFunction(res.abi, functionName, `function not found: ${ functionName }`)
+      const funcIdx = res.abi.exports.findIndex(e => e.code === func)
+      const argsBuf = new BCS(res.abi).encode(functionName, args)
+      tx.push(new ExecFuncInstruction(ref.idx, funcIdx, argsBuf))
+      return this.resultFromReturnType(res.abi, func.rtype)
     })
   }
 
@@ -285,14 +282,15 @@ export class TxBuilder {
     return this.push((tx: Tx) => {
       let entry: string | string[]
       if (code instanceof Map) {
-        entry = entryOrCode as string | string[]
+        entry = Array.isArray(entryOrCode) ? entryOrCode : [entryOrCode] as string[]
       } else if (entryOrCode instanceof Map) {
         entry = Array.from(entryOrCode.keys())
         code = entryOrCode
       } else {
         throw new Error('invalid deploy params')
       }
-      tx.push(new DeployInstruction(entry, code))
+      const pkgBuf = BCS.pkg.encode([entry, code])
+      tx.push(new DeployInstruction(pkgBuf))
       // todo - can return a PkgResult if we compile the code here and get the ABI?
       return noResult()
     })

@@ -1,12 +1,9 @@
-import { CBOR, Sequence } from 'cbor-redux'
 import {
   BufReader,
   BufWriter,
   Instruction,
   OpCode,
   Serializable,
-  refTagger,
-  refUntagger,
 } from '../internal.js'
 
 /**
@@ -18,14 +15,14 @@ export class ExecInstruction extends Instruction {
   idx: number;
   exportIdx: number;
   methodIdx: number;
-  args: any[];
+  argsBuf: Uint8Array;
 
-  constructor(idx: number, exportIdx: number, methodIdx: number, args: any[]) {
+  constructor(idx: number, exportIdx: number, methodIdx: number, argsBuf: Uint8Array) {
     super(OpCode.EXEC)
     this.idx = idx
     this.exportIdx = exportIdx
     this.methodIdx = methodIdx
-    this.args = args
+    this.argsBuf = argsBuf
   }
 }
 
@@ -37,20 +34,15 @@ export const ExecArgsSerializer: Serializable<ExecInstruction> = {
     const idx = buf.readU16()
     const exportIdx = buf.readU16()
     const methodIdx = buf.readU16()
-    const cborData = buf.readBytes(buf.remaining)
-
-    const cborDataBuf = cborData.buffer.slice(cborData.byteOffset, cborData.byteOffset + cborData.byteLength)
-    const args = CBOR.decode(cborDataBuf, refUntagger, { mode: 'sequence' })
-    
-    return new ExecInstruction(idx, exportIdx, methodIdx, args.data)
+    const argsBuf = buf.readBytes(buf.remaining)
+    return new ExecInstruction(idx, exportIdx, methodIdx, argsBuf)
   },
 
   write(buf: BufWriter, instruction: ExecInstruction): BufWriter {
-    const cborData = CBOR.encode(new Sequence(instruction.args), refTagger)
     buf.writeU16(instruction.idx)
     buf.writeU16(instruction.exportIdx)
     buf.writeU16(instruction.methodIdx)
-    buf.writeBytes(new Uint8Array(cborData))
+    buf.writeBytes(instruction.argsBuf)
     return buf
   }
 }

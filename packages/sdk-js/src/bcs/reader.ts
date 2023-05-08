@@ -12,8 +12,8 @@ export type BCSReaderSeqCallback<T> = (reader: BCSReader, i: number, len: number
  * wrapper, but can also be used as a gerneal purpose Buffer reader.
  */
 export class BCSReader {
-  private cursor: number = 0;
-  private view: DataView;
+   cursor: number = 0;
+   view: DataView;
 
   constructor(data: Uint8Array) {
     this.view = new DataView(data.buffer, data.byteOffset, data.byteLength)
@@ -64,7 +64,8 @@ export class BCSReader {
   }
 
   readULEB(): number {
-    const { value, length } = ulebDecode(new Uint8Array(this.view.buffer, this.cursor))
+    const ulebBuf = new Uint8Array(this.view.buffer, this.view.byteOffset + this.cursor)
+    const { value, length } = ulebDecode(ulebBuf)
     this.cursor += length
     return value
   }

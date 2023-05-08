@@ -39,6 +39,11 @@ export interface BCSOpts {
   addPrimitives: boolean;
 }
 
+export interface BCSMini<T> {
+  decode(data: Uint8Array): T;
+  encode(val: T): Uint8Array;
+}
+
 /**
  * BCS implementation for Aldea builtins and types as defined in an ABI.
  * 
@@ -69,18 +74,24 @@ export interface BCSOpts {
  * ```
  */
 export class BCS {
+  static pkg: BCSMini<[string[], Map<string, string>]> = (() => {
+    const bcs = new BCS({ addPkgTypes: true })
+    return {
+      decode: (data) => bcs.decode('pkg', data),
+      encode: (pkg) => bcs.encode('pkg', pkg),
+    }
+  })()
+
   private abi?: Abi;
   private jigNames: string[] = [];
   private typeEncoders = new Map<string, BCSEncoder<any>>();
 
-  constructor(options: BCSOpts)
-  constructor(abi: Abi, options: BCSOpts)
-  constructor(optsOrAbi: Abi | Partial<BCSOpts>, options: Partial<BCSOpts> = {}) {
+  constructor(abiOrOpts: Abi | Partial<BCSOpts>, options?: Partial<BCSOpts>) {
     // Handle overloading
-    if (isAbi(optsOrAbi)) {
-      this.abi = optsOrAbi
+    if (isAbi(abiOrOpts)) {
+      this.abi = abiOrOpts
     } else {
-      options = optsOrAbi
+      options = abiOrOpts
     }
 
     // Merge options with defaults

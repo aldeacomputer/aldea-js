@@ -1,13 +1,12 @@
 import { Abi } from '@aldea/compiler/abi';
 import ky, { AfterResponseHook, BeforeRequestHook } from 'ky-universal'
-import { CBOR } from 'cbor-redux'
 import {
   ref,
   InstructionRef,
   Output,
   Pointer,
   Tx,
-  TxBuilder, Address,
+  TxBuilder, Address, BCS,
 } from './internal.js'
 
 export type CreateTxCallback = (tx: TxBuilder, ref: (idx: number) => InstructionRef) => void | Promise<void>
@@ -107,12 +106,13 @@ export class Aldea {
    * Gets a package by its ID and responds with the package source files.
    */
   async getPackageSrc(pkgId: string): Promise<PackageResponse> {
-    const data = await this.api.get(`package/${pkgId}/source`).arrayBuffer()
-    const seq = CBOR.decode(data, null, { mode: 'sequence' })
+    const bcs = new BCS({ addPkgTypes: true })
+    const buf = await this.api.get(`package/${pkgId}/source`).arrayBuffer()
+    const [entries, files] = bcs.decode('pkg', new Uint8Array(buf))
     return {
       id: pkgId,
-      entries: seq.get(0),
-      files: seq.get(1),
+      entries,
+      files,
     }
   }
 

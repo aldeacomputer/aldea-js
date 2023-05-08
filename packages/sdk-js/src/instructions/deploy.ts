@@ -1,5 +1,5 @@
-import { CBOR, Sequence } from 'cbor-redux'
 import {
+  BCS,
   BufReader,
   BufWriter,
   Instruction,
@@ -13,13 +13,11 @@ import {
  * Deploys a code bundle. The code bundle must be a map of filename => content.
  */
 export class DeployInstruction extends Instruction {
-  entry: string[];
-  code: Map<string, string>;
+  pkgBuf: Uint8Array;
 
-  constructor(entry: string | string[], code: Map<string, string>) {
+  constructor(pkgBuf: Uint8Array) {
     super(OpCode.DEPLOY)
-    this.entry = Array.isArray(entry) ? entry : [entry]
-    this.code = code
+    this.pkgBuf = pkgBuf
   }
 }
 
@@ -28,17 +26,12 @@ export class DeployInstruction extends Instruction {
  */
 export const DeployArgsSerializer: Serializable<DeployInstruction> = {
   read(buf: BufReader): DeployInstruction {
-    const cborData = buf.readBytes(buf.remaining)
-
-    const cborDataBuf = cborData.buffer.slice(cborData.byteOffset, cborData.byteOffset + cborData.byteLength)
-    const args = CBOR.decode(cborDataBuf, null, { mode: 'sequence', dictionary: 'map' })
-    
-    return new DeployInstruction(args.data[0], args.data[1])
+    const pkgBuf = buf.readBytes(buf.remaining)
+    return new DeployInstruction(pkgBuf)
   },
 
   write(buf: BufWriter, inst: DeployInstruction): BufWriter {
-    const cborData = CBOR.encode(new Sequence([inst.entry.sort(), inst.code]))
-    buf.writeBytes(new Uint8Array(cborData))
+    buf.writeBytes(inst.pkgBuf)
     return buf
   }
 }

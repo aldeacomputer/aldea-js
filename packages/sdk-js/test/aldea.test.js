@@ -9,8 +9,13 @@ import {
   Pointer,
   Tx,
   base16,
-  PrivKey
+  PrivKey,
+  BCS
 } from '../dist/index.js'
+
+function decodeArgs(abi, name, buf) {
+  return new BCS(abi).decode(name, buf)
+}
 
 test('Builds a tx with every opcode and encodes/decodes consistently', async t => {
   const aldea = new Aldea('http://localhost')
@@ -40,8 +45,8 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
     tx.new(ref(0), 'Badge', ['foo'])
     tx.call(ref(1), 'send', [700, addr.hash])
     tx.call(ref(2), 'rename', ['bar'])
-    tx.exec(ref(0), 'Badge.helloWorld', ['mum'])
-    tx.exec(ref(0), 'helloWorld', ['dad'])
+    tx.exec(ref(0), 'Badge', 'helloWorld', ['mum'])
+    tx.execFunc(ref(0), 'helloWorld', ['dad'])
   
     tx.fund(ref(1))
     tx.lock(ref(2), addr)
@@ -52,6 +57,9 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
     tx.sign(keys.privKey)
     tx.signTo(keys.privKey)
   })
+
+  const pkgAbi = await aldea.getPackageAbi(pkgId)
+  const coinAbi = await aldea.getPackageAbi('0000000000000000000000000000000000000000000000000000000000000000')
 
   const tx2 = Tx.fromHex(tx1.toHex())
   t.true(tx1 instanceof Tx)
@@ -70,28 +78,28 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
   t.is(tx2.instructions[3].opcode, OpCode.NEW)
   t.is(tx2.instructions[3].idx, 0)
   t.is(tx2.instructions[3].exportIdx, 0)
-  t.deepEqual(tx2.instructions[3].args, ['foo'])
+  t.deepEqual(decodeArgs(pkgAbi, 'Badge_constructor', tx2.instructions[3].argsBuf), ['foo'])
 
   t.is(tx2.instructions[4].opcode, OpCode.CALL)
   t.is(tx2.instructions[4].idx, 1)
   t.is(tx2.instructions[4].methodIdx, 1)
-  t.deepEqual(tx2.instructions[4].args, [700, addr.hash])
+  t.deepEqual(decodeArgs(coinAbi, 'Coin$send', tx2.instructions[4].argsBuf), [700n, addr.hash])
 
   t.is(tx2.instructions[5].opcode, OpCode.CALL)
   t.is(tx2.instructions[5].idx, 2)
   t.is(tx2.instructions[5].methodIdx, 1)
-  t.deepEqual(tx2.instructions[5].args, ['bar'])
+  t.deepEqual(decodeArgs(pkgAbi, 'Badge$rename', tx2.instructions[5].argsBuf), ['bar'])
 
   t.is(tx2.instructions[6].opcode, OpCode.EXEC)
   t.is(tx2.instructions[6].idx, 0)
   t.is(tx2.instructions[6].exportIdx, 0)
   t.is(tx2.instructions[6].methodIdx, 2)
-  t.deepEqual(tx2.instructions[6].args, ['mum'])
+  t.deepEqual(decodeArgs(pkgAbi, 'Badge_helloWorld', tx2.instructions[6].argsBuf), ['mum'])
 
   t.is(tx2.instructions[7].opcode, OpCode.EXECFUNC)
   t.is(tx2.instructions[7].idx, 0)
   t.is(tx2.instructions[7].exportIdx, 1)
-  t.deepEqual(tx2.instructions[7].args, ['dad'])
+  t.deepEqual(decodeArgs(pkgAbi, 'helloWorld', tx2.instructions[7].argsBuf), ['dad'])
 
   t.is(tx2.instructions[8].opcode, OpCode.FUND)
   t.is(tx2.instructions[8].idx, 1)
@@ -105,8 +113,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
   t.deepEqual(tx2.instructions[10].pubkeyHash, addr.hash)
 
   t.is(tx2.instructions[11].opcode, OpCode.DEPLOY)
-  t.deepEqual(tx2.instructions[11].entry, ['index.ts'])
-  t.deepEqual(tx2.instructions[11].code, pkg)
+  t.deepEqual(BCS.pkg.decode(tx2.instructions[11].pkgBuf), [['index.ts'], pkg])
 
   t.is(tx2.instructions[12].opcode, OpCode.SIGN)
   t.is(tx2.instructions[12].sig.length, 64)
@@ -188,9 +195,9 @@ test('Aldea.getRawTx() throws error if notfound', async t => {
 test('Aldea.getOutput() returns an Output json object if exists', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/output/030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e', { file: 'test/mocks/output.get.json', format: 'string' })
+    mock.get('http://localhost/output/eb1a5706276e030e0518ab4b09e11bf0f30e195b31634abc4eeb2c9e3657ebaa', { file: 'test/mocks/output.get.json', format: 'string' })
   })
-  const res = await aldea.getOutput('030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e')
+  const res = await aldea.getOutput('eb1a5706276e030e0518ab4b09e11bf0f30e195b31634abc4eeb2c9e3657ebaa')
   t.true(typeof res.id === 'string')
   t.true(typeof res.origin === 'string')
   t.true(typeof res.location === 'string')
@@ -213,9 +220,9 @@ test('Aldea.getOutput() throws error if notfound', async t => {
 test('Aldea.getOutputByOrigin() returns an Output json object if exists', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/output-by-origin/030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e', { file: 'test/mocks/output.get.json', format: 'string' })
+    mock.get('http://localhost/output-by-origin/eb1a5706276e030e0518ab4b09e11bf0f30e195b31634abc4eeb2c9e3657ebaa', { file: 'test/mocks/output.get.json', format: 'string' })
   })
-  const res = await aldea.getOutputByOrigin('030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e')
+  const res = await aldea.getOutputByOrigin('eb1a5706276e030e0518ab4b09e11bf0f30e195b31634abc4eeb2c9e3657ebaa')
   t.true(typeof res.id === 'string')
   t.true(typeof res.origin === 'string')
   t.true(typeof res.location === 'string')
@@ -238,9 +245,9 @@ test('Aldea.getOutputByOrigin() throws error if invalid pointer', async t => {
 test('Aldea.getPackageAbi() returns an ABI json object if exists', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/package/c39c3547d5882c2a1b2bdd2e692fe528a3ab907028e322616671961c0461f798/abi.json', { file: 'test/mocks/pkg.get.json', format: 'string' })
+    mock.get('http://localhost/package/29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69/abi.json', { file: 'test/mocks/pkg.get.json', format: 'string' })
   })
-  const res = await aldea.getPackageAbi('c39c3547d5882c2a1b2bdd2e692fe528a3ab907028e322616671961c0461f798')
+  const res = await aldea.getPackageAbi('29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69')
   t.true(typeof res.version === 'number')
   t.true(Array.isArray(res.exports))
   t.true(Array.isArray(res.imports))
@@ -262,9 +269,9 @@ test('Aldea.getPackageAbi() throws error if notfound', async t => {
 test('Aldea.getPackageSrc() returns an ABI json object if exists', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/package/c39c3547d5882c2a1b2bdd2e692fe528a3ab907028e322616671961c0461f798/source', { file: 'test/mocks/pkg.get.cbor' })
+    mock.get('http://localhost/package/29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69/source', { file: 'test/mocks/pkg.get.bin' })
   })
-  const res = await aldea.getPackageSrc('c39c3547d5882c2a1b2bdd2e692fe528a3ab907028e322616671961c0461f798')
+  const res = await aldea.getPackageSrc('29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69')
   t.true(typeof res.id === 'string')
   t.true(Array.isArray(res.entries))
   t.true('files' in res)
@@ -284,9 +291,9 @@ test('Aldea.getPackageSrc() throws error if notfound', async t => {
 test('Aldea.getPackageWasm() returns an ABI json object if exists', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/package/c39c3547d5882c2a1b2bdd2e692fe528a3ab907028e322616671961c0461f798/wasm', { file: 'test/mocks/pkg.get.wasm' })
+    mock.get('http://localhost/package/29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69/wasm', { file: 'test/mocks/pkg.get.wasm' })
   })
-  const res = await aldea.getPackageWasm('c39c3547d5882c2a1b2bdd2e692fe528a3ab907028e322616671961c0461f798')
+  const res = await aldea.getPackageWasm('29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69')
   t.true(res instanceof Uint8Array)
 })
 
@@ -304,13 +311,13 @@ test('Aldea.getPackageWasm() throws error if notfound', async t => {
 test('Aldea.loadOutput() returns an Output json object if exists', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/output/030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e', { file: 'test/mocks/output.get.json', format: 'string' })
+    mock.get('http://localhost/output/eb1a5706276e030e0518ab4b09e11bf0f30e195b31634abc4eeb2c9e3657ebaa', { file: 'test/mocks/output.get.json', format: 'string' })
     mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
   })
-  const res = await aldea.loadOutput('030f9012b752baa2500a4f72fe3f9092ffc621bc4db04ddf0d80fa67ac813f6e')
+  const res = await aldea.loadOutput('eb1a5706276e030e0518ab4b09e11bf0f30e195b31634abc4eeb2c9e3657ebaa')
   t.true(res instanceof Output)
   t.true(typeof res.props === 'object')
-  t.true(typeof res.props.motos === 'number')
+  t.true(typeof res.props.motos === 'bigint')
 })
 
 test('Aldea.loadOutputByOrigin() returns an Output json object if exists', async t => {
@@ -322,7 +329,7 @@ test('Aldea.loadOutputByOrigin() returns an Output json object if exists', async
   const res = await aldea.loadOutputByOrigin('b010448235a7b4ab082435b9c497ba38e8b85e5c0717b91b5b3ae9c1e10b7551_1')
   t.true(res instanceof Output)
   t.true(typeof res.props === 'object')
-  t.true(typeof res.props.motos === 'number')
+  t.true(typeof res.props.motos === 'bigint')
 })
 
 test('Aldea.loadOutput() throws error if notfound', async t => {

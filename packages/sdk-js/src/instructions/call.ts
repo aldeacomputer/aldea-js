@@ -1,12 +1,9 @@
-import { CBOR, Sequence } from 'cbor-redux'
 import {
   BufReader,
   BufWriter,
   Instruction,
   OpCode,
   Serializable,
-  refTagger,
-  refUntagger,
 } from '../internal.js'
 
 /**
@@ -17,13 +14,13 @@ import {
 export class CallInstruction extends Instruction {
   idx: number;
   methodIdx: number;
-  args: any[];
+  argsBuf: Uint8Array;
 
-  constructor(idx: number, methodIdx: number, args: any[]) {
+  constructor(idx: number, methodIdx: number, argsBuf: Uint8Array) {
     super(OpCode.CALL)
     this.idx = idx
     this.methodIdx = methodIdx
-    this.args = args
+    this.argsBuf = argsBuf
   }
 }
 
@@ -34,19 +31,14 @@ export const CallArgsSerializer: Serializable<CallInstruction> = {
   read(buf: BufReader): CallInstruction {
     const idx = buf.readU16()
     const methodIdx = buf.readU16()
-    const cborData = buf.readBytes(buf.remaining)
-
-    const cborDataBuf = cborData.buffer.slice(cborData.byteOffset, cborData.byteOffset + cborData.byteLength)
-    const args = CBOR.decode(cborDataBuf, refUntagger, { mode: 'sequence' })
-    
-    return new CallInstruction(idx, methodIdx, args.data)
+    const argsBuf = buf.readBytes(buf.remaining)
+    return new CallInstruction(idx, methodIdx, argsBuf)
   },
 
   write(buf: BufWriter, instruction: CallInstruction): BufWriter {
-    const cborData = CBOR.encode(new Sequence(instruction.args), refTagger)
     buf.writeU16(instruction.idx)
     buf.writeU16(instruction.methodIdx)
-    buf.writeBytes(new Uint8Array(cborData))
+    buf.writeBytes(instruction.argsBuf)
     return buf
   }
 }

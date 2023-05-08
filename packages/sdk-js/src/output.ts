@@ -1,9 +1,9 @@
 import { Abi, ClassNode, validateAbi } from '@aldea/compiler/abi'
-import { CBOR } from 'cbor-redux';
 import { base16 } from './support/base.js'
 import { hash } from './support/blake3.js'
 
 import {
+  BCS,
   BufReader,
   BufWriter,
   Lock,
@@ -37,6 +37,7 @@ export class Output {
   stateBuf: Uint8Array;
 
   #abi?: Abi;
+  #bcs?: BCS;
   #classNode?: ClassNode;
   #props: any;
 
@@ -89,9 +90,11 @@ export class Output {
   set abi(abi: Abi | void) {
     if (typeof abi === 'undefined') {
       this.#abi = undefined
+      this.#bcs = undefined
       this.#classNode = undefined
     } else if (validateAbi(abi)) {
       this.#abi = abi
+      this.#bcs = new BCS(abi)
       const exp = abi.exports[this.classPtr.idx]
       if (exp) { this.#classNode = exp.code as ClassNode }
     }
@@ -120,14 +123,10 @@ export class Output {
   }
 
   get props(): { [key: string]: any } | void {
-    if (this.#classNode && typeof this.#props === 'undefined') {
-      const stateSeq = CBOR.decode(
-        new Uint8Array(this.stateBuf).buffer,
-        null,
-        { mode: 'sequence' }
-      )
+    if (this.#bcs && this.#classNode && typeof this.#props === 'undefined') {
+      const state = this.#bcs.decode(this.#classNode.name, this.stateBuf)
       const props = this.#classNode.fields.reduce((props: any, f, i) => {
-        props[f.name] = stateSeq.get(i)
+        props[f.name] = state[i]
         return props
       }, {})
       this.#props = Object.freeze(props)

@@ -1,0 +1,1 @@
+index.tsindex.tsIexport function helloWorld(msg: string): string { return `Hello ${msg}` }

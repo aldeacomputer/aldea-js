@@ -1,4 +1,3 @@
-import { Sequence, TaggedValue } from 'cbor-redux'
 import {
   BufReader, BufWriter, Serializable,
   ImportInstruction, ImportArgsSerializer,
@@ -84,30 +83,6 @@ export class InstructionRef {
  */
 export function ref(idx: number): InstructionRef {
   return new InstructionRef(idx)
-}
-
-/**
- * Tags an InstructionRef for CBOR encoding
- */
-export function refTagger(_key: any, val: any): any {
-  if (val instanceof InstructionRef) {
-    return new TaggedValue(val.idx, REF_CBOR_TAG)
-  } else if (val instanceof Sequence) {
-    return new Sequence(val.data.map((val, i) => refTagger(i, val)))
-  } else {
-    return val
-  }
-}
-
-/**
- * Untags an InstructionRef from deocded CBOR
- */
-export function refUntagger(_key: any, val: any): any {
-  if (val instanceof TaggedValue && val.tag === REF_CBOR_TAG) {
-    return new InstructionRef(val.value)
-  } else {
-    return val
-  }
 }
 
 /**

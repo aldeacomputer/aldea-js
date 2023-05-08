@@ -46,7 +46,7 @@
               {
                 "name": "newOwner",
                 "type": {
-                  "name": "ArrayBuffer",
+                  "name": "Uint8Array",
                   "args": []
                 }
               }
