@@ -80,6 +80,7 @@ __metadata:
   resolution: "@aldea/compiler@workspace:packages/compiler"
   dependencies:
     "@aldea/assemblyscript": ^0.0.0
+    "@aldea/sdk-js": "workspace:^"
     "@as-pect/cli": ^8.0.1
     "@assemblyscript/loader": 0.27.0
     "@noble/hashes": ^1.1.5

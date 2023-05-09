@@ -20,6 +20,18 @@ import {
   InterfaceDeclaration,
 } from 'assemblyscript'
 
+import { abiFromJson } from '@aldea/sdk-js'
+
+import {
+  Abi,
+  CodeKind,
+  MethodKind,
+  FieldKind,
+  TypeNode,
+  TypeIdNode,
+  normalizeTypeName,
+} from '@aldea/sdk-js/abi'
+
 import {
   ExportWrap,
   ImportWrap,
@@ -45,16 +57,6 @@ import {
 } from './filters.js'
 
 import { Validator } from './validator.js'
-import { abiFromJson, normalizeTypeName } from '../abi.js';
-
-import {
-  Abi,
-  CodeKind,
-  MethodKind,
-  FieldKind,
-  TypeNode,
-  TypeIdNode,
-} from '../abi/types.js'
 
 type CodeDeclaration = ClassDeclaration | FunctionDeclaration | InterfaceDeclaration
 

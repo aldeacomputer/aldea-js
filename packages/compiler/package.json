@@ -9,10 +9,6 @@
   },
   "exports": {
     ".": "./dist/compiler.js",
-    "./abi": {
-      "types": "./dist/abi.d.ts",
-      "default": "./dist/abi.js"
-    },
     "./assembly.json": "./assembly.json"
   },
   "main": "./dist/compiler.js",
@@ -38,6 +34,7 @@
   "packageManager": "yarn@3.2.3",
   "dependencies": {
     "@aldea/assemblyscript": "^0.0.0",
+    "@aldea/sdk-js": "workspace:^",
     "@noble/hashes": "^1.1.5",
     "@scure/base": "^1.1.1",
     "assemblyscript": "npm:@aldea/assemblyscript@^0.1.0",

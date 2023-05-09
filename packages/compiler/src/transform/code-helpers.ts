@@ -1,8 +1,7 @@
 import { blake3 } from '@noble/hashes/blake3'
 import { bytesToHex as toHex } from '@noble/hashes/utils'
+import { MethodKind, TypeNode, normalizeTypeName } from '@aldea/sdk-js/abi'
 import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './nodes.js'
-import { normalizeTypeName } from '../abi.js'
-import { MethodKind, TypeNode } from '../abi/types.js'
 
 /**
  * Writes a plain class declaration around a empty constructor method.

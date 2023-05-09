@@ -20,7 +20,7 @@ import {
   VariableStatement,
 } from 'assemblyscript'
 
-import { CodeKind } from '../abi.js'
+import { CodeKind } from '@aldea/sdk-js/abi'
 import { TransformCtx } from './ctx.js'
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
 import { ClassWrap, ObjectWrap, FieldWrap, TypeWrap, FunctionWrap, MethodWrap, ImportWrap, InterfaceWrap } from './nodes.js'

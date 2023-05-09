@@ -19,8 +19,8 @@ import {
   Source,
 } from 'assemblyscript'
 
-import { abiToCbor, abiToJson } from './abi.js'
-import { CodeKind, FieldKind, MethodKind, TypeNode } from './abi/types.js'
+import { abiToBin, abiToJson } from '@aldea/sdk-js'
+import { CodeKind, FieldKind, MethodKind, TypeNode } from '@aldea/sdk-js/abi'
 import { TransformCtx } from './transform/ctx.js'
 import { createDocs } from './transform/docs.js'
 import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap, ObjectWrap } from './transform/nodes.js'
@@ -177,7 +177,7 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
    */
   async afterCompile(this: AscTransform, _module: Module): Promise<void> {
     if (this.$ctx) {
-      await this.writeFile('abi.cbor', new Uint8Array(abiToCbor(this.$ctx.abi)), this.baseDir)
+      await this.writeFile('abi.cbor', abiToBin(this.$ctx.abi), this.baseDir)
       await this.writeFile('abi.json', abiToJson(this.$ctx.abi, 2), this.baseDir)
       await this.writeFile('docs.json', JSON.stringify(createDocs(this.$ctx), null, 2), this.baseDir)
       this.log('»»» TRANSFORMED «««')

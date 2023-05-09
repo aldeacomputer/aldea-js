@@ -1,5 +1,5 @@
 import { parse } from 'comment-parser'
-import { CodeKind, normalizeNodeName } from '../abi.js';
+import { CodeKind, normalizeNodeName } from '@aldea/sdk-js/abi';
 import { TransformCtx } from './ctx.js'
 import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './nodes.js'
 

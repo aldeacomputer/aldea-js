@@ -1,6 +1,6 @@
 import test from 'ava'
+import { abiFromBin } from '@aldea/sdk-js'
 import { compile } from '../dist/compiler.js'
-import { abiFromCbor } from '../dist/abi.js'
 
 test('compiles single source', async t => {
   await t.notThrowsAsync(() => compile('export class Test extends Jig {}'))
@@ -20,7 +20,7 @@ test('compiles multiple sources', async t => {
   }
 
   const res = await compile('input.ts', sources)
-  const abi = abiFromCbor(res.output.abi.buffer)
+  const abi = abiFromBin(res.output.abi)
 
   t.is(abi.objects.length, 1)
   t.is(abi.objects[0].name, 'Foo')
@@ -43,7 +43,7 @@ test('compiles multiple entries', async t => {
   }
 
   const res = await compile(['input2.ts', 'input1.ts'], sources)
-  const abi = abiFromCbor(res.output.abi.buffer)
+  const abi = abiFromBin(res.output.abi)
 
   t.is(abi.objects.length, 1)
   t.is(abi.objects[0].name, 'Foo')
@@ -66,7 +66,7 @@ test('child classes do not include fields of parents', async t => {
   `.trim()
   
   const res = await compile(src)
-  const abi = abiFromCbor(res.output.abi.buffer)
+  const abi = abiFromBin(res.output.abi)
 
   t.is(abi.exports.length, 3)
   t.is(abi.exports[0].code.name, 'A')
@@ -93,7 +93,7 @@ test('child classes do not include methods of parents unless overwritten', async
   `.trim()
   
   const res = await compile(src)
-  const abi = abiFromCbor(res.output.abi.buffer)
+  const abi = abiFromBin(res.output.abi)
 
   t.is(abi.exports.length, 3)
   t.is(abi.exports[0].code.name, 'A')
