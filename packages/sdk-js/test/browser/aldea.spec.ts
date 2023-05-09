@@ -1,10 +1,15 @@
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import { resolve } from 'path'
-import { Address, OpCode, Pointer, PubKey, Tx, base16 } from '../../dist/index.js'
+import { Address, BCS, OpCode, Pointer, PubKey, Tx, base16 } from '../../dist/index.js'
+import { Abi } from '../../dist/abi/types.js'
 
 const pagePath = resolve('test/browser/page.html')
 const pageUrl = `file://${pagePath}`
+
+function decodeArgs(abi: Abi, name: string, buf: Uint8Array) {
+  return new BCS(abi).decode(name, buf)
+}
 
 test('builds, serialized and parses a kitchen sink tx', async ({ page }) => {
   await page.goto(pageUrl);
@@ -49,8 +54,8 @@ test('builds, serialized and parses a kitchen sink tx', async ({ page }) => {
       tx.new(ref(0), 'Badge', ['foo'])
       tx.call(ref(1), 'send', [700, addr.hash])
       tx.call(ref(2), 'rename', ['bar'])
-      tx.exec(ref(0), 'Badge.helloWorld', ['mum'])
-      tx.exec(ref(0), 'helloWorld', ['dad'])
+      tx.exec(ref(0), 'Badge', 'helloWorld', ['mum'])
+      tx.execFunc(ref(0), 'helloWorld', ['dad'])
 
       tx.fund(ref(1))
       tx.lock(ref(2), addr)
@@ -81,6 +86,9 @@ test('builds, serialized and parses a kitchen sink tx', async ({ page }) => {
   expect(typeof txHex).toBe('string')
   const tx = Tx.fromHex(txHex)
 
+  const pkgAbi = await $env.evaluate(({ aldea }) => aldea.getPackageAbi('a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701'))  
+  const coinAbi = await $env.evaluate(({ aldea }) => aldea.getPackageAbi('0000000000000000000000000000000000000000000000000000000000000000'))
+
   expect(tx.instructions.length).toBe(14)
   expect(tx.instructions[0].opcode).toBe(OpCode.IMPORT)
   expect(tx.instructions[0].pkgId).toEqual(base16.decode('a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701'))
@@ -94,28 +102,28 @@ test('builds, serialized and parses a kitchen sink tx', async ({ page }) => {
   expect(tx.instructions[3].opcode).toBe(OpCode.NEW)
   expect(tx.instructions[3].idx).toBe(0)
   expect(tx.instructions[3].exportIdx).toBe(0)
-  expect(tx.instructions[3].args).toEqual(['foo'])
+  expect(decodeArgs(pkgAbi, 'Badge_constructor', tx.instructions[3].argsBuf)).toEqual(['foo'])
 
   expect(tx.instructions[4].opcode).toBe(OpCode.CALL)
   expect(tx.instructions[4].idx).toBe(1)
   expect(tx.instructions[4].methodIdx).toBe(1)
-  expect(tx.instructions[4].args).toEqual([700, addr.hash])
+  expect(decodeArgs(coinAbi, 'Coin$send', tx.instructions[4].argsBuf)).toEqual([700n, addr.hash])
 
   expect(tx.instructions[5].opcode).toBe(OpCode.CALL)
   expect(tx.instructions[5].idx).toBe(2)
   expect(tx.instructions[5].methodIdx).toBe(1)
-  expect(tx.instructions[5].args).toEqual(['bar'])
+  expect(decodeArgs(pkgAbi, 'Badge$rename', tx.instructions[5].argsBuf)).toEqual(['bar'])
 
   expect(tx.instructions[6].opcode).toBe(OpCode.EXEC)
   expect(tx.instructions[6].idx).toBe(0)
   expect(tx.instructions[6].exportIdx).toBe(0)
   expect(tx.instructions[6].methodIdx).toBe(2)
-  expect(tx.instructions[6].args).toEqual(['mum'])
+  expect(decodeArgs(pkgAbi, 'Badge_helloWorld', tx.instructions[6].argsBuf)).toEqual(['mum'])
 
   expect(tx.instructions[7].opcode).toBe(OpCode.EXECFUNC)
   expect(tx.instructions[7].idx).toBe(0)
   expect(tx.instructions[7].exportIdx).toBe(1)
-  expect(tx.instructions[7].args).toEqual(['dad'])
+  expect(decodeArgs(pkgAbi, 'helloWorld', tx.instructions[7].argsBuf)).toEqual(['dad'])
 
   expect(tx.instructions[8].opcode).toBe(OpCode.FUND)
   expect(tx.instructions[8].idx).toBe(1)
@@ -129,8 +137,7 @@ test('builds, serialized and parses a kitchen sink tx', async ({ page }) => {
   expect(tx.instructions[10].pubkeyHash).toEqual(addr.hash)
 
   expect(tx.instructions[11].opcode).toBe(OpCode.DEPLOY)
-  expect(tx.instructions[11].entry).toEqual(['index.ts'])
-  expect(tx.instructions[11].code).toEqual(pkg)
+  expect(BCS.pkg.decode(tx.instructions[11].pkgBuf)).toEqual([['index.ts'], pkg])
 
   expect(tx.instructions[12].opcode).toBe(OpCode.SIGN)
   expect(tx.instructions[12].sig.length).toBe(64)

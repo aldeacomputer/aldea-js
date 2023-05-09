@@ -11,9 +11,13 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./abi": {
+      "import": "./dist/abi/index.js",
+      "types": "./dist/abi/index.d.ts",
+      "default": "./dist/abi/index.js"
+    },
     "./*": {
       "import": "./dist/*.js",
-      "require": "./dist/*.js",
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"
     }
