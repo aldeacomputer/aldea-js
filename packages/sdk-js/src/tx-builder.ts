@@ -1,13 +1,7 @@
-import {
-  Abi,
-  ClassNode,
-  findClass,
-  findFunction,
-  findImport,
-  findMethod,
-  FunctionNode,
-  TypeNode
-} from '@aldea/compiler/abi'
+import { findClass, findFunction, findImport, findMethod } from './abi/query.js'
+import { Abi, ClassNode, TypeNode } from './abi/types.js'
+import { base16 } from './support/base.js'
+import { sign } from './support/ed25519.js'
 
 import {
   Address,
@@ -25,7 +19,6 @@ import {
   LoadInstruction,
   LockInstruction,
   NewInstruction,
-  OpCode,
   Pointer,
   PrivKey,
   ref,
@@ -33,9 +26,6 @@ import {
   SignToInstruction,
   Tx,
 } from './internal.js'
-
-import {base16} from './support/base.js'
-import {sign} from './support/ed25519.js'
 
 /**
  * Transaction Builder

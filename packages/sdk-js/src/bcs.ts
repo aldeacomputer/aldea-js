@@ -1,3 +1,6 @@
+import { findClass, findFunction, } from './abi/query.js'
+import { AbiSchema, PkgSchema } from './bcs/schemas.js'
+
 import {
   Abi,
   ClassNode,
@@ -8,12 +11,15 @@ import {
   MethodKind,
   MethodNode,
   TypeNode,
-  findClass,
-  findFunction,
-} from '@aldea/compiler/abi'
+} from './abi/types.js'
 
-import { BCSReader, BCSWriter, InstructionRef, Pointer, ref } from './internal.js'
-import { AbiSchema, PkgSchema } from './bcs/schemas.js'
+import {  
+  BCSReader,
+  BCSWriter,
+  InstructionRef,
+  Pointer,
+  ref,
+} from './internal.js'
 
 /**
  * BCS Encoder interface.

@@ -19,9 +19,17 @@ export {
   TxBuilder, CreateTxCallback,
   Serializable,
   OpCode,
-  Instruction, InstructionSerializer, InstructionRef, ref,
-  CommitTxResponse
+  Instruction, InstructionSerializer, InstructionRef,
+  CommitTxResponse,
+  abiFromBin,
+  abiFromJson,
+  abiToBin,
+  abiToJson,
+  ref,
 } from './internal.js'
+
+// ABI types and helpers
+export * as abi from './abi/index.js'
 
 // Instructions exports
 export * as instructions from './instructions/index.js'

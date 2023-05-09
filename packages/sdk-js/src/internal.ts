@@ -2,6 +2,7 @@
 export * from './aldea.js'
 
 // Core Aldea data objects
+export * from './abi.js'
 export * from './address.js'
 export * from './keypair.js'
 export * from './hd-privkey.js'

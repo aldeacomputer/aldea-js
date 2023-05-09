@@ -1,13 +1,17 @@
-import { Abi } from '@aldea/compiler/abi';
 import ky, { AfterResponseHook, BeforeRequestHook } from 'ky-universal'
+import { Abi } from './abi/types.js'
+
 import {
-  ref,
+  Address,
+  BCS,
   InstructionRef,
   Output,
   Pointer,
   Tx,
-  TxBuilder, Address, BCS,
+  TxBuilder,
+  ref,
 } from './internal.js'
+
 
 export type CreateTxCallback = (tx: TxBuilder, ref: (idx: number) => InstructionRef) => void | Promise<void>
 

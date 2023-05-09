@@ -1,4 +1,4 @@
-import { FieldNode, TypeNode } from '@aldea/compiler/abi'
+import { FieldNode, TypeNode } from '../abi/types.js'
 
 interface AbiSchemeInterface {
   abi: Omit<FieldNode, 'kind'>[],

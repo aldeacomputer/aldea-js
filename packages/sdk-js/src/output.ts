@@ -1,4 +1,5 @@
-import { Abi, ClassNode, validateAbi } from '@aldea/compiler/abi'
+import { Abi, ClassNode } from './abi/types.js'
+import { validateAbi } from './abi/validations.js'
 import { base16 } from './support/base.js'
 import { hash } from './support/blake3.js'
 
