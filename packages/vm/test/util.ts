@@ -5,6 +5,7 @@ import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import fs from "fs";
 import {fileURLToPath} from "url";
 import {compile} from "@aldea/compiler";
+import {Abi} from "@aldea/compiler/abi";
 
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 
@@ -34,13 +35,17 @@ export function addPreCompiled (vm: VM, src: string ): Uint8Array {
 
 export function buildVm(sources: string[]) {
   const moduleIds = new Map<string, string>()
+  const abis = new Map<string, Abi>
   const clock = new StubClock()
   const storage = new Storage()
   const vm = new VM(storage, storage, clock, compile)
 
+
   sources.forEach(src => {
     const id = addPreCompiled(vm, src)
+    const module = storage.getModule(id)
     moduleIds.set(src, base16.encode(id))
+    abis.set(src, module.abi)
   })
 
   return {
@@ -50,6 +55,13 @@ export function buildVm(sources: string[]) {
         throw new Error(`unknown module: ${modId}`)
       }
       return base16.decode(ret)
+    },
+    abiFor(modId: string): Abi {
+      const ret = abis.get(modId)
+      if (!ret) {
+        throw new Error(`unknown module: ${modId}`)
+      }
+      return ret
     },
     clock,
     storage,
