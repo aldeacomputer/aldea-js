@@ -662,16 +662,17 @@ describe('execute txs', () => {
       () => exec.callInstanceMethodByIndex(
         methodStmt.idx,
         1,
-        new BCS({}).encode('_Ref', ref(0))
+        new BCS(abiFor('sheep-counter')).encode('Shepherd$replace', [ref(0)])
       )
     ).to.throw(ExecutionError)
   })
+
   it('fails if a jig statement result is tried to be used as an import', () => {
     const flockPkg = exec.importModule(modIdFor('flock')).asInstance
     const flockStmt = exec.instantiateByClassName(flockPkg, 'Flock', [])
 
     expect(
-      () => exec.instantiateByIndex(flockStmt.idx, 1, new BCS({}).encode('_Ref', ref(flockStmt.idx)))
+      () => exec.instantiateByIndex(flockStmt.idx, 1, new Uint8Array([]))
     ).to.throw(ExecutionError)
   })
 
