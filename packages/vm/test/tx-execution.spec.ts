@@ -5,7 +5,7 @@ import {
 } from '../src/index.js'
 import {expect} from 'chai'
 import {TxExecution} from "../src/tx-execution.js";
-import {Pointer, PrivKey, ref, Tx} from "@aldea/sdk-js";
+import {BCS, Pointer, PrivKey, ref, Tx} from "@aldea/sdk-js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {LockType} from "../src/wasm-instance.js";
 import {ExecutionResult} from "../src/execution-result.js";
@@ -13,6 +13,7 @@ import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
 import {SignInstruction} from "@aldea/sdk-js/instructions/index";
+import { Abi } from '@aldea/sdk-js/abi';
 
 describe('execute txs', () => {
   let storage: Storage
@@ -21,6 +22,8 @@ describe('execute txs', () => {
   const userPub = userPriv.toPubKey()
   const userAddr = userPub.toAddress()
 
+  let abiFor: (key: string) => Abi
+  let abiForCoin: () => Abi
   let modIdFor: (key: string) => Uint8Array
 
   let clock: Clock
@@ -41,6 +44,8 @@ describe('execute txs', () => {
 
     storage = data.storage
     vm = data.vm
+    abiFor = (key: string) => storage.getModule(modIdFor(key)).abi
+    abiForCoin = () => storage.getModule(Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')).abi
     modIdFor = data.modIdFor
     clock = data.clock
   })
@@ -78,7 +83,7 @@ describe('execute txs', () => {
     exec.lockJigToUser(weapon.asJig(), userAddr)
     const result = exec.finalize()
 
-    const parsed = result.outputs[0].parsedState()
+    const parsed = result.outputs[0].parsedState(abiFor('weapon'))
     expect(parsed[0]).to.eql('Sable Corvo de San Martín')
     expect(parsed[1]).to.eql(100000)
   })
@@ -90,7 +95,7 @@ describe('execute txs', () => {
     exec.lockJigToUser(flockIndex.asJig(), userAddr)
     const result = exec.finalize()
 
-    const parsed = result.outputs[0].parsedState()
+    const parsed = result.outputs[0].parsedState(abiFor('flock'))
     expect(parsed[0]).to.eql(1) // grow effect
   })
 
@@ -101,7 +106,7 @@ describe('execute txs', () => {
     exec.lockJigToUser(flock, userAddr)
     const result = exec.finalize()
 
-    const parsed = result.outputs[0].parsedState()
+    const parsed = result.outputs[0].parsedState(abiFor('flock'))
     expect(parsed[0]).to.eql(7) // growMany effect
   })
 
@@ -116,7 +121,7 @@ describe('execute txs', () => {
     exec.lockJigToUser(counterIndex.asJig(), userAddr)
     const result = exec.finalize()
 
-    const parsed = result.outputs[1].parsedState()
+    const parsed = result.outputs[1].parsedState(abiFor('sheep-counter'))
     expect(parsed[0]).to.eql(1)
     expect(parsed[1]).to.eql(4)
   })
@@ -276,11 +281,11 @@ describe('execute txs', () => {
     const result2 = exec2.finalize()
 
     const flockOutput = result2.outputs[1];
-    const flockState = flockOutput.parsedState()
+    const flockState = flockOutput.parsedState(abiFor('flock'))
     expect(flockState[0]).to.eql(1)
     const bagOutput = result2.outputs[0];
-    const bagState = bagOutput.parsedState()
-    expect(bagState[0]).to.eql([flockOutput.origin.toBytes()])
+    const bagState = bagOutput.parsedState(abiFor('flock'))
+    expect(bagState[0]).to.eql([flockOutput.origin])
   })
 
 
@@ -299,9 +304,9 @@ describe('execute txs', () => {
     exec.markAsFunded()
     const result = exec.finalize()
 
-    const flockState = result.outputs[0].parsedState()
+    const flockState = result.outputs[0].parsedState(abiFor('flock'))
     expect(flockState[0]).to.eql(1)
-    const counterState = result.outputs[2].parsedState()
+    const counterState = result.outputs[2].parsedState(abiFor('sheep-counter'))
     expect(counterState[0]).to.eql(1)
     expect(counterState[1]).to.eql(6)
   })
@@ -316,8 +321,8 @@ describe('execute txs', () => {
     exec.markAsFunded()
     const result = exec.finalize()
 
-    const bagState = result.outputs[1].parsedState()
-    expect(bagState[0]).to.eql([result.outputs[0].origin.toBytes()])
+    const bagState = result.outputs[1].parsedState(abiFor('flock'))
+    expect(bagState[0]).to.eql([result.outputs[0].origin])
   })
 
   it('can hidrate jig with extern ref', () => {
@@ -338,9 +343,9 @@ describe('execute txs', () => {
     const ret2 = exec2.finalize()
 
     expect(ret2.outputs).to.have.length(1) // The internal jig is not loaded because we lazy load.
-    const parsedState = ret2.outputs[0].parsedState(); // the first one is the loaded jig
+    const parsedState = ret2.outputs[0].parsedState(abiFor('sheep-counter')); // the first one is the loaded jig
     expect(parsedState).to.have.length(1)
-    expect(parsedState[0]).to.eql(ret1.outputs[0].origin.toBytes())
+    expect(parsedState[0]).to.eql(ret1.outputs[0].origin)
   })
 
   it('does not require re lock for address locked jigs.', () => {
@@ -374,8 +379,8 @@ describe('execute txs', () => {
     exec.markAsFunded()
     const ret = exec.finalize()
 
-    const bagState = ret.outputs[1].parsedState()
-    expect(bagState[0]).to.eql([ret.outputs[0].origin.toBytes()])
+    const bagState = ret.outputs[1].parsedState(abiFor('flock'))
+    expect(bagState[0]).to.eql([ret.outputs[0].origin])
   })
 
   it('can send complex nested parameters with jigs', () => {
@@ -440,7 +445,7 @@ describe('execute txs', () => {
     exec.lockJigToUser(flock, userAddr)
     const ret = exec.finalize()
 
-    expect(ret.outputs[0].parsedState()[0]).eql(1)
+    expect(ret.outputs[0].parsedState(abiFor('flock'))[0]).eql(1)
   })
 
   it('saves entire state for jigs using inheritance', () => {
@@ -449,7 +454,7 @@ describe('execute txs', () => {
     exec.lockJigToUser(sheep.asJig(), userAddr)
     const ret = exec.finalize()
 
-    expect(ret.outputs[0].parsedState()).to.have.length(4) // 3 base class + 1 concrete class
+    expect(ret.outputs[0].parsedState(abiFor('sheep'))).to.have.length(4) // 3 base class + 1 concrete class
   })
 
   it('can call base class and concrete class methods', () => {
@@ -461,7 +466,7 @@ describe('execute txs', () => {
     exec.lockJigToUser(sheep, userAddr)
     const ret = exec.finalize()
 
-    const state = ret.outputs[0].parsedState();
+    const state = ret.outputs[0].parsedState(abiFor('sheep'));
     expect(state).to.have.length(4) // 3 base class + 1 concrete class
     expect(state[0]).to.eql('Wolverine') // name
     expect(state[1]).to.eql('black') // color
@@ -485,7 +490,7 @@ describe('execute txs', () => {
     exec2.markAsFunded()
     const ret2 = exec2.finalize()
 
-    const state = ret2.outputs[0].parsedState();
+    const state = ret2.outputs[0].parsedState(abiFor('sheep'));
     expect(state).to.have.length(4) // 3 base class + 1 concrete class
     expect(state[0]).to.eql('Wolverine') // 3 base class + 1 concrete class
     expect(state[1]).to.eql('black') // 3 base class + 1 concrete class
@@ -503,8 +508,8 @@ describe('execute txs', () => {
     const ret = exec.finalize()
     storage.persist(ret)
 
-    const eaterState = ret.outputs[0].parsedState()
-    expect(eaterState[0]).to.eql(ret.outputs[1].origin.toBytes())
+    const eaterState = ret.outputs[0].parsedState(abiFor('coin-eater'))
+    expect(eaterState[0]).to.eql(ret.outputs[1].origin)
     expect(eaterState[1]).to.eql([])
   })
 
@@ -551,8 +556,8 @@ describe('execute txs', () => {
     const ret = exec.finalize()
 
     expect(ret.outputs).to.have.length(3) // second flock was actually created
-    const state = ret.outputs[1].parsedState()
-    expect(state[0]).to.eql(new Pointer(exec.txContext.tx.id, 2).toBytes()) // flock was actually relplaced
+    const state = ret.outputs[1].parsedState(abiFor('sheep-counter'))
+    expect(state[0]).to.eql(new Pointer(exec.txContext.tx.id, 2)) // flock was actually relplaced
   })
 
   it('can combine coins owned by a jig inside that jig', () => {
@@ -580,8 +585,8 @@ describe('execute txs', () => {
     expect(ret.outputs[3].serializedLock.type).to.eql(2)
     expect(ret.outputs[3].serializedLock.data).to.eql(ret.outputs[0].origin.toBytes())
 
-    expect(ret.outputs[3].parsedState()).to.eql([300 + 400 + 500])
-    expect(ret.outputs[0].parsedState()).to.eql([ret.outputs[3].origin.toBytes(), []])
+    expect(ret.outputs[3].parsedState(abiForCoin())).to.eql([300n + 400n + 500n])
+    expect(ret.outputs[0].parsedState(abiFor('coin-eater'))).to.eql([ret.outputs[3].origin, []])
   })
 
   it('can save numbers inside statement result', () => {
@@ -626,7 +631,7 @@ describe('execute txs', () => {
     const flockPkg = exec.importModule(modIdFor('flock'))
 
     expect(
-      () => exec.callInstanceMethodByIndex(flockPkg.idx, 0, [])
+      () => exec.callInstanceMethodByIndex(flockPkg.idx, 0, new Uint8Array([]))
     ).to.throw(ExecutionError)
   })
 
@@ -638,7 +643,7 @@ describe('execute txs', () => {
       () => exec.instantiateByIndex(
         counterPkgStmt.idx,
         counterPkgStmt.asInstance.abi.classIdxByName('Shepherd'),
-        [ref(flockPkg.idx)]
+        new BCS(counterPkgStmt.asInstance.abi.abi).encode('Shepherd_constructor', [ref(flockPkg.idx)])
       )
     ).to.throw(ExecutionError)
   })
@@ -657,7 +662,7 @@ describe('execute txs', () => {
       () => exec.callInstanceMethodByIndex(
         methodStmt.idx,
         1,
-        [ref(0)]
+        new BCS({}).encode('_Ref', ref(0))
       )
     ).to.throw(ExecutionError)
   })
@@ -666,7 +671,7 @@ describe('execute txs', () => {
     const flockStmt = exec.instantiateByClassName(flockPkg, 'Flock', [])
 
     expect(
-      () => exec.instantiateByIndex(flockStmt.idx, 1, [ref(flockStmt.idx)])
+      () => exec.instantiateByIndex(flockStmt.idx, 1, new BCS({}).encode('_Ref', ref(flockStmt.idx)))
     ).to.throw(ExecutionError)
   })
 
@@ -758,7 +763,7 @@ describe('execute txs', () => {
 
     const result = exec.finalize()
 
-    expect(result.outputs[0].parsedState()[0]).to.eql(900)
+    expect(result.outputs[0].parsedState(abiForCoin())[0]).to.eql(900n)
     expect(result.outputs[1].lockType()).to.eql(LockType.FROZEN)
     expect(result.outputs[2].lockType()).to.eql(LockType.FROZEN)
     expect(result.outputs[3].lockType()).to.eql(LockType.FROZEN)

@@ -1,5 +1,6 @@
+import {base16} from "@aldea/sdk-js";
+import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/sdk-js/abi";
 import {AbiTraveler} from "./abi-traveler.js";
-import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
 import {getElementBytes, getObjectMemLayout, getTypeBytes, getTypedArrayConstructor} from "../memory.js";
 import {WasmPointer} from "../arg-reader.js";
@@ -7,7 +8,6 @@ import {blake3} from "@noble/hashes/blake3";
 import {bytesToHex as toHex} from "@noble/hashes/utils";
 import {JigRef} from "../jig-ref.js";
 import {emptyTn, outputAbiNode} from "./well-known-abi-nodes.js";
-import {base16} from "@aldea/sdk-js";
 import {AbiAccess} from "./abi-access.js";
 
 const STRING_RTID = 1;

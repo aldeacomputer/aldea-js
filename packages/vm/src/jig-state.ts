@@ -1,7 +1,6 @@
-import {ClassNode, FieldNode} from "@aldea/compiler/abi";
+import {Address, Output, Pointer, blake3, Lock, BCS} from "@aldea/sdk-js";
+import {Abi, ClassNode, FieldNode} from "@aldea/sdk-js/abi";
 import {WasmInstance} from "./wasm-instance.js";
-import {Address, Output, Pointer, blake3, Lock} from "@aldea/sdk-js";
-import {decodeSequence} from "./cbor.js";
 import {Option} from "./support/option.js";
 import {SerializedLock} from "./locks/serialized-lock.js";
 
@@ -52,8 +51,10 @@ export class JigState {
     return this.output.stateBuf
   }
 
-  parsedState(): any[] {
-    return decodeSequence(this.output.stateBuf)
+  parsedState(abi: Abi): any[] {
+    const abiNode = abi.exports[this.classIdx].code as ClassNode
+    const bcs = new BCS(abi)
+    return bcs.decode(abiNode.name, this.output.stateBuf)
   }
 
   classPtr (): Pointer {
@@ -61,7 +62,7 @@ export class JigState {
   }
 
   objectState (module: WasmInstance): any {
-    const fields = this.parsedState()
+    const fields = this.parsedState(module.abi.abi)
     const abiNode = module.abi.exports[this.classIdx].code as ClassNode
     if (!abiNode) { throw new Error('should exists') }
     return abiNode.fields.reduce((acumulated: any, current: FieldNode, index: number) => {

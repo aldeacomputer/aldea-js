@@ -97,11 +97,11 @@ export class InternalFlockOperations extends Jig {
 }
 
 // @ts-ignore
-@imported('a4fa4b025b480f2f3f40217716893e4e64bfa519330335b4347ee3d41743208d')
+@imported('df61ae40a3fb30adf1804b118e88d53112b88b527e1be33cc122e4170ae62f76')
 declare class BasicMath extends Jig {
   static inc (n: u32): u32;
 }
 
 // @ts-ignore
-@imported('a4fa4b025b480f2f3f40217716893e4e64bfa519330335b4347ee3d41743208d')
+@imported('df61ae40a3fb30adf1804b118e88d53112b88b527e1be33cc122e4170ae62f76')
 declare function fAddOne (n: u32): u32;

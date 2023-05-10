@@ -6,7 +6,7 @@ export const data = `export class Coin extends Jig {
     this.motos = amount
   }
 
-  send (amount: u64,): Coin {
+  send (amount: u64): Coin {
     if(this.motos < amount){
       throw new Error('not enough coins')
     }

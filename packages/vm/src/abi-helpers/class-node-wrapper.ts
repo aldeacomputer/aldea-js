@@ -1,4 +1,4 @@
-import {ClassNode, FieldKind, FieldNode, findMethod, TypeNode} from "@aldea/compiler/abi";
+import {ClassNode, FieldKind, FieldNode, findMethod, TypeNode} from "@aldea/sdk-js/abi";
 import {JIG_TOP_CLASS_NAME, lockTypeNode, outputTypeNode} from "./well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-access.js";
 import {MethodNodeWrapper} from "./method-node-wrapper.js";

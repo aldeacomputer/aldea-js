@@ -35,7 +35,7 @@ describe('execute with interfaces', () => {
     exec.lockJigToUser(chitaIdx, userAddr)
     const ret = exec.finalize()
 
-    expect(ret.outputs[0].parsedState()).to.eql([[100, 100], 100])
+    expect(ret.outputs[0].parsedState(pkgIdx.abi.abi)).to.eql([[100, 100], 100])
   })
 
   it('another jig of the same package can call method using an interface', () => {
@@ -48,7 +48,7 @@ describe('execute with interfaces', () => {
     exec.lockJigToUser(tamer, userAddr)
     const ret = exec.finalize()
 
-    expect(ret.outputs[0].parsedState()).to.eql([[100, 100], 100])
+    expect(ret.outputs[0].parsedState(pkgIdx.abi.abi)).to.eql([[100, 100], 100])
   })
 
   it('a caller from another package can call using an interface', () => {
@@ -61,7 +61,7 @@ describe('execute with interfaces', () => {
     exec.lockJigToUser(tamerIdx, userAddr)
     const ret = exec.finalize()
 
-    expect(ret.outputs[0].parsedState()).to.eql([[100, 100], 100])
+    expect(ret.outputs[0].parsedState(pkgIdx.abi.abi)).to.eql([[100, 100], 100])
   })
 
   it('a caller from another package can call using an interface after it was dehidrated and hidrated', () => {
@@ -81,6 +81,6 @@ describe('execute with interfaces', () => {
     exec2.lockJigToUser(loadedTamer, userAddr)
     const ret2 = exec2.finalize()
 
-    expect(ret2.outputs[1].parsedState()).to.eql([[100, 100], 100])
+    expect(ret2.outputs[1].parsedState(pkgIdx.abi.abi)).to.eql([[100, 100], 100])
   })
 })

@@ -1,6 +1,6 @@
 import { compile } from '@aldea/compiler'
 import fs from 'fs'
-import { abiFromCbor, abiToJson } from "@aldea/compiler/abi"
+import { abiFromBin, abiToJson } from "@aldea/sdk-js"
 
 export async function compileFile (file, outDir) {
   const fileName = file.replace(/^\/.*\//, '')
@@ -12,7 +12,7 @@ export async function compileFile (file, outDir) {
     fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.wat')}`, result.output.wat)
     fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.docs.json')}`, result.output.docs)
     fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.abi.cbor')}`, result.output.abi)
-    fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.abi.json')}`, abiToJson(abiFromCbor(result.output.abi.buffer)))
+    fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.abi.json')}`, abiToJson(abiFromBin(result.output.abi)))
     console.log(`compiled ${fileName} ok.`)
     if (process.env.VERBOSE === 'true') {
       console.log(result.stdout.toString())

@@ -6,6 +6,7 @@ import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {WasmInstance} from "../src/wasm-instance.js";
 import {StatementResult} from "../src/statement-result.js";
 import {PrivKey} from "@aldea/sdk-js";
+import { Abi } from '@aldea/sdk-js/abi';
 
 describe('Jig Type', () => {
   let storage: Storage
@@ -14,12 +15,14 @@ describe('Jig Type', () => {
   const userPub = userPriv.toPubKey()
   const userAddr = userPub.toAddress()
 
+  let abiFor: (key: string) => Abi
   let modIdFor: (key: string) => Uint8Array
 
   beforeEach(() => {
     const data = buildVm(['jig-type-bearer', 'flock'])
     storage = data.storage
     vm = data.vm
+    abiFor = (key: string) => storage.getModule(modIdFor(key)).abi
     modIdFor = data.modIdFor
   })
 
@@ -47,8 +50,8 @@ describe('Jig Type', () => {
     const ret = exec.finalize()
 
     const flockOutput = ret.outputs[0]
-    const parsed = ret.outputs[1].parsedState()
-    expect(parsed[0]).to.eql(flockOutput.origin.toBytes())
+    const parsed = ret.outputs[1].parsedState(abiFor('jig-type-bearer'))
+    expect(parsed[0]).to.eql(flockOutput.origin)
   })
 
   it('can make calls on methods returning jig typed parameters', () => {
@@ -58,8 +61,8 @@ describe('Jig Type', () => {
     exec.lockJigToUser(flockStmt.asJig(), userAddr)
     const ret = exec.finalize()
 
-    const parsed = ret.outputs[1].parsedState()
-    expect(parsed[0]).to.eql(returnedJig.origin.toBytes())
+    const parsed = ret.outputs[1].parsedState(abiFor('jig-type-bearer'))
+    expect(parsed[0]).to.eql(returnedJig.origin)
   })
 
   it('can make calls on jigs sending jig typed parameters', () => {
@@ -76,9 +79,9 @@ describe('Jig Type', () => {
 
     const flockOutput = ret.outputs[0]
     const anotherFlockOutput = ret.outputs[1]
-    const parsed = ret.outputs[2].parsedState()
-    expect(parsed[0]).to.not.eql(flockOutput.origin.toBytes()) // Remove
-    expect(parsed[0]).to.eql(anotherFlockOutput.origin.toBytes())
+    const parsed = ret.outputs[2].parsedState(abiFor('jig-type-bearer'))
+    expect(parsed[0]).to.not.eql(flockOutput.origin) // Remove
+    expect(parsed[0]).to.eql(anotherFlockOutput.origin)
   })
 
   it('can restore jigs that contain jigs of the same package', () => {
@@ -99,7 +102,7 @@ describe('Jig Type', () => {
     exec2.markAsFunded()
     const ret2 = exec2.finalize()
 
-    const parsedFlock = ret2.outputs[1].parsedState()
+    const parsedFlock = ret2.outputs[1].parsedState(abiFor('flock'))
     expect(parsedFlock[0]).to.eql(1)
   })
 
@@ -121,7 +124,7 @@ describe('Jig Type', () => {
     exec2.markAsFunded()
     const ret2 = exec2.finalize()
 
-    const parsedJigBearer = ret2.outputs[0].parsedState()
-    expect(parsedJigBearer[0]).to.eql(ret2.outputs[1].origin.toBytes())
+    const parsedJigBearer = ret2.outputs[0].parsedState(abiFor('jig-type-bearer'))
+    expect(parsedJigBearer[0]).to.eql(ret2.outputs[1].origin)
   })
 })

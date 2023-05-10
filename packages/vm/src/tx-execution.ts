@@ -6,8 +6,8 @@ import {NoLock} from "./locks/no-lock.js"
 import {JigState} from "./jig-state.js"
 import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
-import {ClassNode, CodeKind} from '@aldea/compiler/abi'
-import {Address, base16, instructions, OpCode, Output, Pointer} from '@aldea/sdk-js';
+import {ClassNode, CodeKind} from '@aldea/sdk-js/abi'
+import {Address, base16, BCS, instructions, OpCode, Output, Pointer} from '@aldea/sdk-js';
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
@@ -234,10 +234,11 @@ class TxExecution {
         this.importModule(inst.pkgId)
       } else if (baseInst.opcode === OpCode.NEW) {
         const inst = baseInst as NewInstruction
-        this.instantiateByIndex(inst.idx, inst.exportIdx, inst.args)
+        const abi = 
+        this.instantiateByIndex(inst.idx, inst.exportIdx, inst.argsBuf)
       } else if (baseInst.opcode === OpCode.CALL) {
         const inst = baseInst as instructions.CallInstruction
-        this.callInstanceMethodByIndex(inst.idx, inst.methodIdx, inst.args)
+        this.callInstanceMethodByIndex(inst.idx, inst.methodIdx, inst.argsBuf)
       } else if (baseInst.opcode === OpCode.EXEC) {
         const inst = baseInst as instructions.ExecInstruction
         const wasm = this.getStatementResult(inst.idx).asInstance
@@ -247,7 +248,7 @@ class TxExecution {
         }
         const klassNode = exportNode.code as ClassNode
         const methodNode = klassNode.methods[inst.methodIdx]
-        this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, inst.args)
+        this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, inst.argsBuf)
       } else if (baseInst.opcode === OpCode.LOCK) {
         const inst = baseInst as instructions.LockInstruction
         this.lockJigToUserByIndex(inst.idx, new Address(inst.pubkeyHash))
@@ -265,7 +266,8 @@ class TxExecution {
         this.statements.push(new EmptyStatementResult(this.statements.length))
       } else if (baseInst.opcode === OpCode.DEPLOY) {
         const inst = baseInst as instructions.DeployInstruction
-        await this.deployPackage(inst.entry, inst.code)
+        const [entries, sources] = BCS.pkg.decode(inst.pkgBuf)
+        await this.deployPackage(entries, sources)
       } else if (baseInst.opcode === OpCode.FUND) {
         const inst = baseInst as instructions.FundInstruction
         this.fundByIndex(inst.idx)
@@ -364,10 +366,12 @@ class TxExecution {
     // return ret
   }
 
-  instantiateByIndex(statementIndex: number, classIdx: number, args: any[]): StatementResult {
+  instantiateByIndex(statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
     const statement = this.statements[statementIndex]
     const instance = statement.asInstance
     const classNode = instance.abi.classByIndex(classIdx)
+    const bcs = new BCS(instance.abi.abi)
+    const args = bcs.decode(`${classNode.name}_constructor`, argsBuf)
     const wasmValue = this.instantiate(instance, classNode.name, args)
 
     const ret = new ValueStatementResult(this.statements.length, wasmValue.node, wasmValue.value, wasmValue.mod);
@@ -402,9 +406,11 @@ class TxExecution {
     return ret
   }
 
-  callInstanceMethodByIndex(jigIndex: number, methodIdx: number, args: any[]): StatementResult {
+  callInstanceMethodByIndex(jigIndex: number, methodIdx: number, argsBuf: Uint8Array): StatementResult {
     const jigRef = this.getStatementResult(jigIndex).asJig()
     const method = jigRef.classAbi().methodByIdx(methodIdx)
+    const bcs = new BCS(jigRef.package.abi.abi)
+    const args = bcs.decode(`${jigRef.className()}$${method.name}`, argsBuf)
     this.localCallStartHandler(jigRef, method.name)
     const methodResult = jigRef.package.instanceCall(jigRef, method, args)
     this.localCallEndHandler()
@@ -428,8 +434,10 @@ class TxExecution {
     return ret
   }
 
-  execStaticMethodByIndex(moduleIndex: number, className: string, methodName: string, args: any[]): number {
+  execStaticMethodByIndex(moduleIndex: number, className: string, methodName: string, argsBuf: Uint8Array): number {
     const wasm = this.getStatementResult(moduleIndex).asInstance
+    const bcs = new BCS(wasm.abi.abi)
+    const args = bcs.decode(`${className}_${methodName}`, argsBuf)
     this.execStaticMethod(wasm, className, methodName, args)
     return this.statements.length - 1
   }

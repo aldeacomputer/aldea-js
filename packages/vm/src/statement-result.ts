@@ -1,8 +1,8 @@
+import {InstructionRef} from "@aldea/sdk-js";
+import {TypeNode} from "@aldea/sdk-js/abi";
 import {ExecutionError} from "./errors.js";
 import {JigRef} from "./jig-ref.js";
 import {WasmInstance} from "./wasm-instance.js";
-import {TypeNode} from "@aldea/compiler/abi";
-import {InstructionRef} from "@aldea/sdk-js";
 
 export function isInstructionRef(obj: Object): boolean {
   // This is a little hack to avoid having issues when 2 different builds are used at the same time.

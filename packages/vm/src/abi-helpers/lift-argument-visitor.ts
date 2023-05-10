@@ -1,4 +1,4 @@
-import {ClassNode, InterfaceNode, TypeNode} from "@aldea/compiler/abi";
+import {ClassNode, InterfaceNode, TypeNode} from "@aldea/sdk-js/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {LiftValueVisitor} from "./lift-value-visitor.js";
 import {Externref, Internref} from "../memory.js";

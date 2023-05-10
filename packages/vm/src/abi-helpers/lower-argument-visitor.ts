@@ -1,5 +1,5 @@
 import {LowerValueVisitor} from "./lower-value-visitor.js";
-import {ClassNode, InterfaceNode, TypeNode} from "@aldea/compiler/abi";
+import {ClassNode, InterfaceNode, TypeNode} from "@aldea/sdk-js/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {base16} from "@aldea/sdk-js";
 import {JigRef} from "../jig-ref.js";

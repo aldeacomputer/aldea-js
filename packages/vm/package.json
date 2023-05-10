@@ -41,7 +41,6 @@
   "dependencies": {
     "@aldea/compiler": "workspace:^",
     "@aldea/sdk-js": "workspace:^",
-    "cbor-redux": "1.0.0-3",
     "moment": "^2.29.4"
   },
   "devDependencies": {

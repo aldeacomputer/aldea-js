@@ -1,10 +1,6 @@
-import {CBOR, Sequence} from "cbor-redux";
-import {BufWriter} from "@aldea/sdk-js/buf-writer";
-import {blake3} from "@aldea/sdk-js";
+import {BCS, blake3} from "@aldea/sdk-js";
 
 export function calculatePackageId (entryPoints: string[], sources: Map<string, string>): Uint8Array {
-  const buf = new BufWriter()
-  const cborData = CBOR.encode(new Sequence([entryPoints.sort(), sources]))
-  buf.writeBytes(new Uint8Array(cborData))
-  return blake3.hash(buf.data)
+  const data = BCS.pkg.encode([entryPoints.sort(), sources])
+  return blake3.hash(data)
 }

@@ -1,5 +1,5 @@
 import {Clock, Storage, StubClock, VM} from "../src/index.js";
-import {instructions, Output, Tx, Lock, Pointer, PrivKey} from "@aldea/sdk-js";
+import {instructions, Output, Tx, Lock, Pointer, PrivKey, BCS} from "@aldea/sdk-js";
 import {buildVm} from "./util.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {ExtendedTx} from "../src/index.js";
@@ -8,6 +8,7 @@ import {expect} from "chai";
 import {LockInstruction} from "@aldea/sdk-js/instructions/index";
 import {WasmInstance} from "../src/wasm-instance.js";
 import {JigState} from "../src/jig-state.js";
+import { Abi } from "@aldea/sdk-js/abi";
 const {
   CallInstruction,
   ImportInstruction,
@@ -35,6 +36,8 @@ describe('exec from inputs', () => {
   const userPub = userPriv.toPubKey()
   const userAddr = userPub.toAddress()
 
+  let abiFor: (key: string) => Abi
+  let abiForCoin: () => Abi
   let modIdFor: (k: string) => Uint8Array
 
   let clock: Clock
@@ -44,6 +47,8 @@ describe('exec from inputs', () => {
     clock = data.clock
     storage = data.storage
     modIdFor = data.modIdFor
+    abiFor = (key: string) => storage.getModule(modIdFor(key)).abi
+    abiForCoin = () => storage.getModule(Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')).abi
   })
 
 
@@ -67,13 +72,15 @@ describe('exec from inputs', () => {
   it('can execute from a totally local environment', async () => {
     let coin = vm.mint(userAddr, 500)
 
+    //console.dir(abiForCoin(), { depth: 5 })
+
     // first get some state from the global chain.
     const tx = new Tx()
     tx.push(new ImportInstruction(modIdFor('flock')))
-    tx.push(new NewInstruction(0, 0, []))
-    tx.push(new CallInstruction(1, 1, []))
+    tx.push(new NewInstruction(0, 0, new Uint8Array([])))
+    tx.push(new CallInstruction(1, 1, new Uint8Array([])))
     tx.push(new LoadInstruction(coin.id()))
-    tx.push(new CallInstruction(3, 1, [300]))
+    tx.push(new CallInstruction(3, 1, new BCS(abiForCoin()).encode('Coin$send', [300])))
     tx.push(new FundInstruction(3))
     tx.push(new LockInstruction(1, userAddr.hash))
     tx.push(new LockInstruction(4, userAddr.hash))
@@ -97,7 +104,7 @@ describe('exec from inputs', () => {
     const tx2 = new Tx()
     tx2.push(new LoadInstruction(tx1Exec.outputs[0].id())) // flock
     tx2.push(new LoadInstruction(tx1Exec.outputs[2].id())) // coin
-    tx2.push(new CallInstruction(0, 1, [])) // call "grow" over the flock
+    tx2.push(new CallInstruction(0, 1, new Uint8Array([]))) // call "grow" over the flock
     tx2.push(new FundInstruction(1))
     tx2.push(new SignInstruction(tx2.createSignature(userPriv), userPub.toBytes()))
 
@@ -105,6 +112,6 @@ describe('exec from inputs', () => {
     const tx2Exec = await vm2.execTxFromInputs(exTx)
 
     expect(tx2Exec.outputs).to.have.length(2)
-    expect(tx2Exec.outputs[0].parsedState()).to.eql([2])
+    expect(tx2Exec.outputs[0].parsedState(abiFor('flock'))).to.eql([2])
   })
 })

@@ -1,6 +1,6 @@
-import {JigState} from './jig-state.js';
-import {Abi} from "@aldea/compiler/abi";
 import {Address, base16, Pointer} from "@aldea/sdk-js";
+import {Abi} from "@aldea/sdk-js/abi";
+import {JigState} from './jig-state.js';
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {LockType, WasmInstance} from "./wasm-instance.js";
 import {Option} from "./support/option.js";
@@ -150,6 +150,7 @@ export class Storage implements StateProvider, PkgRepository {
     const idHex = base16.encode(id)
     const module =  this.packages.get(idHex)
     if (!module) {
+      console.log(this.packages.keys())
       return onNotFound(idHex)
     }
     return module

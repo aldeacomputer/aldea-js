@@ -9,7 +9,7 @@ import {
   TypeIdNode,
   TypeNode,
   findFunction, InterfaceNode
-} from "@aldea/compiler/abi";
+} from "@aldea/sdk-js/abi";
 import {ClassNodeWrapper} from "./class-node-wrapper.js";
 import {
   basicJigAbiNode,
@@ -26,7 +26,7 @@ const classNotFound = (className: string): ClassNodeWrapper => {
 }
 
 export class AbiAccess {
-  private abi: Abi;
+  readonly abi: Abi;
   constructor(abi: Abi) {
     this.abi = abi
   }

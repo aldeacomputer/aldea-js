@@ -1,7 +1,6 @@
+import {base16, BCS, Pointer} from "@aldea/sdk-js";
+import {Abi, ArgNode, ClassNode, FieldNode, FunctionNode, findField, TypeNode} from "@aldea/sdk-js/abi";
 import {JigRef} from "./jig-ref.js"
-import {Abi, ArgNode, ClassNode, FieldNode, findField, TypeNode,} from "@aldea/compiler/abi";
-
-import {base16, Pointer} from "@aldea/sdk-js";
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
 import {getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
@@ -22,9 +21,7 @@ import {
 import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
 import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
-import {decodeSequence, encodeSequence} from "./cbor.js";
 import {MethodNodeWrapper} from "./abi-helpers/method-node-wrapper.js";
-import {FunctionNode} from "@aldea/compiler/abi";
 
 export enum LockType {
   FROZEN = -1,
@@ -355,13 +352,16 @@ export class WasmInstance {
   }
 
   hidrate (classIdx: number, jigState: JigState): Internref {
+    const objectNode = this.abi.classByIndex(classIdx)
+    const bcs = new BCS(this.abi.abi)
+
     const frozenState = jigState.stateBuf
     const rawState = [
       jigState.outputObject(),
       jigState.lockObject(),
-      ...decodeSequence(frozenState)
+      ...bcs.decode(objectNode.name, frozenState)
     ]
-    const objectNode = this.abi.classByIndex(classIdx)
+
     const visitor = new LowerJigStateVisitor(this.abi, this, rawState)
     const pointer = visitor.visitPlainObject(objectNode, emptyTn(`$${objectNode.name}`))
     return new Internref(objectNode.name, Number(pointer))
@@ -434,9 +434,8 @@ export class WasmInstance {
       abiObj,
       emptyTn(abiObj.name)
     )
-    return encodeSequence(
-      abiObj.nativeFields().map((field: FieldNode) => lifted[field.name])
-    )
+    const bcs = new BCS(this.abi.abi)
+    return bcs.encode(abiObj.name, abiObj.nativeFields().map((field: FieldNode) => lifted[field.name]))
   }
 
   extractValue(ptr: WasmPointer, type: TypeNode | null): WasmValue {

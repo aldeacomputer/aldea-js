@@ -1,5 +1,13 @@
+import {base16, Pointer} from "@aldea/sdk-js";
+import {
+  ClassNode,
+  FieldNode,
+  InterfaceNode,
+  normalizeTypeName,
+  ObjectNode,
+  TypeNode,
+} from "@aldea/sdk-js/abi";
 import {AbiTraveler} from "./abi-traveler.js";
-import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/compiler/abi";
 import {WasmInstance} from "../wasm-instance.js";
 import {WasmPointer} from "../arg-reader.js";
 import {
@@ -12,7 +20,6 @@ import {
 } from "../memory.js";
 import {basicJigAbiNode, emptyTn, outputTypeNode} from "./well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-access.js";
-import {base16, Pointer} from "@aldea/sdk-js";
 
 
 export class LiftValueVisitor extends AbiTraveler<any> {

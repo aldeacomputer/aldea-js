@@ -96,11 +96,11 @@ describe('deploy code', () => {
       const wasm = exec.importModule(flockId).asInstance
       const jig = exec.instantiateByClassName(wasm, 'Flock', []).asJig()
       exec.callInstanceMethod(jig, 'growWithMath', [])
-        exec.lockJigToUser(jig, userAddr)
+      exec.lockJigToUser(jig, userAddr)
       exec.markAsFunded()
       const ret = exec.finalize()
 
-      let jigState = ret.outputs[0].parsedState();
+      let jigState = ret.outputs[0].parsedState(wasm.abi.abi);
       expect(jigState[0]).to.eql(1)
     })
   })

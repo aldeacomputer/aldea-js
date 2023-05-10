@@ -44,7 +44,7 @@ describe('execute txs', () => {
     exec3.callInstanceMethod(jigIdx3, 'add', ['key2', 'value2'])
       const ret3 = exec3.finalize()
 
-    const state = ret3.outputs[0].parsedState()
+    const state = ret3.outputs[0].parsedState(pkg.abi.abi)
     const map = new Map<string, string>()
     map.set('key1', 'value1')
     map.set('key2', 'value2')
@@ -62,12 +62,12 @@ describe('execute txs', () => {
     exec.markAsFunded()
     const ret = exec.finalize()
 
-    const state = ret.outputs[2].parsedState()
+    const state = ret.outputs[2].parsedState(pkg.abi.abi)
     expect(state[0]).to.have.length(1)
     const map: Map<Uint8Array, Uint8Array> = state[0]
     const key = map.keys().next().value
     const value = map.values().next().value
-    expect(key).to.eql(ret.outputs[0].origin.toBytes())
-    expect(value).to.eql(ret.outputs[1].origin.toBytes())
+    expect(key).to.eql(ret.outputs[0].origin)
+    expect(value).to.eql(ret.outputs[1].origin)
   })
 })

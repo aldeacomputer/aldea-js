@@ -25,9 +25,9 @@ export async function compileFileToTs (file, outDir) {
     const docsStr = bufferToExportedUint8ArrayExpession(Buffer.from(result.output.docs))
     fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.docs.json.ts')}`, docsStr)
 
-    // save abi as cbor
-    const cborAbiStr = bufferToExportedUint8ArrayExpession(result.output.abi)
-    fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.abi.cbor.ts')}`, cborAbiStr)
+    // save abi as binary
+    const binAbiStr = bufferToExportedUint8ArrayExpession(result.output.abi)
+    fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.abi.bin.ts')}`, binAbiStr)
 
     // save source
     const sourceStr = buffAsExportedString(fs.readFileSync(file))
