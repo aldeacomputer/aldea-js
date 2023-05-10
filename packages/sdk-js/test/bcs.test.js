@@ -10,6 +10,7 @@ function loadABI(filename) {
 
 const abi1 = loadABI('bcs1.abi.json')
 const abi2 = loadABI('bcs2.abi.json')
+const abi3 = loadABI('bcs3.abi.json')
 
 test.before(t => {
   t.context.bcs = new BCS()
@@ -36,6 +37,17 @@ test('encodes and decodes jig state with pointer', t => {
   const state = ['test', Pointer.fromString('1234567812345678123456781234567812345678123456781234567812345678_0')]
   const data = bcs.encode('Bar', state)
   const res = bcs.decode('Bar', data)
+  t.deepEqual(res, state)
+})
+
+test('encodes and decodes jig state with nested pointer', t => {
+  const bcs = new BCS(abi3)
+  const state = [new Map([
+    ['a', Pointer.fromString('1234567812345678123456781234567812345678123456781234567812345678_0')],
+    ['b', Pointer.fromString('1234567812345678123456781234567812345678123456781234567812345678_0')]
+  ])]
+  const data = bcs.encode('Nested', state)
+  const res = bcs.decode('Nested', data)
   t.deepEqual(res, state)
 })
 
@@ -68,6 +80,19 @@ test('encodes and decodes function args with nullable field', t => {
   const args = ['foo', 180n, null]
   const data = bcs.encode('test1', args)
   const res = bcs.decode('test1', data)
+  t.deepEqual(res, args)
+})
+
+test('encodes and decodes function args with nested instruction ref', t => {
+  const bcs = new BCS(abi3)
+  const args = ['foo', new Map([
+    ['a', 'aaaa'],
+    ['b', ref(11)],
+    ['c', 'cccc'],
+    ['d', ref(21)],
+  ])]
+  const data = bcs.encode('test', args)
+  const res = bcs.decode('test', data)
   t.deepEqual(res, args)
 })
 
