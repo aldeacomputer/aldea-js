@@ -3,7 +3,7 @@ import { Abi } from './abi/types.js'
 import { validateAbi } from './abi/validations.js'
 
 /**
- * Parses the given CBOR data to an ABI interface.
+ * Parses the given binary data to an ABI interface.
  */
 export function abiFromBin(data: Uint8Array): Abi {
   const bcs = new BCS({ addAbiTypes: true })
@@ -12,7 +12,7 @@ export function abiFromBin(data: Uint8Array): Abi {
   if (validateAbi(abi)) {
     return abi
   } else {
-    throw new Error('invalid abi cbor data')
+    throw new Error('invalid abi binary data')
   }
 }
 
@@ -29,7 +29,7 @@ export function abiFromJson(json: string): Abi {
 }
 
 /**
- * Serializes the given ABI interface to CBOR data.
+ * Serializes the given ABI interface to binary data.
  */
 export function abiToBin(abi: Abi): Uint8Array {
   const bcs = new BCS({ addAbiTypes: true })

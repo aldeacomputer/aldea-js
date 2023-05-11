@@ -5,14 +5,12 @@ import cors from 'cors'
 import statuses from 'http-status'
 import morgan from 'morgan'
 import asyncHandler from 'express-async-handler'
-import { CBOR, Sequence } from "cbor-redux"
 import { Libp2p } from 'libp2p'
-import { abiToCbor, abiToJson } from "@aldea/compiler/abi"
 import { CompileError } from "@aldea/compiler"
 import { VM, Storage, Clock,  } from "@aldea/vm"
 import { JigState } from '@aldea/vm/jig-state'
 import { ExecutionResult } from '@aldea/vm/execution-result'
-import { Address, base16, Pointer, Tx, instructions } from "@aldea/sdk-js"
+import { Address, base16, Pointer, Tx, instructions, abiToBin, abiToJson, BCS } from "@aldea/sdk-js"
 import { buildVm } from "./build-vm.js"
 import { HttpNotFound } from "./errors.js"
 import { logStream, logger } from './globals.js'
@@ -143,12 +141,16 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
   })
 
   app.post('/mint', asyncHandler(async (req, res) => {
+    const coinPkg = storage.getModule(base16.decode('0000000000000000000000000000000000000000000000000000000000000000'), (pkgId) => {
+      throw new HttpNotFound('coin pkg not found', { package_id: pkgId })
+    })
+    const bcs = new BCS(coinPkg.abi)
     const { address, amount } = req.body
     const coinLocation = storage.tipFor(coinOrigin)
     const tx = new Tx()
     tx.push(new LoadInstruction(coinLocation))
-    tx.push(new CallInstruction(0, 1, [amount]))
-    tx.push(new CallInstruction(0, 1, [200]))
+    tx.push(new CallInstruction(0, 1, bcs.encode('Coin$send', [amount])))
+    tx.push(new CallInstruction(0, 1, bcs.encode('Coin$send', [200])))
     tx.push(new FundInstruction(2))
     tx.push(new LockInstruction(1, Address.fromString(address).hash))
     tx.push(new SignInstruction(tx.createSignature(minterPriv), minterPriv.toPubKey().toBytes()))
@@ -175,9 +177,9 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     if (format === 'json' || !format) {
       res.set('content-type', 'application/json')
       res.status(200).send(abiToJson(data.abi))
-    } else if (format === 'cbor') {
-      res.set('content-type', 'application/cbor')
-      res.status(200).send(abiToCbor(data.abi))
+    } else if (format === 'bin') {
+      res.set('content-type', 'application/octet-stream')
+      res.status(200).send(abiToBin(data.abi))
     } else {
       throw new Error(`unknown format: ${format}`)
     }
@@ -188,9 +190,9 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     const data = storage.getModule(base16.decode(packageId), () => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
     })
-    const cborData = CBOR.encode(new Sequence([data.entries, data.sources]));
-    res.set('content-type', 'application/cbor-seq')
-    res.send(Buffer.from(cborData))
+    const pkgData = BCS.pkg.encode([data.entries, data.sources])
+    res.set('content-type', 'application/octet-stream')
+    res.send(pkgData)
   })
 
   app.get('/package/:packageId/wasm', (req, res) => {

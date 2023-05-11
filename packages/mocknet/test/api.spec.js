@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import request from 'supertest'
-import {Pointer, base16, Tx, PrivKey, instructions, util, Address} from "@aldea/sdk-js"
+import {BCS, Pointer, base16, Tx, PrivKey, instructions, util, Address} from "@aldea/sdk-js"
 import { StubClock } from "@aldea/vm"
 import { buildApp } from "../dist/server.js"
 
@@ -14,17 +14,19 @@ const {
   DeployInstruction
 } = instructions
 
-const NFT_PKG_ID = 'ea9225bcf8572c3a9fa75d186b62ab976d017d96b0614612f59d5fa5087b7fa3'
+const NFT_PKG_ID = '446f2f5ebbcbd8eb081d207a67c1c9f1ba3d15867c12a92b96e7520382883846'
 
 describe('api', () => {
   let app
   let vm
+  let storage
   let clock = new StubClock()
 
   beforeEach(async () => {
     const builded = await buildApp(clock)
     app = builded.app
     vm = builded.vm
+    storage = builded.storage
   })
 
   const userPriv = PrivKey.fromRandom()
@@ -53,10 +55,12 @@ describe('api', () => {
 
   describe('POST /tx', function () {
     it('returns correct data when the tx goes trough', async () => {
+      const nftPkg = storage.getModule(base16.decode(NFT_PKG_ID))
+      const bcs = new BCS(nftPkg.abi)
       const coinId = await mint()
       const tx = new Tx()
         .push(new ImportInstruction(base16.decode(NFT_PKG_ID)))
-        .push(new NewInstruction(0, 0, ['someNft', 0, 'file://nft.png']))
+        .push(new NewInstruction(0, 0, bcs.encode('NFT_constructor', ['someNft', 0, 'file://nft.png'])))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
@@ -82,10 +86,12 @@ describe('api', () => {
     })
 
     it('fails when a module does not exist', async () => {
+      const nftPkg = storage.getModule(base16.decode(NFT_PKG_ID))
+      const bcs = new BCS(nftPkg.abi)
       const coinId = await mint()
       const tx = new Tx()
-        .push(new ImportInstruction(base16.decode(Buffer.alloc(32).fill(0).toString('hex')))) //
-        .push(new NewInstruction(0, 0, ['someNft', 0, 'file://nft.png']))
+        .push(new ImportInstruction(base16.decode(Buffer.alloc(32).fill(42).toString('hex')))) //
+        .push(new NewInstruction(0, 0, bcs.encode('NFT_constructor', ['someNft', 0, 'file://nft.png'])))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
@@ -108,10 +114,12 @@ describe('api', () => {
   describe('GET /tx/:txid', () => {
     let txid
     beforeEach(async () => {
+      const nftPkg = storage.getModule(base16.decode(NFT_PKG_ID))
+      const bcs = new BCS(nftPkg.abi)
       const coinId = await mint()
       const tx = new Tx()
         .push(new ImportInstruction(base16.decode(NFT_PKG_ID)))
-        .push(new NewInstruction(0, 0, ['someNft', 0, 'file://nft.png']))
+        .push(new NewInstruction(0, 0, bcs.encode('NFT_constructor', ['someNft', 0, 'file://nft.png'])))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
@@ -159,10 +167,12 @@ describe('api', () => {
   describe('GET /rawtx/:txid', () => {
     let tx
     beforeEach(async () => {
+      const nftPkg = storage.getModule(base16.decode(NFT_PKG_ID))
+      const bcs = new BCS(nftPkg.abi)
       const coinId = await mint()
       tx = new Tx()
         .push(new ImportInstruction(base16.decode(NFT_PKG_ID)))
-        .push(new NewInstruction(0, 0, ['someNft', 0, 'file://nft.png']))
+        .push(new NewInstruction(0, 0, bcs.encode('NFT_constructor', ['someNft', 0, 'file://nft.png'])))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
@@ -204,10 +214,12 @@ describe('api', () => {
   describe('when a tx already exists', () => {
     let outputs
     beforeEach(async () => {
+      const nftPkg = storage.getModule(base16.decode(NFT_PKG_ID))
+      const bcs = new BCS(nftPkg.abi)
       const coinId = await mint()
       const tx = new Tx()
         .push(new ImportInstruction(base16.decode(NFT_PKG_ID)))
-        .push(new NewInstruction(0, 0, ['someNft', 0, 'file://nft.png']))
+        .push(new NewInstruction(0, 0, bcs.encode('NFT_constructor', ['someNft', 0, 'file://nft.png'])))
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
@@ -376,11 +388,11 @@ describe('api', () => {
       expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
     })
 
-    it('when type is cbor returns a cbor', async () => {
+    it('when type is bin returns a bin', async () => {
       await request(app)
-        .get(`/package/${pkgId}/abi.cbor`)
+        .get(`/package/${pkgId}/abi.bin`)
         .expect(200)
-        .expect('Content-Type', /application\/cbor/)
+        .expect('Content-Type', /application\/octet\-stream/)
     })
 
     it('returns not found when does not exist', async () => {
@@ -390,9 +402,9 @@ describe('api', () => {
         .expect('Content-Type', /application\/json/)
     })
 
-    it('returns not found when does not exist and format is cbor', async () => {
+    it('returns not found when does not exist and format is bin', async () => {
       await request(app)
-        .get(`/package/${new Array(64).fill('1').join('')}/abi.cbor`)
+        .get(`/package/${new Array(64).fill('1').join('')}/abi.bin`)
         .expect(404)
         .expect('Content-Type', /application\/json/)
     })
@@ -405,7 +417,7 @@ describe('api', () => {
       await request(app)
         .get(`/package/${pkgId}/source`)
         .expect(200)
-        .expect('Content-Type', /application\/cbor/)
+        .expect('Content-Type', /application\/octet\-stream/)
 
       // expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
     })
@@ -442,7 +454,7 @@ describe('api', () => {
           }
         }
       `.trim()
-      tx.push(new DeployInstruction([entry], new Map([[entry, code]])))
+      tx.push(new DeployInstruction(BCS.pkg.encode([[entry], new Map([[entry, code]])])))
       const sig = tx.createSignature(userPriv)
       tx.push(new SignInstruction(sig, userPriv.toPubKey().toBytes()))
 
@@ -471,7 +483,7 @@ describe('api', () => {
       await request(app)
         .get(`/package/${pkgId}/source`)
         .expect(200)
-        .expect('Content-Type', /application\/cbor-seq/)
+        .expect('Content-Type', /application\/octet\-stream/)
 
       // expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
     })

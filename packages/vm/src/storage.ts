@@ -150,7 +150,6 @@ export class Storage implements StateProvider, PkgRepository {
     const idHex = base16.encode(id)
     const module =  this.packages.get(idHex)
     if (!module) {
-      console.log(this.packages.keys())
       return onNotFound(idHex)
     }
     return module

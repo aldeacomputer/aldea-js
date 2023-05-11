@@ -1,5 +1,5 @@
 import {Address, Output, Pointer, Tx} from "@aldea/sdk-js";
-import {Abi} from "@aldea/compiler/abi";
+import {Abi} from "@aldea/sdk-js/abi";
 
 export interface OwnedAddress {
   address: Address
@@ -21,7 +21,6 @@ export interface WalletStorage {
   latestUsedIndex(): Promise<number>
 
   changeLastUsedIndex(f: (newIndex: number) => number): Promise<number>
-
 
   saveAddress(address: Address, path: string): Promise<void>;
 

@@ -1,6 +1,6 @@
 import {Adapter, Low} from 'lowdb'
-import {Address, base16, instructions, OpCode, Output, Pointer, Tx} from '@aldea/sdk-js'
-import {Abi, abiFromCbor, abiToCbor} from "@aldea/compiler/abi";
+import {Address, base16, instructions, OpCode, Output, Pointer, Tx, abiFromBin, abiToBin} from '@aldea/sdk-js'
+import {Abi} from "@aldea/sdk-js/abi";
 import {OwnedAddress, OwnedOutput, WalletStorage} from "./wallet-storage.js";
 
 
@@ -61,7 +61,7 @@ export class LowDbStorage implements WalletStorage {
       if (abi === undefined) {
         throw new Error('abi should be present')
       }
-      output.abi = abiFromCbor(base16.decode(abi.abiStr).buffer)
+      output.abi = abiFromBin(base16.decode(abi.abiStr))
       return output
     })
   }
@@ -116,7 +116,7 @@ export class LowDbStorage implements WalletStorage {
     if (!abiItem) {
       throw new Error('abi should be present')
     }
-    output.abi = abiFromCbor(base16.decode(abiItem.abiStr).buffer)
+    output.abi = abiFromBin(base16.decode(abiItem.abiStr))
     return {
       output: output,
       path: outputItem.path
@@ -133,7 +133,7 @@ export class LowDbStorage implements WalletStorage {
     if (!abiItem) {
       throw new Error('abi should be present')
     }
-    output.abi = abiFromCbor(base16.decode(abiItem.abiStr).buffer)
+    output.abi = abiFromBin(base16.decode(abiItem.abiStr))
     return {
       output: output,
       path: outputItem.path
@@ -189,7 +189,7 @@ export class LowDbStorage implements WalletStorage {
     const exists = this.data().abis.some(a => a.pkgId === pkgId)
     if (!exists) {
       this.data().abis.push({
-        abiStr: base16.encode(new Uint8Array(abiToCbor(abi))) ,
+        abiStr: base16.encode(abiToBin(abi)),
         pkgId
       })
       return Promise.resolve(undefined);
@@ -201,7 +201,7 @@ export class LowDbStorage implements WalletStorage {
     if (!abiItem) {
       return null
     }
-    return abiFromCbor(base16.decode(abiItem.abiStr).buffer)
+    return abiFromBin(base16.decode(abiItem.abiStr))
   }
 }
 

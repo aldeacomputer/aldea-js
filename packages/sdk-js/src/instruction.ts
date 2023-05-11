@@ -15,8 +15,6 @@ import {
   UnknownInstruction
 } from './internal.js'
 
-const REF_CBOR_TAG = 42
-
 /**
  * All OpCode bytes.
  */
