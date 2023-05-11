@@ -83,7 +83,26 @@ test('encodes and decodes function args with nullable field', t => {
   t.deepEqual(res, args)
 })
 
-test('encodes and decodes function args with nested instruction ref', t => {
+test('encodes and decodes function args with plain type instruction refs', t => {
+  const bcs = new BCS(abi3)
+  const args = ['foo', ref(11)]
+  const data = bcs.encode('test1', args)
+  const res = bcs.decode('test1', data)
+  t.deepEqual(res, args)
+})
+
+test('encodes and decodes function args with nested jig instruction refs', t => {
+  const bcs = new BCS(abi3)
+  const args = ['foo', new Map([
+    ['a', ref(11)],
+    ['a', ref(21)],
+  ])]
+  const data = bcs.encode('test2', args)
+  const res = bcs.decode('test2', data)
+  t.deepEqual(res, args)
+})
+
+test('throws error when encodes function args with nested plain type instruction refs', t => {
   const bcs = new BCS(abi3)
   const args = ['foo', new Map([
     ['a', 'aaaa'],
@@ -91,10 +110,17 @@ test('encodes and decodes function args with nested instruction ref', t => {
     ['c', 'cccc'],
     ['d', ref(21)],
   ])]
-  const data = bcs.encode('test', args)
-  const res = bcs.decode('test', data)
+  t.throws(() => bcs.encode('test3', args), { message: /string expected. recieved: InstructionRef/ })
+})
+
+test('encodes and decodes function args with plain type and jig instruction refs', t => {
+  const bcs = new BCS(abi3)
+  const args = [ref(11), ref(22)]
+  const data = bcs.encode('test4', args)
+  const res = bcs.decode('test4', data)
   t.deepEqual(res, args)
 })
+
 
 test('encodes and decodes object', t => {
   const bcs = new BCS(abi1)

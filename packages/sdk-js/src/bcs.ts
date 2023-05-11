@@ -112,6 +112,8 @@ export class BCS {
     if (opts.addAbiTypes)   { this.registerAbiTypes() }
     if (opts.addPkgTypes)   { this.registerPkgTypes() }
 
+    this.registerMagicTypes()
+
     if (this.abi) {
       for (let obj of this.abi.objects) {
         this.registerObjectType(obj.name, obj.fields)
@@ -145,7 +147,9 @@ export class BCS {
       const types = this.collectJigFieldTypes(jig)
       return this.decodeTypes(types, reader)
     } else if (method) {
-      const types = this.collectMethodArgTypes(method)
+      const idxEnc = this.typeEncoders.get('_RefIndexes') as BCSEncoder<number[]>
+      const idxs: number[] = this.decodeType(idxEnc.type as TypeNode, reader)
+      const types = this.collectMethodArgTypes(method, idxs)
       return this.decodeTypes(types, reader)
     } else {
       throw new Error(`unable to decode for ${name}`)
@@ -166,13 +170,25 @@ export class BCS {
       const types = this.collectJigFieldTypes(jig)
       this.encodeTypes(types, val, writer)
     } else if (method) {
-      const types = this.collectMethodArgTypes(method)
+      const idxs = refIndexes(val)
+      const types = this.collectMethodArgTypes(method, idxs)
+      const idxEnc = this.typeEncoders.get('_RefIndexes') as BCSEncoder<number[]>
+      this.encodeType(idxEnc.type as TypeNode, idxs, writer)
       this.encodeTypes(types, val, writer)
     } else {
       throw new Error(`unable to encode for ${name}`)
     }
     
     return writer.toBytes()
+  }
+
+  /**
+   * Returns the registered `BCSEncoder` for the given type name.
+   */
+  getTypeEncoder<T>(name: string): BCSEncoder<T> {
+    const encoder = this.typeEncoders.get(name)
+    if (!encoder) { throw new Error(`no encoder found for: ${name}`) }
+    return encoder
   }
 
   /**
@@ -240,8 +256,7 @@ export class BCS {
 
   // Decodes the given type.
   private decodeType(type: TypeNode, reader: BCSReader): any {
-    const encoder = this.typeEncoders.get(type.name)
-    if (!encoder) { throw new Error(`no decoder found for: ${type.name}`) }
+    const encoder = this.getTypeEncoder(type.name)
     const res = encoder.decode.call(this, reader, type)
     encoder.assert(res)
     return res
@@ -250,7 +265,7 @@ export class BCS {
   // Encodes the array of types and values.
   private encodeTypes(types: TypeNode[], vals: any[], writer: BCSWriter): void {
     if (types.length !== vals.length) {
-      throw new Error(`BCS.encode(): invalid number of values`)
+      throw new Error(`expected ${ types.length } values, recieved: ${ vals.length }`)
     }
     for (let i = 0; i < types.length; i++) {
       this.encodeType(types[i], vals[i], writer)
@@ -259,8 +274,7 @@ export class BCS {
 
   // Encodes the given type and value.
   private encodeType(type: TypeNode, val: any, writer: BCSWriter): void {
-    const encoder = this.typeEncoders.get(type.name)
-    if (!encoder) { throw new Error(`no encoder found for: ${type.name}`) }
+    const encoder = this.getTypeEncoder(type.name)
     encoder.assert(val)
     encoder.encode.call(this, writer, val, type)
   }
@@ -290,28 +304,29 @@ export class BCS {
     }
 
     // Recursively replace jig types with pointer types
-    return fields.map(f => nullableType(pointerType(f.type, this.jigNames)))
+    const types = fields.map(f => jigToPointerType(f.type, this.jigNames))
+    return types.map(nullableType)
   }
 
 
   // Collects list of type fields for the given MethodNode or FunctionNode.
   // Wraps each type as a refType which prefixes each value with a boolean to
   // determine if it is an InstructionRef
-  private collectMethodArgTypes(method: MethodNode | FunctionNode): TypeNode[] {
-    const types = method.args.map(a => a.type)
-    return types.map(t => nullableType(refType(t)))
-  }
+  private collectMethodArgTypes(method: MethodNode | FunctionNode, idxs: number[]): TypeNode[] {
+    const types = method.args.map(a => jigToRefType(a.type, this.jigNames))
 
-  //private collectMethodArgTypes(method: MethodNode | FunctionNode, idxCB: (type: TypeNode) => number[]): TypeNode[] {
-  //  const types = method.args.map(a => nullableType(a.type))
-  //  const idxEnc = this.typeEncoders.get('_RefIndexes') as BCSEncoder<number[]>
-  //  const refEnc = this.typeEncoders.get('_Ref') as BCSEncoder<InstructionRef>
-  //  const idxs = idxCB(idxEnc.type as TypeNode)
-  //  for (let i of idxs) {
-  //    types[i] = refEnc.type as TypeNode
-  //  }
-  //  return types
-  //}
+    for (let i of idxs) {
+      if (types[i].name === '_Ref') {
+        // If type is already a _Ref, remove index
+        idxs.splice(i, 1)
+      } else {
+        // Otherwise replace the type with a _Ref
+        types[i] = { name: '_Ref', nullable: types[i].nullable, args: [] }
+      }
+    }
+
+    return types.map(nullableType)
+  }
 
   // Registers the Aldea primitive types.
   private registerPrimitiveTypes(): void {
@@ -488,54 +503,6 @@ export class BCS {
       }
     })
 
-    this.registerType<any>('_Option', {
-      decode: (reader, type) => {
-        assertTypeNode(type, 1)
-        return reader.readBool() ? this.decodeType(type.args[0], reader) : null
-      },
-      encode: (writer, val, type) => {
-        assertTypeNode(type, 1)
-        writer.writeBool(!!val)
-        if (!!val) this.encodeType(type.args[0], val, writer)
-      }
-    })
-
-    this.registerType<InstructionRef | any>('_Ref', {
-      decode: (reader, type) => {
-        assertTypeNode(type, 1)
-        if (reader.readBool()) {
-          return ref(reader.readU16())
-        } else {
-          return this.decodeType(type.args[0], reader)
-        }
-      },
-      encode: (writer, val, type) => {
-        assertTypeNode(type, 1)
-        if (isRef(val)) {
-          writer.writeBool(true)
-          writer.writeU16(val.idx)
-        } else {
-          writer.writeBool(false)
-          this.encodeType(type.args[0], val, writer)
-        }
-      }
-    })
-
-    //this.registerType<InstructionRef>('_Ref', {
-    //  assert: (val) => assert(typeof val === 'object' && !!val.idx, `InstructionRef expected. recieved: ${val}`),
-    //  decode: (reader) => ref(reader.readU16()),
-    //  encode: (writer, val) => writer.writeU16(val.idx),
-    //})
-
-    //this.registerType<number[]>('_RefIndexes', {
-    //  decode: (reader) => {
-    //    return reader.readSeq(reader => reader.readU8())
-    //  },
-    //  encode: (writer, val) => {
-    //    writer.writeSeq(val, (writer, v) => writer.writeU8(v))
-    //  }
-    //})
-
     this.registerType<BigInt64Array>('BigInt64Array', createTypedArrayEncoder(BigInt64Array))
     this.registerType<BigUint64Array>('BigUint64Array', createTypedArrayEncoder(BigUint64Array))
     this.registerType<Float32Array>('Float32Array', createTypedArrayEncoder(Float32Array))
@@ -548,6 +515,36 @@ export class BCS {
     this.registerType<Uint32Array>('Uint32Array', createTypedArrayEncoder(Uint32Array))
   }
 
+  // TODO
+  private registerMagicTypes(): void {
+    this.registerType<any>('_Option', {
+      decode: (reader, type) => {
+        assertTypeNode(type, 1)
+        return reader.readBool() ? this.decodeType(type.args[0], reader) : null
+      },
+      encode: (writer, val, type) => {
+        assertTypeNode(type, 1)
+        writer.writeBool(!!val)
+        if (!!val) this.encodeType(type.args[0], val, writer)
+      }
+    })
+
+    this.registerType<InstructionRef>('_Ref', {
+      assert: (val) => assert(typeof val === 'object' && !!val.idx, `InstructionRef expected. recieved: ${val}`),
+      decode: (reader) => ref(reader.readU16()),
+      encode: (writer, val) => writer.writeU16(val.idx),
+    })
+
+    this.registerType<number[]>('_RefIndexes', {
+      decode: (reader) => {
+        return reader.readSeq(reader => reader.readU8())
+      },
+      encode: (writer, val) => {
+        writer.writeSeq(val, (writer, v) => writer.writeU8(v))
+      }
+    })
+  }
+
   // Registers types for an ABI (an ABI of the ABI)
   private registerAbiTypes(): void {
     for (let [name, fields] of Object.entries(AbiSchema)) {
@@ -557,33 +554,19 @@ export class BCS {
       assert: (val) => typeof val === 'object',
       decode: (reader) => {
         const kind = reader.readU8()
-        let name
-        switch (kind) {
-          case CodeKind.CLASS:      name = 'abi_class_node'; break
-          case CodeKind.FUNCTION:   name = 'abi_function_node'; break
-          case CodeKind.INTERFACE:  name = 'abi_interface_node'; break
-          default: throw new Error('todo')
-        }
-        const encoder = this.typeEncoders.get(name)
-        if (!encoder) { throw new Error(`no encoder found for: ${name}`) }
+        const name = getCodeKindNodeName(kind)
+        const encoder = this.getTypeEncoder(name)
         const code = encoder.decode.call(this, reader, encoder.type)
         encoder.assert(code)
-        return { kind, code }
+        return { kind, code } as ExportNode
       },
       encode: (writer, val) => {
         writer.writeU8(val.kind)
-        let name
-        switch (val.kind) {
-          case CodeKind.CLASS:      name = 'abi_class_node'; break
-          case CodeKind.FUNCTION:   name = 'abi_function_node'; break
-          case CodeKind.INTERFACE:  name = 'abi_interface_node'; break
-          default: throw new Error('todo')
-        }
-        const encoder = this.typeEncoders.get(name)
-        if (!encoder) { throw new Error(`no encoder found for: ${name}`) }
+        const name = getCodeKindNodeName(val.kind)
+        const encoder = this.getTypeEncoder(name)
         encoder.assert(val)
         encoder.encode.call(this, writer, val.code, encoder.type)
-      }
+      },
     })
   }
 
@@ -627,11 +610,11 @@ function assert(bool: boolean, msg: string = 'invalid type for encoder'): assert
 // Optionally can be given a number to assert the length of type arguments.
 function assertTypeNode(type: TypeNode | TypeNode[], n?: number): asserts type is TypeNode {
  if (Array.isArray(type)) {
-   throw new Error('TODO abc')
+   throw new Error('expected TypeNode')
  }
  const args = type?.args || []
  if (typeof n === 'number' && args.length !== n) {
-   throw new Error(`expected ${n} type argument, recieved ${args.length}`)
+   throw new Error(`expected ${n} type arguments, recieved: ${args.length}`)
  }
 }
 
@@ -662,6 +645,16 @@ function collectJigParents(abi: Abi, jig: ClassNode): ClassNode[] {
  return parents
 }
 
+// TODO
+function getCodeKindNodeName(kind: number): string {
+  switch (kind) {
+    case CodeKind.CLASS:      return 'abi_class_node'
+    case CodeKind.FUNCTION:   return 'abi_function_node'
+    case CodeKind.INTERFACE:  return 'abi_interface_node'
+    default: throw new Error(`invalid ABI code kind: ${kind}`)
+  }
+}
+
 // Returns true if the given value is an ABI object.
 function isAbi(obj: any): obj is Abi {
   return typeof obj === 'object' &&
@@ -678,6 +671,28 @@ function isRef(val: any): val is InstructionRef {
   return val instanceof InstructionRef
 }
 
+// If the type is a jig, replace with `Pointer` type node.
+function jigToPointerType(type: TypeNode, jigNames: string[]): TypeNode {
+  if (jigNames.includes(type.name)) {
+    return { name: 'Pointer', nullable: type.nullable, args: [] }
+  } else {
+    const copy = { ...type }
+    copy.args = type.args.map(t => jigToPointerType(t, jigNames))
+    return copy
+  }
+}
+
+// If the type is a jig, replace with `_Ref` type node
+function jigToRefType(type: TypeNode, jigNames: string[]): TypeNode {
+  if (jigNames.includes(type.name)) {
+    return { name: '_Ref', nullable: type.nullable, args: [] }
+  } else {
+    const copy = { ...type }
+    copy.args = type.args.map(t => jigToRefType(t, jigNames))
+    return copy
+  }
+}
+
 // Wraps the given type in an `_Option` if it is nullable.
 function nullableType(type: TypeNode): TypeNode {
  if (type.nullable) {
@@ -688,28 +703,10 @@ function nullableType(type: TypeNode): TypeNode {
  } 
 }
 
-// If the type is a jig, replace with `Pointer` type node.
-function pointerType(type: TypeNode, jigNames: string[]): TypeNode {
-  if (jigNames.includes(type.name)) {
-    return { name: 'Pointer', nullable: type.nullable, args: [] }
-  } else {
-    const copy = { ...type }
-    copy.args = type.args.map(t => pointerType(t, jigNames))
-    return copy
-  }
-}
-
-// Wraps the given type in a `_Ref` type node
-function refType(type: TypeNode): TypeNode {
-  const copy = { ...type, nullable: false }
-  copy.args = type.args.map(refType)
-  return { name: '_Ref', nullable: type.nullable, args: [copy]}
-}
-
 // Returns a list of indexes of InstructionRef instances in the give list of args.
-//function refIndexes(args: any[]): number[] {
-//  return args.reduce((idxs, arg, i) => {
-//    if (isRef(arg)) { idxs.push(i) }
-//    return idxs
-//  }, [])
-//}
+function refIndexes(args: any[]): number[] {
+  return args.reduce((idxs, arg, i) => {
+    if (isRef(arg)) { idxs.push(i) }
+    return idxs
+  }, [])
+}

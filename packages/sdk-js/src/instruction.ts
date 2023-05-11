@@ -74,6 +74,9 @@ export class InstructionRef {
     if (!Number.isInteger(idx)) throw new Error('invalid ref. must be an integer.')
     this.idx = idx
   }
+
+  get [Symbol.toStringTag](): string { return `InstructionRef` }
+  toString(): string { return `${this[Symbol.toStringTag]}<${this.idx}>` }
 }
 
 /**

@@ -88,7 +88,76 @@
     {
       "kind": 1,
       "code": {
-        "name": "test",
+        "name": "test1",
+        "args": [
+          {
+            "name": "a",
+            "type": {
+              "name": "string",
+              "nullable": false,
+              "args": []
+            }
+          },
+          {
+            "name": "b",
+            "type": {
+              "name": "string",
+              "nullable": false,
+              "args": []
+            }
+          }
+        ],
+        "rtype": {
+          "name": "void",
+          "nullable": false,
+          "args": []
+        }
+      }
+    },
+    {
+      "kind": 1,
+      "code": {
+        "name": "test2",
+        "args": [
+          {
+            "name": "a",
+            "type": {
+              "name": "string",
+              "nullable": false,
+              "args": []
+            }
+          },
+          {
+            "name": "map",
+            "type": {
+              "name": "Map",
+              "nullable": false,
+              "args": [
+                {
+                  "name": "string",
+                  "nullable": false,
+                  "args": []
+                },
+                {
+                  "name": "Nested",
+                  "nullable": false,
+                  "args": []
+                }
+              ]
+            }
+          }
+        ],
+        "rtype": {
+          "name": "void",
+          "nullable": false,
+          "args": []
+        }
+      }
+    },
+    {
+      "kind": 1,
+      "code": {
+        "name": "test3",
         "args": [
           {
             "name": "a",
@@ -115,6 +184,35 @@
                   "args": []
                 }
               ]
+            }
+          }
+        ],
+        "rtype": {
+          "name": "void",
+          "nullable": false,
+          "args": []
+        }
+      }
+    },
+    {
+      "kind": 1,
+      "code": {
+        "name": "test4",
+        "args": [
+          {
+            "name": "a",
+            "type": {
+              "name": "string",
+              "nullable": false,
+              "args": []
+            }
+          },
+          {
+            "name": "b",
+            "type": {
+              "name": "Nested",
+              "nullable": false,
+              "args": []
             }
           }
         ],
@@ -155,15 +253,15 @@
     },
     {
       "id": 12,
-      "name": "Map<string,string>"
+      "name": "Map<string,Nested>"
     },
     {
       "id": 13,
-      "name": "$Nested"
+      "name": "Map<string,string>"
     },
     {
-      "id": 15,
-      "name": "Map<string,Nested>"
+      "id": 14,
+      "name": "$Nested"
     }
   ]
 }
