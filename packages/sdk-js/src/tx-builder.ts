@@ -71,11 +71,11 @@ export class TxBuilder {
           break
         case OpCode.LOAD: null
           const load = i as LoadInstruction
-          this.import(base16.encode(load.outputId))
+          this.load(base16.encode(load.outputId))
           break
         case OpCode.LOADBYORIGIN: null
           const loadByOrigin = i as LoadByOriginInstruction
-          this.load(base16.encode(loadByOrigin.origin))
+          this.loadByOrigin(base16.encode(loadByOrigin.origin))
           break
         case OpCode.NEW:
           const newInst = i as NewInstruction
