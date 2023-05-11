@@ -177,7 +177,7 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
    */
   async afterCompile(this: AscTransform, _module: Module): Promise<void> {
     if (this.$ctx) {
-      await this.writeFile('abi.cbor', abiToBin(this.$ctx.abi), this.baseDir)
+      await this.writeFile('abi.bin', abiToBin(this.$ctx.abi), this.baseDir)
       await this.writeFile('abi.json', abiToJson(this.$ctx.abi, 2), this.baseDir)
       await this.writeFile('docs.json', JSON.stringify(createDocs(this.$ctx), null, 2), this.baseDir)
       this.log('»»» TRANSFORMED «««')

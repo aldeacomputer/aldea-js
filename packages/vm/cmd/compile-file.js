@@ -11,7 +11,7 @@ export async function compileFile (file, outDir) {
     fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.wasm')}`, result.output.wasm)
     fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.wat')}`, result.output.wat)
     fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.docs.json')}`, result.output.docs)
-    fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.abi.cbor')}`, result.output.abi)
+    fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.abi.bin')}`, result.output.abi)
     fs.writeFileSync(`${outDir}/${fileName.replace('.ts', '.abi.json')}`, abiToJson(abiFromBin(result.output.abi)))
     console.log(`compiled ${fileName} ok.`)
     if (process.env.VERBOSE === 'true') {

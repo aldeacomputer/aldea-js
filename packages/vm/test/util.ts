@@ -27,7 +27,7 @@ export function addPreCompiled (vm: VM, src: string ): Uint8Array {
   return vm.addPreCompiled(
     fs.readFileSync(`${__dir}../build/aldea/${src}.wasm`),
     fs.readFileSync(`${__dir}../assembly/aldea/${src}.ts`).toString(),
-    new Uint8Array(fs.readFileSync(`${__dir}../build/aldea/${src}.abi.cbor`)),
+    new Uint8Array(fs.readFileSync(`${__dir}../build/aldea/${src}.abi.bin`)),
     fs.readFileSync(`${__dir}../build/aldea/${src}.docs.json`)
   )
 }
