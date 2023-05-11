@@ -118,7 +118,7 @@ export class TxBuilder {
           break
         case OpCode.LOCK:
           const lock = i as LockInstruction
-          this.fund(ref(lock.idx))
+          this.lock(ref(lock.idx), new Address(lock.pubkeyHash))
           break
         case OpCode.DEPLOY:
           const deploy = i as DeployInstruction
@@ -130,6 +130,9 @@ export class TxBuilder {
             tx.push(i)
             return noResult()
           })
+          break
+        default:
+          throw new Error(`unknown opcode: ${i.opcode}`)
       }
     })
 
