@@ -530,7 +530,7 @@ export class BCS {
     })
 
     this.registerType<InstructionRef>('_Ref', {
-      assert: (val) => assert(typeof val === 'object' && !!val.idx, `InstructionRef expected. recieved: ${val}`),
+      assert: (val) => assert(isRef(val), `InstructionRef expected. recieved: ${val}`),
       decode: (reader) => ref(reader.readU16()),
       encode: (writer, val) => writer.writeU16(val.idx),
     })
@@ -668,7 +668,7 @@ function isNumber(val: number | bigint): val is number | bigint {
  
 // Returns true if the given val is an InstructionRef instance.
 function isRef(val: any): val is InstructionRef {
-  return val instanceof InstructionRef
+  return val && typeof val === 'object' && isNumber(val.idx) && val[Symbol.toStringTag] === 'InstructionRef'
 }
 
 // If the type is a jig, replace with `Pointer` type node.
