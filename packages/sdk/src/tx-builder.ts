@@ -75,11 +75,11 @@ export class TxBuilder {
           break
         case OpCode.LOAD: null
           const load = i as LoadInstruction
-          this.import(base16.encode(load.outputId))
+          this.load(base16.encode(load.outputId))
           break
         case OpCode.LOADBYORIGIN: null
           const loadByOrigin = i as LoadByOriginInstruction
-          this.load(base16.encode(loadByOrigin.origin))
+          this.loadByOrigin(base16.encode(loadByOrigin.origin))
           break
         case OpCode.NEW:
           const newInst = i as NewInstruction
@@ -122,7 +122,7 @@ export class TxBuilder {
           break
         case OpCode.LOCK:
           const lock = i as LockInstruction
-          this.fund(ref(lock.idx))
+          this.lock(ref(lock.idx), new Address(lock.pubkeyHash))
           break
         case OpCode.DEPLOY:
           const deploy = i as DeployInstruction
@@ -137,6 +137,9 @@ export class TxBuilder {
             tx.push(i)
             return noResult()
           })
+          break
+        default:
+          throw new Error(`unknown opcode: ${i.opcode}`)
       }
     })
   
