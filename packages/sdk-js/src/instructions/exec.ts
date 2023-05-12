@@ -34,7 +34,7 @@ export const ExecArgsSerializer: Serializable<ExecInstruction> = {
     const idx = buf.readU16()
     const exportIdx = buf.readU16()
     const methodIdx = buf.readU16()
-    const argsBuf = buf.readBytes(buf.remaining)
+    const argsBuf = buf.readFixedBytes(buf.remaining)
     return new ExecInstruction(idx, exportIdx, methodIdx, argsBuf)
   },
 
@@ -42,7 +42,7 @@ export const ExecArgsSerializer: Serializable<ExecInstruction> = {
     buf.writeU16(instruction.idx)
     buf.writeU16(instruction.exportIdx)
     buf.writeU16(instruction.methodIdx)
-    buf.writeBytes(instruction.argsBuf)
+    buf.writeFixedBytes(instruction.argsBuf)
     return buf
   }
 }

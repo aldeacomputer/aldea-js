@@ -31,14 +31,14 @@ export const ExecFuncArgsSerializer: Serializable<ExecFuncInstruction> = {
   read(buf: BufReader): ExecFuncInstruction {
     const idx = buf.readU16()
     const exportIdx = buf.readU16()
-    const argsBuf = buf.readBytes(buf.remaining)
+    const argsBuf = buf.readFixedBytes(buf.remaining)
     return new ExecFuncInstruction(idx, exportIdx, argsBuf)
   },
 
   write(buf: BufWriter, instruction: ExecFuncInstruction): BufWriter {
     buf.writeU16(instruction.idx)
     buf.writeU16(instruction.exportIdx)
-    buf.writeBytes(instruction.argsBuf)
+    buf.writeFixedBytes(instruction.argsBuf)
     return buf
   }
 }

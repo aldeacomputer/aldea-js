@@ -27,14 +27,14 @@ export class SignInstruction extends Instruction {
  */
 export const SignArgsSerializer: Serializable<SignInstruction> = {
   read(buf: BufReader): SignInstruction {
-    const sig = buf.readBytes(64)
-    const pubkey = buf.readBytes(32)
+    const sig = buf.readFixedBytes(64)
+    const pubkey = buf.readFixedBytes(32)
     return new SignInstruction(sig, pubkey)
   },
 
   write(buf: BufWriter, instruction: SignInstruction): BufWriter {
-    buf.writeBytes(instruction.sig)
-    buf.writeBytes(instruction.pubkey)
+    buf.writeFixedBytes(instruction.sig)
+    buf.writeFixedBytes(instruction.pubkey)
     return buf
   }
 }

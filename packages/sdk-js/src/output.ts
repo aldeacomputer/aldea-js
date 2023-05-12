@@ -167,8 +167,7 @@ export const OutputSerializer: Serializable<Output> = {
     const location = buf.read<Pointer>(PointerSerializer)
     const classPtr = buf.read<Pointer>(PointerSerializer)
     const lock = buf.read<Lock>(LockSerializer)
-    const stateLen = buf.readVarInt()
-    const stateBuf = buf.readBytes(Number(stateLen))
+    const stateBuf = buf.readBytes()
     return new Output(origin, location, classPtr, lock, stateBuf)
   },
 
@@ -177,7 +176,6 @@ export const OutputSerializer: Serializable<Output> = {
     buf.write<Pointer>(PointerSerializer, output.location)
     buf.write<Pointer>(PointerSerializer, output.classPtr)
     buf.write<Lock>(LockSerializer, output.lock)
-    buf.writeVarInt(output.stateBuf.byteLength)
     buf.writeBytes(output.stateBuf)
     return buf
   }

@@ -31,14 +31,14 @@ export const CallArgsSerializer: Serializable<CallInstruction> = {
   read(buf: BufReader): CallInstruction {
     const idx = buf.readU16()
     const methodIdx = buf.readU16()
-    const argsBuf = buf.readBytes(buf.remaining)
+    const argsBuf = buf.readFixedBytes(buf.remaining)
     return new CallInstruction(idx, methodIdx, argsBuf)
   },
 
   write(buf: BufWriter, instruction: CallInstruction): BufWriter {
     buf.writeU16(instruction.idx)
     buf.writeU16(instruction.methodIdx)
-    buf.writeBytes(instruction.argsBuf)
+    buf.writeFixedBytes(instruction.argsBuf)
     return buf
   }
 }

@@ -25,12 +25,12 @@ export class LoadInstruction extends Instruction {
  */
 export const LoadArgsSerializer: Serializable<LoadInstruction> = {
   read(buf: BufReader): LoadInstruction {
-    const outputId = buf.readBytes(32)
+    const outputId = buf.readFixedBytes(32)
     return new LoadInstruction(outputId)
   },
 
   write(buf: BufWriter, instruction: LoadInstruction): BufWriter {
-    buf.writeBytes(instruction.outputId)
+    buf.writeFixedBytes(instruction.outputId)
     return buf
   }
 }

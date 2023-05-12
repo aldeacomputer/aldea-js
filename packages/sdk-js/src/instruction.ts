@@ -92,8 +92,7 @@ export function ref(idx: number): InstructionRef {
 export const InstructionSerializer: Serializable<Instruction> = {
   read(buf: BufReader): Instruction {
     const opcode = buf.readU8()
-    const argsLen = buf.readVarInt() as number
-    const argsBuf = buf.readBytes(argsLen)
+    const argsBuf = buf.readBytes()
 
     const args = new BufReader(argsBuf)
 
@@ -167,12 +166,11 @@ export const InstructionSerializer: Serializable<Instruction> = {
         args.write<SignToInstruction>(SignToArgsSerializer, inst as SignToInstruction)
         break
       default:
-        args.writeBytes((<UnknownInstruction>inst).argsBuf)
+        args.writeFixedBytes((<UnknownInstruction>inst).argsBuf)
     }
 
     const argsBuf = args.data
     buf.writeU8(inst.opcode)
-    buf.writeVarInt(argsBuf.byteLength)
     buf.writeBytes(argsBuf)
     return buf
   }

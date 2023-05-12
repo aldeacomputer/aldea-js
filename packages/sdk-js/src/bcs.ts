@@ -14,8 +14,8 @@ import {
 } from './abi/types.js'
 
 import {  
-  BCSReader,
-  BCSWriter,
+  BufReader,
+  BufWriter,
   InstructionRef,
   Pointer,
   ref,
@@ -26,8 +26,8 @@ import {
  */
 export interface BCSEncoder<T> {
   assert(val: T): void;
-  decode(reader: BCSReader, type: TypeNode | TypeNode[]): T;
-  encode(writer: BCSWriter, val: T, type: TypeNode | TypeNode[]): void;
+  decode(reader: BufReader, type: TypeNode | TypeNode[]): T;
+  encode(writer: BufWriter, val: T, type: TypeNode | TypeNode[]): void;
   type: TypeNode | TypeNode[];
 }
 
@@ -135,7 +135,7 @@ export class BCS {
    * Decodes the given data using the specified type encoder.
    */
   decode(name: string, data: Uint8Array): any {
-    const reader = new BCSReader(data)
+    const reader = new BufReader(data)
     const encoder = this.typeEncoders.get(name)
     const { jig, method } = abiPluck(this.abi, name)
 
@@ -159,7 +159,7 @@ export class BCS {
   /**
    * Encoders the given value(s) using the specified type encoder.
    */
-  encode(name: string, val: any, writer = new BCSWriter()): Uint8Array {
+  encode(name: string, val: any, writer = new BufWriter()): Uint8Array {
     const encoder = this.typeEncoders.get(name)
     const { jig, method } = abiPluck(this.abi, name)
 
@@ -245,7 +245,7 @@ export class BCS {
   }
 
   // Decodes the array of types.
-  private decodeTypes(types: TypeNode[], reader: BCSReader): any[] {
+  private decodeTypes(types: TypeNode[], reader: BufReader): any[] {
     const result = []
     for (let i = 0; i < types.length; i++) {
       const val = this.decodeType(types[i], reader)
@@ -255,7 +255,7 @@ export class BCS {
   }
 
   // Decodes the given type.
-  private decodeType(type: TypeNode, reader: BCSReader): any {
+  private decodeType(type: TypeNode, reader: BufReader): any {
     const encoder = this.getTypeEncoder(type.name)
     const res = encoder.decode.call(this, reader, type)
     encoder.assert(res)
@@ -263,7 +263,7 @@ export class BCS {
   }
 
   // Encodes the array of types and values.
-  private encodeTypes(types: TypeNode[], vals: any[], writer: BCSWriter): void {
+  private encodeTypes(types: TypeNode[], vals: any[], writer: BufWriter): void {
     if (types.length !== vals.length) {
       throw new Error(`expected ${ types.length } values, recieved: ${ vals.length }`)
     }
@@ -273,7 +273,7 @@ export class BCS {
   }
 
   // Encodes the given type and value.
-  private encodeType(type: TypeNode, val: any, writer: BCSWriter): void {
+  private encodeType(type: TypeNode, val: any, writer: BufWriter): void {
     const encoder = this.getTypeEncoder(type.name)
     encoder.assert(val)
     encoder.encode.call(this, writer, val, type)

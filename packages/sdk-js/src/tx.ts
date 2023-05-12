@@ -137,19 +137,17 @@ export class Tx {
 export const TxSerializer: Serializable<Tx> = {
   read(buf: BufReader): Tx {
     const version = buf.readU16()
-    const instructions = new Array<Instruction>(buf.readVarInt() as number)
-    for (let i = 0; i < instructions.length; i++) {
-      instructions[i] = buf.read<Instruction>(InstructionSerializer)
-    }
+    const instructions = buf.readSeq((reader) => {
+      return reader.read<Instruction>(InstructionSerializer)
+    })
     return new Tx(version, instructions)
   },
 
   write(buf: BufWriter, tx: Tx): BufWriter {
     buf.writeU16(tx.version)
-    buf.writeVarInt(tx.instructions.length)
-    for (let i = 0; i < tx.instructions.length; i++) {
-      buf.write<Instruction>(InstructionSerializer, tx.instructions[i])
-    }
+    buf.writeSeq(tx.instructions, (writer, inst) => {
+      writer.write<Instruction>(InstructionSerializer, inst)
+    })
     return buf
   }
 }

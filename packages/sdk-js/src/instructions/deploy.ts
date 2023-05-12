@@ -26,12 +26,12 @@ export class DeployInstruction extends Instruction {
  */
 export const DeployArgsSerializer: Serializable<DeployInstruction> = {
   read(buf: BufReader): DeployInstruction {
-    const pkgBuf = buf.readBytes(buf.remaining)
+    const pkgBuf = buf.readFixedBytes(buf.remaining)
     return new DeployInstruction(pkgBuf)
   },
 
   write(buf: BufWriter, inst: DeployInstruction): BufWriter {
-    buf.writeBytes(inst.pkgBuf)
+    buf.writeFixedBytes(inst.pkgBuf)
     return buf
   }
 }

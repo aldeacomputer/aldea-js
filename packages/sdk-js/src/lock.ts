@@ -70,19 +70,19 @@ export const LockSerializer: Serializable<Lock> = {
     const type = buf.readU8()
     let data
     if (type === LockType.ADDRESS) {
-      data = buf.readBytes(20)
+      data = buf.readFixedBytes(20)
     } else
     if (type == LockType.CALLER) {
-      data = buf.readBytes(36)
+      data = buf.readFixedBytes(34)
     } else {
-      data = buf.readBytes(0)
+      data = buf.readFixedBytes(0)
     }
     return new Lock(type, data)
   },
 
   write(buf: BufWriter, lock: Lock): BufWriter {
     buf.writeU8(lock.type)
-    buf.writeBytes(lock.data)
+    buf.writeFixedBytes(lock.data)
     return buf
   }
 }

@@ -72,13 +72,13 @@ export class Pointer {
  */
 export const PointerSerializer: Serializable<Pointer> = {
   read(buf: BufReader): Pointer {
-    const id = buf.readBytes(32)
+    const id = buf.readFixedBytes(32)
     const idx = buf.readU16()
     return new Pointer(id, idx)
   },
 
   write(buf: BufWriter, ptr: Pointer): BufWriter {
-    buf.writeBytes(ptr.idBuf)
+    buf.writeFixedBytes(ptr.idBuf)
     buf.writeU16(ptr.idx)
     return buf
   }

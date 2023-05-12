@@ -5,7 +5,7 @@
 // Core exports
 export {
   Aldea,
-  BCS, BCSWriter, BCSReader,
+  BCS, BufWriter, BufReader, Serializable,
   Address,
   HDPrivKey,
   HDPubKey,
@@ -17,7 +17,6 @@ export {
   PubKey,
   Tx, TxSerializer,
   TxBuilder, CreateTxCallback,
-  Serializable,
   OpCode,
   Instruction, InstructionSerializer, InstructionRef,
   CommitTxResponse,

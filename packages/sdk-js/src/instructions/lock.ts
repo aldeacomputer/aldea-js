@@ -28,13 +28,13 @@ export class LockInstruction extends Instruction {
 export const LockArgsSerializer: Serializable<LockInstruction> = {
   read(buf: BufReader): LockInstruction {
     const idx = buf.readU16()
-    const pubkeyHash = buf.readBytes(20)
+    const pubkeyHash = buf.readFixedBytes(20)
     return new LockInstruction(idx, pubkeyHash)
   },
 
   write(buf: BufWriter, instruction: LockInstruction): BufWriter {
     buf.writeU16(instruction.idx)
-    buf.writeBytes(instruction.pubkeyHash)
+    buf.writeFixedBytes(instruction.pubkeyHash)
     return buf
   }
 }

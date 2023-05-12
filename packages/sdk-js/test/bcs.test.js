@@ -1,7 +1,7 @@
 import test from 'ava'
 import fs from 'fs'
 import { join } from 'path'
-import { BCS, BCSWriter, Pointer, base16, ref } from '../dist/index.js'
+import { BCS, BufWriter, Pointer, base16, ref } from '../dist/index.js'
 
 function loadABI(filename) {
   const abiStr = fs.readFileSync(join('./test/abis', filename), 'utf8')
@@ -228,37 +228,37 @@ test('encodes 64-bit unsigned int', t => {
 })
 
 test('encodes ULEB int 1', t => {
-  const writer = new BCSWriter()
+  const writer = new BufWriter()
   writer.writeULEB(1)
   t.is(base16.encode(writer.toBytes()), '01')
 })
 
 test('encodes ULEB int 128', t => {
-  const writer = new BCSWriter()
+  const writer = new BufWriter()
   writer.writeULEB(128)
   t.is(base16.encode(writer.toBytes()), '8001')
 })
 
 test('encodes ULEB int 16384', t => {
-  const writer = new BCSWriter()
+  const writer = new BufWriter()
   writer.writeULEB(16384)
   t.is(base16.encode(writer.toBytes()), '808001')
 })
 
 test('encodes ULEB int 2097152', t => {
-  const writer = new BCSWriter()
+  const writer = new BufWriter()
   writer.writeULEB(2097152)
   t.is(base16.encode(writer.toBytes()), '80808001')
 })
 
 test('encodes ULEB int 268435456', t => {
-  const writer = new BCSWriter()
+  const writer = new BufWriter()
   writer.writeULEB(268435456)
   t.is(base16.encode(writer.toBytes()), '8080808001')
 })
 
 test('encodes ULEB int 9487', t => {
-  const writer = new BCSWriter()
+  const writer = new BufWriter()
   writer.writeULEB(9487)
   t.is(base16.encode(writer.toBytes()), '8f4a')
 })
