@@ -33,7 +33,7 @@ Again, 2 options: Single key wallet and HDWallet
 
 ```tsx
 import { SingleKeyWallet, HdWallet } from "@aldea/wallet-lib"
-import { Aldea, HDPrivKey, PrivKey } from "@aldea/sdk-js"
+import { Aldea, HDPrivKey, PrivKey } from "@aldea/sdk"
 
 const pk = PrivKey.fromRandom()
 const aldea = new Aldea()

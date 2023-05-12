@@ -10,7 +10,7 @@
   "dependencies": {
     "@aldea/cli": "^0.0.1-beta",
     "@aldea/compiler": "^0.0.1-beta",
-    "@aldea/sdk-js": "^0.0.1-beta"
+    "@aldea/sdk": "^0.0.1-beta"
   },
   "devDependencies": {
     "@aldea/mocknet": "^0.0.1-beta",

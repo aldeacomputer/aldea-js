@@ -11,7 +11,7 @@ const makeAllPackagesExternalPlugin = {
 // ESM bundle
 esbuild.build({
   entryPoints: ['src/index.ts'],
-  outfile: 'dist/aldea.bundle.mjs',
+  outfile: 'dist/aldea.sdk.bundle.mjs',
   bundle: true,
   format: 'esm',
   platform: 'neutral',
@@ -27,7 +27,7 @@ esbuild.build({
 // CJS bundle
 esbuild.build({
   entryPoints: ['src/index.ts'],
-  outfile: 'dist/aldea.bundle.cjs',
+  outfile: 'dist/aldea.sdk.bundle.cjs',
   bundle: true,
   format: 'cjs',
   platform: 'node',
@@ -42,8 +42,8 @@ esbuild.build({
 
 esbuild.build({
   entryPoints: ['src/index.ts'],
-  outfile: 'dist/aldea.bundle.min.js',
-  globalName: 'aldeaJS',
+  outfile: 'dist/aldea.sdk.bundle.min.js',
+  globalName: 'AldeaSDK',
   bundle: true,
   format: 'iife',
   platform: 'browser',

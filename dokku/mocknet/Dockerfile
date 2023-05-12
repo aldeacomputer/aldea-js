@@ -9,18 +9,18 @@ COPY .yarn .yarn
 COPY yarn.lock .
 
 
-RUN mkdir packages packages/compiler packages/mocknet packages/sdk-js packages/vm
+RUN mkdir packages packages/compiler packages/mocknet packages/sdk packages/vm
 
 COPY packages/compiler/package.json packages/compiler
 COPY packages/mocknet/package.json packages/mocknet
-COPY packages/sdk-js/package.json packages/sdk-js
+COPY packages/sdk/package.json packages/sdk
 COPY packages/vm/package.json packages/vm
 
 RUN yarn install
 
 COPY packages/compiler packages/compiler
 COPY packages/mocknet packages/mocknet
-COPY packages/sdk-js packages/sdk-js
+COPY packages/sdk packages/sdk
 COPY packages/vm packages/vm
 
 RUN yarn build

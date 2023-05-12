@@ -1,32 +1,44 @@
-import { findClass, findFunction, findImport, findMethod } from './abi/query.js'
-import { Abi, ClassNode, FunctionNode, TypeNode } from './abi/types.js'
-import { base16 } from './support/base.js'
-import { sign } from './support/ed25519.js'
-
 import {
   Address,
-  Aldea,
   BCS,
+  HDPrivKey,
+  InstructionRef,
+  OpCode,
+  Pointer,
+  PrivKey,
+  Tx,
+  base16,
+  ed25519,
+  ref,
+} from '@aldea/core'
+
+import {
+  Abi,
+  ClassNode,
+  FunctionNode,
+  TypeNode,
+  findClass,
+  findFunction,
+  findImport,
+  findMethod,
+} from '@aldea/core/abi'
+
+import {
   CallInstruction,
   DeployInstruction,
   ExecFuncInstruction,
   ExecInstruction,
   FundInstruction,
-  HDPrivKey,
   ImportInstruction,
-  InstructionRef,
   LoadByOriginInstruction,
   LoadInstruction,
   LockInstruction,
   NewInstruction,
-  OpCode,
-  Pointer,
-  PrivKey,
-  ref,
   SignInstruction,
   SignToInstruction,
-  Tx,
-} from './internal.js'
+} from '@aldea/core/instructions'
+
+import { Aldea } from './aldea.js'
 
 /**
  * Transaction Builder
@@ -297,7 +309,7 @@ export class TxBuilder {
   sign(privKey: PrivKey | HDPrivKey): InstructionRef {
     return this.push(async (tx: Tx) => {
       const msg = tx.sighash()
-      const sig = sign(msg, privKey)
+      const sig = ed25519.sign(msg, privKey)
       tx.push(new SignInstruction(sig, privKey.toPubKey().toBytes()))
       return noResult()
     })
@@ -310,7 +322,7 @@ export class TxBuilder {
   signTo(privKey: PrivKey | HDPrivKey): InstructionRef {
     return this.push((tx: Tx) => {
       const msg = tx.sighash(tx.instructions.length)
-      const sig = sign(msg, privKey)
+      const sig = ed25519.sign(msg, privKey)
       tx.push(new SignToInstruction(sig, privKey.toPubKey().toBytes()))
       return noResult()
     })

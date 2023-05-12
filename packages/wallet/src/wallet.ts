@@ -8,7 +8,7 @@ import {
   TxBuilder,
   instructions,
   base16, Pointer
-} from "@aldea/sdk-js"
+} from "@aldea/sdk"
 import {COIN_CLASS_PTR} from "./constants.js";
 import {AldeaClient} from "./aldea-client.js";
 const {LoadInstruction} = instructions

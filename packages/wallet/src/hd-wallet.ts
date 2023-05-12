@@ -10,7 +10,7 @@ import {
   Pointer,
   Tx,
   TxBuilder
-} from '@aldea/sdk-js'
+} from '@aldea/sdk'
 import {Wallet} from "./wallet.js";
 import {WalletStorage} from "./storage/index.js";
 import {MAX_GAP_SIZE, PATH_PREFIX} from "./constants.js";

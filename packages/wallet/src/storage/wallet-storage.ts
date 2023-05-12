@@ -1,5 +1,5 @@
-import {Address, Output, Pointer, Tx} from "@aldea/sdk-js";
-import {Abi} from "@aldea/sdk-js/abi";
+import {Address, Output, Pointer, Tx} from "@aldea/sdk";
+import {Abi} from "@aldea/core/abi";
 
 export interface OwnedAddress {
   address: Address

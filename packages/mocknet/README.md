@@ -28,7 +28,7 @@ docker run -it -p '4000:4000' aldeacomputer/mocknet
 Once the mocknet is running locally, hook the SDK up to use the mock environment.
 
 ```ts
-import { Aldea } from '@aldea/sdk-js'
+import { Aldea } from '@aldea/sdk'
 
 // Create an instance connecting to the mock node
 const aldea = new Aldea('http://localhost:4000')

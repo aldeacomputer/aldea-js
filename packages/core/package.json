@@ -16,6 +16,11 @@
       "types": "./dist/abi/index.d.ts",
       "default": "./dist/abi/index.js"
     },
+    "./instructions": {
+      "import": "./dist/instructions/index.js",
+      "types": "./dist/instructions/index.d.ts",
+      "default": "./dist/instructions/index.js"
+    },
     "./*": {
       "import": "./dist/*.js",
       "types": "./dist/*.d.ts",
@@ -38,9 +43,9 @@
     "ci": "yarn test:local",
     "clean": "rimraf dist/* || true",
     "docs": "typedoc",
-    "test": "run-s build test:browser && ava",
+    "test": "run-s build test:local",
     "test:browser": "playwright test",
-    "test:local": "ava --only",
+    "test:local": "ava",
     "vectors": "node scripts/vectorgen.js"
   },
   "packageManager": "yarn@3.2.3",

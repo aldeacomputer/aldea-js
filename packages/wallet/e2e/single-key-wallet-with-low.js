@@ -1,5 +1,5 @@
 import { SingleKeyWallet } from "../dist/index.js"
-import { Aldea, Output, PrivKey } from "@aldea/sdk-js"
+import { Aldea, Output, PrivKey } from "@aldea/sdk"
 import { Memory } from "lowdb"
 import { LowDbStorage } from "../dist/index.js"
 

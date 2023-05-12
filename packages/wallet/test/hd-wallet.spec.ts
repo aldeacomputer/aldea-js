@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { Memory } from 'lowdb'
 import { generateMnemonic, mnemonicToSeedSync } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english.js'
-import { Aldea, HDPrivKey } from "@aldea/sdk-js"
+import { Aldea, HDPrivKey } from "@aldea/sdk"
 import {HdWallet, LowDbStorage} from "../src/index.js"
 import {Wallet} from "../src/wallet.js";
 

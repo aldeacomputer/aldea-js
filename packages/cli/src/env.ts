@@ -2,7 +2,7 @@ import fs from 'fs'
 import { join } from 'path'
 import { Low } from 'lowdb'
 import { JSONFile } from 'lowdb/node'
-import { Aldea, HDPrivKey, PrivKey } from '@aldea/sdk-js'
+import { Aldea, HDPrivKey, PrivKey } from '@aldea/sdk'
 import { HdWallet, SingleKeyWallet, LowDbStorage } from '@aldea/wallet-lib'
 import { Config } from './config.js'
 

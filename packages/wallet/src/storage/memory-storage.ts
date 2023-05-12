@@ -1,6 +1,6 @@
 import {OwnedAddress, OwnedOutput, WalletStorage} from "./wallet-storage.js";
-import {Address, base16, instructions, OpCode, Output, Pointer, Tx} from "@aldea/sdk-js";
-import {Abi} from "@aldea/sdk-js/abi";
+import {Address, base16, instructions, OpCode, Output, Pointer, Tx} from "@aldea/sdk";
+import {Abi} from "@aldea/core/abi";
 
 type AbiItem = {
   abi: Abi,

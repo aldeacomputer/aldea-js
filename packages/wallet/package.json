@@ -36,7 +36,7 @@
   },
   "packageManager": "yarn@3.2.3",
   "dependencies": {
-    "@aldea/sdk-js": "workspace:^",
+    "@aldea/sdk": "workspace:^",
     "lowdb": "^6.0.0"
   },
   "devDependencies": {

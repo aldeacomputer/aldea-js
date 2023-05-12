@@ -2,6 +2,7 @@ import fs from 'fs'
 import { join } from 'path'
 import { createCommand, createArgument } from 'commander'
 import { bold, dim, lightGreen } from 'kolorist'
+import { TxBuilder } from '@aldea/sdk'
 import { log, ok } from '../../log.js'
 import { env } from '../../globals.js'
 
@@ -20,7 +21,7 @@ async function codeDeploy(sources: string[]) {
   await env.loadWallet()
   const pkg = buildPkg(sources)
 
-  const tx = await env.wallet.createFundedTx(txb => {
+  const tx = await env.wallet.createFundedTx((txb: TxBuilder) => {
     txb.deploy(pkg)
   })
 

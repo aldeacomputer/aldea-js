@@ -1,6 +1,6 @@
 import { createCommand } from 'commander'
 import { bold, dim,  lightBlue } from 'kolorist'
-import { Pointer } from '@aldea/sdk-js'
+import { Pointer } from '@aldea/sdk'
 import { log } from '../../log.js'
 import { env } from '../../globals.js'
 

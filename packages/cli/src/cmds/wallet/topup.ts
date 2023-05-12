@@ -1,6 +1,6 @@
 import { createCommand, createOption, InvalidArgumentError } from 'commander'
 import { bold, dim } from 'kolorist'
-import { OutputResponse } from '@aldea/sdk-js/aldea'
+import { OutputResponse } from '@aldea/sdk/aldea'
 import { log, ok } from '../../log.js'
 import { env } from '../../globals.js'
 

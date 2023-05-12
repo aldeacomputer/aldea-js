@@ -1,6 +1,6 @@
 import {Adapter, Low} from 'lowdb'
-import {Address, base16, instructions, OpCode, Output, Pointer, Tx, abiFromBin, abiToBin} from '@aldea/sdk-js'
-import {Abi} from "@aldea/sdk-js/abi";
+import {Address, base16, instructions, OpCode, Output, Pointer, Tx, abiFromBin, abiToBin} from '@aldea/sdk'
+import {Abi} from "@aldea/core/abi";
 import {OwnedAddress, OwnedOutput, WalletStorage} from "./wallet-storage.js";
 
 

@@ -6,7 +6,7 @@ import {
   Tx,
   TxBuilder,
   util,
-} from '@aldea/sdk-js'
+} from '@aldea/sdk'
 import {Wallet} from "./wallet.js";
 import {WalletStorage} from "./storage/index.js";
 import {AldeaClient} from "./aldea-client.js";

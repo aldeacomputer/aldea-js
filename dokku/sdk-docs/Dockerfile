@@ -12,14 +12,14 @@ COPY yarn.lock .
 
 COPY lib lib
 COPY compiler compiler
-COPY sdk-js sdk-js
+COPY sdk sdk
 
 RUN yarn install
 RUN yarn build
-RUN yarn workspace @aldea/sdk-js docs
+RUN yarn workspace @aldea/sdk docs
 
 FROM nginx:alpine
 
 EXPOSE 80
 # Copy fully compiled files.
-COPY --from=build /app/sdk-js/docs /usr/share/nginx/html
+COPY --from=build /app/sdk/docs /usr/share/nginx/html

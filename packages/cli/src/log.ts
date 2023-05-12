@@ -1,5 +1,5 @@
 import { inspect } from 'util'
-import { Output } from '@aldea/sdk-js'
+import { Output } from '@aldea/sdk'
 import { bold, red, green, lightGreen } from 'kolorist'
 import columnify from 'columnify'
 

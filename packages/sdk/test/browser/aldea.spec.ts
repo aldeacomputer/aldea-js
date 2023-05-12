@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import { resolve } from 'path'
+import { Abi } from '@aldea/core/abi'
 import { Address, BCS, OpCode, Pointer, PubKey, Tx, base16 } from '../../dist/index.js'
-import { Abi } from '../../dist/abi/types.js'
 
 const pagePath = resolve('test/browser/page.html')
 const pageUrl = `file://${pagePath}`
@@ -13,7 +13,7 @@ function decodeArgs(abi: Abi, name: string, buf: Uint8Array) {
 
 test('builds, serialized and parses a kitchen sink tx', async ({ page }) => {
   await page.goto(pageUrl);
-  const $aldea = await page.evaluateHandle('window.aldeaJS')
+  const $aldea = await page.evaluateHandle('window.AldeaSDK')
 
   const mocks = {
     'http://localhost/package/a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701/abi.json':   fs.readFileSync('test/mocks/txb.pkg.json').toString(),
