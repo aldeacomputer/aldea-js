@@ -1,5 +1,5 @@
 import {Storage, StubClock, VM} from "../src/index.js";
-import {base16, instructions, PrivKey, Tx} from "@aldea/sdk-js";
+import {base16, instructions, PrivKey, Tx} from "@aldea/core";
 import {TxExecution} from "../src/tx-execution.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import fs from "fs";

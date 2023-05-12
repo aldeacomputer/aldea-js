@@ -11,7 +11,7 @@ import {
   ImportNode,
   ObjectNode,
   InterfaceNode
-} from "@aldea/sdk-js/abi";
+} from "@aldea/core/abi";
 import {AbiAccess} from "../src/abi-helpers/abi-access.js";
 import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
 

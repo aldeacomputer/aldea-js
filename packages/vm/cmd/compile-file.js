@@ -1,6 +1,6 @@
 import { compile } from '@aldea/compiler'
 import fs from 'fs'
-import { abiFromBin, abiToJson } from "@aldea/sdk-js"
+import { abiFromBin, abiToJson } from "@aldea/core"
 
 export async function compileFile (file, outDir) {
   const fileName = file.replace(/^\/.*\//, '')

@@ -1,7 +1,7 @@
 #!/bin/env node
 import fs from 'fs'
 import { calculatePackageId } from "../dist/index.js"
-import { base16 } from "@aldea/sdk-js"
+import { base16 } from "@aldea/core"
 
 const filePath = process.argv[2]
 

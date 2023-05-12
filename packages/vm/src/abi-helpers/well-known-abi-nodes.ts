@@ -1,4 +1,4 @@
-import {FieldKind, ImportNode, ObjectNode, TypeNode} from "@aldea/sdk-js/abi";
+import {FieldKind, ImportNode, ObjectNode, TypeNode} from "@aldea/core/abi";
 
 export const arrayBufferTypeNode: TypeNode = emptyTn('ArrayBuffer')
 

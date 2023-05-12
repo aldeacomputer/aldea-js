@@ -1,4 +1,4 @@
-import { TypeNode } from "@aldea/sdk-js/abi";
+import { TypeNode } from "@aldea/core/abi";
 
 /**
  * ArgReader class

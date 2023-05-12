@@ -1,6 +1,6 @@
 import {WasmInstance as Module} from "./wasm-instance.js";
-import {Pointer} from "@aldea/sdk-js";
-import {TypeNode, ObjectNode} from "@aldea/sdk-js/abi";
+import {Pointer} from "@aldea/core";
+import {TypeNode, ObjectNode} from "@aldea/core/abi";
 
 export class Internref {
   ptr: number;

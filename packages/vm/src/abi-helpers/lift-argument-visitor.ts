@@ -1,8 +1,8 @@
-import {ClassNode, InterfaceNode, TypeNode} from "@aldea/sdk-js/abi";
+import {Pointer} from "@aldea/core";
+import {ClassNode, InterfaceNode, TypeNode} from "@aldea/core/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {LiftValueVisitor} from "./lift-value-visitor.js";
 import {Externref, Internref} from "../memory.js";
-import {Pointer} from "@aldea/sdk-js";
 
 export class LiftArgumentVisitor extends LiftValueVisitor {
   visitExportedClass(classNode: ClassNode, type: TypeNode): any {

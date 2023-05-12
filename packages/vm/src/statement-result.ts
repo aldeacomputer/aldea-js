@@ -1,5 +1,5 @@
-import {InstructionRef} from "@aldea/sdk-js";
-import {TypeNode} from "@aldea/sdk-js/abi";
+import {InstructionRef} from "@aldea/core";
+import {TypeNode} from "@aldea/core/abi";
 import {ExecutionError} from "./errors.js";
 import {JigRef} from "./jig-ref.js";
 import {WasmInstance} from "./wasm-instance.js";

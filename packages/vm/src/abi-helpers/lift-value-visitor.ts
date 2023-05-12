@@ -1,4 +1,4 @@
-import {base16, Pointer} from "@aldea/sdk-js";
+import {base16, Pointer} from "@aldea/core";
 import {
   ClassNode,
   FieldNode,
@@ -6,7 +6,7 @@ import {
   normalizeTypeName,
   ObjectNode,
   TypeNode,
-} from "@aldea/sdk-js/abi";
+} from "@aldea/core/abi";
 import {AbiTraveler} from "./abi-traveler.js";
 import {WasmInstance} from "../wasm-instance.js";
 import {WasmPointer} from "../arg-reader.js";

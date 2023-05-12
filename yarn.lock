@@ -80,7 +80,7 @@ __metadata:
   resolution: "@aldea/compiler@workspace:packages/compiler"
   dependencies:
     "@aldea/assemblyscript": ^0.0.0
-    "@aldea/sdk-js": "workspace:^"
+    "@aldea/core": "workspace:^"
     "@as-pect/cli": ^8.0.1
     "@assemblyscript/loader": 0.27.0
     "@noble/hashes": ^1.1.5
@@ -101,7 +101,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/core@workspace:packages/core":
+"@aldea/core@workspace:^, @aldea/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@aldea/core@workspace:packages/core"
   dependencies:
@@ -142,7 +142,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/mocknet@workspace:packages/mocknet"
   dependencies:
-    "@aldea/sdk-js": "workspace:^"
+    "@aldea/core": "workspace:^"
     "@aldea/vm": "workspace:^"
     "@chainsafe/libp2p-gossipsub": ^6.2.0
     "@chainsafe/libp2p-noise": ^11.0.1
@@ -212,7 +212,7 @@ __metadata:
   resolution: "@aldea/vm@workspace:packages/vm"
   dependencies:
     "@aldea/compiler": "workspace:^"
-    "@aldea/sdk-js": "workspace:^"
+    "@aldea/core": "workspace:^"
     "@types/chai": ^4.3.3
     "@types/mocha": ^10.0.0
     "@typescript-eslint/eslint-plugin": ^5.40.1

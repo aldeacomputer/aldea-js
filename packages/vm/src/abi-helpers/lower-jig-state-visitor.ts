@@ -1,5 +1,5 @@
-import {base16, Pointer} from "@aldea/sdk-js";
-import {ClassNode, InterfaceNode, TypeNode} from "@aldea/sdk-js/abi";
+import {base16, Pointer} from "@aldea/core";
+import {ClassNode, InterfaceNode, TypeNode} from "@aldea/core/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {LowerValueVisitor} from "./lower-value-visitor.js";
 import {emptyTn} from "./well-known-abi-nodes.js";

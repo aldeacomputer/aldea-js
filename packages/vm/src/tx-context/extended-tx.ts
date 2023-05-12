@@ -1,6 +1,6 @@
 
+import {Output, Tx} from "@aldea/core";
 import {JigState} from "../jig-state.js";
-import {Output, Tx} from "@aldea/sdk-js";
 export class ExtendedTx {
   private _tx: Tx
   private _inputs: JigState[]

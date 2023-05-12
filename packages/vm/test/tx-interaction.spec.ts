@@ -1,11 +1,11 @@
-import {base16, Pointer, PrivKey, ref} from "@aldea/sdk-js";
+import {base16, Pointer, PrivKey, ref} from "@aldea/core";
+import { Abi } from "@aldea/core/abi";
 import {Clock, Storage, VM} from "../src/index.js";
 import {expect} from "chai";
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {LockType} from "../src/wasm-instance.js";
 import {TxBuilder} from "./tx-builder.js";
 import {buildVm} from "./util.js";
-import { Abi } from "@aldea/sdk-js/abi";
 
 describe.skip('tx interaction', () => {
   let storage: Storage

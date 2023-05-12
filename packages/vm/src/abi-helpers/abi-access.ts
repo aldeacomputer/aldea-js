@@ -9,7 +9,7 @@ import {
   TypeIdNode,
   TypeNode,
   findFunction, InterfaceNode
-} from "@aldea/sdk-js/abi";
+} from "@aldea/core/abi";
 import {ClassNodeWrapper} from "./class-node-wrapper.js";
 import {
   basicJigAbiNode,

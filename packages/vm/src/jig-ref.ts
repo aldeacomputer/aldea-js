@@ -1,7 +1,7 @@
 import {WasmInstance} from './wasm-instance.js';
 import {Lock} from "./locks/lock.js";
 import {Externref, getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
-import {Pointer} from "@aldea/sdk-js";
+import {Pointer} from "@aldea/core";
 import {ClassNodeWrapper} from "./abi-helpers/class-node-wrapper.js";
 
 export class JigRef  {

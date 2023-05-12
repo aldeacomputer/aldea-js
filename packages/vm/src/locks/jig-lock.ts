@@ -1,7 +1,7 @@
+import {Address, Pointer} from "@aldea/core";
 import {Lock} from "./lock.js";
 import {TxExecution} from "../tx-execution.js";
 import {LockType} from "../wasm-instance.js";
-import {Address, Pointer} from "@aldea/sdk-js";
 import {Option} from "../support/option.js";
 import {SerializedLock} from "./serialized-lock.js";
 

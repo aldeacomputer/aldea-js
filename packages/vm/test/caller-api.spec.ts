@@ -3,7 +3,7 @@ import {
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
-import {Pointer, PrivKey} from "@aldea/sdk-js";
+import {Pointer, PrivKey} from "@aldea/core";
 import {ExecutionError} from "../src/errors.js";
 import {emptyExecFactoryFactory, buildVm} from "./util.js";
 

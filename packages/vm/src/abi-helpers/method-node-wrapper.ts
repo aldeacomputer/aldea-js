@@ -1,4 +1,4 @@
-import {ArgNode, ClassNode, MethodKind, MethodNode, TypeNode} from "@aldea/sdk-js/abi";
+import {ArgNode, ClassNode, MethodKind, MethodNode, TypeNode} from "@aldea/core/abi";
 
 export class MethodNodeWrapper {
   private klass: ClassNode;

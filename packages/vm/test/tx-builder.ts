@@ -6,7 +6,7 @@ import {
   instructions,
   base16,
   ed25519
-} from '@aldea/sdk-js'
+} from '@aldea/core'
 
 const {sign} = ed25519
 

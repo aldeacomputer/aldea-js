@@ -6,8 +6,8 @@ import {NoLock} from "./locks/no-lock.js"
 import {JigState} from "./jig-state.js"
 import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
-import {ClassNode, CodeKind} from '@aldea/sdk-js/abi'
-import {Address, base16, BCS, instructions, OpCode, Output, Pointer} from '@aldea/sdk-js';
+import {ClassNode, CodeKind} from '@aldea/core/abi'
+import {Address, BCS, OpCode, Output, Pointer, base16, instructions} from '@aldea/core';
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
@@ -15,7 +15,6 @@ import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {TxContext} from "./tx-context/tx-context.js";
 import {PkgData} from "./storage.js";
-import {ImportInstruction, NewInstruction} from "@aldea/sdk-js/instructions/index";
 
 const MIN_FUND_AMOUNT = 100
 
@@ -230,10 +229,10 @@ class TxExecution {
   async run(): Promise<ExecutionResult> {
     await this.txContext.forEachInstruction(async baseInst => {
       if (baseInst.opcode === OpCode.IMPORT) {
-        const inst = baseInst as ImportInstruction
+        const inst = baseInst as instructions.ImportInstruction
         this.importModule(inst.pkgId)
       } else if (baseInst.opcode === OpCode.NEW) {
-        const inst = baseInst as NewInstruction
+        const inst = baseInst as instructions.NewInstruction
         const abi = 
         this.instantiateByIndex(inst.idx, inst.exportIdx, inst.argsBuf)
       } else if (baseInst.opcode === OpCode.CALL) {

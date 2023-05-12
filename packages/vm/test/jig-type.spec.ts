@@ -5,8 +5,8 @@ import {JigRef} from "../src/jig-ref.js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {WasmInstance} from "../src/wasm-instance.js";
 import {StatementResult} from "../src/statement-result.js";
-import {PrivKey} from "@aldea/sdk-js";
-import { Abi } from '@aldea/sdk-js/abi';
+import {PrivKey} from "@aldea/core";
+import { Abi } from '@aldea/core/abi';
 
 describe('Jig Type', () => {
   let storage: Storage

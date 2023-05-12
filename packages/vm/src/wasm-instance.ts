@@ -1,5 +1,5 @@
-import {base16, BCS, Pointer} from "@aldea/sdk-js";
-import {Abi, ArgNode, ClassNode, FieldNode, FunctionNode, findField, TypeNode} from "@aldea/sdk-js/abi";
+import {base16, BCS, Pointer} from "@aldea/core";
+import {Abi, ArgNode, ClassNode, FieldNode, FunctionNode, findField, TypeNode} from "@aldea/core/abi";
 import {JigRef} from "./jig-ref.js"
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";

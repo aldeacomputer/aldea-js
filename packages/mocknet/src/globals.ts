@@ -1,4 +1,4 @@
-import { PrivKey } from '@aldea/sdk-js'
+import { PrivKey } from '@aldea/core'
 import { pino } from 'pino'
 import pretty from 'pino-pretty'
 import { PinoPretty } from 'pino-pretty'

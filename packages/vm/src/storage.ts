@@ -1,5 +1,5 @@
-import {Address, base16, Pointer} from "@aldea/sdk-js";
-import {Abi} from "@aldea/sdk-js/abi";
+import {Address, base16, Pointer} from "@aldea/core";
+import {Abi} from "@aldea/core/abi";
 import {JigState} from './jig-state.js';
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {LockType, WasmInstance} from "./wasm-instance.js";

@@ -3,7 +3,7 @@ import {expect} from 'chai'
 import {calculatePackageId} from '../src/index.js';
 import {addPreCompiled, emptyExecFactoryFactory} from "./util.js";
 import {compile} from "@aldea/compiler";
-import {PrivKey} from "@aldea/sdk-js";
+import {PrivKey} from "@aldea/core";
 
 const someValidModule = `
 export class Foo extends Jig {

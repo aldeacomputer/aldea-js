@@ -4,7 +4,7 @@ import {
 } from '../src/index.js'
 import {expect} from 'chai'
 import {emptyExecFactoryFactory, buildVm} from "./util.js";
-import {PrivKey} from "@aldea/sdk-js";
+import {PrivKey} from "@aldea/core";
 
 describe('execute txs', () => {
   let storage: Storage

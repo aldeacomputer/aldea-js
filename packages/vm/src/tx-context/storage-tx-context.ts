@@ -1,4 +1,4 @@
-import {base16, Instruction, Pointer, Tx} from "@aldea/sdk-js";
+import {base16, Instruction, Pointer, Tx} from "@aldea/core";
 import {PkgRepository, StateProvider} from "../state-interfaces.js";
 import {VM} from "../vm.js";
 import {Clock} from "../clock.js";

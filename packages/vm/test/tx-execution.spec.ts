@@ -5,15 +5,16 @@ import {
 } from '../src/index.js'
 import {expect} from 'chai'
 import {TxExecution} from "../src/tx-execution.js";
-import {BCS, Pointer, PrivKey, ref, Tx} from "@aldea/sdk-js";
+import {BCS, Pointer, PrivKey, ref, Tx, instructions } from "@aldea/core";
+import { Abi } from '@aldea/core/abi';
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {LockType} from "../src/wasm-instance.js";
 import {ExecutionResult} from "../src/execution-result.js";
 import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
-import {SignInstruction} from "@aldea/sdk-js/instructions/index";
-import { Abi } from '@aldea/sdk-js/abi';
+
+const {SignInstruction} = instructions
 
 describe('execute txs', () => {
   let storage: Storage

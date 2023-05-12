@@ -1,10 +1,9 @@
 import {TxExecution} from './tx-execution.js'
 import {PkgData, Storage} from "./storage.js";
 import {CompilerResult} from '@aldea/compiler'
-import {Address, BCS, Pointer, Tx, abiFromBin} from "@aldea/sdk-js";
+import {Address, BCS, Pointer, Tx, abiFromBin, util} from "@aldea/core";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {JigState} from "./jig-state.js";
-import {util} from "@aldea/sdk-js";
 import {Buffer} from "buffer";
 import {ExecutionResult} from "./execution-result.js";
 import {Clock} from "./clock.js";

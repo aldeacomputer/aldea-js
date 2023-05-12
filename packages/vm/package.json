@@ -40,7 +40,7 @@
   "packageManager": "yarn@3.2.3",
   "dependencies": {
     "@aldea/compiler": "workspace:^",
-    "@aldea/sdk-js": "workspace:^",
+    "@aldea/core": "workspace:^",
     "moment": "^2.29.4"
   },
   "devDependencies": {

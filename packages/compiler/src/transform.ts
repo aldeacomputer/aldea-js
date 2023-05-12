@@ -19,8 +19,8 @@ import {
   Source,
 } from 'assemblyscript'
 
-import { abiToBin, abiToJson } from '@aldea/sdk-js'
-import { CodeKind, FieldKind, MethodKind, TypeNode } from '@aldea/sdk-js/abi'
+import { abiToBin, abiToJson } from '@aldea/core'
+import { CodeKind, FieldKind, MethodKind, TypeNode } from '@aldea/core/abi'
 import { TransformCtx } from './transform/ctx.js'
 import { createDocs } from './transform/docs.js'
 import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap, ObjectWrap } from './transform/nodes.js'

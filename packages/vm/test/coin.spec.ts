@@ -4,7 +4,7 @@ import {TxBuilder} from "./tx-builder.js";
 import {LockType} from "../src/wasm-instance.js";
 import {JigState} from "../src/jig-state.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
-import {PrivKey, ref, Tx} from "@aldea/sdk-js";
+import {PrivKey, ref, Tx} from "@aldea/core";
 import {ExecutionResult} from "../src/execution-result.js";
 import moment from "moment";
 import {compile} from "@aldea/compiler";

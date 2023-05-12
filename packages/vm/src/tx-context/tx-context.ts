@@ -1,4 +1,4 @@
-import {Instruction, Pointer, Tx} from "@aldea/sdk-js";
+import {Instruction, Pointer, Tx} from "@aldea/core";
 import {JigState} from "../jig-state.js";
 import moment from "moment";
 import {WasmInstance} from "../wasm-instance.js";

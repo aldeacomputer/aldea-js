@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import request from 'supertest'
-import {BCS, Pointer, base16, Tx, PrivKey, instructions, util, Address} from "@aldea/sdk-js"
+import {BCS, Pointer, base16, Tx, PrivKey, instructions, util, Address} from "@aldea/core"
 import { StubClock } from "@aldea/vm"
 import { buildApp } from "../dist/server.js"
 

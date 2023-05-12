@@ -1,5 +1,4 @@
 import  { ParsedArgs } from 'minimist'
-import { PrivKey } from '@aldea/sdk-js'
 import { createLibp2p, Libp2p } from 'libp2p'
 import { bootstrap } from '@libp2p/bootstrap'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'

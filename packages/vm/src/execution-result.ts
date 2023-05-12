@@ -1,6 +1,6 @@
 import moment from "moment";
-import {Output, Tx} from "@aldea/sdk-js";
-import {Abi} from "@aldea/sdk-js/abi";
+import {Output, Tx} from "@aldea/core";
+import {Abi} from "@aldea/core/abi";
 import {JigState} from "./jig-state.js";
 import {ExecutionError} from "./errors.js";
 import {calculatePackageId} from "./calculate-package-id.js";

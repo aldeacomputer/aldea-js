@@ -3,7 +3,7 @@ import { compile } from '@aldea/compiler'
 import { WasmInstance } from '../src/wasm-instance.js'
 import {TxExecution} from "../src/tx-execution.js";
 import {VM, Storage, MomentClock} from "../src/index.js";
-import {Tx, abiFromBin} from "@aldea/sdk-js";
+import {Tx, abiFromBin} from "@aldea/core";
 import {JigRef} from "../src/jig-ref.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 

@@ -1,5 +1,5 @@
 import test from 'ava'
-import { abiFromBin } from '@aldea/sdk-js'
+import { abiFromBin } from '@aldea/core'
 import { compile } from '../dist/compiler.js'
 
 test('compiles single source', async t => {

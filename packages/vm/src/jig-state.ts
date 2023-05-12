@@ -1,5 +1,5 @@
-import {Address, Output, Pointer, blake3, Lock, BCS} from "@aldea/sdk-js";
-import {Abi, ClassNode, FieldNode} from "@aldea/sdk-js/abi";
+import {Address, Output, Pointer, blake3, Lock, BCS} from "@aldea/core";
+import {Abi, ClassNode, FieldNode} from "@aldea/core/abi";
 import {WasmInstance} from "./wasm-instance.js";
 import {Option} from "./support/option.js";
 import {SerializedLock} from "./locks/serialized-lock.js";

@@ -1,5 +1,5 @@
-import {base16} from "@aldea/sdk-js";
-import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/sdk-js/abi";
+import {base16} from "@aldea/core";
+import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/core/abi";
 import {AbiTraveler} from "./abi-traveler.js";
 import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
 import {getElementBytes, getObjectMemLayout, getTypeBytes, getTypedArrayConstructor} from "../memory.js";

@@ -21,7 +21,7 @@
   },
   "packageManager": "yarn@3.2.3",
   "dependencies": {
-    "@aldea/sdk-js": "workspace:^",
+    "@aldea/core": "workspace:^",
     "@aldea/vm": "workspace:^",
     "@chainsafe/libp2p-gossipsub": "^6.2.0",
     "@chainsafe/libp2p-noise": "^11.0.1",

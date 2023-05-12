@@ -1,6 +1,6 @@
 import { blake3 } from '@noble/hashes/blake3'
 import { bytesToHex as toHex } from '@noble/hashes/utils'
-import { MethodKind, TypeNode, normalizeTypeName } from '@aldea/sdk-js/abi'
+import { MethodKind, TypeNode, normalizeTypeName } from '@aldea/core/abi'
 import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './nodes.js'
 
 /**

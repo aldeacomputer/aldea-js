@@ -20,7 +20,7 @@ import {
   InterfaceDeclaration,
 } from 'assemblyscript'
 
-import { abiFromJson } from '@aldea/sdk-js'
+import { abiFromJson } from '@aldea/core'
 
 import {
   Abi,
@@ -30,7 +30,7 @@ import {
   TypeNode,
   TypeIdNode,
   normalizeTypeName,
-} from '@aldea/sdk-js/abi'
+} from '@aldea/core/abi'
 
 import {
   ExportWrap,

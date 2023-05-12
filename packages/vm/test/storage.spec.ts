@@ -3,7 +3,7 @@ import {
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
-import {base16, PrivKey} from "@aldea/sdk-js";
+import {base16, PrivKey} from "@aldea/core";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 
 describe('execute txs', () => {

@@ -24,7 +24,7 @@ import {
   ObjectNode,
   TypeNode,
   InterfaceNode,
-} from '@aldea/sdk-js/abi'
+} from '@aldea/core/abi'
 
 /**
  * ExportWrap - same as ABI ExportNode.

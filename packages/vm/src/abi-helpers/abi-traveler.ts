@@ -4,7 +4,7 @@ import {
   InterfaceNode,
   ObjectNode,
   TypeNode,
-} from "@aldea/sdk-js/abi";
+} from "@aldea/core/abi";
 import {AbiAccess} from "./abi-access.js";
 
 export abstract class AbiTraveler<T> {

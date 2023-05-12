@@ -1,6 +1,6 @@
 import {JigRef} from "../src/jig-ref.js";
 import {MomentClock, Storage, VM} from "../src/index.js";
-import {Pointer} from '@aldea/sdk-js'
+import {Pointer} from '@aldea/core'
 import {PublicLock} from "../src/locks/public-lock.js";
 import {Internref} from "../src/memory.js";
 import {expect} from 'chai'

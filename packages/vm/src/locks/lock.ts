@@ -1,5 +1,5 @@
+import {Address, Pointer} from "@aldea/core";
 import {TxExecution} from "../tx-execution.js";
-import {Address, Pointer} from "@aldea/sdk-js";
 import {Option} from "../support/option.js";
 import {SerializedLock} from "./serialized-lock.js";
 

@@ -1,6 +1,6 @@
+import { base16, Pointer, PrivKey } from "@aldea/core"
 import { VM, Storage, Clock } from "@aldea/vm"
-import {base16, Pointer, PrivKey} from "@aldea/sdk-js"
-import {compile} from "@aldea/compiler";
+import { compile } from "@aldea/compiler";
 import { logger } from './globals.js'
 
 export interface iVM {

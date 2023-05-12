@@ -1,8 +1,8 @@
+import {base16, Instruction, Pointer, Tx} from "@aldea/core";
 import {ExtendedTx} from "./extended-tx.js";
 import {Clock} from "../clock.js";
 import {PkgRepository} from "../state-interfaces.js";
 import {TxContext} from "./tx-context.js";
-import {base16, Instruction, Pointer, Tx} from "@aldea/sdk-js";
 import {JigState} from "../jig-state.js";
 import {PkgData} from "../storage.js";
 import {VM} from "../vm.js";

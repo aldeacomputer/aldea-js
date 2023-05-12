@@ -10,7 +10,7 @@ import { CompileError } from "@aldea/compiler"
 import { VM, Storage, Clock,  } from "@aldea/vm"
 import { JigState } from '@aldea/vm/jig-state'
 import { ExecutionResult } from '@aldea/vm/execution-result'
-import { Address, base16, Pointer, Tx, instructions, abiToBin, abiToJson, BCS } from "@aldea/sdk-js"
+import { Address, base16, Pointer, Tx, instructions, abiToBin, abiToJson, BCS } from "@aldea/core"
 import { buildVm } from "./build-vm.js"
 import { HttpNotFound } from "./errors.js"
 import { logStream, logger } from './globals.js'

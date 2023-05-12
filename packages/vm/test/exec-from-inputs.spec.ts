@@ -1,21 +1,21 @@
 import {Clock, Storage, StubClock, VM} from "../src/index.js";
-import {instructions, Output, Tx, Lock, Pointer, PrivKey, BCS} from "@aldea/sdk-js";
+import {instructions, Output, Tx, Lock, Pointer, PrivKey, BCS} from "@aldea/core";
 import {buildVm} from "./util.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {ExtendedTx} from "../src/index.js";
 import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
 import {expect} from "chai";
-import {LockInstruction} from "@aldea/sdk-js/instructions/index";
 import {WasmInstance} from "../src/wasm-instance.js";
 import {JigState} from "../src/jig-state.js";
-import { Abi } from "@aldea/sdk-js/abi";
+import { Abi } from "@aldea/core/abi";
 const {
   CallInstruction,
   ImportInstruction,
   NewInstruction,
   SignInstruction,
   FundInstruction,
-  LoadInstruction
+  LoadInstruction,
+  LockInstruction,
 } = instructions
 
 const outputFromJigState = (jig: JigState): Output => {
