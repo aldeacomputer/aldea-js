@@ -1,5 +1,4 @@
-import { blake3 } from '@noble/hashes/blake3'
-import { bytesToHex as toHex } from '@noble/hashes/utils'
+import { blake3, util } from '@aldea/core'
 import { MethodKind, TypeNode, normalizeTypeName } from '@aldea/core/abi'
 import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './nodes.js'
 
@@ -189,7 +188,7 @@ export function writeImportedRemoteFunction(fn: FunctionWrap, pkg: string): stri
 export function writeSetSetter(type: TypeNode): string {
   const setType = normalizeTypeName(type)
   const valType = normalizeTypeName(type.args[0])
-  const hash = toHex(blake3(setType, { dkLen: 4 }))
+  const hash = util.bytesToHex(blake3.hash(setType, 4))
 
   return `
   export function __put_set_entry_${hash}(set: ${setType}, val: ${valType}): void {
@@ -207,7 +206,7 @@ export function writeMapSetter(type: TypeNode): string {
   const mapType = normalizeTypeName(type)
   const keyType = normalizeTypeName(type.args[0])
   const valType = normalizeTypeName(type.args[1])
-  const hash = toHex(blake3(mapType, { dkLen: 4 }))
+  const hash = util.bytesToHex(blake3.hash(mapType, 4))
 
   return `
   export function __put_map_entry_${hash}(map: ${mapType}, key: ${keyType}, val: ${valType}): void {

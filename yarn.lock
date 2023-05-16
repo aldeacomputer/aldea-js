@@ -44,19 +44,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aldea/assemblyscript@npm:^0.0.0":
-  version: 0.0.0
-  resolution: "@aldea/assemblyscript@npm:0.0.0"
-  dependencies:
-    binaryen: 112.0.0-nightly.20230411
-    long: ^5.2.1
-  bin:
-    asc: bin/asc.js
-    asinit: bin/asinit.js
-  checksum: b92d024f7c8b6253e1428ff70497b625018bfe4c2bff29a6695526d278b29e928653680acdb51c08bca543a669f1ce891024ae5bcbe3cc0d576ab6061dbce3cd
-  languageName: node
-  linkType: hard
-
 "@aldea/cli@workspace:packages/cli":
   version: 0.0.0-use.local
   resolution: "@aldea/cli@workspace:packages/cli"
@@ -79,23 +66,19 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@aldea/compiler@workspace:packages/compiler"
   dependencies:
-    "@aldea/assemblyscript": ^0.0.0
     "@aldea/core": "workspace:^"
-    "@as-pect/cli": ^8.0.1
-    "@assemblyscript/loader": 0.27.0
-    "@noble/hashes": ^1.1.5
-    "@scure/base": ^1.1.1
-    "@types/node": ^18.11.18
+    "@as-pect/cli": ^8.1.0
+    "@assemblyscript/loader": 0.27.5
+    "@types/node": ^20.1.5
     assemblyscript: "npm:@aldea/assemblyscript@^0.1.0"
-    ava: ^5.1.0
+    ava: ^5.2.0
     commander: ^10.0.1
     comment-parser: ^1.3.1
     concat: ^1.0.3
-    docblock: ^0.4.5
     dts-generator: ^3.0.0
     npm-run-all: ^4.1.5
-    rimraf: ^3.0.2
-    typescript: ^4.9.4
+    rimraf: ^5.0.0
+    typescript: ^5.0.4
   bin:
     aldea: bin/aldea.js
   languageName: unknown
@@ -281,31 +264,31 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@as-pect/assembly@npm:^8.0.1":
-  version: 8.0.1
-  resolution: "@as-pect/assembly@npm:8.0.1"
-  checksum: 20f95a385ce355b459a9a1b2ceff8cb332572a59820daacf0123331b5fb113a2450f959d9aa99f7a655b5bc401bfdc459ec9b1f0ddf31ab66711fbb604b269fa
+"@as-pect/assembly@npm:^8.1.0":
+  version: 8.1.0
+  resolution: "@as-pect/assembly@npm:8.1.0"
+  checksum: 935c01926001867985f5d266602f19d00b89ed3f277f76bb5aa766f428adbfde8fcd0d31b0eb777065f956ed619a84d0e6023c0c17b581025b95f13040747216
   languageName: node
   linkType: hard
 
-"@as-pect/cli@npm:^8.0.1":
-  version: 8.0.1
-  resolution: "@as-pect/cli@npm:8.0.1"
+"@as-pect/cli@npm:^8.1.0":
+  version: 8.1.0
+  resolution: "@as-pect/cli@npm:8.1.0"
   dependencies:
     "@as-covers/core": 0.4.2
     "@as-covers/transform": 0.4.2
-    "@as-pect/assembly": ^8.0.1
-    "@as-pect/core": ^8.0.1
-    "@as-pect/csv-reporter": ^8.0.1
-    "@as-pect/json-reporter": ^8.0.1
-    "@as-pect/transform": ^8.0.1
+    "@as-pect/assembly": ^8.1.0
+    "@as-pect/core": ^8.1.0
+    "@as-pect/csv-reporter": ^8.1.0
+    "@as-pect/json-reporter": ^8.1.0
+    "@as-pect/transform": ^8.1.0
     chalk: ^5.2.0
     chalk-template: ^0.4.0
     commander: ^9.4.1
     glob: ^8.0.3
     glob-promise: ^5.0.0
   peerDependencies:
-    assemblyscript: ^0.25.0
+    assemblyscript: ^0.27.2
   dependenciesMeta:
     "@as-pect/csv-reporter":
       optional: true
@@ -314,67 +297,67 @@ __metadata:
   bin:
     asp: bin/asp.js
     aspect: bin/asp.js
-  checksum: e4ac1b840b882231b8f73fbe6697dcceec4b44acfe99a706a1e0e1099fb29d04cc2faf09e6db7308ca8098e0265da07943dc04a5e355f2210228c1c0cc0d01fe
+  checksum: 6fe7f57afe738d63661792a165657e780b7fdd9605118530167927c970e110eb446c0d5ca6411ccd7a7af6ee4a28c2300f47836e1cc521b9f5a11aa8d6e9ea95
   languageName: node
   linkType: hard
 
-"@as-pect/core@npm:^8.0.1":
-  version: 8.0.1
-  resolution: "@as-pect/core@npm:8.0.1"
+"@as-pect/core@npm:^8.1.0":
+  version: 8.1.0
+  resolution: "@as-pect/core@npm:8.1.0"
   dependencies:
-    "@as-pect/assembly": ^8.0.1
-    "@as-pect/snapshots": ^8.0.1
+    "@as-pect/assembly": ^8.1.0
+    "@as-pect/snapshots": ^8.1.0
     "@assemblyscript/loader": ^0.25.0
-    assemblyscript: ^0.25.0
+    assemblyscript: ^0.27.2
     chalk: ^5.2.0
     chalk-template: ^0.4.0
     long: ^5.2.1
-  checksum: a953c61277bc8bc16dd6190456f9985cfced0f00739252c0de3a92243256f8f04d541467f0bed8ee13e1342cf7fc81b2bbc9575cddb0cf1901e6f507386e94a6
+  checksum: 48f8f898a7402797b6d918013b30b9c771ce6bd4c2aae5bba617a16e9231d549504b1c803e8b6692ddcb341197fa8d1da59c8098d53a6b55c98b586f8cbe5e38
   languageName: node
   linkType: hard
 
-"@as-pect/csv-reporter@npm:^8.0.1":
-  version: 8.0.1
-  resolution: "@as-pect/csv-reporter@npm:8.0.1"
+"@as-pect/csv-reporter@npm:^8.1.0":
+  version: 8.1.0
+  resolution: "@as-pect/csv-reporter@npm:8.1.0"
   dependencies:
-    "@as-pect/core": ^8.0.1
-  checksum: 69accdaef54cbd19482d1a63ff5d27eea15c20247089b12cacebe7e4bc41b24c480d5cbe24e94b380f327b14fc1f0e28037eb4957c532802735d6535969b1497
+    "@as-pect/core": ^8.1.0
+  checksum: d03d10ea73f34b37bf8d6de51187467fb566fa17c949ac7ebf9e76cc813ba804af0e67cf3727abeb897f0b4375b24401d00573e6f4cbf3fba3b158783d298249
   languageName: node
   linkType: hard
 
-"@as-pect/json-reporter@npm:^8.0.1":
-  version: 8.0.1
-  resolution: "@as-pect/json-reporter@npm:8.0.1"
+"@as-pect/json-reporter@npm:^8.1.0":
+  version: 8.1.0
+  resolution: "@as-pect/json-reporter@npm:8.1.0"
   dependencies:
-    "@as-pect/core": ^8.0.1
-  checksum: 22993f0d4bcb0ae64d27af25b0825d88fcf2132c1e0e3104cfee56d97796ec5b1a0fc3b30c44112e36e67778659a634151347a3848cadb117a94856afaa9b18b
+    "@as-pect/core": ^8.1.0
+  checksum: 3e5dd30909afb7b583313c96b9c7f2cbfcabebc32b409a8d2d55179b7db047841e2c780f5fc7d7d39d3934d705fd3cf6c35574b862e3ba0058b8896f32dc4cdc
   languageName: node
   linkType: hard
 
-"@as-pect/snapshots@npm:^8.0.1":
-  version: 8.0.1
-  resolution: "@as-pect/snapshots@npm:8.0.1"
+"@as-pect/snapshots@npm:^8.1.0":
+  version: 8.1.0
+  resolution: "@as-pect/snapshots@npm:8.1.0"
   dependencies:
     chevrotain: ^10.4.2
     diff: ^5.1.0
     nearley: ^2.20.1
-  checksum: 6d539ca5679814342d6a832815ce52a5e5a579cbdbb5b64db10442212f11781e7eac4eafc3f5039d0596d2634e136342241c8f2fd876a1816da5276838978b4d
+  checksum: 874a8d453116fc2a77d6e66b12af458baf11af859f4560dec10bbc27995b1e652ed86a2ef9cbdb9463d825ed35b5b49e54b52bfe6f9a8350750c984d63277ce3
   languageName: node
   linkType: hard
 
-"@as-pect/transform@npm:^8.0.1":
-  version: 8.0.1
-  resolution: "@as-pect/transform@npm:8.0.1"
+"@as-pect/transform@npm:^8.1.0":
+  version: 8.1.0
+  resolution: "@as-pect/transform@npm:8.1.0"
   dependencies:
-    assemblyscript: ^0.25.0
-  checksum: 908c27f460dd0ba03166e14cb9d60508534c18a2949de6c8c00528500d151b071c8ed3ea95ce9141544c5ef2a48fc5b518444c924d5946773c5ab345051bef0c
+    assemblyscript: ^0.27.2
+  checksum: ac53ff5fafeb7bebe09ba3cc17d1afc6c19a2112b45a755130c7d37d1fafb1f5e3ff7ea4c9a007ad052baa5f51ba85548723fa931f3965de943c2af247311e7e
   languageName: node
   linkType: hard
 
-"@assemblyscript/loader@npm:0.27.0":
-  version: 0.27.0
-  resolution: "@assemblyscript/loader@npm:0.27.0"
-  checksum: 01d771ac1e3092c3f482ce234bc5ef1cf972dfdf094daf3bdfe9d49eb58f84783372c8be9bcfa834e94861880ae98082a0696f7242a4317efbd708723b972c38
+"@assemblyscript/loader@npm:0.27.5":
+  version: 0.27.5
+  resolution: "@assemblyscript/loader@npm:0.27.5"
+  checksum: 55752406a728376dbd2091ae92f12d2b52663e8c1daa4d76fcdb8020fef0189f5fd46860461abff51605a65a1e57296ded75edeaf31fd4a3d2046751a9c75ece
   languageName: node
   linkType: hard
 
@@ -1623,13 +1606,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/hashes@npm:^1.1.5":
-  version: 1.2.0
-  resolution: "@noble/hashes@npm:1.2.0"
-  checksum: 8ca080ce557b8f40fb2f78d3aedffd95825a415ac8e13d7ffe3643f8626a8c2d99a3e5975b555027ac24316d8b3c02a35b8358567c0c23af681e6573602aa434
-  languageName: node
-  linkType: hard
-
 "@noble/hashes@npm:^1.3.0, @noble/hashes@npm:~1.3.0":
   version: 1.3.0
   resolution: "@noble/hashes@npm:1.3.0"
@@ -2238,7 +2214,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^18.11.18":
+"@types/node@npm:*":
   version: 18.14.6
   resolution: "@types/node@npm:18.14.6"
   checksum: 2f88f482cabadc6dbddd627a1674239e68c3c9beab56eb4ae2309fb96fd17fc3a509d99b0309bafe13b58529574f49ecf3a583f2ebe2896dd32fe4be436dc96e
@@ -2249,6 +2225,13 @@ __metadata:
   version: 18.15.3
   resolution: "@types/node@npm:18.15.3"
   checksum: 31b1d92475a82c30de29aa6c0771b18a276552d191283b4423ba2d61b3f01159bf0d02576c0b7cc834b043997893800db6bb47f246083ed85aa45e79c80875d7
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^20.1.5":
+  version: 20.1.5
+  resolution: "@types/node@npm:20.1.5"
+  checksum: 0d073ed7b9cc51e2354dcf3a8ccca84d08c7d513fa8fac9462cabc164435b30f2ad296e9f2f911e6ce72da837b704f1075379be84a93bb24f76d328a2d9e8561
   languageName: node
   linkType: hard
 
@@ -2969,16 +2952,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"assemblyscript@npm:^0.25.0":
-  version: 0.25.2
-  resolution: "assemblyscript@npm:0.25.2"
+"assemblyscript@npm:^0.27.2":
+  version: 0.27.5
+  resolution: "assemblyscript@npm:0.27.5"
   dependencies:
-    binaryen: 110.0.0-nightly.20221105
-    long: ^5.2.0
+    binaryen: 112.0.0-nightly.20230411
+    long: ^5.2.1
   bin:
     asc: bin/asc.js
     asinit: bin/asinit.js
-  checksum: 1c296509faf305b4f3594ce616a924e77075cc8776118eb23f6d3437a8edd2f20c458762c56c7f70d70bc109b215be5be8cb20c8d6f709d9b648b54680edb95d
+  checksum: a0ca5b5631e7a229de7f737925e2b10d7de4d642bd208cfd8e6df86f48707f13cd660967213299e0581d15d44473dd41d25dd6cd6e8b5067af1eda0e1fe90193
   languageName: node
   linkType: hard
 
@@ -3026,7 +3009,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ava@npm:^5.1.0, ava@npm:^5.2.0":
+"ava@npm:^5.2.0":
   version: 5.2.0
   resolution: "ava@npm:5.2.0"
   dependencies:
@@ -3188,16 +3171,6 @@ __metadata:
     wasm-opt: bin/wasm-opt
     wasm2js: bin/wasm2js
   checksum: a154448f050acc831928a25a2017445462391bfa37352397a669abced0da849882cc2d3c6d48f1574097fcb361fc23cee634db3a0fb38b1c30c01903bddb67c8
-  languageName: node
-  linkType: hard
-
-"binaryen@npm:110.0.0-nightly.20221105":
-  version: 110.0.0-nightly.20221105
-  resolution: "binaryen@npm:110.0.0-nightly.20221105"
-  bin:
-    wasm-opt: bin/wasm-opt
-    wasm2js: bin/wasm2js
-  checksum: 1ce1b184c4d953e311e2198e8da724f17a83db25d237a92b8e28be69d1adcb12b44ca49c35a3bf59b1c6c0031b4394d2c7b32b4b5a7d4002edabbb37425c11d2
   languageName: node
   linkType: hard
 
@@ -4741,16 +4714,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"docblock@npm:^0.4.5":
-  version: 0.4.5
-  resolution: "docblock@npm:0.4.5"
-  dependencies:
-    fluf: ^0.2.1
-    marked: ^2.0.3
-  checksum: 2d2b0a780a30292670ec7922e7cff4cc1202550ac59af284334f650e87b2cc113904d2b6a3e0678b25a36b0851c7a4d2583595d4aa305f9e1f19608d72471f6a
-  languageName: node
-  linkType: hard
-
 "doctrine@npm:^2.1.0":
   version: 2.1.0
   resolution: "doctrine@npm:2.1.0"
@@ -6287,15 +6250,6 @@ __metadata:
   version: 3.2.7
   resolution: "flatted@npm:3.2.7"
   checksum: 427633049d55bdb80201c68f7eb1cbd533e03eac541f97d3aecab8c5526f12a20ccecaeede08b57503e772c769e7f8680b37e8d482d1e5f8d7e2194687f9ea35
-  languageName: node
-  linkType: hard
-
-"fluf@npm:^0.2.1":
-  version: 0.2.1
-  resolution: "fluf@npm:0.2.1"
-  dependencies:
-    diff: ^4.0.1
-  checksum: de6f2502073b3c72e2793c5b4ca5afbfc10266758b88e30737c286aaf27975e076729c4fcc32350aa2bac41f1cc532b4d823d66b53caf35132f85e2e3b9cec17
   languageName: node
   linkType: hard
 
@@ -9152,15 +9106,6 @@ __metadata:
   dependencies:
     repeat-string: ^1.0.0
   checksum: 9bb634a9300016cbb41216c1eab44c74b6b7083ac07872e296f900a29449cf0e260ece03fa10c3e9784ab94c61664d1d147da0315f95e1336e2bdcc025615c90
-  languageName: node
-  linkType: hard
-
-"marked@npm:^2.0.3":
-  version: 2.1.3
-  resolution: "marked@npm:2.1.3"
-  bin:
-    marked: bin/marked
-  checksum: 21a5ecd4941bc760aba21dfd97185853ec3b464cf707ad971e3ddb3aeb2f44d0deeb36b0889932afdb6f734975a994d92f18815dd0fabadbd902bdaff997cc5b
   languageName: node
   linkType: hard
 
@@ -14490,7 +14435,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^4.8.4, typescript@npm:^4.9.3, typescript@npm:^4.9.4, typescript@npm:^4.9.5":
+"typescript@npm:^4.8.4, typescript@npm:^4.9.3, typescript@npm:^4.9.5":
   version: 4.9.5
   resolution: "typescript@npm:4.9.5"
   bin:
@@ -14510,7 +14455,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^4.8.4#~builtin<compat/typescript>, typescript@patch:typescript@^4.9.3#~builtin<compat/typescript>, typescript@patch:typescript@^4.9.4#~builtin<compat/typescript>, typescript@patch:typescript@^4.9.5#~builtin<compat/typescript>":
+"typescript@patch:typescript@^4.8.4#~builtin<compat/typescript>, typescript@patch:typescript@^4.9.3#~builtin<compat/typescript>, typescript@patch:typescript@^4.9.5#~builtin<compat/typescript>":
   version: 4.9.5
   resolution: "typescript@patch:typescript@npm%3A4.9.5#~builtin<compat/typescript>::version=4.9.5&hash=a1c5e5"
   bin:
