@@ -289,16 +289,17 @@ export class TxBuilder {
   deploy(entry: string | string[], code: Map<string, string>): InstructionRef;
   deploy(entryOrCode: string | string[] | Map<string, string>, code?: Map<string, string>): InstructionRef {
     return this.push((tx: Tx) => {
-      let entry: string | string[]
+      let entry: string[]
+      let pkgBuf: Uint8Array
       if (code instanceof Map) {
         entry = Array.isArray(entryOrCode) ? entryOrCode : [entryOrCode] as string[]
+        pkgBuf = BCS.pkg.encode([entry, code])
       } else if (entryOrCode instanceof Map) {
         entry = Array.from(entryOrCode.keys())
-        code = entryOrCode
+        pkgBuf = BCS.pkg.encode([entry, entryOrCode])
       } else {
         throw new Error('invalid deploy params')
       }
-      const pkgBuf = BCS.pkg.encode([entry, code])
       tx.push(new DeployInstruction(pkgBuf))
       // todo - can return a PkgResult if we compile the code here and get the ABI?
       return noResult()
