@@ -32,7 +32,7 @@ export abstract class Wallet {
     const outputs = await this.getInventory()
     const coinOutputs = outputs.filter(o => o.classPtr.equals(COIN_CLASS_PTR))
 
-    let motosIn = 0
+    let motosIn = 0n
 
     for (const coinOutput of coinOutputs) {
       const alreadyLoaded = snapshot.instructions.some(i => {
@@ -56,15 +56,15 @@ export abstract class Wallet {
       if (!props) throw new Error('outputs should have abi')
       motosIn += props.motos
 
-      if (motosIn > 100) {
-        let changeRef = partialTx.call(coinRef, 'send', [motosIn - 100])
+      if (motosIn > 100n) {
+        let changeRef = partialTx.call(coinRef, 'send', [motosIn - 100n])
         partialTx.lock(changeRef, await this.getNextAddress())
-        motosIn = 100
+        motosIn = 100n
       }
 
       partialTx.fund(coinRef)
 
-      if (motosIn === 100) {
+      if (motosIn === 100n) {
         break
       }
     }
