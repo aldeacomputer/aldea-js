@@ -1,7 +1,7 @@
 {
   "name": "@aldea/cli",
   "description": "A command-line utility belt for Aldea app developers.",
-  "version": "0.0.1-beta.6",
+  "version": "0.1.0",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,8 +22,8 @@
     "@aldea/wallet-lib": "workspace:^",
     "columnify": "^1.6.0",
     "commander": "^10.0.1",
-    "kolorist": "^1.7.0",
-    "lowdb": "^6.0.0",
+    "kolorist": "^1.8.0",
+    "lowdb": "^6.0.1",
     "prompts": "^2.4.2"
   },
   "devDependencies": {

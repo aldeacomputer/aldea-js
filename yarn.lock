@@ -53,8 +53,8 @@ __metadata:
     "@types/columnify": ^1.5.1
     columnify: ^1.6.0
     commander: ^10.0.1
-    kolorist: ^1.7.0
-    lowdb: ^6.0.0
+    kolorist: ^1.8.0
+    lowdb: ^6.0.1
     prompts: ^2.4.2
     typescript: ^5.0.4
   bin:
@@ -8197,10 +8197,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"kolorist@npm:^1.6.0, kolorist@npm:^1.7.0":
+"kolorist@npm:^1.6.0":
   version: 1.7.0
   resolution: "kolorist@npm:1.7.0"
   checksum: 0eb64d22a204be11ddd7d2017525bf2603de38b15c571f79d6f0c5f1c869b8adfd40c3aa71c12e0cfe5496c25b2bbe891267cbc11f5b3fbc858d74ae79bac293
+  languageName: node
+  linkType: hard
+
+"kolorist@npm:^1.8.0":
+  version: 1.8.0
+  resolution: "kolorist@npm:1.8.0"
+  checksum: b056de671acc8a17f1e78d6d46c47dae3e06481eabc9fed213dd9079a7454fd3a7ea1226ec718df81c9208877f7475d038ac27a400958fec278d975839e33643
   languageName: node
   linkType: hard
 
@@ -8768,15 +8775,6 @@ __metadata:
   dependencies:
     get-func-name: ^2.0.0
   checksum: cc83f1b124a1df7384601d72d8d1f5fe95fd7a8185469fec48bb2e4027e45243949e7a013e8d91051a138451ff0552310c32aa9786e60b6a30d1e801bdc2163f
-  languageName: node
-  linkType: hard
-
-"lowdb@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "lowdb@npm:6.0.0"
-  dependencies:
-    steno: ^3.0.0
-  checksum: 2361ab3b34850227fd3ce30a3849c4857b4d7aabb73fbc65476ca86a13fb4e48aa072367db53e26945f8dad78874af56bec7a24edd687e2c4f57909de43763da
   languageName: node
   linkType: hard
 
