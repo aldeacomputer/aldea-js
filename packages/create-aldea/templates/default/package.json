@@ -8,8 +8,7 @@
     "script": "bash -c 'fn () { TS_NODE_PROJECT=scripts/tsconfig.json TS_NODE_TRANSPILE_ONLY=true node --loader=ts-node/esm --experimental-specifier-resolution=node --no-warnings=ExperimentalWarning scripts/$0; }; fn'"
   },
   "dependencies": {
-    "@aldea/cli": "^0.1.0",
-    "@aldea/compiler": "^0.1.0",
+    "@aldea/cli": "^0.1.1",
     "@aldea/sdk": "^0.1.0"
   },
   "devDependencies": {
