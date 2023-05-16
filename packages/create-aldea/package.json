@@ -1,7 +1,7 @@
 {
   "name": "create-aldea",
   "description": "Quickly and easily scaffold new Aldea projects.",
-  "version": "0.0.1-beta.7",
+  "version": "0.1.0",
   "license": "Apache-2.0",
   "type": "module",
   "bin": "index.js",
@@ -15,13 +15,13 @@
   },
   "packageManager": "yarn@3.2.3",
   "dependencies": {
-    "kolorist": "^1.6.0",
-    "minimist": "^1.2.7",
+    "kolorist": "^1.8.0",
+    "minimist": "^1.2.8",
     "prompts": "^2.4.2"
   },
   "devDependencies": {
     "@types/minimist": "^1.2.2",
-    "@types/prompts": "^2.4.1",
-    "typescript": "^4.9.3"
+    "@types/prompts": "^2.4.4",
+    "typescript": "^5.0.4"
   }
 }
