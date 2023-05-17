@@ -8,7 +8,7 @@ const makeAllPackagesExternalPlugin = {
   },
 }
 
-// ESM bundle
+// ESM bundle general
 esbuild.build({
   entryPoints: ['src/index.ts'],
   outfile: 'dist/aldea.core.bundle.mjs',
@@ -23,6 +23,23 @@ esbuild.build({
     makeAllPackagesExternalPlugin
   ]
 })
+
+// ESM bundle browser
+esbuild.build({
+  entryPoints: ['src/index.ts'],
+  outfile: 'dist/aldea.core.bundle.mjs',
+  bundle: true,
+  format: 'esm',
+  platform: 'browser',
+  target: 'esnext',
+  minify: false,
+  keepNames: true,
+  sourcemap: true,
+  plugins: [
+    makeAllPackagesExternalPlugin
+  ]
+})
+
 
 // CJS bundle
 esbuild.build({

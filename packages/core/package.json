@@ -1,7 +1,7 @@
 {
   "name": "@aldea/core",
   "description": "Core Aldea data structuresand cryptographic functions.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -29,7 +29,7 @@
   },
   "main": "./dist/aldea.core.bundle.cjs",
   "module": "./dist/index.js",
-  "browser": "./dist/aldea.core.bundle.min.js",
+  "browser": "./dist/aldea.core.bundle.browser.mjs",
   "unpkg": "./dist/aldea.core.bundle.min.js",
   "types": "./dist/index.d.ts",
   "files": [

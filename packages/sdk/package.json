@@ -1,7 +1,7 @@
 {
   "name": "@aldea/sdk",
   "description": "A Swiss Army knife for Aldea app developers.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
@@ -19,7 +19,7 @@
   },
   "main": "./dist/aldea.sdk.bundle.cjs",
   "module": "./dist/index.js",
-  "browser": "./dist/aldea.sdk.bundle.min.js",
+  "browser": "./dist/aldea.sdk.bundle.browser.mjs",
   "unpkg": "./dist/aldea.sdk.bundle.min.js",
   "types": "./dist/index.d.ts",
   "files": [
