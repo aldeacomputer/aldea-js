@@ -27,7 +27,7 @@ esbuild.build({
 // ESM bundle browser
 esbuild.build({
   entryPoints: ['src/index.ts'],
-  outfile: 'dist/aldea.core.bundle.mjs',
+  outfile: 'dist/aldea.core.bundle.browser.mjs',
   bundle: true,
   format: 'esm',
   platform: 'browser',
