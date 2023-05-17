@@ -110,11 +110,12 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
       () => { throw new HttpNotFound(`state not found: ${outputId}`, { outputId })}
     )
     const wasm = storage.wasmForPackageId(state.packageId)
-    res.send({
+    res.send(JSON.stringify({
       state: state.objectState(wasm)
-    })
+    }, (_key: string, value: any) => {
+      return typeof value === 'bigint' ? value.toString() : value;
+    }))
   })
-
   app.get('/output/:outputId', (req, res) => {
     const outputId = req.params.outputId
     const jigState = storage.getHistoricalUtxo(
@@ -192,7 +193,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     })
     const pkgData = BCS.pkg.encode([data.entries, data.sources])
     res.set('content-type', 'application/octet-stream')
-    res.send(pkgData)
+    res.send(Buffer.from(pkgData))
   })
 
   app.get('/package/:packageId/wasm', (req, res) => {
