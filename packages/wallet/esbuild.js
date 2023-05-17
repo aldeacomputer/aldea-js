@@ -24,6 +24,22 @@ await esbuild.build({
   ]
 })
 
+// ESM bundle browser
+await esbuild.build({
+  entryPoints: ['src/index.ts'],
+  outfile: 'dist/wallet-lib.bundle.browser.mjs',
+  bundle: true,
+  format: 'esm',
+  platform: 'browser',
+  target: 'esnext',
+  minify: false,
+  keepNames: true,
+  sourcemap: true,
+  plugins: [
+    makeAllPackagesExternalPlugin
+  ]
+})
+
 // CJS bundle
 esbuild.build({
   entryPoints: ['src/index.ts'],
