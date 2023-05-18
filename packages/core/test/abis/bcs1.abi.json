@@ -284,7 +284,6 @@
   "objects": [
     {
       "name": "Primitives",
-      "extends": null,
       "fields": [
         {
           "kind": 0,
@@ -335,7 +334,6 @@
     },
     {
       "name": "Recursive",
-      "extends": null,
       "fields": [
         {
           "kind": 0,

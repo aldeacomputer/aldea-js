@@ -410,6 +410,7 @@ function mapImport(kind: CodeKind, code: ClassWrap | FunctionWrap | InterfaceWra
 // Maps the given AST node to a ClassNode
 function mapClass(node: ClassDeclaration): ClassWrap {
   const obj = mapObject(node) as ClassWrap
+  obj.extends = node.extendsType?.name.identifier.text || '',
   obj.implements = (node.implementsTypes || []).map(n => mapType(n))
   obj.methods = node.members
     .filter(n => n.kind === NodeKind.MethodDeclaration)
@@ -426,7 +427,6 @@ function mapObject(node: ClassDeclaration): ObjectWrap {
   return {
     node,
     name: node.name.text,
-    extends: node.extendsType?.name.identifier.text || null,
     fields: fields.map(n => mapField(n as FieldDeclaration)),
   }
 }
@@ -444,9 +444,10 @@ function mapFunction(node: FunctionDeclaration): FunctionWrap {
 // Maps the given AST node to an InterfaceNode
 function mapInterface(node: InterfaceDeclaration): InterfaceWrap {
   const obj = mapObject(node) as InterfaceWrap
-
-  const methods = node.members.filter(n => n.kind === NodeKind.MethodDeclaration)
-  obj.methods = methods.map(n => mapFunction(n as MethodDeclaration))
+  obj.extends = node.extendsType?.name.identifier.text || null
+  obj.methods = node.members
+    .filter(n => n.kind === NodeKind.MethodDeclaration)
+    .map(n => mapFunction(n as MethodDeclaration))
   return obj
 }
 

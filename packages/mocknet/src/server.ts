@@ -110,6 +110,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
       () => { throw new HttpNotFound(`state not found: ${outputId}`, { outputId })}
     )
     const wasm = storage.wasmForPackageId(state.packageId)
+    res.set('content-type', 'application/json')
     res.send(JSON.stringify({
       state: state.objectState(wasm)
     }, (_key: string, value: any) => {

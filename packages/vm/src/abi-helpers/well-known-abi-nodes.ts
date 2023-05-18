@@ -4,7 +4,6 @@ export const arrayBufferTypeNode: TypeNode = emptyTn('ArrayBuffer')
 
 export const outputAbiNode: ObjectNode = {
   name: 'Output',
-  extends: null,
   fields: [
     {
       kind: FieldKind.PUBLIC,
@@ -28,7 +27,6 @@ export const jigInitParamsTypeNode = emptyTn('JigInitParams')
 
 export const jigInitParamsAbiNode: ObjectNode = {
   name: 'JigInitParams',
-  extends: null,
   fields: [
     {
       kind: FieldKind.PUBLIC,
@@ -60,7 +58,6 @@ export const jigInitParamsAbiNode: ObjectNode = {
 
 export const lockAbiNode: ObjectNode = {
   name: 'Lock',
-  extends: null,
   fields: [
     {
       kind: FieldKind.PUBLIC,
@@ -100,7 +97,6 @@ export const JIG_TOP_CLASS_NAME = 'Jig'
 
 export const basicJigAbiNode: ObjectNode = {
   name: '__Jig',
-  extends: null,
   fields: [
     {
       kind: FieldKind.PUBLIC,

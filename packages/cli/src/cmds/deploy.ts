@@ -3,18 +3,18 @@ import { join } from 'path'
 import { createCommand, createArgument } from 'commander'
 import { bold, dim, lightGreen } from 'kolorist'
 import { TxBuilder } from '@aldea/sdk'
-import { log, ok } from '../../log.js'
-import { env } from '../../globals.js'
+import { log, ok } from '../log.js'
+import { env } from '../globals.js'
 
-// Create wallet command
-export const deploy = createCommand('pkg.deploy')
-  .alias('pd')
+// Deploy code command
+export const deploy = createCommand('deploy')
+  .alias('d')
   .description('Deploy a code package')
   .addArgument(createArgument('<source...>', 'One or more source files to deploy'))
-  .action(codeDeploy)
+  .action(deployCode)
 
-// Create wallet action
-async function codeDeploy(sources: string[]) {
+// Deploy code action
+async function deployCode(sources: string[]) {
   log(bold('Building package...'))
   log()
 

@@ -67,14 +67,15 @@ export interface ClassNode {
 }
 
 /**
- * Object interface
+ * Interface interafce (lol)
  * 
- * As the Class interface, minus any methods.
+ * As the Class interfacem, but methods are Function interfaces
  */
-export interface ObjectNode {
+export interface InterfaceNode {
   name: string;
   extends: string | null;
   fields: FieldNode[];
+  methods: FunctionNode[];
 }
 
 /**
@@ -87,15 +88,13 @@ export interface FunctionNode {
 }
 
 /**
- * Interface interafce (lol)
+ * Object interface
  * 
- * As the Class interfacem, but methods are Function interfaces
+ * As the Class interface, minus any methods.
  */
-export interface InterfaceNode {
+export interface ObjectNode {
   name: string;
-  extends: string | null;
   fields: FieldNode[];
-  methods: FunctionNode[];
 }
 
 /**
