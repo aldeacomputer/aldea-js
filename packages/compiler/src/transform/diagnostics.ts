@@ -17,6 +17,7 @@ export enum AldeaDiagnosticCode {
   Invalid_source_statement = 400,
   Invalid_export,
   Invalid_jig_class,
+  Invalid_obj_class,
   Invalid_class_member,
   Invalid_jig_member,
   Invalid_field_type,
@@ -42,6 +43,8 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
       return 'Invalid export. {0} must not be exported from the entry.'
     case AldeaDiagnosticCode.Invalid_jig_class:
       return 'Invalid class. {0} {1} inherit from `Jig`.'
+    case AldeaDiagnosticCode.Invalid_obj_class:
+      return 'Invalid class. Plain objects cannot use inheritance.'
     case AldeaDiagnosticCode.Invalid_class_member:
       return 'Invalid member. {0} are not allowed on classes.'
     case AldeaDiagnosticCode.Invalid_jig_member:

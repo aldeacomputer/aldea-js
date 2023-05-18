@@ -63,7 +63,6 @@ function validateClassNode(obj: any): obj is ClassNode {
 // Validates the given object implements the ObjectNode interface
 function validateObjectNode(obj: any): obj is ObjectNode {
   return "name" in obj &&
-    "extends" in obj &&
     Array.isArray(obj.fields) && obj.fields.every(validateFieldNode)
 }
 

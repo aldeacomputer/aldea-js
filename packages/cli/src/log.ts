@@ -1,4 +1,5 @@
 import { inspect } from 'util'
+import { CompileError } from '@aldea/compiler'
 import { Output } from '@aldea/sdk'
 import { bold, red, green, lightGreen } from 'kolorist'
 import columnify from 'columnify'
@@ -38,14 +39,16 @@ export async function logErrAndQuit(error: Error): Promise<never> {
   log()
   err(error.message)
   log()
-  if ('response' in error) {
+  if (error instanceof CompileError) {
+    log(error.stderr.toString())
+  } else if ('response' in error) {
     // @ts-ignore
     await error.response.json().then(log)
   } else {
     log(error.stack)
   }
   log()
-  process.exit()
+  process.exit(1)
 }
 
 /**

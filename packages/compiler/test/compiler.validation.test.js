@@ -151,7 +151,7 @@ test('throws if class field is unsupported type', async t => {
 })
 
 test('compiles if class field is falid type', async t => {
-  await t.notThrowsAsync(() => compile(classMbrCode('a: u8 = 0;')))
+  await t.notThrowsAsync(() => compile(classMbrCode('a: u8 = 0;')).catch(e => { console.log(e.stderr.toString()); throw e }))
   await t.notThrowsAsync(() => compile(classMbrCode('a: string = "";')))
   await t.notThrowsAsync(() => compile(classMbrCode('a: u8[] = [0];')))
   await t.notThrowsAsync(() => compile(classMbrCode('a: Uint8Array = new Uint8Array(1);')))
@@ -183,6 +183,16 @@ test('compiles if class method args type is plain object', async t => {
 
 test('compiles if class method return type is plain object', async t => {
   await t.notThrowsAsync(() => compile(classMbrWithDepCode('foo(a: u8): A { return { foo: a } }')))
+})
+
+test('throws if a plain object uses inheritance', async t => {
+  const code = `
+  declare class A {}
+  declare class B extends A {}
+  `.trim()
+  const e = await t.throwsAsync(() => compile(stmtCode(code)))
+  t.regex(e.stderr.toString(), /Invalid class/)
+  t.regex(e.stderr.toString(), /declare class B extends A \{\}/)
 })
 
 test('throws if any double undersore identifiers are seen anywhere', async t => {

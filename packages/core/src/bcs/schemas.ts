@@ -32,7 +32,6 @@ export const AbiSchema: AbiSchemeInterface = {
   ],
   abi_object_node: [
     { name: 'name', type: type('string') },
-    { name: 'extends', type: type('string', [], true) },
     { name: 'fields', type: type('Array', [type('abi_field_node')]) },
   ],
   abi_type_id: [

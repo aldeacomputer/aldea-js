@@ -26,8 +26,7 @@ const COIN_PKG_ID = new Uint8Array([
   0, 0, 0, 0, 0, 0, 0, 0,
 ])
 
-type CodeBundle = { [key: string]: string }
-export type CompileFn = (entry: string[], src: CodeBundle) => Promise<CompilerResult>;
+export type CompileFn = (entry: string[], src: Map<string, string>) => Promise<CompilerResult>;
 
 export class VM {
   private readonly storage: Storage;
@@ -61,13 +60,7 @@ export class VM {
 
   async compileSources (entries: string[], sources: Map<string, string>): Promise<PkgData> {
     const id = calculatePackageId(entries, sources)
-
-    const obj: {[key: string]: string} = {}
-    for (const [key, value] of sources.entries()) {
-      obj[key] = value
-    }
-
-    const result = await this.compile(entries, obj)
+    const result = await this.compile(entries, sources)
 
     return new PkgData(
       abiFromBin(result.output.abi),

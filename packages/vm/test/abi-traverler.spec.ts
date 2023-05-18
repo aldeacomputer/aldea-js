@@ -101,7 +101,6 @@ class TestAbiBuilder {
     this.objects.push({
       fields: clsNode.fields,
       name: clsNode.name,
-      extends: clsNode.extends
     })
     return this
   }

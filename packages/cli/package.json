@@ -18,6 +18,7 @@
   },
   "packageManager": "yarn@3.2.3",
   "dependencies": {
+    "@aldea/compiler": "workspace:^",
     "@aldea/sdk": "workspace:^",
     "@aldea/wallet-lib": "workspace:^",
     "columnify": "^1.6.0",

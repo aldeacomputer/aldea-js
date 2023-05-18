@@ -11,13 +11,13 @@ test('compiles single source', async t => {
  * can't be done in parallel */
 
 test('compiles multiple sources', async t => {
-  const sources = {
-    'foo.ts': 'export declare class Foo { name: string }',
-    'input.ts': `
+  const sources = new Map([
+    ['foo.ts', 'export declare class Foo { name: string }'],
+    ['input.ts', `
       import { Foo } from './foo'
       export function test(foo: Foo): string { return foo.name }
-    `.trim()
-  }
+    `.trim()]
+  ])
 
   const res = await compile('input.ts', sources)
   const abi = abiFromBin(res.output.abi)
@@ -29,18 +29,18 @@ test('compiles multiple sources', async t => {
 })
 
 test('compiles multiple entries', async t => {
-  const sources = {
-    'bar.ts': 'const bar = 25;',
-    'foo.ts': 'export declare class Foo { name: string }',
-    'input1.ts': `
+  const sources = new Map([
+    ['bar.ts', 'const bar = 25;'],
+    ['foo.ts', 'export declare class Foo { name: string }'],
+    ['input1.ts', `
       import { Foo } from './foo'
       export function test1(foo: Foo): string { return foo.name }
-    `.trim(),
-    'input2.ts': `
+    `.trim()],
+    ['input2.ts', `
       import { Foo } from './foo'
       export function test2(foo: Foo): string { return foo.name }
-    `.trim()
-  }
+    `.trim()]
+  ])
 
   const res = await compile(['input2.ts', 'input1.ts'], sources)
   const abi = abiFromBin(res.output.abi)

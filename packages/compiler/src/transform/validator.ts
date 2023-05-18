@@ -292,7 +292,21 @@ export class Validator {
       ))
     }
 
-    // Ensure plain or sidekick classes do not inherit from Jig
+    // Ensures plain object do not use inheritance
+    if (
+      isAmbient(node.flags) &&
+      !this.importedClassNodes.includes(node) &&
+      node.extendsType !== null
+    ) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.Error,
+        AldeaDiagnosticCode.Invalid_obj_class,
+        [],
+        node.range
+      ))
+    }
+
+    // Ensure sidekick classes do not inherit from Jig
     if (
       !this.exportedClassNodes.includes(node) &&
       !this.importedClassNodes.includes(node) &&
