@@ -6,7 +6,7 @@
     ["@aldea/core", "@aldea/sdk", "@aldea/vm"]
   ],
   "linked": [],
-  "access": "restricted",
+  "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
