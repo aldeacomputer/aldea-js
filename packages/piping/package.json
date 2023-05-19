@@ -1,6 +1,7 @@
 {
   "name": "@aldea/piping",
   "version": "0.0.1-beta.1",
+  "private": true,
   "packageManager": "yarn@3.2.3",
   "license": "MIT",
   "type": "module",
