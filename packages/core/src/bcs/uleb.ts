@@ -7,16 +7,18 @@
  */
 export function ulebEncode(num: number): number[] {
   let arr = []
-  let len = 0
 
   if (num === 0) {
     return [0]
   }
 
   while (num > 0) {
-    arr[len] = num & 0x7f
-    if ((num >>= 7)) arr[len] |= 0x80
-    len += 1
+    let temp = num & 0x7f
+    num = num >>> 7
+    if (num) {
+      temp = temp | 0x80
+    }
+    arr.push(temp)
   }
 
   return arr;
@@ -33,13 +35,21 @@ export function ulebDecode(arr: number[] | Uint8Array): {
   let shift = 0
   let len = 0
 
+
   while (true) {
+    console.log('shiftshiftshiftshiftshiftshiftshift', shift)
+    console.log('total', total)
     let byte = arr[len]
-    len++
-    total |= (byte & 0x7f) << shift
+
+    byte = byte & 0x7f
+    total |= byte << shift
+
     if ((byte & 0x80) === 0) break
+
+    len++
     shift += 7
   }
+  console.log('total', total)
 
   return {
     value: total,
