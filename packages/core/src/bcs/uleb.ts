@@ -35,21 +35,19 @@ export function ulebDecode(arr: number[] | Uint8Array): {
   let shift = 0
   let len = 0
 
-
   while (true) {
-    console.log('shiftshiftshiftshiftshiftshiftshift', shift)
-    console.log('total', total)
-    let byte = arr[len]
+    let byte = arr[len];
+    let data = byte & 0b01111111; // keep everything but most significant bit
+    data = data * (2 ** shift) // Avoid shifting. Causes issues in big numbers
+    total = total + data
+    len++;
+    shift += 7;
 
-    byte = byte & 0x7f
-    total |= byte << shift
+    if ((byte & 0x80) === 0) { // check if the most significat bit is 0. If its 0 the number finished.
+      break;
+    }
 
-    if ((byte & 0x80) === 0) break
-
-    len++
-    shift += 7
   }
-  console.log('total', total)
 
   return {
     value: total,

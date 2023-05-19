@@ -21,4 +21,5 @@ test('uleb of 0xffffffff', (t) => {
 test.only('parse 255, 255, 255, 255, 15 returns 0xffffffff', t => {
   const res = ulebDecode([255, 255, 255, 255, 15])
   t.deepEqual(res.value, 0xffffffff)
+  t.deepEqual(res.length, 5)
 })
