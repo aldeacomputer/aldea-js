@@ -9,7 +9,7 @@ import {
   ref,
 } from '@aldea/core'
 import { Abi } from '@aldea/core/abi'
-import { TxBuilder } from './tx-builder.js'
+import { TxBuilder, TxBuilderOpts } from './tx-builder.js'
 
 export type CreateTxCallback = (tx: TxBuilder, ref: (idx: number) => InstructionRef) => void | Promise<void>
 
@@ -36,8 +36,18 @@ export class Aldea {
    * TxBuilder instance and a `ref` function for turning integers into
    * Instruction references.
    */
-  async createTx(builder: CreateTxCallback): Promise<Tx> {
-    const txBuilder = new TxBuilder(this)
+  async createTx(builder: CreateTxCallback): Promise<Tx>;
+  async createTx(opts: TxBuilderOpts, builder: CreateTxCallback): Promise<Tx>;
+  async createTx(optsOrBuilder: TxBuilderOpts | CreateTxCallback, builder?: CreateTxCallback): Promise<Tx> {
+    let opts: TxBuilderOpts
+    if (typeof optsOrBuilder === 'function') {
+      opts = {}
+      builder = optsOrBuilder as CreateTxCallback
+    } else {
+      opts = optsOrBuilder
+      builder = builder as CreateTxCallback
+    }
+    const txBuilder = new TxBuilder(this, opts)
     await builder(txBuilder, ref)
     return txBuilder.build()
   }
