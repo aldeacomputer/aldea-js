@@ -16,7 +16,7 @@
     "ci": "yarn test",
     "dev": "nodemon yarn start",
     "lint": "standard --fix",
-    "start": "node .",
+    "start": "mocknet",
     "test": "yarn build && mocha"
   },
   "packageManager": "yarn@3.2.3",
