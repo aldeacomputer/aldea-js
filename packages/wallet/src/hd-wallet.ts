@@ -2,14 +2,12 @@ import {
   Address,
   base16,
   HDPrivKey,
-  HDPubKey,
   instructions,
   LockType,
   OpCode,
   Output,
   Pointer,
   Tx,
-  TxBuilder
 } from '@aldea/sdk'
 import {Wallet} from "./wallet.js";
 import {WalletStorage} from "./storage/index.js";
@@ -30,10 +28,8 @@ export class HdWallet extends Wallet {
     return this.storage.allUtxos()
   }
 
-  async signTx(partialTx: TxBuilder): Promise<TxBuilder> {
-    const tx = await partialTx.build()
-
-    const outputIds = tx.instructions
+  async signTx(partialTx: Tx): Promise<Tx> {
+    const outputIds = partialTx.instructions
       .filter(i => i.opcode === OpCode.LOAD)
       .map(i => {
         const inst = i as instructions.LoadInstruction
@@ -41,14 +37,14 @@ export class HdWallet extends Wallet {
       })
       .map(base16.encode)
 
-    const originsAsStr = tx.instructions
+    const originPtrs = partialTx.instructions
       .filter(i => i.opcode === OpCode.LOADBYORIGIN)
       .map(i => {
         const inst = i as instructions.LoadByOriginInstruction
-        return inst.origin
+        return Pointer.fromBytes(inst.origin)
       })
 
-    const paths = []
+    const paths: string[] = []
 
     for (const outputId of outputIds) {
       const ownedOutput = await this.storage.utxoById(outputId)
@@ -57,22 +53,19 @@ export class HdWallet extends Wallet {
       }
     }
 
-    for (const originBytes of originsAsStr) {
-      const ownedOutput = await this.storage.utxoByOrigin(Pointer.fromBytes(originBytes))
+    for (const ptr of originPtrs) {
+      const ownedOutput = await this.storage.utxoByOrigin(ptr)
       if (ownedOutput) {
         paths.push(ownedOutput.path)
       }
     }
 
-    for (const path of paths) {
-      const priv = this.hd.derive(path.replace('M', 'm'))
-      if (priv instanceof HDPubKey) {
-        throw new Error('should be a priate key')
+    return this.client.createTx({ extend: partialTx }, txb => {
+      for (const path of paths) {
+        const priv = this.hd.derive(path.replace('M', 'm')) as HDPrivKey
+        txb.sign(priv)
       }
-      partialTx.sign(priv)
-    }
-
-    return partialTx
+    })
   }
 
   async saveTxExec(tx: Tx, outputs: Output[]): Promise<void> {

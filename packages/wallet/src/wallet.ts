@@ -1,3 +1,4 @@
+import { LoadByOriginInstruction, LoadInstruction } from "@aldea/core/instructions";
 import {
   Address,
   CommitTxResponse,
@@ -5,13 +6,11 @@ import {
   OpCode,
   Output,
   Tx,
-  TxBuilder,
-  instructions,
   base16, Pointer
 } from "@aldea/sdk"
+
 import {COIN_CLASS_PTR} from "./constants.js";
 import {AldeaClient} from "./aldea-client.js";
-const {LoadInstruction} = instructions
 
 
 export abstract class Wallet {
@@ -22,54 +21,45 @@ export abstract class Wallet {
 
   abstract getNextAddress(): Promise<Address>
   abstract getInventory(): Promise<Array<Output>>
-  abstract signTx(partialTx: TxBuilder): Promise<TxBuilder>
+  abstract signTx(partialTx: Tx): Promise<Tx>
   abstract saveTxExec(tx: Tx, outputList: Output[]): Promise<void>
   abstract addUtxo(output: Output): Promise<void>
   abstract sync(): Promise<void>
 
-  async fundTx(partialTx: TxBuilder): Promise<TxBuilder> {
-    const snapshot = await partialTx.build()
+  async fundTx(partialTx: Tx): Promise<Tx> {
     const outputs = await this.getInventory()
-    const coinOutputs = outputs.filter(o => o.classPtr.equals(COIN_CLASS_PTR))
-
-    let motosIn = 0n
-
-    for (const coinOutput of coinOutputs) {
-      const alreadyLoaded = snapshot.instructions.some(i => {
-        if (i.opcode === OpCode.LOAD) {
-          const inst =  i as any
-          return coinOutput.id === base16.encode(inst.outputId)
-        } else if (i.opcode === OpCode.LOADBYORIGIN) {
-          const inst =  i as any
-          return coinOutput.origin.equals(Pointer.fromBytes(inst.origin))
-        }
-        return false
+    const coinOutputs = outputs.filter(o => {
+      return o.classPtr.equals(COIN_CLASS_PTR) && !partialTx.instructions.some(i => {
+        return (
+          i.opcode === OpCode.LOAD && o.id === base16.encode((<LoadInstruction>i).outputId)
+        ) || (
+          i.opcode === OpCode.LOADBYORIGIN && o.origin.equals(Pointer.fromBytes((<LoadByOriginInstruction>i).origin))
+        )
       })
-      if (alreadyLoaded) {
-        continue
+    })
+
+    return await this.client.createTx({ extend: partialTx }, async (txb) => {
+      let motosIn = 0n
+
+      for (const coin of coinOutputs) {  
+        if (coin.props?.motos) {
+          const coinRef = txb.load(coin.id)
+          motosIn += coin.props.motos
+
+          if (motosIn > 100n) {
+            const changeAddr = await this.getNextAddress()
+            const changeRef = txb.call(coinRef, 'send', [motosIn - 100n])
+            txb.lock(changeRef, changeAddr)
+            motosIn = 100n
+          }
+          txb.fund(coinRef)
+        }  
+  
+        if (motosIn === 100n) {
+          break
+        }
       }
-
-      const coin = coinOutput
-      const coinRef = partialTx.load(coin.id)
-
-      const props = coin.props
-      if (!props) throw new Error('outputs should have abi')
-      motosIn += props.motos
-
-      if (motosIn > 100n) {
-        let changeRef = partialTx.call(coinRef, 'send', [motosIn - 100n])
-        partialTx.lock(changeRef, await this.getNextAddress())
-        motosIn = 100n
-      }
-
-      partialTx.fund(coinRef)
-
-      if (motosIn === 100n) {
-        break
-      }
-    }
-
-    return partialTx
+    })
   }
 
   async commitTx(tx: Tx): Promise<CommitTxResponse> {
@@ -80,10 +70,8 @@ export abstract class Wallet {
   }
 
   async createFundedTx(fn: CreateTxCallback): Promise<Tx> {
-    return await this.client.createTx(async (builder, ref) => {
-      await fn(builder, ref)
-      await this.fundTx(builder)
-      await this.signTx(builder)
-    })
+    const userTx = await this.client.createTx(fn)
+    const fundedTx = await this.fundTx(userTx)
+    return this.signTx(fundedTx)
   }
 }
