@@ -89,12 +89,16 @@ export class Tx {
    */
   sighash(to: number = -1): Uint8Array {
     const buf = new BufWriter()
-    const instructions = this.instructions
-      .filter(i => i.opcode !== OpCode.SIGN && i.opcode !== OpCode.SIGNTO)
-      .slice(0, to)
+    const instructions = this.instructions.slice(0, to)
     
     for (let i = 0; i < instructions.length; i++) {
-      buf.write<Instruction>(InstructionSerializer, instructions[i])
+      const { opcode } = instructions[i]
+      if (opcode === OpCode.SIGN || opcode === OpCode.SIGNTO) {
+        buf.writeU8(opcode)
+        buf.writeBytes((<SignInstruction | SignToInstruction>instructions[i]).pubkey)
+      } else {
+        buf.write<Instruction>(InstructionSerializer, instructions[i])
+      }
     }
 
     return hash(buf.data, 32)
