@@ -31,7 +31,7 @@
     "build": "yarn build:ts && yarn build:es",
     "build:ts": "tsc",
     "build:es": "node esbuild.js",
-    "test": "mocha",
+    "test": "ava",
     "ci": "yarn test"
   },
   "packageManager": "yarn@3.2.3",
@@ -40,10 +40,18 @@
     "lowdb": "^6.0.1"
   },
   "devDependencies": {
-    "@scure/bip39": "^1.2.0",
-    "chai": "^4.3.7",
+    "@aldea/mocknet": "workspace:^",
+    "@aldea/vm": "workspace:^",
+    "@ava/get-port": "^2.0.0",
+    "ava": "^5.2.0",
     "esbuild": "^0.17.19",
-    "mocha": "^10.2.0",
     "typescript": "^5.0.4"
+  },
+  "ava": {
+    "concurrency": 4,
+    "files": [
+      "test/**/*.test.js",
+      "!test/browser"
+    ]
   }
 }

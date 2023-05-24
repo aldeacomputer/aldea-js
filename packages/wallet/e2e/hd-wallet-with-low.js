@@ -19,7 +19,7 @@ console.log(await wallet.getInventory())
 
 console.log('minting an nft...')
 const tx = await wallet.createFundedTx(async builder => {
-  const pkgIdx = builder.import('ea9225bcf8572c3a9fa75d186b62ab976d017d96b0614612f59d5fa5087b7fa3')
+  const pkgIdx = builder.import('446f2f5ebbcbd8eb081d207a67c1c9f1ba3d15867c12a92b96e7520382883846')
   const nftIdx = builder.new(pkgIdx, 'NFT', ['name', 32, 'moreName'])
   builder.lock(nftIdx, await wallet.getNextAddress())
 })
