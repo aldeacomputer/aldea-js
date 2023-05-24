@@ -277,12 +277,15 @@ class TxExecution {
     return this.finalize()
   }
 
-  fundByIndex(coinIdx: number): void {
+  fundByIndex(coinIdx: number): StatementResult {
     const coinJig = this.getStatementResult(coinIdx).asJig()
     const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'motos').value
     this.fundAmount += Number(amount)
     coinJig.changeLock(new FrozenLock())
+    const stmt = new EmptyStatementResult(this.statements.length)
+    this.statements.push(stmt)
     this.marKJigAsAffected(coinJig)
+    return stmt
   }
 
   findJigByOutputId(outputId: Uint8Array): JigRef {

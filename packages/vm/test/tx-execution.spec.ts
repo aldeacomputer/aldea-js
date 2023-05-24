@@ -13,6 +13,7 @@ import {ExecutionResult} from "../src/execution-result.js";
 import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
+import {EmptyStatementResult} from "../src/statement-result.js";
 
 const {SignInstruction} = instructions
 
@@ -614,6 +615,22 @@ describe('execute txs', () => {
     const statement = exec.getStatementResult(methodIdx.idx)
     expect(statement.value).to.eql(`Flock with size: 0`)
     expect(statement.abiNode).to.eql(emptyTn('string'))
+  })
+
+  it('adds statements for locks', () => {
+    const flockPkg = exec.importModule(modIdFor('flock')).asInstance
+    const flockIdx = exec.instantiateByClassName(flockPkg, 'Flock', []).idx
+    exec.lockJigToUserByIndex(1, userAddr)
+    const stmt = exec.getStatementResult(2)
+    expect(stmt).to.be.instanceof(EmptyStatementResult)
+  })
+
+  it('adds statements for funds', () => {
+    const minted = vm.mint(userAddr, 100)
+    const coinIdx = exec.loadJigByOutputId(minted.id()).idx
+    exec.fundByIndex(coinIdx)
+    const stmt = exec.getStatementResult(1)
+    expect(stmt).to.be.instanceof(EmptyStatementResult)
   })
 
   it('can save arrays of jigs inside statement results', () => {
