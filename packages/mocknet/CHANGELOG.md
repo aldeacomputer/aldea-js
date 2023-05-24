@@ -1,5 +1,14 @@
 # @aldea/mocknet
 
+## 0.1.3
+
+### Patch Changes
+
+- e5e0b44: Expose APIs for programatic starting of mocknet instance.
+- Updated dependencies [e5e0b44]
+  - @aldea/vm@0.2.0
+  - @aldea/core@0.2.0
+
 ## 0.1.2
 
 ### Patch Changes

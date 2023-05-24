@@ -1,5 +1,13 @@
 # @aldea/vm
 
+## 0.2.0
+
+### Patch Changes
+
+- e5e0b44: Fixed bug where FUND instruction not appearing in statement results.
+  - @aldea/core@0.2.0
+  - @aldea/compiler@0.2.2
+
 ## 0.1.5
 
 ### Patch Changes
