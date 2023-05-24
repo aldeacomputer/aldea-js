@@ -6,7 +6,7 @@ import {
   OpCode,
   Output,
   Tx,
-  base16, Pointer
+  base16, Pointer, TxBuilderOpts
 } from "@aldea/sdk"
 
 import {COIN_CLASS_PTR} from "./constants.js";
@@ -69,8 +69,18 @@ export abstract class Wallet {
     return response
   }
 
-  async createFundedTx(fn: CreateTxCallback): Promise<Tx> {
-    const userTx = await this.client.createTx(fn)
+  async createFundedTx(builder: CreateTxCallback): Promise<Tx>;
+  async createFundedTx(opts: TxBuilderOpts, builder: CreateTxCallback): Promise<Tx>;
+  async createFundedTx(optsOrBuilder: TxBuilderOpts | CreateTxCallback, builder?: CreateTxCallback): Promise<Tx> {
+    let opts: TxBuilderOpts
+    if (typeof optsOrBuilder === 'function') {
+      opts = {}
+      builder = optsOrBuilder as CreateTxCallback
+    } else {
+      opts = optsOrBuilder
+      builder = builder as CreateTxCallback
+    }
+    const userTx = await this.client.createTx(opts, builder)
     const fundedTx = await this.fundTx(userTx)
     return this.signTx(fundedTx)
   }
