@@ -1,7 +1,5 @@
 import test from 'ava'
-import { Address } from '../dist/address.js'
-import { PubKey } from '../dist/pubkey.js'
-import { PrivKey } from '../dist/privkey.js'
+import { Address, PubKey, PrivKey } from '../dist/index.js'
 
 test.before(t => {
   t.context.privKey = PrivKey.fromRandom()

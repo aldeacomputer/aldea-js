@@ -4,10 +4,11 @@ import {
   Instruction, InstructionSerializer, OpCode,
   PrivKey, PubKey,
   Serializable,
-  SignInstruction, SignToInstruction
+  SignInstruction, SignToInstruction,
 } from './internal.js'
 
 import { base16 } from './support/base.js'
+import { verify } from './support/ed25519.js'
 import { hash } from './support/blake3.js'
 import { sign } from "./support/ed25519.js"
 
@@ -74,16 +75,6 @@ export class Tx {
   }
 
   /**
-   * Returns a valid signature for the current tx using the given key.
-   * @param privKey
-   * @param to
-   */
-  createSignature (privKey: PrivKey, to: number = -1): Uint8Array {
-    const msg = this.sighash(to)
-    return sign(msg, privKey)
-  }
-
-  /**
    * Returns the sighash of the current transaction. Can optionally be passed
    * an index to return the sighash upto a given instruction.
    */
@@ -102,6 +93,16 @@ export class Tx {
     }
 
     return hash(buf.data, 32)
+  }
+
+  /**
+   * Returns a valid signature for the current tx using the given key.
+   * @param privKey
+   * @param to
+   */
+  createSignature (privKey: PrivKey, to: number = -1): Uint8Array {
+    const msg = this.sighash(to)
+    return sign(msg, privKey)
   }
 
   isSignedBy (addr: Address, index: number): boolean {
@@ -132,6 +133,25 @@ export class Tx {
    */
   toHex(): string {
     return base16.encode(this.toBytes())
+  }
+
+  /**
+   * Verifies any signatures in the transaction and returns a boolean.
+   * 
+   * Not that this only verifies the signatures. It does not otherwise verify
+   * the transaction is valid. That is done at execution time.
+   */
+  verify(): boolean {
+    return this.instructions
+      .every((i, idx) => {
+        if (i.opcode === OpCode.SIGN || i.opcode === OpCode.SIGNTO) {
+          const inst = i as SignInstruction | SignToInstruction
+          const msg = this.sighash(i.opcode === OpCode.SIGNTO ? idx : -1)
+          return verify(inst.sig, msg, inst.pubkey)
+        } else {
+          return true
+        }
+      })
   }
 }
 
