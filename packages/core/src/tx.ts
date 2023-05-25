@@ -97,14 +97,14 @@ export class Tx {
 
   /**
    * Returns a valid signature for the current tx using the given key.
-   * @param privKey
-   * @param to
+   * // todo - review this function!!
    */
   createSignature (privKey: PrivKey, to: number = -1): Uint8Array {
     const msg = this.sighash(to)
     return sign(msg, privKey)
   }
 
+  // TODO - review this function!!
   isSignedBy (addr: Address, index: number): boolean {
     let i = 0
     for (const inst of this.instructions) {

@@ -4,6 +4,7 @@ import { base16 } from './base.js'
 
 /**
  * Check if 2 Uint8Arrays are equal
+ * // TODO - review function name
  */
 export function buffEquals(a: Uint8Array, b: Uint8Array): boolean {
   return a.length === b.length && a.every((byte, i) => byte === b[i])

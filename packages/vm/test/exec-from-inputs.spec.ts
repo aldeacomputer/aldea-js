@@ -1,5 +1,5 @@
 import {Clock, Storage, StubClock, VM} from "../src/index.js";
-import {instructions, Output, Tx, Lock, Pointer, PrivKey, BCS} from "@aldea/core";
+import {Output, Tx, Lock, Pointer, PrivKey, BCS, ed25519} from "@aldea/core";
 import {buildVm} from "./util.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {ExtendedTx} from "../src/index.js";
@@ -8,7 +8,7 @@ import {expect} from "chai";
 import {WasmInstance} from "../src/wasm-instance.js";
 import {JigState} from "../src/jig-state.js";
 import { Abi } from "@aldea/core/abi";
-const {
+import {
   CallInstruction,
   ImportInstruction,
   NewInstruction,
@@ -16,7 +16,7 @@ const {
   FundInstruction,
   LoadInstruction,
   LockInstruction,
-} = instructions
+} from "@aldea/core/instructions";
 
 const outputFromJigState = (jig: JigState): Output => {
   return new Output(
@@ -55,7 +55,8 @@ describe('exec from inputs', () => {
   it('can execute a tx that depends only on a output id input', () => {
     const coin = vm.mint(userAddr, 1000)
     const tx = new Tx()
-    tx.push(new SignInstruction(tx.createSignature(userPriv), userPub.toBytes()))
+    tx.push(new SignInstruction(new Uint8Array(), userPub.toBytes()))
+    ;(<SignInstruction>tx.instructions[0]).sig = ed25519.sign(tx.sighash(), userPriv)
     const extx = new ExtendedTx(tx, [outputFromJigState(coin)]);
     const context = new ExTxExecContext(extx, clock, storage, vm)
     const exec = new TxExecution(context)
@@ -84,7 +85,8 @@ describe('exec from inputs', () => {
     tx.push(new FundInstruction(3))
     tx.push(new LockInstruction(1, userAddr.hash))
     tx.push(new LockInstruction(4, userAddr.hash))
-    tx.push(new SignInstruction(tx.createSignature(userPriv), userPub.toBytes()))
+    tx.push(new SignInstruction(new Uint8Array(), userPub.toBytes()))
+    ;(<SignInstruction>tx.instructions[8]).sig = ed25519.sign(tx.sighash(), userPriv)
     const tx1Exec = await vm.execTx(tx)
 
     // now exec with no context other than the package code
@@ -106,7 +108,8 @@ describe('exec from inputs', () => {
     tx2.push(new LoadInstruction(tx1Exec.outputs[2].id())) // coin
     tx2.push(new CallInstruction(0, 1, new Uint8Array([]))) // call "grow" over the flock
     tx2.push(new FundInstruction(1))
-    tx2.push(new SignInstruction(tx2.createSignature(userPriv), userPub.toBytes()))
+    tx2.push(new SignInstruction(new Uint8Array(), userPub.toBytes()))
+    ;(<SignInstruction>tx2.instructions[4]).sig = ed25519.sign(tx.sighash(), userPriv)
 
     const exTx = new ExtendedTx(tx2, tx1Exec.outputs.map(outputFromJigState))
     const tx2Exec = await vm2.execTxFromInputs(exTx)
