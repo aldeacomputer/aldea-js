@@ -126,6 +126,13 @@ export class TxBuilder {
     }
 
     for (let i = 0; i < this._tx.instructions.length; i++) {
+      if (this._tx.instructions[i].opcode === OpCode.SIGN) {
+        const inst = this._tx.instructions[i] as SignInstruction
+        const [privKey] = this.buildSteps[i][1]
+        if ((privKey instanceof PrivKey || privKey instanceof HDPrivKey) && inst.sig.every(b => b === 0)) {
+          this._tx.instructions[i] = TxBuilder.signInstruction(this, privKey)
+        }
+      }
       this._tx.instructions[i] = await this.applyHooks(this.afterHooks, this._tx.instructions[i], i)
     }
 
@@ -264,7 +271,7 @@ export class TxBuilder {
    * to create the signature used in the instruction.
    */
   sign(privKey: PrivKey | HDPrivKey): InstructionRef {
-    return this.push(TxBuilder.signInstruction, privKey)
+    return this.push(TxBuilder.signInstruction, privKey, true)
   }
 
   /**
@@ -411,7 +418,6 @@ export class TxBuilder {
  * but exposed as can be useful when overriding and customising the TxBuilder.
  */
 export namespace TxBuilder {
-
   /**
    * Creates and returns an IMPORT instruction.
    */
@@ -506,10 +512,19 @@ export namespace TxBuilder {
 
   /**
    * Creates and returns a SIGN instruction.
+   * 
+   * The last arg allows the signature to be fakes with 64 empty bytes. The
+   * TxBuilder will fake the signature on first pass, and when the entire TX is
+   * built will re-sign and blanked sigs.
    */
-  export function signInstruction(txb: TxBuilder, privKey: PrivKey | HDPrivKey): SignInstruction {
-    const msg = txb.tx.sighash()
-    const sig = ed25519.sign(msg, privKey)
+  export function signInstruction(txb: TxBuilder, privKey: PrivKey | HDPrivKey, fakeIt: boolean = false): SignInstruction {
+    let sig: Uint8Array
+    if (fakeIt) {
+      sig = new Uint8Array(64)
+    } else {
+      const msg = txb.tx.sighash()
+      sig = ed25519.sign(msg, privKey)
+    }
     return new SignInstruction(sig, privKey.toPubKey().toBytes())
   }
 
@@ -578,4 +593,8 @@ function pkgResult(abi: Abi): PkgResult {
 // generates a JigResult
 function jigResult(abi: Abi, exportIdx: number): JigResult {
   return { type: ResultType.JIG, abi, exportIdx }
+}
+
+function isFakedSignInstruction(instruction: Instruction): instruction is SignInstruction {
+  return instruction.opcode === OpCode.SIGN && (<SignInstruction>instruction).sig.every(b => b === 0)
 }
