@@ -27,15 +27,13 @@
   "scripts": {
     "test": "ts-mocha test/**/*.spec.ts",
     "build": "yarn clean && yarn build:asc && yarn build:tsc && yarn build:es",
-    "build:publish": "yarn clean && yarn build:asc && yarn build:es",
     "build:tsc": "tsc",
     "build:asc": "node cmd/compile-all.js",
     "build:es": "node esbuild.js",
     "ci": "yarn test",
     "dev": "node cmd/watch.js",
     "fileId": "cmd/calculate-package-id.js",
-    "clean": "rm -r dist/* build/* src/builtins/*.ts || true",
-    "prepublishOnly": "yarn build:publish"
+    "clean": "rm -r dist/* build/* src/builtins/*.ts || true"
   },
   "packageManager": "yarn@3.2.3",
   "dependencies": {
