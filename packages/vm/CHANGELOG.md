@@ -1,5 +1,13 @@
 # @aldea/vm
 
+## 0.3.1
+
+### Patch Changes
+
+- Fix issue where not all files getting published to npm
+  - @aldea/core@0.3.1
+  - @aldea/compiler@0.2.4
+
 ## 0.3.0
 
 ### Patch Changes
