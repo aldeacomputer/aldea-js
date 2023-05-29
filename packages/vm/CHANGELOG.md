@@ -1,5 +1,13 @@
 # @aldea/vm
 
+## 0.3.0
+
+### Patch Changes
+
+- Updated dependencies [520b723]
+  - @aldea/core@0.3.0
+  - @aldea/compiler@0.2.3
+
 ## 0.2.0
 
 ### Patch Changes

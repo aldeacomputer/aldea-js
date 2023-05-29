@@ -1,5 +1,17 @@
 # @aldea/mocknet
 
+## 0.2.0
+
+### Minor Changes
+
+- 520b723: Update to signature verification.
+
+### Patch Changes
+
+- Updated dependencies [520b723]
+  - @aldea/core@0.3.0
+  - @aldea/vm@0.3.0
+
 ## 0.1.3
 
 ### Patch Changes
