@@ -58,6 +58,8 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
     tx.signTo(keys.privKey)
   })
 
+  t.true(tx1.verify())
+
   const pkgAbi = await aldea.getPackageAbi(pkgId)
   const coinAbi = await aldea.getPackageAbi('0000000000000000000000000000000000000000000000000000000000000000')
 
@@ -122,6 +124,8 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
   t.is(tx2.instructions[13].opcode, OpCode.SIGNTO)
   t.is(tx2.instructions[13].sig.length, 64)
   t.deepEqual(tx2.instructions[13].pubkey, keys.pubKey.toBytes())
+
+  t.true(tx2.verify())
 })
 
 test('Aldea.commitTx() returns a created TX object', async t => {

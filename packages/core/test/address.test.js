@@ -1,6 +1,5 @@
 import test from 'ava'
-import { Address } from '../dist/address.js'
-import { KeyPair } from '../dist/keypair.js'
+import { Address, KeyPair } from '../dist/index.js'
 
 test.before(t => {
   t.context.keys = KeyPair.fromRandom()

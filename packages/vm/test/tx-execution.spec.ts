@@ -5,7 +5,8 @@ import {
 } from '../src/index.js'
 import {expect} from 'chai'
 import {TxExecution} from "../src/tx-execution.js";
-import {BCS, Pointer, PrivKey, ref, Tx, instructions } from "@aldea/core";
+import {BCS, Pointer, PrivKey, ref, Tx, ed25519} from "@aldea/core";
+import {SignInstruction} from "@aldea/core/instructions";
 import { Abi } from '@aldea/core/abi';
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {LockType} from "../src/wasm-instance.js";
@@ -14,8 +15,6 @@ import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
 import {EmptyStatementResult} from "../src/statement-result.js";
-
-const {SignInstruction} = instructions
 
 describe('execute txs', () => {
   let storage: Storage
@@ -756,7 +755,8 @@ describe('execute txs', () => {
 
   it('a tx can be funded in parts', () => {
     const tx = new Tx()
-    tx.push(new SignInstruction(tx.createSignature(userPriv), userPub.toBytes()))
+    tx.push(new SignInstruction(new Uint8Array(), userPub.toBytes()))
+    ;(<SignInstruction>tx.instructions[0]).sig = ed25519.sign(tx.sighash(), userPriv)
     const coin = vm.mint(userAddr, 1000)
     exec = new TxExecution(
       new ExTxExecContext(
@@ -792,7 +792,8 @@ describe('execute txs', () => {
 
   it('fails is not eunogh parts', () => {
     const tx = new Tx()
-    tx.push(new SignInstruction(tx.createSignature(userPriv), userPub.toBytes()))
+    tx.push(new SignInstruction(new Uint8Array(), userPub.toBytes()))
+    ;(<SignInstruction>tx.instructions[0]).sig = ed25519.sign(tx.sighash(), userPriv)
     const coin = vm.mint(userAddr, 1000)
     exec = new TxExecution(
       new ExTxExecContext(

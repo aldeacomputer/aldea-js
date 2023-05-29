@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import request from 'supertest'
-import {BCS, Pointer, base16, Tx, PrivKey, instructions, util, Address} from "@aldea/core"
+import {BCS, Pointer, Tx, PrivKey, instructions, Address, base16, ed25519, util} from "@aldea/core"
 import { StubClock } from "@aldea/vm"
 import { buildApp } from "../dist/server.js"
 
@@ -64,9 +64,9 @@ describe('api', () => {
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
+        .push(new SignInstruction(new Uint8Array(), userPriv.toPubKey().toBytes()))
 
-      const sig = tx.createSignature(userPriv)
-      tx.push(new SignInstruction(sig, userPriv.toPubKey().toBytes()))
+      tx.instructions[5].sig = ed25519.sign(tx.sighash(), userPriv)
 
       const response = await request(app)
         .post('/tx')
@@ -95,9 +95,9 @@ describe('api', () => {
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
+        .push(new SignInstruction(new Uint8Array(), userPriv.toPubKey().toBytes()))
 
-      const sig = tx.createSignature(userPriv)
-      tx.push(new SignInstruction(sig, userPriv.toPubKey().toBytes()))
+      tx.instructions[5].sig = ed25519.sign(tx.sighash(), userPriv)
 
       const response = await request(app)
         .post('/tx')
@@ -123,8 +123,9 @@ describe('api', () => {
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
-      const sig = tx.createSignature(userPriv)
-      tx.push(new SignInstruction(sig, userPriv.toPubKey().toBytes()))
+        .push(new SignInstruction(new Uint8Array(), userPriv.toPubKey().toBytes()))
+
+      tx.instructions[5].sig = ed25519.sign(tx.sighash(), userPriv)
       txid = tx.id
 
       await request(app)
@@ -176,8 +177,9 @@ describe('api', () => {
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
-      const sig = tx.createSignature(userPriv)
-      tx.push(new SignInstruction(sig, userPriv.toPubKey().toBytes()))
+        .push(new SignInstruction(new Uint8Array(), userPriv.toPubKey().toBytes()))
+
+      tx.instructions[5].sig = ed25519.sign(tx.sighash(), userPriv)
 
       await request(app)
         .post('/tx')
@@ -223,8 +225,9 @@ describe('api', () => {
         .push(new LockInstruction(1, userAddr.hash))
         .push(new LoadInstruction(coinId))
         .push(new FundInstruction(3))
-      const sig = tx.createSignature(userPriv)
-      tx.push(new SignInstruction(sig, userPriv.toPubKey().toBytes()))
+        .push(new SignInstruction(new Uint8Array(), userPriv.toPubKey().toBytes()))
+
+      tx.instructions[5].sig = ed25519.sign(tx.sighash(), userPriv)
 
       const response = await request(app)
         .post('/tx')
@@ -455,8 +458,8 @@ describe('api', () => {
         }
       `.trim()
       tx.push(new DeployInstruction(BCS.pkg.encode([[entry], new Map([[entry, code]])])))
-      const sig = tx.createSignature(userPriv)
-      tx.push(new SignInstruction(sig, userPriv.toPubKey().toBytes()))
+      tx.push(new SignInstruction(new Uint8Array(), userPriv.toPubKey().toBytes()))
+      tx.instructions[3].sig = ed25519.sign(tx.sighash(), userPriv)
 
       const response = await request(app)
         .post('/tx')

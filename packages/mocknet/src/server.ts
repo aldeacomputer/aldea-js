@@ -10,13 +10,12 @@ import { CompileError } from "@aldea/compiler"
 import { VM, Storage, Clock,  } from "@aldea/vm"
 import { JigState } from '@aldea/vm/jig-state'
 import { ExecutionResult } from '@aldea/vm/execution-result'
-import { Address, base16, Pointer, Tx, instructions, abiToBin, abiToJson, BCS } from "@aldea/core"
+import { Address, base16, Pointer, Tx, abiToBin, abiToJson, BCS, ed25519 } from "@aldea/core"
 import { buildVm } from "./build-vm.js"
 import { HttpNotFound } from "./errors.js"
 import { logStream, logger } from './globals.js'
 import { createNode } from './p2p/node.js'
-
-const { LoadInstruction, CallInstruction, LockInstruction, SignInstruction, FundInstruction } = instructions
+import { LoadInstruction, CallInstruction, LockInstruction, SignInstruction, FundInstruction } from '@aldea/core/instructions'
 
 export interface iApp {
   app: Express;
@@ -79,6 +78,9 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
 
   app.post('/tx', asyncHandler(async (req, res) => {
     const tx = Tx.fromBytes(new Uint8Array(req.body))
+    if (!tx.verify()) {
+      throw new Error(`invalid tx signatures: ${tx.id}`)
+    }
     const txResult = await vm.execTx(tx)
     emitTx(tx)
     res.send(serializeExecResult(txResult))
@@ -155,7 +157,8 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     tx.push(new CallInstruction(0, 1, bcs.encode('Coin$send', [200])))
     tx.push(new FundInstruction(2))
     tx.push(new LockInstruction(1, Address.fromString(address).hash))
-    tx.push(new SignInstruction(tx.createSignature(minterPriv), minterPriv.toPubKey().toBytes()))
+    tx.push(new SignInstruction(new Uint8Array(), minterPriv.toPubKey().toBytes()))
+    ;(<SignInstruction>tx.instructions[5]).sig = ed25519.sign(tx.sighash(), minterPriv)
 
     const result = await vm.execTx(tx)
     emitTx(tx)

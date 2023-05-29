@@ -1,5 +1,6 @@
 import {Storage, StubClock, VM} from "../src/index.js";
-import {base16, instructions, PrivKey, Tx} from "@aldea/core";
+import {base16, PrivKey, Tx, ed25519} from "@aldea/core";
+import {SignInstruction} from "@aldea/core/instructions";
 import {TxExecution} from "../src/tx-execution.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import fs from "fs";
@@ -13,10 +14,12 @@ export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () =
   const storage = lazyStorage()
   const vm = lazyVm()
   const tx = new Tx()
-  privKeys.forEach(pk => {
-    const sig = tx.createSignature(pk)
-    tx.push(new instructions.SignInstruction(sig, pk.toPubKey().toBytes()))
-  })
+  for (let i = 0; i < privKeys.length; i++) {
+    tx.push(new SignInstruction(new Uint8Array(), privKeys[i].toPubKey().toBytes()))
+  }
+  for (let i = 0; i < privKeys.length; i++) {
+    (<SignInstruction>tx.instructions[i]).sig = ed25519.sign(tx.sighash(), privKeys[i])
+  }
   const context = new StorageTxContext(tx, storage, vm, vm.clock)
   const exec = new TxExecution(context)
     exec.markAsFunded()

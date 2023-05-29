@@ -119,7 +119,7 @@ test('hook option throws error if instruction mismatch', async t => {
   }, { message: /txbuilder hook instruction mismatch/i })
 })
 
-test('resign option adds resigning reflection', async t => {
+test('resign option adds resigning hook', async t => {
   const tx1 = await t.context.aldea.createTx((txb) => {
     const pkg = txb.import('a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701')
     txb.new(pkg, 'Badge', ['foo'])
@@ -141,4 +141,19 @@ test('resign option adds resigning reflection', async t => {
   t.is(oldSig.length, 64)
   t.is(newSig.length, 64)
   t.notDeepEqual(newSig, oldSig)
+})
+
+test.only('verifies all the signatures in a built transaction', async t => {
+  const tx1 = await t.context.aldea.createTx((txb) => {
+    const pkg = txb.import('a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701')
+    txb.new(pkg, 'Badge', ['foo'])
+    txb.signTo(t.context.keys.privKey)
+    txb.sign(t.context.keys.privKey)
+    txb.new(pkg, 'Badge', ['a'])
+    txb.new(pkg, 'Badge', ['b'])
+    txb.new(pkg, 'Badge', ['c'])
+    txb.sign(t.context.keys.privKey)
+  })
+
+  t.true(tx1.verify())
 })
