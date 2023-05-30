@@ -2,10 +2,10 @@
   "$schema": "https://unpkg.com/@changesets/config@2.3.0/schema.json",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
-  "fixed": [
-    ["@aldea/core", "@aldea/sdk", "@aldea/vm"]
+  "fixed": [],
+  "linked": [
+    ["@aldea/core", "@aldea/sdk", "@aldea/vm", "@aldea/mocknet"]
   ],
-  "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
