@@ -31,5 +31,5 @@ process.stdout.write(`\n`)
 
 for (let workspace of workspaces) {
   console.log(` - publishing ${workspace.name}`)
-  //execSync(`yarn workspace ${workspace.name} npm publish --access public`)
+  execSync(`yarn workspace ${workspace.name} npm publish --access public`)
 }

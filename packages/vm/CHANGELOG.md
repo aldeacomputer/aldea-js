@@ -1,5 +1,11 @@
 # @aldea/vm
 
+## 0.3.3
+
+### Patch Changes
+
+- 3ab9317: Fixes issue where arraybuffers lifted from memory with wrong type
+
 ## 0.3.2
 
 ### Patch Changes
