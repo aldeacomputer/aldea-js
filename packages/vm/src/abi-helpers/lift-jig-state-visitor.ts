@@ -8,7 +8,7 @@ export class LiftJigStateVisitor extends LiftValueVisitor {
 
   visitExportedClass (node: ClassNode, type: TypeNode): any {
     const object = this.visitPlainObject(node, type)
-    return Pointer.fromBytes(object.$output.origin) 
+    return Pointer.fromBytes(new Uint8Array(object.$output.origin))
     // const intRef = new Internref(node.name, Number(this.ptr))
     // const jigRef = this.instance.currentExec.findJigByRef(intRef)
     // return jigRef.origin.toBytes()
@@ -21,7 +21,7 @@ export class LiftJigStateVisitor extends LiftValueVisitor {
     // const ptr = Number(this.ptr)
     // const bufPtr = new Uint32Array(mod.memory.buffer)[ptr >>> 2]
 
-    return Pointer.fromBytes(extRef.originBuf)
+    return Pointer.fromBytes(new Uint8Array(extRef.originBuf))
   }
 
 
@@ -33,5 +33,14 @@ export class LiftJigStateVisitor extends LiftValueVisitor {
   liftValue(type: TypeNode, ptr: WasmPointer): any {
     const childVisitor = new LiftJigStateVisitor(this.abi, this.instance, ptr)
     return childVisitor.travelFromType(type)
+  }
+
+  // Here we override LiftValueVisitor.visitArrayBuffer()
+  // The original method is programmed to return arraybuffers as uint8arrays
+  // But for jig state, BCS really expects an ArrayBuffer
+  // hence this little awkward override
+  visitArrayBuffer(): any {
+    const u8arr = super.visitArrayBuffer()
+    return u8arr.buffer
   }
 }
