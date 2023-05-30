@@ -1,5 +1,13 @@
 # @aldea/sdk
 
+## 0.3.4
+
+### Patch Changes
+
+- Forced version bump to take advantage of improved release script
+- Updated dependencies
+  - @aldea/core@0.3.4
+
 ## 0.3.2
 
 ### Patch Changes

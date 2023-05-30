@@ -1,5 +1,11 @@
 # @aldea/core
 
+## 0.3.4
+
+### Patch Changes
+
+- Forced version bump to take advantage of improved release script
+
 ## 0.3.2
 
 ### Patch Changes

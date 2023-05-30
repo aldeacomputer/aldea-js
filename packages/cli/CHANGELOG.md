@@ -1,5 +1,15 @@
 # @aldea/cli
 
+## 0.2.7
+
+### Patch Changes
+
+- Forced version bump to take advantage of improved release script
+- Updated dependencies
+  - @aldea/compiler@0.2.6
+  - @aldea/sdk@0.3.4
+  - @aldea/wallet-lib@0.2.4
+
 ## 0.2.6
 
 ### Patch Changes

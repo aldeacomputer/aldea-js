@@ -1,5 +1,14 @@
 # @aldea/mocknet
 
+## 0.3.4
+
+### Patch Changes
+
+- Forced version bump to take advantage of improved release script
+- Updated dependencies
+  - @aldea/core@0.3.4
+  - @aldea/vm@0.3.4
+
 ## 0.3.3
 
 ### Patch Changes

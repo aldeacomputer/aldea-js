@@ -1,5 +1,13 @@
 # @aldea/compiler
 
+## 0.2.6
+
+### Patch Changes
+
+- Forced version bump to take advantage of improved release script
+- Updated dependencies
+  - @aldea/core@0.3.4
+
 ## 0.2.5
 
 ### Patch Changes
