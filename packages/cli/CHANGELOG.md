@@ -1,5 +1,11 @@
 # @aldea/cli
 
+## 0.2.6
+
+### Patch Changes
+
+- Fixed issue displaying wallet balance using bigints
+
 ## 0.2.5
 
 ### Patch Changes
