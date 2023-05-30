@@ -1,5 +1,11 @@
 # @aldea/core
 
+## 0.3.2
+
+### Patch Changes
+
+- 0bb0a09: Use correct locktype enum names
+
 ## 0.3.1
 
 ## 0.3.0

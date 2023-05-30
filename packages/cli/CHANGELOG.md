@@ -1,5 +1,13 @@
 # @aldea/cli
 
+## 0.2.5
+
+### Patch Changes
+
+- @aldea/compiler@0.2.5
+- @aldea/sdk@0.3.2
+- @aldea/wallet-lib@0.2.3
+
 ## 0.2.4
 
 ### Patch Changes

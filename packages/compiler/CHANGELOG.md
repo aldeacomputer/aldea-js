@@ -1,5 +1,12 @@
 # @aldea/compiler
 
+## 0.2.5
+
+### Patch Changes
+
+- Updated dependencies [0bb0a09]
+  - @aldea/core@0.3.2
+
 ## 0.2.4
 
 ### Patch Changes
