@@ -23,14 +23,14 @@ async function walletBalance() {
   const outputs = await env.wallet.getInventory()
   const motos = outputs
     .filter(o => o.classPtr.equals(COIN_PTR))
-    .reduce((sum, o) => sum += (<{ motos: number }>o.props).motos, 0)
+    .reduce((sum, o) => sum += (<{ motos: bigint }>o.props).motos, 0n)
 
   log(lightBlue('  ₳'), formatMotos(motos))
   log()
 }
 
-function formatMotos(motos: number): string {
+function formatMotos(motos: bigint): string {
   const ms = motos.toString()
-  const mf = (motos/100000000).toFixed(8)
+  const mf = (Number(motos)/100000000).toFixed(8)
   return dim(mf.slice(0, mf.length - ms.length)) + ms
 }
