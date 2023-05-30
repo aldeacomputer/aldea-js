@@ -1,8 +1,6 @@
 import { buildApp } from '@aldea/mocknet'
 import { MomentClock } from '@aldea/vm'
 
-const PORT = 4004
-
 export async function startMocknet(port) {
   const { app } = await buildApp(new MomentClock())
 
@@ -14,9 +12,3 @@ export async function startMocknet(port) {
     const server = app.listen(port, () => resolve(server))
   })
 }
-
-export function randomPort() {
-  return Math.floor(Math.random() * (MAX_PORT - MIN_PORT + 1) + MIN_PORT)
-}
-
-//await startMocknet(PORT)

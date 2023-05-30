@@ -18,8 +18,8 @@ export enum LockType {
   FROZEN = -1,
   NONE,
   ADDRESS,
-  CALLER,
-  ANYONE,
+  JIG,
+  PUBLIC,
 }
 
 /**
@@ -78,7 +78,7 @@ export const LockSerializer: Serializable<Lock> = {
     if (type === LockType.ADDRESS) {
       data = buf.readFixedBytes(20)
     } else
-    if (type == LockType.CALLER) {
+    if (type == LockType.JIG) {
       data = buf.readFixedBytes(34)
     } else {
       data = buf.readFixedBytes(0)
