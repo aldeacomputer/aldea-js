@@ -197,8 +197,8 @@ export class BCS {
    * Registers the given type encoder.
    */
   registerType<T>(name: string, encoder: BCSEncoderInitParams<T>): void {
-    encoder.assert ||= () => {}
-    encoder.type ||= { name, nullable: false, args: [] }
+    encoder.assert = encoder.assert || (() => {})
+    encoder.type = encoder.type || { name, nullable: false, args: [] }
     this.typeEncoders.set(name, encoder as BCSEncoder<T>)
   }
 
