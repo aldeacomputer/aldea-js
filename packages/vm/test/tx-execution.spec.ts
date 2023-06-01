@@ -642,7 +642,7 @@ describe('execute txs', () => {
 
   it('adds statements for locks', () => {
     const flockPkg = exec.importModule(modIdFor('flock')).asInstance
-    const flockIdx = exec.instantiateByClassName(flockPkg, 'Flock', []).idx
+    exec.instantiateByClassName(flockPkg, 'Flock', []).idx
     exec.lockJigToUserByIndex(1, userAddr)
     const stmt = exec.getStatementResult(2)
     expect(stmt).to.be.instanceof(EmptyStatementResult)

@@ -3,7 +3,7 @@ import {ClassNode, InterfaceNode, TypeNode} from "@aldea/core/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {Externref} from "../memory.js";
 import {LiftValueVisitor} from "./lift-value-visitor.js";
-import {basicJigAbiNode, outputAbiNode, outputTypeNode} from "./well-known-abi-nodes.js";
+import {basicJigAbiNode, outputTypeNode} from "./well-known-abi-nodes.js";
 
 export class LiftJigStateVisitor extends LiftValueVisitor {
 
