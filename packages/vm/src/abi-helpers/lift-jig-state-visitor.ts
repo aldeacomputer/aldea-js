@@ -3,11 +3,13 @@ import {ClassNode, InterfaceNode, TypeNode} from "@aldea/core/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {Externref} from "../memory.js";
 import {LiftValueVisitor} from "./lift-value-visitor.js";
+import {basicJigAbiNode, outputTypeNode} from "./well-known-abi-nodes.js";
 
 export class LiftJigStateVisitor extends LiftValueVisitor {
 
   visitExportedClass (node: ClassNode, type: TypeNode): any {
-    const object = this.visitPlainObject(node, type)
+    const object = this.visitPlainObject(basicJigAbiNode, outputTypeNode)
+
     return Pointer.fromBytes(new Uint8Array(object.$output.origin))
     // const intRef = new Internref(node.name, Number(this.ptr))
     // const jigRef = this.instance.currentExec.findJigByRef(intRef)
