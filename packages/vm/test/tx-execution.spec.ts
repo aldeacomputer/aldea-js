@@ -40,7 +40,8 @@ describe('execute txs', () => {
       'sheep',
       'sheep-counter',
       'weapon',
-      'tower'
+      'tower',
+      'dependency-chain'
     ])
 
     storage = data.storage
@@ -513,6 +514,29 @@ describe('execute txs', () => {
     expect(eaterState[0]).to.eql(ret.outputs[1].origin)
     expect(eaterState[1]).to.eql([])
   })
+
+  it('chain of deps`', () => {
+    const exec = emptyExec([userPriv])
+    const modStmt = exec.importModule(modIdFor('dependency-chain'))
+    const jig1Stmt = exec.instantiateByIndex(modStmt.idx, 0, new Uint8Array())
+    const bcs = new BCS(abiFor('dependency-chain'))
+    const jig2Stmt = exec.instantiateByIndex(modStmt.idx, 1, bcs.encode('Second_constructor', [ref(jig1Stmt.idx)]))
+    const jig3Stmt = exec.instantiateByIndex(modStmt.idx, 2, bcs.encode('Second_constructor', [ref(jig2Stmt.idx)]))
+    exec.lockJigToUserByIndex(jig1Stmt.idx, userAddr)
+    exec.lockJigToUserByIndex(jig2Stmt.idx, userAddr)
+    exec.lockJigToUserByIndex(jig3Stmt.idx, userAddr)
+
+    const result = exec.finalize()
+
+    const state1 = result.outputs[0].parsedState(abiFor('dependency-chain'))
+    expect(state1).to.have.length(0)
+    const state2 = result.outputs[1].parsedState(abiFor('dependency-chain'))
+    expect(state2).to.have.length(1)
+    expect(state2[0]).to.eql(result.outputs[0].origin)
+    const state3 = result.outputs[2].parsedState(abiFor('dependency-chain'))
+    expect(state3).to.have.length(1)
+    expect(state3[0]).to.eql(result.outputs[1].origin)
+  });
 
   it('keeps locking state up to date after lock', () => {
     const exec = emptyExec([userPriv])
