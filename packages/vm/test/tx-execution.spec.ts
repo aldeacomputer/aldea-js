@@ -792,6 +792,82 @@ describe('execute txs', () => {
     expect(parsed[4]).to.eql(newBuff)
   })
 
+  it('can handle properly different sized props', () => {
+    const exec = emptyExec([userPriv])
+    const importStmt = exec.importModule(modIdFor('buff-test'))
+    const newStmt = exec.instantiateByIndex(importStmt.idx, 1, new Uint8Array())
+    exec.lockJigToUserByIndex(newStmt.idx, userAddr)
+
+    const result = exec.finalize()
+
+    const jig = result.outputs[0]
+
+    const parsed = jig.parsedState(abiFor('buff-test'))
+    const buff1 = new Uint8Array(16)
+    const buff2 = new Uint16Array(16)
+    const buff3 = new Uint32Array(16)
+    const buff4 = new BigUint64Array(16)
+    buff1.fill(255)
+    buff2.fill(255)
+    buff3.fill(255)
+    buff4.fill(255n)
+    expect(parsed[0]).to.eql(buff1)
+    expect(parsed[1]).to.eql(1)
+    expect(parsed[2]).to.eql(buff2)
+    expect(parsed[3]).to.eql(2)
+    expect(parsed[4]).to.eql(buff3)
+    expect(parsed[5]).to.eql(3)
+    expect(parsed[6]).to.eql(buff4)
+    expect(parsed[7]).to.eql(4)
+  })
+
+  it('can handle properly collections with typed arrays inside', () => {
+    const exec = emptyExec([userPriv])
+    const importStmt = exec.importModule(modIdFor('buff-test'))
+    const newStmt = exec.instantiateByIndex(importStmt.idx, 2, new Uint8Array())
+    exec.lockJigToUserByIndex(newStmt.idx, userAddr)
+
+    const result = exec.finalize()
+
+    const jig = result.outputs[0]
+
+    const parsed = jig.parsedState(abiFor('buff-test'))
+    const buff1 = new Uint16Array(4)
+    const buff2 = new Uint16Array(4)
+    const buff3 = new Uint16Array(4)
+    const buff4 = new Uint16Array(4)
+    buff1.fill(1)
+    buff2.fill(2)
+    buff3.fill(3)
+    buff4.fill(4)
+    expect(parsed[0]).to.eql([
+      buff1,
+      buff2
+    ])
+    expect(parsed[1]).to.eql(new Set([
+      buff3,
+      buff4
+    ]))
+    const key1 = new Uint16Array(4)
+    const key2 = new Uint16Array(4)
+    const value1 = new Uint16Array(4)
+    const value2 = new Uint16Array(4)
+    key1.fill(5)
+    key2.fill(6)
+    value1.fill(7)
+    value2.fill(8)
+    expect(parsed[2]).to.eql(new Map([
+      [key1, value1],
+      [key2, value2]
+    ]))
+
+    const static1 = new Uint16Array(4)
+    const static2 = new Uint16Array(4)
+    static1.fill(9)
+    static2.fill(10)
+    expect(parsed[3]).to.eql([static1, static2])
+  })
+
   it('can read data properly for typed arrays', () => {
     const exec = emptyExec([userPriv])
     const importStmt = exec.importModule(modIdFor('buff-test'))

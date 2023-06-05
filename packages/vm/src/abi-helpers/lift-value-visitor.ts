@@ -40,7 +40,7 @@ export class LiftValueVisitor extends AbiTraveler<any> {
     const length = memU32[ptr + 12 >>> 2]
     const elBytes = getTypeBytes(innerType)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
-    const TypedArray = getTypedArrayConstructor(innerType)
+    const TypedArray = getTypedArrayForPtr(innerType)
     const values = new Array(length)
 
     for (let i = 0; i < length; i++) {
@@ -64,11 +64,11 @@ export class LiftValueVisitor extends AbiTraveler<any> {
     const elBytes = getTypeBytes(innerType)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
     const length = memU32[ptr - 4 >>> 2] >>> align
-    const TypedArray = getTypedArrayConstructor(innerType)
+    const TypedArray = getTypedArrayForPtr(innerType)
     const values = new Array(length)
 
     for (let i = 0; i < length; i++) {
-      const nextPos = start + ((i << align) >>> 0)
+      const nextPos = start + ((i << align))
       const nextPtr = new TypedArray(mod.memory.buffer)[nextPos >>> align]
       values[i] = this.liftValue(innerType, nextPtr)
     }
@@ -106,13 +106,13 @@ export class LiftValueVisitor extends AbiTraveler<any> {
     const size  = mem32[ptr + 16 >>> 2]
 
     const keyTypeNode = keyType;
-    const KeyTypedArray = getTypedArrayConstructor(keyTypeNode)
+    const KeyTypedArray = getTypedArrayForPtr(keyTypeNode)
     const kBytes = getTypeBytes(keyTypeNode)
     const kAlign = kBytes > 1 ? Math.ceil(kBytes / 3) : 0
     const kEntries = new KeyTypedArray(liftBuffer(mod, start).buffer)
 
     const valueTypeNode = valueType;
-    const ValTypedArray = getTypedArrayConstructor(valueTypeNode)
+    const ValTypedArray = getTypedArrayForPtr(valueTypeNode)
     const vBytes = getTypeBytes(valueTypeNode)
     const vAlign = vBytes > 1 ? Math.ceil(vBytes / 3) : 0
     const vEntries = new ValTypedArray(liftBuffer(mod, start).buffer)
@@ -176,7 +176,7 @@ export class LiftValueVisitor extends AbiTraveler<any> {
     const start = mem32[ptr + 8 >>> 2]
     const size  = mem32[ptr + 16 >>> 2]
 
-    const TypedArray = getTypedArrayConstructor(innerType)
+    const TypedArray = getTypedArrayForPtr(innerType)
     const vBytes = getTypeBytes(innerType)
     const vAlign = vBytes > 1 ? Math.ceil(vBytes / 3) : 0
     const vEntries = new TypedArray(liftBuffer(mod, start).buffer)
