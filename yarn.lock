@@ -155,16 +155,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/piping@workspace:packages/piping":
-  version: 0.0.0-use.local
-  resolution: "@aldea/piping@workspace:packages/piping"
-  dependencies:
-    chai: ^4.3.7
-    mocha: ^10.2.0
-    typescript: ^5.0.4
-  languageName: unknown
-  linkType: soft
-
 "@aldea/sdk@workspace:^, @aldea/sdk@workspace:packages/sdk":
   version: 0.0.0-use.local
   resolution: "@aldea/sdk@workspace:packages/sdk"
