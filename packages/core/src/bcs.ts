@@ -499,8 +499,8 @@ export class BCS {
       }
     })
 
-    this.registerType<BigInt64Array>('BigInt64Array', createTypedArrayEncoder(BigInt64Array))
-    this.registerType<BigUint64Array>('BigUint64Array', createTypedArrayEncoder(BigUint64Array))
+    this.registerType<BigInt64Array>('Int64Array', createTypedArrayEncoder(BigInt64Array))
+    this.registerType<BigUint64Array>('Uint64Array', createTypedArrayEncoder(BigUint64Array))
     this.registerType<Float32Array>('Float32Array', createTypedArrayEncoder(Float32Array))
     this.registerType<Float64Array>('Float64Array', createTypedArrayEncoder(Float64Array))
     this.registerType<Int8Array>('Int8Array', createTypedArrayEncoder(Int8Array))
@@ -617,7 +617,7 @@ function assertTypeNode(type: TypeNode | TypeNode[], n?: number): asserts type i
 // Helper function to create an encoder for the given TypedArray class.
 function createTypedArrayEncoder<T>(TypedArray: { new(buf: ArrayBuffer): T }): BCSEncoderInitParams<T> {
  return {
-  assert: (val) => assert(val instanceof TypedArray, `Pointer expected. recieved: ${val}`),
+  assert: (val) => assert(val instanceof TypedArray, `TypedArray expected. recieved: ${val}`),
    decode: (reader) => {
      const bytes = Uint8Array.from(reader.readSeq(reader => reader.readU8()))
      return new TypedArray(bytes.buffer)

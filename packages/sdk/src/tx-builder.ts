@@ -18,6 +18,7 @@ import {
   Abi,
   ClassNode,
   FunctionNode,
+  ImportNode,
   TypeNode,
   findClass,
   findFunction,
@@ -376,18 +377,28 @@ export class TxBuilder {
 
   // Returns a typed instruction result from a method/function call
   private async resultFromReturnType(abi: Abi, rtype: TypeNode | null): Promise<InstructionResult> {
-    const exported = rtype && findClass(abi, rtype.name)
-    const imported = rtype && findImport(abi, rtype.name)
+    if (rtype) {
+      let exported: ClassNode | void
+      let imported: ImportNode | void
 
-    if (exported) {
-      const exportIdx = abi.exports.findIndex(e => e.code === exported)
-      return jigResult(abi, exportIdx)
-    }
-    if (imported) {
-      const remoteAbi = await this.aldea.getPackageAbi(imported.pkg)
-      const klass = findClass(remoteAbi, imported.name, `class not found: ${ imported.name }`)
-      const exportIdx = remoteAbi.exports.findIndex(e => e.code === klass)
-      return jigResult(remoteAbi, exportIdx)
+      if (rtype.name === 'Coin') {
+        const coinAbi = await this.aldea.getPackageAbi('0000000000000000000000000000000000000000000000000000000000000000')
+        const klass = findClass(coinAbi, 'Coin', `class not found: Coin`)
+        const exportIdx = coinAbi.exports.findIndex(e => e.code === klass)
+        return jigResult(coinAbi, exportIdx)
+      }
+
+      if (exported = findClass(abi, rtype.name)) {
+        const exportIdx = abi.exports.findIndex(e => e.code === exported)
+        return jigResult(abi, exportIdx)
+      }
+      
+      if (imported = findImport(abi, rtype.name)) {
+        const remoteAbi = await this.aldea.getPackageAbi(imported.pkg)
+        const klass = findClass(remoteAbi, imported.name, `class not found: ${ imported.name }`)
+        const exportIdx = remoteAbi.exports.findIndex(e => e.code === klass)
+        return jigResult(remoteAbi, exportIdx)
+      }
     }
 
     // todo - can return a "typed result" when we know the type
