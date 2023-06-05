@@ -3,7 +3,7 @@ import {Abi, ArgNode, ClassNode, FieldNode, FunctionNode, findField, TypeNode} f
 import {JigRef} from "./jig-ref.js"
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
-import {getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
+import {getObjectMemLayout, getTypedArrayForPtr, Internref} from "./memory.js";
 import {ArgReader, readType, WasmPointer} from "./arg-reader.js";
 import {LiftValueVisitor} from "./abi-helpers/lift-value-visitor.js";
 import {LowerValueVisitor} from "./abi-helpers/lower-value-visitor.js";
@@ -391,7 +391,7 @@ export class WasmInstance {
 
     const offsets = getObjectMemLayout(classNode)
     const { offset, align } = offsets[field.name]
-    const TypedArray = getTypedArrayConstructor(field.type)
+    const TypedArray = getTypedArrayForPtr(field.type)
     const ptr = new TypedArray(this.memory.buffer)[ref.ptr + offset >>> align]
     return this.extractValue(ptr, field.type)
   }
