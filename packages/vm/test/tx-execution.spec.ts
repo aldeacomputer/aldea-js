@@ -868,6 +868,60 @@ describe('execute txs', () => {
     expect(parsed[3]).to.eql([static1, static2])
   })
 
+  it('can lower collections containing typed arrays properly', () => {
+    const exec = emptyExec([userPriv])
+    const importStmt = exec.importModule(modIdFor('buff-test'))
+    const newStmt = exec.instantiateByIndex(importStmt.idx, 2, new Uint8Array())
+    exec.lockJigToUserByIndex(newStmt.idx, userAddr)
+
+    const result = exec.finalize()
+    storage.persist(result)
+
+    const jig = result.outputs[0]
+
+    const exec2 = emptyExec([userPriv])
+    const loadStmt = exec2.loadJigByOutputId(jig.id())
+    exec2.callInstanceMethodByIndex(loadStmt.idx, 1, new Uint8Array(0))
+    const result2 = exec2.finalize()
+
+    const finalJig = result2.outputs[0]
+
+    const parsed = finalJig.parsedState(abiFor('buff-test'))
+    const array1 = new Uint16Array(4)
+    const array2 = new Uint16Array(4)
+    array1.fill(1 * 2)
+    array2.fill(2 * 2)
+    expect(parsed[0]).to.eql([
+      array1,
+      array2
+    ])
+    const set1 = new Uint16Array(4)
+    const set2 = new Uint16Array(4)
+    set1.fill(3 * 2)
+    set2.fill(4 * 2)
+    expect(parsed[1]).to.eql(new Set([set1, set2]))
+
+    const key1 = new Uint16Array(4)
+    const key2 = new Uint16Array(4)
+    const value1 = new Uint16Array(4)
+    const value2 = new Uint16Array(4)
+    key1.fill(5 * 2)
+    key2.fill(6 * 2)
+    value1.fill(7 * 2)
+    value2.fill(8 * 2)
+    expect(parsed[2]).to.eql(new Map([
+      [key1, value1],
+      [key2, value2]
+    ]))
+
+    const static1 = new Uint16Array(4)
+    const static2 = new Uint16Array(4)
+    static1.fill(9 * 2)
+    static2.fill(10 * 2)
+    expect(parsed[3]).to.eql([static1, static2])
+  })
+
+
   it('can read data properly for typed arrays', () => {
     const exec = emptyExec([userPriv])
     const importStmt = exec.importModule(modIdFor('buff-test'))

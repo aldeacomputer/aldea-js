@@ -2,7 +2,13 @@ import {base16} from "@aldea/core";
 import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/core/abi";
 import {AbiTraveler} from "./abi-traveler.js";
 import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
-import {getElementBytes, getObjectMemLayout, getTypeBytes, getTypedArrayConstructor} from "../memory.js";
+import {
+  getElementBytes,
+  getObjectMemLayout,
+  getTypeBytes,
+  getTypedArrayConstructor,
+  getTypedArrayForPtr
+} from "../memory.js";
 import {WasmPointer} from "../arg-reader.js";
 import {blake3} from "@noble/hashes/blake3";
 import {bytesToHex as toHex} from "@noble/hashes/utils";
@@ -58,7 +64,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     const rtid = mod.abi.rtidFromTypeNode({ name: 'Array', args: [innerType], nullable: false })
     const elBytes = getTypeBytes(innerType)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
-    const TypedArray = getTypedArrayConstructor(innerType)
+    const TypedArray = getTypedArrayForPtr(innerType)
 
     const length = val.length
     const buffer = mod.__pin(mod.__new((length << align), BUFFER_RTID))
@@ -85,7 +91,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     const rtid = mod.abi.rtidFromTypeNode({name: 'StaticArray', args: [innerType], nullable: false})
     const elBytes = getTypeBytes(innerType)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
-    const TypedArray = getTypedArrayConstructor(innerType)
+    const TypedArray = getTypedArrayForPtr(innerType)
 
     const length = val.length
     const size = val.length << align;

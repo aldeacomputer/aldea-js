@@ -86,4 +86,35 @@ export class BuffCollectionTest extends Jig {
     this.staticArray[0] = static1
     this.staticArray[1] = static2
   }
+
+  m1 (): void {
+    this.array.forEach((arr) => {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = arr[i] * 2
+      }
+    })
+    this.set.values().forEach(arr => {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = arr[i] * 2
+      }
+    })
+
+    this.map.keys().forEach(arr => {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = arr[i] * 2
+      }
+    })
+
+    this.map.values().forEach(arr => {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = arr[i] * 2
+      }
+    })
+
+    this.staticArray.forEach(arr => {
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = arr[i] * 2
+      }
+    })
+  }
 }
