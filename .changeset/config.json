@@ -10,7 +10,6 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
-    "@aldea/docs",
-    "@aldea/piping"
+    "@aldea/docs"
   ]
 }

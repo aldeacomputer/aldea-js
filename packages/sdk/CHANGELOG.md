@@ -1,5 +1,14 @@
 # @aldea/sdk
 
+## 0.3.5
+
+### Patch Changes
+
+- 7514369: Fixes issue where TxBuilder did not correctly determine Coin class from method return types.
+- Updated dependencies [7277a72]
+- Updated dependencies [7514369]
+  - @aldea/core@0.3.5
+
 ## 0.3.4
 
 ### Patch Changes

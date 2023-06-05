@@ -1,5 +1,15 @@
 # @aldea/vm
 
+## 0.3.5
+
+### Patch Changes
+
+- 7277a72: Fix dependency chain serialization bug
+- Updated dependencies [7277a72]
+- Updated dependencies [7514369]
+  - @aldea/core@0.3.5
+  - @aldea/compiler@0.2.7
+
 ## 0.3.4
 
 ### Patch Changes

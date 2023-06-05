@@ -1,5 +1,12 @@
 # @aldea/core
 
+## 0.3.5
+
+### Patch Changes
+
+- 7277a72: Fix dependency chain serialization bug
+- 7514369: Fixed BCS bug with naming of AssemblyScript uint64arrays and int64arrays
+
 ## 0.3.4
 
 ### Patch Changes
