@@ -85,6 +85,35 @@ export function getTypedArrayConstructor(type: TypeNode) {
   }
 }
 
+export function getTypedArrayForPtr(type: TypeNode) {
+  switch (type.name) {
+    case 'i8':
+      return Int8Array
+    case 'i16':
+      return Int16Array
+    case 'i32':
+      return Int32Array
+    case 'i64':
+      return BigInt64Array
+    case 'f32':
+      return Float32Array
+    case 'f64':
+      return Float64Array
+    case 'u8':
+      return Uint8Array
+    case 'u16':
+      return Uint16Array
+    case 'u32':
+      return Uint32Array
+    case 'u64':
+      return BigUint64Array
+    default:
+      return Uint32Array
+  }
+}
+
+
+
 export function getTypeBytes(type: TypeNode): number {
   switch (type.name) {
     case 'i8':

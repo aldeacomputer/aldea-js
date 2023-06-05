@@ -41,7 +41,8 @@ describe('execute txs', () => {
       'sheep-counter',
       'weapon',
       'tower',
-      'dependency-chain'
+      'dependency-chain',
+      'buff-test'
     ])
 
     storage = data.storage
@@ -736,6 +737,72 @@ describe('execute txs', () => {
 
     const lock = ret.outputs[0].lockObject()
     expect(lock.data).to.eql(addr2.hash)
+  })
+
+  it('manages correctly buffers', () => {
+    const exec = emptyExec([userPriv])
+    const importStmt = exec.importModule(modIdFor('buff-test'))
+    const newStmt = exec.instantiateByIndex(importStmt.idx, 0, new Uint8Array())
+    exec.lockJigToUserByIndex(newStmt.idx, userAddr)
+
+    const result = exec.finalize()
+
+    const jig = result.outputs[0]
+
+    const parsed = jig.parsedState(abiFor('buff-test'))
+
+    const buff1 = new ArrayBuffer(16);
+    new Uint8Array(buff1).fill(255)
+    expect(parsed[0]).to.eql(buff1)
+    expect(parsed[1]).to.eql('----------')
+    const buff2 = new Uint8Array(16)
+    buff2.fill(255)
+    expect(parsed[2]).to.eql(buff2)
+    expect(parsed[3]).to.eql('----------')
+    const buff3 = new Uint16Array(16)
+    buff3.fill(255)
+    expect(parsed[4]).to.eql(buff3)
+    expect(parsed[5]).to.eql('----------')
+    const buff4 = new Uint32Array(16)
+    buff4.fill(255)
+    expect(parsed[6]).to.eql(buff4)
+    expect(parsed[7]).to.eql('----------')
+    const buff5 = new BigUint64Array(16)
+    buff5.fill(255n)
+    expect(parsed[8]).to.eql(buff5)
+  })
+
+
+  it('can write data in the right place', () => {
+    const exec = emptyExec([userPriv])
+    const importStmt = exec.importModule(modIdFor('buff-test'))
+    const newStmt = exec.instantiateByIndex(importStmt.idx, 0, new Uint8Array())
+    exec.lockJigToUserByIndex(newStmt.idx, userAddr)
+
+
+    const newBuff = new Uint16Array(16)
+    newBuff.fill(2)
+    newStmt.asJig().writeField('u16', newBuff)
+
+    const result = exec.finalize()
+
+    const jig = result.outputs[0]
+
+    const parsed = jig.parsedState(abiFor('buff-test'))
+    expect(parsed[4]).to.eql(newBuff)
+  })
+
+  it('can read data properly for typed arrays', () => {
+    const exec = emptyExec([userPriv])
+    const importStmt = exec.importModule(modIdFor('buff-test'))
+    const newStmt = exec.instantiateByIndex(importStmt.idx, 0, new Uint8Array())
+    exec.lockJigToUserByIndex(newStmt.idx, userAddr)
+
+
+    const value = importStmt.asInstance.getPropValue(newStmt.asJig().ref, 0, 'u16')
+    const buff = new Uint16Array(16)
+    buff.fill(255)
+    expect(value.value).to.eql(buff)
   })
 
   // it('tower magic', () => {

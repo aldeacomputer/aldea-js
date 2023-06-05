@@ -14,7 +14,7 @@ import {
   Externref,
   getObjectMemLayout,
   getTypeBytes,
-  getTypedArrayConstructor,
+  getTypedArrayConstructor, getTypedArrayForPtr,
   Internref,
   liftBuffer
 } from "../memory.js";
@@ -144,7 +144,7 @@ export class LiftValueVisitor extends AbiTraveler<any> {
     const ptr = Number(this.ptr)
     const offsets = getObjectMemLayout(objNode)
     return objNode.fields.reduce((obj: any, n: FieldNode, _i) => {
-      const TypedArray = getTypedArrayConstructor(n.type)
+      const TypedArray = getTypedArrayForPtr(n.type)
       const { align, offset } = offsets[n.name]
       const nextPtr = new TypedArray(mod.memory.buffer)[ptr + offset >>> align]
       obj[n.name] = this.liftValue(n.type, nextPtr)

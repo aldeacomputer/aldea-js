@@ -1,6 +1,6 @@
 import {WasmInstance} from './wasm-instance.js';
 import {Lock} from "./locks/lock.js";
-import {Externref, getObjectMemLayout, getTypedArrayConstructor, Internref} from "./memory.js";
+import {Externref, getObjectMemLayout, getTypedArrayForPtr, Internref} from "./memory.js";
 import {Pointer} from "@aldea/core";
 import {ClassNodeWrapper} from "./abi-helpers/class-node-wrapper.js";
 
@@ -65,7 +65,7 @@ export class JigRef  {
     const abiNode = this.package.abi.classByName(this.className())
     const fieldNode = abiNode.fieldByName(fieldName)
     const layout = getObjectMemLayout(abiNode)
-    const TypedArray = getTypedArrayConstructor(fieldNode.type)
+    const TypedArray = getTypedArrayForPtr(fieldNode.type)
     const mem32 = new TypedArray(this.package.memory.buffer, this.ref.ptr)
     const { align, offset } = layout[fieldName]
 
