@@ -1,9 +1,0 @@
-{
-  "node-option": [
-    "loader=ts-node/esm"
-  ],
-  "spec": ["spec/**/*.ts"],
-  "recursive": true,
-  "reporter": "spec",
-  "extension": ".spec.ts"
-}
