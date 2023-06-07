@@ -19,12 +19,12 @@ export class LowerJigStateVisitor extends LowerValueVisitor {
   visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
     const jig = this.instance.currentExec.findJigByOrigin(this.value)
     const className = jig.className();
-    const typenode = emptyTn(className);
     if (jig.package === this.instance) {
       const classNode = this.abi.classByName(className)
-      return this.visitExportedClass(classNode, typenode)
+      const concreteType = emptyTn(className);
+      return this.visitExportedClass(classNode, concreteType)
     } else {
-      return this.visitImportedClass(typenode, base16.encode(jig.package.id))
+      return this.visitImportedClass(typeNode, base16.encode(jig.package.id))
     }
   }
 

@@ -97,9 +97,12 @@ export abstract class AbiTraveler<T> {
           const plainObjectNode = this.abi.objectByName(typeName)
           return this.visitPlainObject(plainObjectNode, typeNode)
         }
-        if (this.abi.interfaceNameExists(typeName)) {
+        if (this.abi.exportedInterfaceNameExists(typeName)) {
           const anInterface = this.abi.interfaceByName(typeName)
           return this.visitInterface(anInterface, typeNode)
+        }
+        if (this.abi.importedInterfaceExists(typeName)) {
+          return this.visitInterface({} as any, typeNode)
         }
     }
     throw new Error(`unknown type: ${typeName}`)

@@ -33,16 +33,18 @@ describe('execute txs', () => {
     const data = buildVm([
       'ant',
       'basic-math',
+      'buff-test',
       'coin-eater',
+      'dependency-chain',
       'flock',
       'forever-counter',
+      'gym',
       'nft',
+      'runner',
       'sheep',
       'sheep-counter',
-      'weapon',
       'tower',
-      'dependency-chain',
-      'buff-test'
+      'weapon'
     ])
 
     storage = data.storage
@@ -933,6 +935,92 @@ describe('execute txs', () => {
     const buff = new Uint16Array(16)
     buff.fill(255)
     expect(value.value).to.eql(buff)
+  })
+
+  it('can lower an imported interface', () => {
+    const result1 = ((): ExecutionResult => {
+      const exec1 = emptyExec([userPriv])
+      const modStmt = exec1.importModule(modIdFor('gym'))
+      const gymStmt = exec1.instantiateByIndex(modStmt.idx, 0, new Uint8Array())
+      exec1.lockJigToUserByIndex(gymStmt.idx, userAddr)
+      return exec1.finalize()
+    })()
+    storage.persist(result1)
+
+    const result2 = ((): ExecutionResult => {
+      const exec = emptyExec([userPriv, userPriv])
+      const modStmt = exec.importModule(modIdFor('runner'))
+      const runner1 = exec.instantiateByIndex(modStmt.idx, 1, new Uint8Array())
+      const runner2 = exec.instantiateByIndex(modStmt.idx, 1, new Uint8Array())
+      exec.lockJigToUserByIndex(runner1.idx, userAddr)
+      exec.lockJigToUserByIndex(runner2.idx, userAddr)
+      return exec.finalize()
+    })()
+    storage.persist(result2)
+
+    const result3 = ((): ExecutionResult => {
+      const exec = emptyExec([userPriv, userPriv, userPriv])
+      const load1 = exec.loadJigByOutputId(result2.outputs[0].id())
+      const load2 = exec.loadJigByOutputId(result2.outputs[1].id())
+      const loadGym = exec.loadJigByOutputId(result1.outputs[0].id())
+      const bcs = new BCS(abiFor('gym'))
+      exec.callInstanceMethodByIndex(loadGym.idx, 1, bcs.encode('Gym$subscribe', [ref(load1.idx)]))
+      exec.callInstanceMethodByIndex(loadGym.idx, 1, bcs.encode('Gym$subscribe', [ref(load2.idx)]))
+      return exec.finalize()
+    })()
+    storage.persist(result3)
+
+    expect(result3.outputs).to.have.length(3)
+    expect(result3.outputs[1].lockData()).to.eql(result1.outputs[0].origin.toBytes())
+    expect(result3.outputs[2].lockData()).to.eql(result1.outputs[0].origin.toBytes())
+    expect(result3.outputs[1].parsedState(abiFor('runner'))).to.eql([[0, 0], 100])
+    expect(result3.outputs[2].parsedState(abiFor('runner'))).to.eql([[0, 0], 100])
+
+    const result4 = ((): ExecutionResult => {
+      const exec = emptyExec([userPriv, userPriv, userPriv, userPriv])
+      const load = exec.loadJigByOutputId(result3.outputs[0].id())
+      const modStmt = exec.importModule(modIdFor('runner'))
+      const runner = exec.instantiateByIndex(modStmt.idx, 1, new Uint8Array())
+      const bcs = new BCS(abiFor('gym'))
+      exec.callInstanceMethodByIndex(load.idx, 1, bcs.encode('Gym$subscribe', [ref(runner.idx)]))
+      return exec.finalize()
+    })()
+    storage.persist(result4)
+
+    const parsed = result4.outputs[1].parsedState(abiFor('gym'));
+    expect(parsed).to.have.length(1)
+    expect(parsed[0]).to.have.length(3)
+    expect(parsed[0].map((a: Pointer) => a.toString())).to.have.members([
+      ...result2.outputs.map(o => o.origin),
+      result4.outputs[0].origin
+    ].map((a: Pointer) => a.toString()))
+
+
+    const result5 = ((): ExecutionResult => {
+      const exec = emptyExec([userPriv, userPriv, userPriv, userPriv, userPriv])
+      const load = exec.loadJigByOutputId(result4.outputs[1].id())
+      exec.callInstanceMethodByIndex(load.idx, 2, new Uint8Array(0))
+      return exec.finalize()
+    })()
+    storage.persist(result5)
+    expect(result5.outputs).to.have.length(4)
+    expect(result5.outputs[0].classPtr().idBuf).to.eql(modIdFor('gym'))
+    for (let output of result5.outputs.slice(1)) {
+      expect(output.classPtr().idBuf).to.eql(modIdFor('runner'))
+      expect(output.parsedState(abiFor('runner'))).to.eql([[100, 100], 100])
+    }
+
+    const result6 = ((): ExecutionResult => {
+      const exec = emptyExec([userPriv, userPriv, userPriv, userPriv, userPriv, userPriv])
+      const gym = exec.loadJigByOutputId(result5.outputs[0].id())
+      const runner = exec.loadJigByOutputId(result5.outputs[1].id())
+      const bcs = new BCS(abiFor('gym'))
+      const unsuscribed = exec.callInstanceMethodByIndex(gym.idx, 3, bcs.encode('Gym$unsubscribe', [ref(runner.idx)]))
+      exec.lockJigToUserByIndex(unsuscribed.idx, userAddr)
+      return exec.finalize()
+    })()
+
+    expect(result6.outputs[1].lockData()).to.eql(userAddr.hash)
   })
 
   // it('tower magic', () => {

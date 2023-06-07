@@ -16,8 +16,8 @@ export class LiftArgumentVisitor extends LiftValueVisitor {
     return this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(externRef.originBuf))
   }
 
-  visitInterface(anInterface: InterfaceNode, _typeNode: TypeNode): any {
-    throw new Error('not implemented yet')
+  visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): any {
+    return super.visitInterface(anInterface, typeNode)
   }
 
   liftValue(type: TypeNode, ptr: WasmPointer): any {

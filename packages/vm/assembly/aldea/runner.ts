@@ -1,4 +1,4 @@
-export interface Runner{
+export interface Runner extends Jig{
   speed(): number;
   run(energy: u32): void;
 }

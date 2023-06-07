@@ -155,8 +155,12 @@ export class AbiAccess {
     return this.objects.some(obj => obj.name === typeName);
   }
 
-  interfaceNameExists(typeName: string): boolean {
+  exportedInterfaceNameExists(typeName: string): boolean {
     return this.exports.some(exp => exp.kind === CodeKind.INTERFACE && exp.code.name === typeName)
+  }
+
+  importedInterfaceExists(typeName: string): boolean {
+    return this.imports.some(imp => imp.kind === CodeKind.INTERFACE && imp.name === typeName)
   }
 
   importByName(typeName: any): ImportNode {

@@ -25,7 +25,10 @@ export class LowerArgumentVisitor extends LowerValueVisitor {
     return childVisitor.travelFromType(type)
   }
 
-  visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
+  visitInterface(_anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
+    if (isInstructionRef(this.value)) {
+      this.value = this.instance.currentExec.getStatementResult(this.value.idx).asJig()
+    }
     const jigRef = this.value as JigRef
     if (this.instance === jigRef.package) {
       const classNode = jigRef.package.abi.classByName(jigRef.className())

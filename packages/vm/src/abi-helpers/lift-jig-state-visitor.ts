@@ -27,9 +27,8 @@ export class LiftJigStateVisitor extends LiftValueVisitor {
   }
 
 
-  visitInterface(anInterface: InterfaceNode, _typeNode: TypeNode): any {
-
-    return super.visitInterface(anInterface, _typeNode)
+  visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): any {
+    return super.visitInterface(anInterface, typeNode)
   }
 
   liftValue(type: TypeNode, ptr: WasmPointer): any {
