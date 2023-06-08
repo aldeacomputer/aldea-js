@@ -18,6 +18,7 @@ export const compile = createCommand('compile')
   .addOption(createOption('--docs', 'Create docs file').default(false))
   .addOption(createOption('--wat', 'Create .wat file').default(false))
   .addOption(createOption('-d, --dry-run', 'Dry run only').default(false))
+  .addOption(createOption('-i, --inspect', 'Print out transformed code').default(false).hideHelp())
   .action(compileCode)
 
 interface Opts extends OptionValues {
@@ -32,6 +33,8 @@ interface Opts extends OptionValues {
 async function compileCode(sources: string[], opts: Opts) {
   log(bold('Building package...'))
   log()
+
+  console.log({ opts })
 
   await env.loadWallet()
   const pkg = buildPkg(sources)
@@ -57,6 +60,10 @@ async function compileCode(sources: string[], opts: Opts) {
   log()
   ok(`Successfull compiled ${pkg.size} files`)
   log()
+  if (opts.inspect) {
+    log(res.stats.toString())
+    log(res.stdout.toString())
+  }
 }
 
 // Parse package name
