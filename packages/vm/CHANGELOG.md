@@ -1,5 +1,11 @@
 # @aldea/vm
 
+## 0.3.6
+
+### Patch Changes
+
+- 89af1e7: Fix typed lifting and lowering behavior for typed arrays.
+
 ## 0.3.5
 
 ### Patch Changes

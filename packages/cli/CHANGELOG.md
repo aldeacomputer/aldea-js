@@ -1,5 +1,12 @@
 # @aldea/cli
 
+## 0.2.9
+
+### Patch Changes
+
+- b01d1dd: Usability improvements
+  - @aldea/wallet-lib@0.2.5
+
 ## 0.2.8
 
 ### Patch Changes
