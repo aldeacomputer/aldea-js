@@ -149,6 +149,25 @@ describe('execute txs', () => {
     })
   })
 
+  it('accessing class ptr works', () => {
+    const exec = emptyExec([userPriv])
+    const flockWasm = exec.importModule(modIdFor('flock'))
+    const counterWasm = exec.importModule(modIdFor('sheep-counter'))
+    const flock = exec.instantiateByClassName(flockWasm.asInstance, 'Flock', [])
+    const shepherd = exec.instantiateByClassName(counterWasm.asInstance, 'Shepherd', [flock.asJig()])
+    exec.lockJigToUser(shepherd.asJig(), userAddr)
+    const result = exec.finalize()
+    storage.persist(result)
+
+    const exec2 = emptyExec([userPriv, userPriv])
+    const loaded = exec2.loadJigByOutputId(result.outputs[1].id())
+    const classPtrStmt = exec2.callInstanceMethod(loaded.asJig(), 'myClassPtr', [])
+    const flockClassPtrStmt = exec2.callInstanceMethod(loaded.asJig(), 'flockClassPtr', [])
+
+    expect(classPtrStmt.value).to.eql(new Pointer(modIdFor('sheep-counter'), 1).toBytes())
+    expect(flockClassPtrStmt.value).to.eql(new Pointer(modIdFor('flock'), 0).toBytes())
+  })
+
   it('fails if the tx is trying to lock an already locked jig', () => {
     const flockWasm = exec.importModule(modIdFor('flock'))
     const counterWasm = exec.importModule(modIdFor('sheep-counter'))

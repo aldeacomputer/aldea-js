@@ -184,7 +184,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     const offsets = getObjectMemLayout(objNode)
 
     objNode.fields.forEach((n: FieldNode, i: number) => {
-      const TypedArray = getTypedArrayConstructor(n.type)
+      const TypedArray = getTypedArrayForPtr(n.type)
       const mem = new TypedArray(mod.memory.buffer, ptr, bytes)
       const { align, offset } = offsets[n.name]
       mem[offset >>> align] = this.lowerValue(value[i], n.type)

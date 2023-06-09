@@ -83,7 +83,7 @@ export class JigState {
     return {
       origin: this.origin.toBytes(),
       location: this.currentLocation.toBytes(),
-      classPtr: this.output.classPtr
+      classPtr: this.output.classPtr.toBytes()
     }
   }
 

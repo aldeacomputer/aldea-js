@@ -82,6 +82,13 @@ export class Shepherd extends Jig {
     ExternalFlockOperations.growFlock(this.flock)
   }
 
+  myClassPtr (): ArrayBuffer {
+    return this.$output.classPtr
+  }
+
+  flockClassPtr (): ArrayBuffer {
+    return this.flock.$output.classPtr
+  }
 
   flockOrigin (): ArrayBuffer {
     return this.flock.$output.origin
