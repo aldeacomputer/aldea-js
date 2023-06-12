@@ -1,29 +1,33 @@
 import {
   Address,
+  base16,
   BCS,
+  ed25519,
   HDPrivKey,
   Instruction,
   InstructionRef,
   OpCode,
   Pointer,
   PrivKey,
-  Tx,
-  base16,
-  ed25519,
   ref,
+  Tx,
   util,
 } from '@aldea/core'
 
 import {
   Abi,
   ClassNode,
-  FunctionNode,
-  ImportNode,
-  TypeNode,
+  CodeKind,
+  ExportNode,
   findClass,
   findFunction,
   findImport,
+  findInterface,
   findMethod,
+  FunctionNode,
+  ImportNode,
+  InterfaceNode,
+  TypeNode,
 } from '@aldea/core/abi'
 
 import {
@@ -41,7 +45,7 @@ import {
   SignToInstruction,
 } from '@aldea/core/instructions'
 
-import { Aldea } from './aldea.js'
+import {Aldea} from './aldea.js'
 
 /**
  * Build step function that must return an Instruction to append to the built
@@ -378,8 +382,9 @@ export class TxBuilder {
   // Returns a typed instruction result from a method/function call
   private async resultFromReturnType(abi: Abi, rtype: TypeNode | null): Promise<InstructionResult> {
     if (rtype) {
-      let exported: ClassNode | void
+      let exported: ExportNode | void
       let imported: ImportNode | void
+      let interfaceNode: InterfaceNode | void
 
       if (rtype.name === 'Coin') {
         const coinAbi = await this.aldea.getPackageAbi('0000000000000000000000000000000000000000000000000000000000000000')
@@ -388,15 +393,22 @@ export class TxBuilder {
         return jigResult(coinAbi, exportIdx)
       }
 
-      if (exported = findClass(abi, rtype.name)) {
-        const exportIdx = abi.exports.findIndex(e => e.code === exported)
+      if (exported = abi.exports.find(e => e.code.name === rtype.name)) {
+        if (exported.kind !== CodeKind.CLASS && exported.kind !== CodeKind.INTERFACE) throw new Error(`Type ${rtype.name} not found`)
+        const exportIdx = abi.exports.findIndex(e => e === exported)
         return jigResult(abi, exportIdx)
       }
-      
-      if (imported = findImport(abi, rtype.name)) {
+
+      imported = findImport(abi, rtype.name)
+
+      if (imported) {
+        const name = imported.name
         const remoteAbi = await this.aldea.getPackageAbi(imported.pkg)
-        const klass = findClass(remoteAbi, imported.name, `class not found: ${ imported.name }`)
-        const exportIdx = remoteAbi.exports.findIndex(e => e.code === klass)
+        const exportIdx = remoteAbi.exports.findIndex(e => e.code.name === name)
+        const exportedNode = remoteAbi.exports[exportIdx]
+        if (!exportedNode || exportedNode.kind === CodeKind.FUNCTION) {
+          throw new Error(`jig type ${rtype.name} not found`)
+        }
         return jigResult(remoteAbi, exportIdx)
       }
     }
