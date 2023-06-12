@@ -277,13 +277,13 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     return 0
   }
 
-  visitInterface(anInterface: InterfaceNode, _typeNode: TypeNode): WasmPointer {
+  visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
     const jig = this.value as JigRef
-    const className = jig.className();
-    const typeNode = emptyTn(className);
     if (jig.package === this.instance) {
+      const className = jig.className();
+      const concreteTypeNode = emptyTn(className);
       const classNode = this.abi.classByName(className)
-      return this.visitExportedClass(classNode, typeNode)
+      return this.visitExportedClass(classNode, concreteTypeNode)
     } else {
       return this.visitImportedClass(typeNode, base16.encode(jig.package.id))
     }
