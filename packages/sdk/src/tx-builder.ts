@@ -393,14 +393,14 @@ export class TxBuilder {
         return jigResult(coinAbi, exportIdx)
       }
 
-      if (exported = abi.exports.find(e => e.code.name === rtype.name)) {
+      exported = abi.exports.find(e => e.code.name === rtype.name)
+      if (exported) {
         if (exported.kind !== CodeKind.CLASS && exported.kind !== CodeKind.INTERFACE) throw new Error(`Type ${rtype.name} not found`)
         const exportIdx = abi.exports.findIndex(e => e === exported)
         return jigResult(abi, exportIdx)
       }
 
       imported = findImport(abi, rtype.name)
-
       if (imported) {
         const name = imported.name
         const remoteAbi = await this.aldea.getPackageAbi(imported.pkg)
