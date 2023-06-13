@@ -161,10 +161,26 @@ test('verifies all the signatures in a built transaction', async t => {
   t.true(tx1.verify())
 })
 
-test.only('can return an exported interface', async (t) => {
+test('can return an exported interface', async (t) => {
   const tx1 = await t.context.aldea.createTx((txb) => {
     const pkg = txb.import('7af6e8a506ec7a9809a2d36d644da7ba0d01b1c98d54971e369401aaaffc57c9')
     const instance = txb.new(pkg, 'Implementation1', [])
+    const m2Result = txb.call(instance, 'm2', [])
+    txb.call(m2Result, 'm1', [])
+    txb.sign(t.context.keys.privKey)
+  })
+
+  t.is(tx1.instructions[0].opcode, OpCode.IMPORT)
+  t.is(tx1.instructions[1].opcode, OpCode.NEW)
+  t.is(tx1.instructions[2].opcode, OpCode.CALL)
+  t.is(tx1.instructions[3].opcode, OpCode.CALL)
+  t.is(tx1.instructions[4].opcode, OpCode.SIGN)
+})
+
+test('can return an imported interface', async (t) => {
+  const tx1 = await t.context.aldea.createTx((txb) => {
+    const pkg = txb.import('4926568f20945add633b82aa6b78081967e61522ca08968def58dd588e3362e9')
+    const instance = txb.new(pkg, 'AnotherImplementation', [])
     const m2Result = txb.call(instance, 'm2', [])
     txb.call(m2Result, 'm1', [])
     txb.sign(t.context.keys.privKey)
