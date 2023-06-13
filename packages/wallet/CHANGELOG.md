@@ -1,5 +1,11 @@
 # @aldea/wallet-lib
 
+## 0.2.6
+
+### Patch Changes
+
+- 15159ca: Added possibility to specify LowDB builder on wallet lowdb storage.
+
 ## 0.2.5
 
 ### Patch Changes

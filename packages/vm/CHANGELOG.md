@@ -1,5 +1,12 @@
 # @aldea/vm
 
+## 0.3.7
+
+### Patch Changes
+
+- 19064e8: Fix lower jigs with right class ptr.
+- 8013359: Fix issues lowering and lifting interfaces.
+
 ## 0.3.6
 
 ### Patch Changes

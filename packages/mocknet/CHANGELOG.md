@@ -1,5 +1,13 @@
 # @aldea/mocknet
 
+## 0.3.7
+
+### Patch Changes
+
+- Updated dependencies [19064e8]
+- Updated dependencies [8013359]
+  - @aldea/vm@0.3.7
+
 ## 0.3.6
 
 ### Patch Changes
