@@ -38,8 +38,8 @@ export interface LowDbData {
 
 export class LowDbStorage implements WalletStorage {
   db: Low<LowDbData>
-  constructor(adapter: Adapter<LowDbData>) {
-    this.db = new Low(adapter, {
+  constructor(adapter: Adapter<LowDbData>, LowConstructor: typeof Low = Low) {
+    this.db = new LowConstructor(adapter, {
       utxos: [],
       txs: [],
       addresses: [],

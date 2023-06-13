@@ -60,7 +60,7 @@ esbuild.build({
 esbuild.build({
   entryPoints: ['src/index.ts'],
   outfile: 'dist/wallet-lib.bundle.min.js',
-  globalName: 'aldeaJS',
+  globalName: 'AldeaWalletLib',
   bundle: true,
   format: 'iife',
   platform: 'browser',
