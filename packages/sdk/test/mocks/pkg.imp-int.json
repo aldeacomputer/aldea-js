@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "exports": [
+    {
+      "kind": 2,
+      "code": {
+        "name": "Interface1",
+        "extends": null,
+        "fields": [],
+        "methods": [
+          {
+            "name": "m1",
+            "args": [],
+            "rtype": {
+              "name": "string",
+              "nullable": false,
+              "args": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": 0,
+      "code": {
+        "name": "AnotherImplementation",
+        "extends": "Jig",
+        "implements": [
+          {
+            "name": "Interface1",
+            "nullable": false,
+            "args": []
+          }
+        ],
+        "fields": [],
+        "methods": [
+          {
+            "kind": 1,
+            "name": "constructor",
+            "args": [],
+            "rtype": null
+          },
+          {
+            "kind": 2,
+            "name": "m1",
+            "args": [],
+            "rtype": {
+              "name": "string",
+              "nullable": false,
+              "args": []
+            }
+          },
+          {
+            "kind": 2,
+            "name": "m2",
+            "args": [],
+            "rtype": {
+              "name": "Interface1",
+              "nullable": false,
+              "args": []
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "imports": [],
+  "objects": [],
+  "typeIds": [
+    {
+      "id": 2,
+      "name": "string"
+    },
+    {
+      "id": 4,
+      "name": "AnotherImplementation"
+    },
+    {
+      "id": 6,
+      "name": "Jig"
+    },
+    {
+      "id": 8,
+      "name": "Output"
+    },
+    {
+      "id": 9,
+      "name": "Lock"
+    },
+    {
+      "id": 10,
+      "name": "JigInitParams"
+    },
+    {
+      "id": 13,
+      "name": "Interface1"
+    },
+    {
+      "id": 14,
+      "name": "$AnotherImplementation"
+    }
+  ]
+}
