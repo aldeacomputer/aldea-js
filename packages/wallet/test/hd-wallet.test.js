@@ -1,7 +1,7 @@
 import test from 'ava'
 import getPort from '@ava/get-port'
 import { Aldea, HDPrivKey, LockType, Output } from '@aldea/sdk'
-import { Memory } from 'lowdb'
+import { LowSync, Memory } from 'lowdb'
 import { LowDbStorage, HdWallet } from '../dist/index.js'
 import { startMocknet } from './support/mocknet.js'
 
@@ -141,4 +141,25 @@ test('funds a tx with multiple utxos with change', async t => {
   t.is(inventory.length, 2)
   t.true(inventory.some(i => i.id === res.outputs[0].id))
   t.true(inventory.some(i => i.id === res.outputs[5].id))
+})
+
+test('works with lowSync', async (t) => {
+  class Adapter {
+    constructor (data = {}) {
+      this.data = data
+    }
+    async read () {
+      return this.data
+    };
+    write (data) {
+      this.data = data
+    };
+  }
+
+  const adapter = new Adapter()
+  const storage = new LowDbStorage(adapter, LowSync)
+  const wallet = new HdWallet(HDPrivKey.fromRandom(), storage, t.context.aldea)
+  const addr1 = await wallet.getNextAddress()
+  const addr2 = await wallet.getNextAddress()
+  t.notDeepEqual(addr1, addr2)
 })
