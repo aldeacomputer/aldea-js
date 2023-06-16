@@ -1,4 +1,4 @@
-import {base16} from "@aldea/core";
+import {base16, Pointer} from "@aldea/core";
 import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/core/abi";
 import {AbiTraveler} from "./abi-traveler.js";
 import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
@@ -7,7 +7,7 @@ import {
   getObjectMemLayout,
   getTypeBytes,
   getTypedArrayConstructor,
-  getTypedArrayForPtr
+  getTypedArrayForPtr, Internref
 } from "../memory.js";
 import {WasmPointer} from "../arg-reader.js";
 import {blake3} from "@noble/hashes/blake3";
@@ -55,6 +55,10 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   }
 
   visitExportedClass (classNode: ClassNode, type: TypeNode): WasmPointer {
+    if (this.value instanceof Internref) {
+      let basicJig = this.instance.liftBasicJig(this.value);
+      this.value = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(basicJig.$output.origin))
+    }
     return this.lowerJigProxy(type)
   }
 

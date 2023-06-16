@@ -79,9 +79,9 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
 
   app.post('/tx', asyncHandler(async (req, res) => {
     const tx = Tx.fromBytes(new Uint8Array(req.body))
-    if (!tx.verify()) {
-      throw new Error(`invalid tx signatures: ${tx.id}`)
-    }
+    // if (!tx.verify()) {
+    //   throw new Error(`invalid tx signatures: ${tx.id}`)
+    // }
     const txResult = await vm.execTx(tx)
     emitTx(tx)
     res.send(serializeExecResult(txResult))
