@@ -34,9 +34,6 @@ async function compileCode(sources: string[], opts: Opts) {
   log(bold('Building package...'))
   log()
 
-  console.log({ opts })
-
-  await env.loadWallet()
   const pkg = buildPkg(sources)
   const entry = opts.entry.length ? opts.entry : [...pkg.keys()].sort()
   const res = await aldeac(entry, pkg)
