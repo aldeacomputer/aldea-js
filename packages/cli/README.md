@@ -21,16 +21,17 @@ npm install -g @aldea/cli
 Usage: aldea <command> [options]
 
 Options:
-  -N --node <url>             Aldea node URL
-  -V, --version               output the version number
-  -h, --help                  display help for command
+  -N --node <url>                 Aldea node URL
+  -V, --version                   output the version number
+  -h, --help                      display help for command
 
 Commands:
-  pkg.deploy|pd <source...>   Deploy a code package
-  wallet.create|wc [options]  Create a new wallet in the current directory
-  wallet.balance|wb           Show your wallet balance
-  wallet.topup|wt [options]   Topup your wallet with minted coins from the faucet
-  help [command]              display help for command
+  compile|c <source...> [options] Compile a code package
+  deploy|d <source...>            Deploy a code package
+  wallet.create|wc [options]      Create a new wallet in the current directory
+  wallet.balance|wb               Show your wallet balance
+  wallet.topup|wt [options]       Topup your wallet with minted coins from the faucet
+  help [command]                  display help for command
 ```
 
 ## License

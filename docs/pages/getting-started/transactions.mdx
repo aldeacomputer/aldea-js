@@ -34,7 +34,7 @@ Create a file in the `/scripts` directory called `create-item.ts` and copy and p
     ```
 </CodeContainer>
 
-The juicy part of this script is lines 6 to 10 - this is where the tranaction-building magic happens. An Aldea transaction is simply a list of instructions so lets the follow the code and see if we can work out what is happening...
+The juicy part of this script is lines 6 to 10 - this is where the transaction-building magic happens. An Aldea transaction is simply a list of instructions so lets follow the code and see if we can work out what is happening...
 
 - Line 7 declares an `IMPORT` instruction which states we want to import the packge we deployed in the previous step.
 - Line 8 declares a `NEW` instructions which states we want to instantiate a new `Item` instance. The last argument is an array of values that will get passed directly the constructor method. If you look at the source code in `/aldea/item.ts` you'll see the constructor accepts a single `name` parameter. You can change `"Ray Gun"` to any value you like.
