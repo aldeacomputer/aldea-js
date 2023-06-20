@@ -73,7 +73,8 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
   app.use(cors())
 
   app.get('/status', (_req, res) => {
-    res.send({ok: true})
+    const startedAt = app.get('started-at')
+    res.send({ ok: true, since: startedAt })
   })
 
   app.post('/tx', asyncHandler(async (req, res) => {
