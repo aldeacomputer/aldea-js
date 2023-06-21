@@ -15,6 +15,7 @@ import {bytesToHex as toHex} from "@noble/hashes/utils";
 import {JigRef} from "../jig-ref.js";
 import {emptyTn, outputAbiNode} from "./well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-access.js";
+import {isInstructionRef} from "../statement-result.js";
 
 const STRING_RTID = 1;
 const BUFFER_RTID = 0;
@@ -35,6 +36,10 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     super(abi)
     this.instance = inst
     this.value = value
+    if (value && isInstructionRef(value)) {
+      const coso = inst.currentExec.getStatementResult(value.idx)
+      this.value = coso.value
+    }
   }
 
   private lowerJigProxy (type: TypeNode) {
