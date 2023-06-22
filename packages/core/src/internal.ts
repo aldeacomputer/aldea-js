@@ -9,6 +9,7 @@ export * from './output.js'
 export * from './pointer.js'
 export * from './privkey.js'
 export * from './pubkey.js'
+export * from './shared-keypair.js'
 export * from './tx.js'
 
 // Transaction instructions

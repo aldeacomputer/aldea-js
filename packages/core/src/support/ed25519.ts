@@ -8,6 +8,7 @@ import {
 } from '@noble/ed25519'
 import { hash } from './blake3.js'
 import { bnToBytes, bytesToBn, concatBytes } from './util.js'
+import { scalarMult, toMontgomeryPriv, toMongomeryPub } from './x25519.js'
 import { PrivKey, PubKey, HDPrivKey, HDPubKey } from '../internal.js'
 
 // Internally we replace nobles sha512Sync function with our own blake3
@@ -22,6 +23,14 @@ etc.sha512Sync = (...m: Uint8Array[]): Uint8Array => {
  */
 export function calcPoint(bytes: Uint8Array): Point {
   return utils.getExtendedPublicKey(bytes).point
+}
+
+/**
+ * Calculates a shared secret between an Ed25519 privkey and pubkey. It first
+ * converts the keys to the Montgomery X25519 curve.
+ */
+export function getSharedSecret(privKey: PrivKey, pubKey: PubKey): Uint8Array {
+  return scalarMult(toMongomeryPub(pubKey), toMontgomeryPriv(privKey))
 }
 
 /**
@@ -46,7 +55,7 @@ export function pointToBytes(point: Point): Uint8Array {
  */
 export function sign(msg: Uint8Array, privKey: PrivKey | HDPrivKey | Uint8Array): Uint8Array {
   if (!(privKey instanceof Uint8Array)) { privKey = privKey.toBytes()}
-  return privKey.length === 96 ? _signExt(msg, privKey) : _sign(msg, privKey)
+  return privKey.length >= 64 ? _signExt(msg, privKey) : _sign(msg, privKey)
 }
 
 /**
