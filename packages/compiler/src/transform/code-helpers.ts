@@ -38,8 +38,11 @@ export function writeJigInterface(obj: ClassWrap, fields: FieldWrap[], methods: 
     })
     .join('\n')
 
+  const interfaces = obj.implements.map(normalizeTypeName)
+  //interfaces.unshift(obj.extends)
+
   return `
-  interface ${obj.name} extends ${obj.extends} {
+  interface ${obj.name} ${interfaces.length ? `extends ${interfaces.join(', ')}` : ''} {
     ${fieldCode}
     ${methodCode}
   }
@@ -53,13 +56,13 @@ export function writeJigInterface(obj: ClassWrap, fields: FieldWrap[], methods: 
  * the AST.
  */
 export function writeJigLocalClass(obj: ClassWrap): string {
-  const interfaces = obj.implements
-    .map(normalizeTypeName)
-    .concat(obj.name)
-    .join(', ')
+  //const interfaces = obj.implements
+  //  .map(normalizeTypeName)
+  //  .concat(obj.name)
+  //  .join(', ')
 
   return `
-  class _Local${obj.name} extends _Local${obj.extends} implements ${interfaces} {}
+  class _Local${obj.name} extends _Local${obj.extends} implements ${obj.name} {}
   `.trim()
 }
 
@@ -69,10 +72,10 @@ export function writeJigLocalClass(obj: ClassWrap): string {
  * Ensures compilation by inlining an idof call.
  */
 export function writeJigRemoteClass(obj: ClassWrap, fields: FieldWrap[], methods: MethodWrap[]): string {
-  const interfaces = obj.implements
-    .map(normalizeTypeName)
-    .concat(obj.name)
-    .join(', ')
+  //const interfaces = obj.implements
+  //  .map(normalizeTypeName)
+  //  .concat(obj.name)
+  //  .join(', ')
 
   const fieldCode = fields.reduce((acc: string[], n: FieldWrap): string[] => {
     acc.push(writeRemoteGetter(n, obj))
@@ -85,7 +88,7 @@ export function writeJigRemoteClass(obj: ClassWrap, fields: FieldWrap[], methods
   }, []).join('\n')
 
   return `
-  class _Remote${obj.name} extends _Remote${obj.extends} implements ${interfaces} {
+  class _Remote${obj.name} extends _Remote${obj.extends} implements ${obj.name} {
     ${fieldCode}
     ${methodCode}
   }
