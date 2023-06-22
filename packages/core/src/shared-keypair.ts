@@ -16,11 +16,11 @@ export class SharedKeyPair {
     this.s = getSharedSecret(ownPrivKey, theirPubKey)
   }
 
-  getSharedSecret(data: Uint8Array, bytes: number = 32): Uint8Array {
+  getSharedSecret(data: string | Uint8Array, bytes: number = 32): Uint8Array {
     return keyedHash(data, this.s, bytes)
   }
 
-  deriveOwnPrivKeyBytes(data: Uint8Array): Uint8Array {
+  deriveOwnPrivKeyBytes(data: string | Uint8Array): Uint8Array {
     const k = adjustScalarBytes(hash(this.ownPrivKey.toBytes(), 64))
     const ss = this.getSharedSecret(data)
     return concatBytes(
@@ -29,13 +29,13 @@ export class SharedKeyPair {
     )
   }
 
-  deriveOwnPubKey(data: Uint8Array): PubKey {
+  deriveOwnPubKey(data: string | Uint8Array): PubKey {
     const privKey = this.deriveOwnPrivKeyBytes(data).slice(0, 32)
     const point = Point.BASE._scalarMult(bytesToBn(privKey))
     return new PubKey(point)
   }
 
-  deriveTheirPubKey(data: Uint8Array): PubKey {
+  deriveTheirPubKey(data: string | Uint8Array): PubKey {
     const ss = this.getSharedSecret(data)
     const point = this.theirPubKey.point.add(Point.BASE._scalarMult(bytesToBn(ss)))
     return new PubKey(point)
