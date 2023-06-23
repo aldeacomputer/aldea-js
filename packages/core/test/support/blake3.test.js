@@ -15,7 +15,7 @@ test('hash() hash length is configurable', t => {
 })
 
 test('base16.encode() throws with invalid args', t => {
-  t.throws(() => hash(), { message: /^Expected input type is Uint8Array/ })
+  t.throws(() => hash(), { message: /^expected Uint8Array, got undefined/ })
   t.throws(() => hash(1))
   t.throws(() => hash({}))
   t.throws(() => hash('foobar', 'xxx'), { message: /^Wrong positive integer/ })
