@@ -1,5 +1,5 @@
 {
-  "starter-kit": "Install the starter kit",
-  "deployments": "Deploy your first package",
-  "transactions": "Create your first transactions"
+  "starter-kit": "1. Install the starter kit",
+  "deployments": "2. Deploy your first package",
+  "transactions": "3. Create your first transaction"
 }

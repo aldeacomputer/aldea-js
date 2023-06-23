@@ -17,7 +17,6 @@
   --darker-background-color: #e0d8cd;
   --card-background-color: var(--lighter-background-color);
   --nav-background-color: transparent;
-  //--background-color: white;
   --color-accent: #7699DAFF;
   --secondary-color-accent: #ede1cc;
   --tertiary-color-accent: #a894ff;
@@ -37,21 +36,16 @@
 
 html, body {
   background-color: var(--background-color) !important;
-  font-family: "Red Hat Display", sans-serif;
   font-size: 18px;
+  font-family: 'IBM Plex Sans', serif;
 }
 
 a {
   color: var(--aldea-accent-color);
-
-  &:hover {
-    //filter: brightness(120%);
-  }
 }
 
 nav {
-  background-color: var(--nav-background-color) !important;
-  //box-shadow: 2px 2px 6px #727272, -1px -1px 3px #dddddd !important;
+  background-color: var(--background-color) !important;
   box-shadow: none !important;
   color: var(--primary-color);
   display: flex !important;
@@ -69,7 +63,7 @@ nav {
   margin-top: .5em;
   margin-left: .5em;
   //margin-left: -1em;
-  font-family: 'Ubuntu Mono', monospace;
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 .sidebar {
@@ -174,15 +168,12 @@ h1, h2, h3, h4, h5, h6, div{
   border-color: var(--darker-background-color);
 }
 
-table tr:nth-child(2n) {
-}
-
 p {
   code {
     background-color: var(--darker-background-color) !important;
     color: var(--primary-color) !important;
-    font-family: 'Roboto Mono', monospace;
-    font-weight: bold;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
   }
 
 }
