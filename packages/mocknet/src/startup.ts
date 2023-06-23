@@ -16,6 +16,7 @@ const argv = minimist(process.argv.slice(2), {
 const { app, p2p } = await buildApp(new MomentClock(), argv)
 
 const server = app.listen(PORT, () => {
+  app.set('started-at', Date.now())
   logger.info(`Listening on port ${PORT}`)
 })
 

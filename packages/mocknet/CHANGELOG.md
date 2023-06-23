@@ -1,5 +1,11 @@
 # @aldea/mocknet
 
+## 0.3.8
+
+### Patch Changes
+
+- Added timestamp to mocknet status endpoint
+
 ## 0.3.7
 
 ### Patch Changes

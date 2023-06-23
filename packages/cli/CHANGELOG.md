@@ -1,5 +1,11 @@
 # @aldea/cli
 
+## 0.2.11
+
+### Patch Changes
+
+- c6e4795: Remove need to load wallet when compiling code.
+
 ## 0.2.10
 
 ### Patch Changes
