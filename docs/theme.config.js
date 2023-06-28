@@ -27,7 +27,7 @@ export default {
       <meta name="apple-mobile-web-app-title" content="Aldea Docs"/>
       <meta name="msapplication-TileImage" content="/ms-icon-144x144.png"/>
       <link rel="preconnect" href="https://fonts.googleapis.com"/>
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true"/>
       <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
       <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
       <script
