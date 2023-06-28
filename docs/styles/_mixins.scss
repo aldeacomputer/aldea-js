@@ -19,7 +19,6 @@
   *-webkit-scrollbar {
     display: none;
   }
-
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
@@ -44,7 +43,7 @@
 @mixin flatContainer {
   border-radius: var(--container-radius);
   background: #F5F5F5;
-  box-shadow: 2px 2px 6px #727272, -1px -1px 3px #dddddd;
+  box-shadow: 2px 2px 4px hsl(0, 0%, 0%, 50%), -1px -1px 3px #dddddd;
 }
 
 @mixin accentContainer {

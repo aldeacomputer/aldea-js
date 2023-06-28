@@ -9,9 +9,6 @@ $title-height: 4em;
   max-height: var(--max-height-content-panel);
   height: fit-content;
   background-color: var(--code-background-color);
-  width: 40em;
-  box-shadow: 3px 3px 12px #494949, -1px -1px 3px #dddddd;
-
 
   .title {
     display: flex;
@@ -41,18 +38,17 @@ $title-height: 4em;
     background-size: 50%; /* Resize the background image to cover the entire container */
     background-color: var(--code-background-color) !important;
     color: var(--secondary-color) !important;
-    padding: 0.7em;
     display: flex;
-    padding-right: 0;
     flex-direction: row;
     align-items: flex-start;
+    padding: .5rem;
     width: 100%;
     max-height: calc(var(--max-height-content-panel) - 2em);
     height: calc(100% - #{$title-height});
 
     code {
-      padding: 0;
-      font-size: 1em !important;
+      padding: 0 0 .5rem .5rem;
+      font-size: 1.1em !important;
       width: 86%;
       max-height: calc(var(--max-height-content-panel) - 2em);
     }

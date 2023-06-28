@@ -3,7 +3,7 @@ https://prismjs.com/download.html#themes=prism&languages=markup+css+clike+javasc
 code[class*=language-], pre[class*=language-] {
     color: var(--secondary-color);
     font-family: 'Roboto Mono', monospace;
-    font-size: .8em;
+    font-size: .7em;
     font-weight: 400;
     -webkit-text-size-adjust: 1em;
     -ms-text-size-adjust: 1em;

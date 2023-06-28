@@ -1,12 +1,14 @@
 ---
-title: 'Working with Jigs'
+title: 'Create your first transaction'
 ---
 
 import {CodeContainer} from '../../customComponents/codeContainer'
 
-# Working with Jigs
+# 3. Create your first transaction
 
-In the last step your deployed your first package. Now comes the fun part -  It's time to create and interact with some Jigs!
+In the last step you deployed your first package. Now comes the fun part -  **It's time to create and interact with some [Jigs](/concepts/jigs)!**
+
+![illustration](/3-tx.png)
 
 In this last part of the guide we'll create an instance of our class `Item` and then update it by calling the `addPower()` method. We'll need to build some transactions to do this, so let's jump in.
 
@@ -42,7 +44,7 @@ The juicy part of this script is lines 6 to 10 - this is where the transaction-b
 
 If at this point you were to inspect the built transaction with `log(tx)`, you'd see that the transaction contains more than the 3 instructions specified above. This is because the `wallet.createFundedTx()` method automatically adds some instructions to load a coin from your wallet, split the coin, fund the transaction and send change back to your wallet.
 
-Lets run the script:
+Let's run the script:
 
 <CodeContainer lang="bash" lines={false}>
     ```
@@ -71,7 +73,7 @@ What do all these values mean?
 - `Class` - another Pointer, this time made up of the package ID and the export index where the class definition can be found.
 - `State` - the current state of the Jig.
 
-## Updating an insance
+## Updating an instance
 
 Congratulations! You've created your first Jig. You now own a `Ray Gun` with a power of `1`... Time for more power!
 
@@ -146,4 +148,4 @@ Try defining a `Powerup` class in `item.ts` and updating the `Item#addPower()` m
 
 ## What next?
 
-The simplicity of the Jig programming model opens up a world of endless possibilities, from creating tokens and game items to developing smart contracts and metaverse virtual worlds. On the Aldea Computer, you have the power to build the future of the on-chain world alongside a community of like-minded individuals. Start building today and see where the limitless potential of Jigs can take you.
+The simplicity of the Jig programming model opens up a world of endless possibilities, from creating tokens and game items to developing smart contracts and metaverse virtual worlds. On the Aldea Computer, you have the power to build the future of the on-chain world alongside a community of like-minded individuals. **Start building today and see where the limitless potential of Jigs can take you!**
