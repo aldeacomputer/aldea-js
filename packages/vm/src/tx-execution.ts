@@ -7,7 +7,7 @@ import {JigState} from "./jig-state.js"
 import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
 import {Lock} from "./locks/lock.js";
 import {ClassNode, CodeKind} from '@aldea/core/abi'
-import {Address, BCS, OpCode, Output, Pointer, base16, instructions} from '@aldea/core';
+import {Address, base16, BCS, instructions, OpCode, Output, Pointer} from '@aldea/core';
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
@@ -15,6 +15,7 @@ import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {TxContext} from "./tx-context/tx-context.js";
 import {PkgData} from "./storage.js";
+import {ExecFuncInstruction} from "@aldea/core/instructions";
 
 const MIN_FUND_AMOUNT = 100
 
@@ -248,6 +249,9 @@ class TxExecution {
         const klassNode = exportNode.code as ClassNode
         const methodNode = klassNode.methods[inst.methodIdx]
         this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, inst.argsBuf)
+      } else if (baseInst.opcode === OpCode.EXECFUNC) {
+        const inst = baseInst as ExecFuncInstruction
+        this.execExportedFnByIndex(inst.idx, inst.exportIdx, inst.argsBuf)
       } else if (baseInst.opcode === OpCode.LOCK) {
         const inst = baseInst as instructions.LockInstruction
         this.lockJigToUserByIndex(inst.idx, new Address(inst.pubkeyHash))
@@ -444,11 +448,12 @@ class TxExecution {
     return this.statements.length - 1
   }
 
-  execExportedFnByIndex(moduleIndex: number, fnIdx: number, args: any[]): StatementResult {
+  execExportedFnByIndex(moduleIndex: number, fnIdx: number, args: Uint8Array): StatementResult {
     const wasm = this.getStatementResult(moduleIndex).asInstance
     const fnNode = wasm.abi.functionByIdx(fnIdx)
 
-    let {node, value, mod} = wasm.functionCall(fnNode, args)
+    const bcs = new BCS(wasm.abi.abi)
+    let {node, value, mod} = wasm.functionCall(fnNode, bcs.decode(fnNode.name, args))
 
     const ret = new ValueStatementResult(
       this.statements.length,

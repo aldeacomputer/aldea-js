@@ -1,4 +1,4 @@
-import { findClass, findFunction, } from './abi/query.js'
+import {findClass, findFunction, findInterface,} from './abi/query.js'
 import { AbiSchema, PkgSchema } from './bcs/schemas.js'
 
 import {
@@ -7,7 +7,7 @@ import {
   CodeKind,
   ExportNode,
   FieldNode,
-  FunctionNode,
+  FunctionNode, InterfaceNode,
   MethodKind,
   MethodNode,
   TypeNode,
@@ -283,7 +283,7 @@ export class BCS {
 
   // Collects a list of field types for the given Jig ClassNode.
   // Iterates over parents to include inherited fields too.
-  private collectJigFieldTypes(jig: ClassNode): TypeNode[] {
+  private collectJigFieldTypes(jig: ClassNode | InterfaceNode): TypeNode[] {
     const fields: FieldNode[] = []
 
     // Collect parent fields
@@ -575,22 +575,31 @@ export class BCS {
 // Trys to find either a jig, function, or method from the abi matching the
 // specified name.
 function abiPluck(abi: Abi | undefined, name: string): Partial<{
- jig: ClassNode,
+ jig: ClassNode | InterfaceNode,
  method: FunctionNode | MethodNode,
 }> {
  if (!abi) return {}
- let jig: ClassNode | undefined
+ let jig: ClassNode | InterfaceNode | undefined
  let method: FunctionNode | MethodNode | undefined
  const match = name.match(/^(\w+)(\$|_)(\w+)$/)
 
  if (match?.length === 4) {
    const [_, jigName, sep, methodName] = match
-   const kind = methodName === 'constructor' ? MethodKind.CONSTRUCTOR : (
-     sep === '$' ? MethodKind.INSTANCE : MethodKind.STATIC
-   )
-   method = findClass(abi, jigName)?.methods.find(m => m.kind === kind && m.name === methodName)
+   const node = abi.exports.find(a => a.code.name === jigName)
+   if (node && node.kind === CodeKind.CLASS) {
+     const klass = node.code as ClassNode
+     const kind = methodName === 'constructor' ? MethodKind.CONSTRUCTOR : (sep === '$' ? MethodKind.INSTANCE : MethodKind.STATIC)
+     method = klass.methods.find(m => m.kind === kind && m.name === methodName)
+   }
+   if (node && node.kind === CodeKind.INTERFACE) {
+     const int = node.code as InterfaceNode
+     method = int.methods.find(m => m.name === methodName)
+   }
  } else {
    jig = findClass(abi, name) || undefined
+   if (!jig) {
+     jig = findInterface(abi, name) || undefined
+   }
    method = findFunction(abi, name) || undefined
  }
 
@@ -631,9 +640,9 @@ function createTypedArrayEncoder<T>(TypedArray: { new(buf: ArrayBuffer): T }): B
 }
 
 // Collects the parents of the given jig ClassNode.
-function collectJigParents(abi: Abi, jig: ClassNode): ClassNode[] {
+function collectJigParents(abi: Abi, jig: ClassNode | InterfaceNode): ClassNode[] {
  const parents: ClassNode[] = []
- let parent = findClass(abi, jig.extends)
+ let parent = findClass(abi, jig.extends || 'Jig')
  while (parent) {
    parents.unshift(parent)
    parent = findClass(abi, parent.extends)

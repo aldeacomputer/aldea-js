@@ -1,4 +1,4 @@
-import {base16} from "@aldea/core";
+import {base16, Pointer} from "@aldea/core";
 import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/core/abi";
 import {AbiTraveler} from "./abi-traveler.js";
 import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
@@ -7,7 +7,7 @@ import {
   getObjectMemLayout,
   getTypeBytes,
   getTypedArrayConstructor,
-  getTypedArrayForPtr
+  getTypedArrayForPtr, Internref
 } from "../memory.js";
 import {WasmPointer} from "../arg-reader.js";
 import {blake3} from "@noble/hashes/blake3";
@@ -15,6 +15,7 @@ import {bytesToHex as toHex} from "@noble/hashes/utils";
 import {JigRef} from "../jig-ref.js";
 import {emptyTn, outputAbiNode} from "./well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-access.js";
+import {isInstructionRef} from "../statement-result.js";
 
 const STRING_RTID = 1;
 const BUFFER_RTID = 0;
@@ -35,6 +36,10 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     super(abi)
     this.instance = inst
     this.value = value
+    if (value && isInstructionRef(value)) {
+      const coso = inst.currentExec.getStatementResult(value.idx)
+      this.value = coso.value
+    }
   }
 
   private lowerJigProxy (type: TypeNode) {
@@ -55,6 +60,10 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   }
 
   visitExportedClass (classNode: ClassNode, type: TypeNode): WasmPointer {
+    if (this.value instanceof Internref) {
+      let basicJig = this.instance.liftBasicJig(this.value);
+      this.value = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(basicJig.$output.origin))
+    }
     return this.lowerJigProxy(type)
   }
 
@@ -277,13 +286,13 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     return 0
   }
 
-  visitInterface(anInterface: InterfaceNode, _typeNode: TypeNode): WasmPointer {
+  visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
     const jig = this.value as JigRef
-    const className = jig.className();
-    const typeNode = emptyTn(className);
     if (jig.package === this.instance) {
+      const className = jig.className();
+      const concreteTypeNode = emptyTn(className);
       const classNode = this.abi.classByName(className)
-      return this.visitExportedClass(classNode, typeNode)
+      return this.visitExportedClass(classNode, concreteTypeNode)
     } else {
       return this.visitImportedClass(typeNode, base16.encode(jig.package.id))
     }
