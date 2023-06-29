@@ -1,5 +1,13 @@
 # @aldea/sdk
 
+## 0.3.9
+
+### Patch Changes
+
+- 3a8cc57: Fixes to make interface return type work.
+- Updated dependencies [3a8cc57]
+  - @aldea/core@0.3.9
+
 ## 0.3.5
 
 ### Patch Changes

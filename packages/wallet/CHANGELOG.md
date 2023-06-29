@@ -1,5 +1,12 @@
 # @aldea/wallet-lib
 
+## 0.2.7
+
+### Patch Changes
+
+- Updated dependencies [3a8cc57]
+  - @aldea/sdk@0.3.9
+
 ## 0.2.6
 
 ### Patch Changes

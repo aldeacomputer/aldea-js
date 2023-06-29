@@ -1,5 +1,11 @@
 # @aldea/core
 
+## 0.3.9
+
+### Patch Changes
+
+- 3a8cc57: Fixes to make interface return type work.
+
 ## 0.3.5
 
 ### Patch Changes
