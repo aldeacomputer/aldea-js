@@ -22,6 +22,7 @@ program
   .option('-N --node <url>', 'Aldea node URL')
   .addCommand(cmds.compile)
   .addCommand(cmds.deploy)
+  .addCommand(cmds.deps.add)
   .addCommand(cmds.wallet.init)
   .addCommand(cmds.wallet.balance)
   .addCommand(cmds.wallet.topup)
