@@ -5,7 +5,7 @@ import asc from 'assemblyscript/asc'
 import { AscTransform, Transform } from './transform.js'
 
 export { PackageParser } from './package/parser.js'
-export { writeDependencyCode } from './package/code-helpers.js'
+export { writeDependency } from './package/code-helpers.js'
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
