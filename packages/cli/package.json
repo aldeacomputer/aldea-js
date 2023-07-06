@@ -23,6 +23,7 @@
     "@aldea/wallet-lib": "workspace:^",
     "columnify": "^1.6.0",
     "commander": "^10.0.1",
+    "fast-glob": "^3.3.0",
     "kolorist": "^1.8.0",
     "lowdb": "^6.0.1",
     "prompts": "^2.4.2"
