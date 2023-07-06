@@ -4,6 +4,9 @@ import { fileURLToPath } from 'url'
 import asc from 'assemblyscript/asc'
 import { AscTransform, Transform } from './transform.js'
 
+export { PackageParser } from './package/parser.js'
+export { writeDependencyCode } from './package/code-helpers.js'
+
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 const extension = '.ts'
@@ -78,7 +81,15 @@ export async function compile(entryOrSrc: string | string[] | Map<string, string
 
   function readFile(filename: string, baseDir: string): string | null {
     if (input.has(filename)) { return input.get(filename)! }
-    const path = join(baseDir, filename)
+    //const path = join(baseDir, filename)
+    let path: string
+    const m = filename.match(/^pkg:\/\/(([a-f0-9]{2})+.ts)/)
+    console.log('>', filename, { m })
+    if (m) {
+      path = join('.', '.packages', m[1])
+    } else {
+      path = join(baseDir, filename)
+    }
     try { return fs.readFileSync(path, 'utf8') }
     catch(e) { return null } 
   }
