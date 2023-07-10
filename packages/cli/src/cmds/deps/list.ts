@@ -11,7 +11,7 @@ import { env } from '../../globals.js'
 export const list = createCommand('deps.list')
   .alias('dl')
   .description('List all package dependencies')
-  .addArgument(createArgument('[entry...]', 'One or more package entries'))
+  .addArgument(createArgument('[entry...]', 'One or more entry files'))
   .action(listDeps)
 
 // List deps action

@@ -12,7 +12,7 @@ import { buildDepsMap, saveDepFile } from './helpers.js'
 export const get = createCommand('deps.get')
   .alias('dg')
   .description('Fetch all package dependencies')
-  .addArgument(createArgument('[entries...]', 'One or more package entries'))
+  .addArgument(createArgument('[entry...]', 'One or more entry files'))
   .action(getDeps)
 
 // Get deps action

@@ -2,7 +2,7 @@ import fs from 'fs'
 import { join } from 'path'
 import { InvalidArgumentError, OptionValues, createCommand, createArgument, createOption } from 'commander'
 import { bold, dim, lightGreen } from 'kolorist'
-import { compile as aldeac } from '@aldea/compiler'
+import { compile as aldeac, PackageParser } from '@aldea/compiler'
 import { BCS, abiToJson, abiFromBin, base16, blake3 } from '@aldea/sdk'
 import { log, ok } from '../log.js'
 import { env } from '../globals.js'
@@ -11,7 +11,7 @@ import { env } from '../globals.js'
 export const compile = createCommand('compile')
   .alias('c')
   .description('Compile a code package')
-  .addArgument(createArgument('<source...>', 'One or more source files to compile'))
+  .addArgument(createArgument('[entry...]', 'One or more entry files'))
   .addOption(createOption('-e, --entry [entry...]', 'List entry files').default([]))
   .addOption(createOption('-n, --name [name]', 'Package name').argParser(parseName))
   .addOption(createOption('-o, --output [directory]', 'Output directory').default(join(env.codeDir, 'build')))
@@ -30,18 +30,30 @@ interface Opts extends OptionValues {
 }
 
 // Compile code action
-async function compileCode(sources: string[], opts: Opts) {
+async function compileCode(entries: string[], opts: Opts) {
   log(bold('Building package...'))
   log()
 
-  const pkg = buildPkg(sources)
-  const entry = opts.entry.length ? opts.entry : [...pkg.keys()].sort()
-  const res = await aldeac(entry, pkg)
-  const pkgId = blake3.hash(BCS.pkg.encode([entry, pkg]))
+  const pkg = await PackageParser.create(entries, {
+    getSrc: (fileName) => {
+      const srcPath = join(env.codeDir, fileName)
+      log(' ', dim('-'), srcPath)
+      return fs.readFileSync(srcPath, 'utf8')
+    },
+    getDep: (pkgId) => {
+      const srcPath = join(env.codeDir, '.packages', pkgId, 'index.ts')
+      return fs.readFileSync(srcPath, 'utf8')
+    },
+  })
+
+  //const pkg = buildPkg(sources)
+  //const entry = opts.entry.length ? opts.entry : [...pkg.keys()].sort()
+  const res = await aldeac(pkg.entries, pkg.code)
+  const pkgId = blake3.hash(BCS.pkg.encode([pkg.entries, pkg.code]))
 
   if (!opts.dryRun) {
     const outdir = opts.output
-    const name = opts.name || sources[0].replace(/\.ts$/, '')
+    const name = opts.name || entries[0].replace(/\.ts$/, '')
     if (!fs.existsSync(outdir)) fs.mkdirSync(outdir)
     fs.writeFileSync(join(outdir, name + '.wasm'), res.output.wasm)
     fs.writeFileSync(join(outdir, name + '.abi.bin'), res.output.abi)
@@ -55,7 +67,7 @@ async function compileCode(sources: string[], opts: Opts) {
   log()
   log(' ', dim('-'), 'Pkg ID:', lightGreen(base16.encode(pkgId)))
   log()
-  ok(`Successfull compiled ${pkg.size} files`)
+  ok(`Successfull compiled ${pkg.code.size} files`)
   log()
   if (opts.inspect) {
     log(res.stats.toString())
@@ -69,15 +81,4 @@ function parseName(value: string): string {
     throw new InvalidArgumentError('invalid package name')
   }
   return value
-}
-
-// Builds the package map
-function buildPkg(sources: string[]): Map<string, string> {
-  return sources.reduce((pkg, src) => {
-    const srcPath = join(env.codeDir, src)
-    log(' ', dim('-'), srcPath)
-    const code = fs.readFileSync(srcPath, 'utf8')
-    pkg.set(src, code)
-    return pkg
-  }, new Map<string, string>())
 }
