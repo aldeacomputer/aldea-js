@@ -34,10 +34,11 @@ async function compileCode(entries: string[], opts: Opts) {
   log(bold('Building package...'))
   log()
 
+  const deps = new Set<string>()
   const pkg = await PackageParser.create(entries, {
     getSrc: (fileName) => {
       const srcPath = join(env.codeDir, fileName)
-      log(' ', dim('-'), srcPath)
+      deps.add(srcPath)
       return fs.readFileSync(srcPath, 'utf8')
     },
     getDep: (pkgId) => {
@@ -45,6 +46,8 @@ async function compileCode(entries: string[], opts: Opts) {
       return fs.readFileSync(srcPath, 'utf8')
     },
   })
+
+  deps.forEach(src => log(' ', dim('-'), src))
 
   //const pkg = buildPkg(sources)
   //const entry = opts.entry.length ? opts.entry : [...pkg.keys()].sort()

@@ -266,6 +266,9 @@ test('throws if invalid origin pointer is given', async t => {
 })
 
 test('compiles if with valid imported class', async t => {
+  compile(importedClassMbrCode('a: string;')).catch(e => {
+    console.log(e.stderr.toString())
+  })
   await t.notThrowsAsync(() => compile(importedClassMbrCode('a: string;')))
 })
 

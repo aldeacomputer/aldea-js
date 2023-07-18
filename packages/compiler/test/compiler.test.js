@@ -7,9 +7,6 @@ test('compiles single source', async t => {
   await t.notThrowsAsync(() => compile('export function test(): void {}'))
 })
 
-/** These tests must be run in serial as the way the abi is generated
- * can't be done in parallel */
-
 test('compiles multiple sources', async t => {
   const sources = new Map([
     ['foo.ts', 'export declare class Foo { name: string }'],
@@ -19,7 +16,7 @@ test('compiles multiple sources', async t => {
     `.trim()]
   ])
 
-  const res = await compile('input.ts', sources)
+  const res = await compile(['input.ts'], sources)
   const abi = abiFromBin(res.output.abi)
 
   t.is(abi.objects.length, 1)

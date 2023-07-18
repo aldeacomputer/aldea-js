@@ -1,7 +1,8 @@
 import { parse } from 'comment-parser'
-import { CodeKind, normalizeNodeName } from '@aldea/core/abi';
-import { TransformCtx } from './ctx.js'
-import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './nodes.js'
+import { ClassNode, InterfaceNode, MethodKind, MethodNode, normalizeNodeName } from '@aldea/core/abi'
+import { TransformGraph } from './graph/index.js'
+import { ClassDeclaration, DeclarationStatement, InterfaceDeclaration, NodeKind } from 'assemblyscript'
+import { isConstructor, isInstance, isStatic } from './filters.js'
 
 const PKGDOC_BLOCK_REGEX = /^\s*\/\*\*(?:(?!\*\/).)+\*\//s
 const COMMENT_BLOCK_REGEX = /\/\*\*(?:(?!\*\/).)+\*\/\s*$/s
@@ -30,33 +31,32 @@ interface DocMap {
  * Parses comment blocks from the given context's sources and returns a
  * DocMap object.
  */
-export function createDocs(ctx: TransformCtx): Partial<Docs> {
+export function createDocs(ctx: TransformGraph): Partial<Docs> {
   const docs: Partial<Docs> = {}
   let open = 0
 
   function parseCommentBlock(
-    n: ClassWrap | FunctionWrap | InterfaceWrap | FieldWrap | MethodWrap,
-    parent?: ClassWrap | InterfaceWrap
+    node: DeclarationStatement,
+    name: string,
+    child?: boolean,
   ): void {
-    if (typeof n.node === 'undefined') return
-    const src  = n.node.range.source
-    const comments = src.text.slice(open, n.node.range.start).match(COMMENT_BLOCK_REGEX)
+    const src  = node.range.source
+    const comments = src.text.slice(open, node.range.start).match(COMMENT_BLOCK_REGEX)
     
     if (comments?.length) {
       const parsedDocs = parse(comments[0], { spacing: 'preserve' })
       if (parsedDocs.length && parsedDocs[0].description) {
-        const name = normalizeNodeName(n, parent)
         docs.docs ||= {}
         docs.docs[name] = parsedDocs[0].description.trim()
       }
     }
 
-    open = parent ? n.node.range.end : n.node.range.start
+    open = child ? node.range.end : node.range.start
   }
 
   // 1. try to parse a Package Info Block
-  ctx.sources.some(src => {
-    const pkgdoc = src.text.match(PKGDOC_BLOCK_REGEX)
+  ctx.entries.some(src => {
+    const pkgdoc = src.source.text.match(PKGDOC_BLOCK_REGEX)
     if (pkgdoc?.length) {
       const parsed = parse(pkgdoc[0], { spacing: 'preserve' })
       if (parsed.length && parsed[0].tags.map((t: any) => t.tag).includes('package')) {
@@ -74,17 +74,51 @@ export function createDocs(ctx: TransformCtx): Partial<Docs> {
 
   // 2. parse comments for all exports
   ctx.exports.forEach(ex => {
-    parseCommentBlock(ex.code as ClassWrap | FunctionWrap | InterfaceWrap)
+    parseCommentBlock(ex.code.node, ex.code.name)
 
-    if (ex.kind === CodeKind.CLASS || ex.kind === CodeKind.INTERFACE) {
-      const code = ex.code as ClassWrap | InterfaceWrap
-      code.fields.forEach(n => parseCommentBlock(n as FieldWrap, code))
-      code.methods.forEach(n => parseCommentBlock(n as MethodWrap, code))
+    const abiNode = ex.code.abiNode as ClassNode | InterfaceNode
+    const members = (<ClassDeclaration | InterfaceDeclaration>ex.code.node).members
+    if (ex.code.node.kind === NodeKind.ClassDeclaration || ex.code.node.kind === NodeKind.InterfaceDeclaration) {
+      abiNode.fields.forEach(n => {
+        const node = members.find(m => m.kind === NodeKind.FieldDeclaration && m.name.text === n.name)!
+        parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
+      })
+      abiNode.methods.forEach(n => {
+        if (ex.code.node.kind === NodeKind.ClassDeclaration) {
+          const isFlagged = (flags: number) => {
+            switch ((<MethodNode>n).kind) {
+              case MethodKind.STATIC: return isStatic(flags)
+              case MethodKind.CONSTRUCTOR: return isConstructor(flags)
+              default: return isInstance(flags)
+            }
+          }
+          
+          const node = members.find(m => m.kind === NodeKind.MethodDeclaration && isFlagged(m.flags) && m.name.text === n.name)!
+          parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
+        } else {
+          const node = members.find(m => m.kind === NodeKind.MethodDeclaration && m.name.text === n.name)!
+          parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
+        }
+        
+      })
+
+      ;
+      (<ClassDeclaration | InterfaceDeclaration>ex.code.node).members.forEach(m => {
+        abiNode.fields.some(f => f.name === m.name.text)
+        if (m.kind === NodeKind.FieldDeclaration && abiNode.fields.some(f => f.name === m.name.text)) {
+          parseCommentBlock(m, `${ex.code.name}.${m.name.text}`, true)
+        }
+        if (m.kind === NodeKind.MethodDeclaration && abiNode.methods.some(f => f.name === m.name.text)) {
+          
+        }
+      })
     }
   })
 
   // 3. parse comments for plain objects
-  ctx.objects.forEach(obj => parseCommentBlock(obj as ClassWrap))
+  ctx.objects.forEach(obj => {
+    parseCommentBlock(obj.node, obj.name)
+  })
 
   return docs
 }

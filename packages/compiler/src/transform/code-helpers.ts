@@ -1,11 +1,20 @@
 import { blake3, util } from '@aldea/core'
-import { MethodKind, TypeNode, normalizeTypeName } from '@aldea/core/abi'
-import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap } from './nodes.js'
+import {
+  ArgNode,
+  ClassNode,
+  FieldNode,
+  FunctionNode,
+  InterfaceNode,
+  MethodKind,
+  MethodNode,
+  TypeNode,
+  normalizeTypeName
+} from '@aldea/core/abi'
 
 /**
  * Writes a plain class declaration around a empty constructor method.
  */
-export function writeClass(obj: ClassWrap): string {
+export function writeClass(obj: ClassNode): string {
   return `
   class ${obj.name} {
     ${ writeConstructor(obj) }
@@ -16,7 +25,7 @@ export function writeClass(obj: ClassWrap): string {
 /**
  * Writes a plain constructor method.
  */
-export function writeConstructor(obj: ClassWrap): string {
+export function writeConstructor(obj: ClassNode): string {
   return `
   constructor() {
     ${ obj.extends ? 'super()' : '' }
@@ -27,7 +36,12 @@ export function writeConstructor(obj: ClassWrap): string {
 /**
  * Writes an interface for the given jig class.
  */
-export function writeJigInterface(obj: ClassWrap, fields: FieldWrap[], methods: MethodWrap[]): string {
+export function writeJigInterface(
+  obj: ClassNode,
+  fields: FieldNode[],
+  methods: MethodNode[],
+  exported: boolean = false,
+): string {
   const fieldCode = fields
     .map(n => `${n.name}: ${normalizeTypeName(n.type)}`)
     .join('\n')
@@ -39,7 +53,7 @@ export function writeJigInterface(obj: ClassWrap, fields: FieldWrap[], methods: 
     .join('\n')
 
   return `
-  interface ${obj.name} extends ${obj.extends} {
+  ${exported ? 'export ' : ''}interface ${obj.name} extends ${obj.extends} {
     ${fieldCode}
     ${methodCode}
   }
@@ -52,14 +66,17 @@ export function writeJigInterface(obj: ClassWrap, fields: FieldWrap[], methods: 
  * Returns an empty declaration as the transform method injects the body into
  * the AST.
  */
-export function writeJigLocalClass(obj: ClassWrap): string {
+export function writeJigLocalClass(
+  obj: ClassNode,
+  exported: boolean = false,
+): string {
   const interfaces = obj.implements
     .map(normalizeTypeName)
     .concat(obj.name)
     .join(', ')
 
   return `
-  class _Local${obj.name} extends _Local${obj.extends} implements ${interfaces} {}
+  ${exported ? 'export ' : ''}class _Local${obj.name} extends _Local${obj.extends} implements ${interfaces} {}
   `.trim()
 }
 
@@ -68,24 +85,29 @@ export function writeJigLocalClass(obj: ClassWrap): string {
  * 
  * Ensures compilation by inlining an idof call.
  */
-export function writeJigRemoteClass(obj: ClassWrap, fields: FieldWrap[], methods: MethodWrap[]): string {
+export function writeJigRemoteClass(
+  obj: ClassNode,
+  fields: FieldNode[],
+  methods: MethodNode[],
+  exported: boolean = false,
+): string {
   const interfaces = obj.implements
     .map(normalizeTypeName)
     .concat(obj.name)
     .join(', ')
 
-  const fieldCode = fields.reduce((acc: string[], n: FieldWrap): string[] => {
-    acc.push(writeRemoteGetter(n, obj))
+  const fieldCode = fields.reduce((acc: string[], n: FieldNode): string[] => {
+    acc.push(writeRemoteGetter(n))
     return acc
   }, []).join('\n')
 
-  const methodCode = methods.reduce((acc: string[], n: MethodWrap): string[] => {
+  const methodCode = methods.reduce((acc: string[], n: MethodNode): string[] => {
     acc.push(writeRemoteMethod(n, obj))
     return acc
   }, []).join('\n')
 
   return `
-  class _Remote${obj.name} extends _Remote${obj.extends} implements ${interfaces} {
+  ${exported ? 'export ' : ''}class _Remote${obj.name} extends _Remote${obj.extends} implements ${interfaces} {
     ${fieldCode}
     ${methodCode}
   }
@@ -99,7 +121,10 @@ export function writeJigRemoteClass(obj: ClassWrap, fields: FieldWrap[], methods
  * 
  * For instance methods, an extra argument is added for the instance Ptr.
  */
-export function writeExportedFunction(method: MethodWrap, obj: ClassWrap): string {
+export function writeJigBinding(
+  method: MethodNode,
+  obj: ClassNode,
+): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
   const separator = isInstance ? '$' : '_'
@@ -122,19 +147,24 @@ export function writeExportedFunction(method: MethodWrap, obj: ClassWrap): strin
  * 
  * Ensures compilation by inlining an idof call.
  */
-export function writeInterfaceRemoteClass(obj: InterfaceWrap, fields: FieldWrap[], methods: FunctionWrap[]): string {
-  const fieldCode = fields.reduce((acc: string[], n: FieldWrap): string[] => {
-    acc.push(writeRemoteGetter(n, obj))
+export function writeInterfaceRemoteClass(
+  obj: InterfaceNode,
+  fields: FieldNode[],
+  methods: FunctionNode[],
+  exported: boolean = false
+): string {
+  const fieldCode = fields.reduce((acc: string[], n: FieldNode): string[] => {
+    acc.push(writeRemoteGetter(n))
     return acc
   }, []).join('\n')
 
-  const methodCode = methods.reduce((acc: string[], n: FunctionWrap): string[] => {
+  const methodCode = methods.reduce((acc: string[], n: FunctionNode): string[] => {
     acc.push(writeRemoteInterfaceMethod(n, obj))
     return acc
   }, []).join('\n')
 
   return `
-  class _Remote${obj.name} extends _RemoteJig implements ${obj.name} {
+  ${exported ? 'export ' : ''}class _Remote${obj.name} extends _RemoteJig implements ${obj.name} {
     ${fieldCode}
     ${methodCode}
   }
@@ -146,19 +176,25 @@ export function writeInterfaceRemoteClass(obj: InterfaceWrap, fields: FieldWrap[
 /**
  * Writes a remote class declaration for the given imported class.
  */
-export function writeImportedRemoteClass(obj: ClassWrap, fields: FieldWrap[], methods: MethodWrap[], pkg: string): string {
-  const fieldCode = fields.reduce((acc: string[], n: FieldWrap): string[] => {
-    acc.push(writeRemoteGetter(n, obj))
+export function writeImportedRemoteClass(
+  obj: ClassNode,
+  fields: FieldNode[],
+  methods: MethodNode[],
+  pkgId: string,
+  exported: boolean = false
+): string {
+  const fieldCode = fields.reduce((acc: string[], n: FieldNode): string[] => {
+    acc.push(writeRemoteGetter(n))
     return acc
   }, []).join('\n')
 
-  const methodCode = methods.reduce((acc: string[], n: MethodWrap): string[] => {
-    acc.push(writeRemoteMethod(n, obj, pkg))
+  const methodCode = methods.reduce((acc: string[], n: MethodNode): string[] => {
+    acc.push(writeRemoteMethod(n, obj, pkgId))
     return acc
   }, []).join('\n')
 
   return `
-  class ${obj.name} extends _RemoteJig {
+  ${exported ? 'export ' : ''}class ${obj.name} extends _RemoteJig {
     ${fieldCode}
     ${methodCode}
   }
@@ -168,16 +204,27 @@ export function writeImportedRemoteClass(obj: ClassWrap, fields: FieldWrap[], me
 /**
  * Writes a remote function declaration for the given imported function.
  */
-export function writeImportedRemoteFunction(fn: FunctionWrap, pkg: string): string {
+export function writeImportedRemoteFunction(fn: FunctionNode, pkgId: string): string {
   const args = fn.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
   const rtype = normalizeTypeName(fn.rtype)
 
   return `
   export function ${fn.name}(${args.join(', ')}): ${rtype} {
-    ${ writeArgWriter(fn.args as FieldWrap[]) }
-    return vm_call_function<${rtype}>('${pkg}', '${fn.name}', args.buffer)
+    ${ writeArgWriter(fn.args) }
+    return vm_call_function<${rtype}>('${pkgId}', '${fn.name}', args.buffer)
   }
   `.trim()
+}
+
+// TODO
+export function writeImportStatement(names: string[], path: string) {
+  return `import { ${names.join(', ')} } from '${path}'`
+}
+
+// TODO
+export function writeExportStatement(names: string[], path?: string) {
+  const from = path ? ` from '${path}'` : ''
+  return `export { ${names.join(', ')} }${from}`
 }
 
 /**
@@ -218,7 +265,7 @@ export function writeMapSetter(type: TypeNode): string {
 /**
  * Writes a getter on a remote class. Returns the result of `vm_get_prop`.
  */
-export function writeRemoteGetter(field: FieldWrap, obj: ClassWrap | InterfaceWrap): string {
+export function writeRemoteGetter(field: FieldNode): string {
   const type = normalizeTypeName(field.type)
   return `
   get ${field.name}(): ${type} {
@@ -234,7 +281,7 @@ export function writeRemoteGetter(field: FieldWrap, obj: ClassWrap | InterfaceWr
  * - For static methods returns the result of `vm_call_static`.
  * - For instance methods returns the result of `vm_call_method`.
  */
-export function writeRemoteMethod(method: MethodWrap, obj: ClassWrap, pkg?: string): string {
+export function writeRemoteMethod(method: MethodNode, obj: ClassNode, pkg?: string): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
   const isStatic = method.kind === MethodKind.STATIC
@@ -249,7 +296,7 @@ export function writeRemoteMethod(method: MethodWrap, obj: ClassWrap, pkg?: stri
 
     return `
     constructor(${args.join(', ')}) {
-      ${ writeArgWriter(method.args as FieldWrap[]) }
+      ${ writeArgWriter(method.args) }
       const params = ${callable}
       super(params)
     }
@@ -263,7 +310,7 @@ export function writeRemoteMethod(method: MethodWrap, obj: ClassWrap, pkg?: stri
 
     return `
     ${isStatic ? 'static ' : ''}${method.name}(${args.join(', ')}): ${rtype} {
-      ${ writeArgWriter(method.args as FieldWrap[]) }
+      ${ writeArgWriter(method.args) }
       return ${callable}
     }
     `.trim()
@@ -276,12 +323,12 @@ export function writeRemoteMethod(method: MethodWrap, obj: ClassWrap, pkg?: stri
  * As `writeRemoteMethod` but for intefaces it is always an instance method so
  * can have simpler implementation.
  */
-export function writeRemoteInterfaceMethod(method: FunctionWrap, obj: InterfaceWrap, pkg?: string): string {
+export function writeRemoteInterfaceMethod(method: FunctionNode, obj: InterfaceNode, pkg?: string): string {
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
   const rtype = normalizeTypeName(method.rtype)
   return `
   ${method.name}(${args.join(', ')}): ${rtype} {
-    ${ writeArgWriter(method.args as FieldWrap[]) }
+    ${ writeArgWriter(method.args) }
     return vm_call_method<${rtype}>(this.$output.origin, '${method.name}', args.buffer)
   }
   `.trim()
@@ -292,7 +339,7 @@ export function writeRemoteInterfaceMethod(method: FunctionWrap, obj: InterfaceW
  * 
  * Each field is encoded either as an integer value or a 32bit Ptr.
  */
-export function writeArgWriter(fields: FieldWrap[]): string {
+export function writeArgWriter(fields: ArgNode[]): string {
   const bytes = fields.reduce((sum, n) => sum + getTypeBytes(n.type), 0)
   const chunks = fields.map((n, i) => `args.${ writeArgWriterEncodeMethod(n, i) }`)
   return `
@@ -304,7 +351,7 @@ export function writeArgWriter(fields: FieldWrap[]): string {
 /**
  * Writes the appropriate encode function statement for the given field.
  */
-export function writeArgWriterEncodeMethod(field: FieldWrap, i: number): string {
+export function writeArgWriterEncodeMethod(field: ArgNode, i: number): string {
   switch(field.type.name) {
     case 'f32': return `writeF32(a${i})`
     case 'f64': return `writeF64(a${i})`

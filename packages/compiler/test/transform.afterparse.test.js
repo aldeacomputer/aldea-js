@@ -43,7 +43,7 @@ test('afterParse() creates interface declaring all jig public fields and instanc
   const mock = await mockProgram(`
   export class Test extends Jig {
     a: string = 'a';
-    private b: string 'b';
+    private b: string = 'b';
 
     aa(): string { return this.a }
     private static bb(): string { return this.b }
@@ -61,8 +61,6 @@ test('afterParse() creates interface declaring all jig public fields and instanc
     '}'
   )
 })
-
-
 
 test('afterParse() creates local and remote class for each jig class', async t => {
   const mock = await mockProgram(`export class Test extends Jig {}`)
@@ -86,7 +84,7 @@ test('afterParse() local jig mirrors real jig, remote jig has implements public 
   const mock = await mockProgram(`
   export class Test extends Jig {
     a: string = 'a';
-    private b: string 'b';
+    private b: string = 'b';
 
     aa(): string { return this.a }
     private static bb(): string { return this.b }
@@ -209,9 +207,9 @@ test('afterParse() replaces imported ambient class with concrete implementation'
   // after parse ambiant class is replaced with concrete implementation
   t.is(mock.source.statements.length, 2)
   t.false(isAmbient(mock.classes[0].flags))
-  t.is(
+  t.regex(
     ASTBuilder.build(mock.classes[0]),
-    'class Test extends _RemoteJig {}'
+    /^class Test extends _RemoteJig {.+}/s
   )
 })
 
@@ -247,7 +245,7 @@ test('afterParse() adds proxy methods to imported static and instance methods', 
   
   t.context.transform.afterParse(mock.parser)
   t.is(
-    ASTBuilder.build(mock.classes[0].members[0]),
+    ASTBuilder.build(mock.classes[0].members[1]),
     'a(a0: u8): u8 {\n'+
     '  const args = new ArgWriter(1);\n'+
     '  args.writeU8(a0);\n'+
@@ -255,7 +253,7 @@ test('afterParse() adds proxy methods to imported static and instance methods', 
     '}'
   )
   t.is(
-    ASTBuilder.build(mock.classes[0].members[1]),
+    ASTBuilder.build(mock.classes[0].members[2]),
     'static b(a0: u8): u8 {\n'+
     '  const args = new ArgWriter(1);\n'+
     '  args.writeU8(a0);\n'+

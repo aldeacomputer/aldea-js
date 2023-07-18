@@ -17,21 +17,27 @@ import {
   PropertyAccessExpression,
   Statement,
   Source,
+  InterfaceDeclaration,
+  SourceKind,
+  ExportStatement,
+  DeclarationStatement,
+  DiagnosticCategory,
 } from 'assemblyscript'
 
 import { abiToBin, abiToJson } from '@aldea/core'
-import { CodeKind, FieldKind, MethodKind, TypeNode } from '@aldea/core/abi'
-import { TransformCtx } from './transform/ctx.js'
+import { ClassNode, CodeKind, FieldKind, FunctionNode, InterfaceNode, MethodKind, MethodNode, TypeNode } from '@aldea/core/abi'
+import { CodeNode, ExportEdge, ExportNode, ImportEdge, ImportNode, TransformGraph } from './transform/graph/index.js'
 import { createDocs } from './transform/docs.js'
-import { ClassWrap, FieldWrap, FunctionWrap, InterfaceWrap, MethodWrap, ObjectWrap } from './transform/nodes.js'
-import { filterAST } from './transform/filters.js'
+import { filterAST, isConstructor, isInstance, isPrivate, isStatic } from './transform/filters.js'
 
 import {
   writeClass,
   writeJigInterface,
   writeJigLocalClass,
   writeJigRemoteClass,
-  writeExportedFunction,
+  writeJigBinding,
+  writeImportStatement,
+  writeExportStatement,
   writeInterfaceRemoteClass,
   writeImportedRemoteClass,
   writeImportedRemoteFunction,
@@ -43,7 +49,7 @@ import {
  * Assemblyscript Transform Interface
  */
 export interface AscTransform {
-  $ctx?: TransformCtx;
+  $ctx?: TransformGraph;
   baseDir: string;
   log(line: string): void;
   writeFile(filename: string, contents: string | Uint8Array, baseDir: string): void | Promise<void>;
@@ -59,63 +65,82 @@ type ParentNode = {[key: string]: Node | Node[]}
  * Aldea Transform class. This is where all the magic happens.
  */
 export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeFile'> {
-  $ctx?: TransformCtx;
+  $ctx?: TransformGraph;
 
   /**
    * Called when parsing is complete, and the AST is ready.
    */
   afterParse(parser: Parser): void {
-    const $ctx = new TransformCtx(parser)
+    const $ctx = new TransformGraph(parser)
     this.$ctx = $ctx
 
-    // 1 - apply necessary transformations to each export
+    // If validation failed, just end now
+    if ($ctx.parser.diagnostics.some(d => d.category === DiagnosticCategory.Error)) {
+      return
+    }
+
+    // 1 - apply necessary transformations to each exported code declaration
     $ctx.exports.forEach(ex => {
-      switch (ex.kind) {
-        case CodeKind.CLASS:
-          ensureJigConstructor(ex.code as ClassWrap, $ctx)
-          //insertParentMethods(ex.code as ClassWrap, $ctx) /- to debate if this is needed
-          jigToInterface(ex.code as ClassWrap, $ctx)
-          jigToRemoteClass(ex.code as ClassWrap, $ctx)
-          jigToLocalClass(ex.code as ClassWrap, $ctx)
-          jigToExportedFunctions(ex.code as ClassWrap, $ctx)
+      switch (ex.code.node.kind) {
+        case NodeKind.ClassDeclaration:
+          ensureJigConstructor(ex.code as CodeNode<ClassDeclaration>)
+          jigToInterface(ex.code as CodeNode<ClassDeclaration>)
+          jigToLocalClass(ex.code as CodeNode<ClassDeclaration>)
+          jigToRemoteClass(ex.code as CodeNode<ClassDeclaration>)
+          jigToBindingFunctions(ex)
+          dropDeclaration(ex.code)
           break
-        case CodeKind.FUNCTION:
+        case NodeKind.FunctionDeclaration:
           break
-        case CodeKind.INTERFACE:
-          interfaceToRemoteClass(ex.code as InterfaceWrap, $ctx)
-          interfaceSanitize(ex.code as InterfaceWrap)
+        case NodeKind.InterfaceDeclaration:
+          interfaceToRemoteClass(ex.code as CodeNode<InterfaceDeclaration>)
           break
       }
     })
 
     // 2 - apply necessary transformations to each import
     $ctx.imports.forEach(im => {
-      switch (im.kind) {
-        case CodeKind.CLASS:
-          importToRemoteClass(im.code as ClassWrap, $ctx, im.pkg)
-          dropNode(im.code.node)
+      switch (im.code.node.kind) {
+        case NodeKind.ClassDeclaration:
+          ensureJigConstructor(im.code as CodeNode<ClassDeclaration>)
+          importToRemoteClass(im.code as CodeNode<ClassDeclaration>, im.pkgId!)
+          dropDeclaration(im.code)
           break
-        case CodeKind.FUNCTION:
-          importToRemoteFunction(im.code as FunctionWrap, $ctx, im.pkg)
-          dropNode(im.code.node)
+        case NodeKind.FunctionDeclaration:
+          importToRemoteFunction(im.code as CodeNode<FunctionDeclaration>, im.pkgId!)
+          dropDeclaration(im.code)
           break
-        case CodeKind.INTERFACE:
-          interfaceToRemoteClass(im.code as InterfaceWrap, $ctx)
+        case NodeKind.InterfaceDeclaration:
+          interfaceToRemoteClass(im.code as CodeNode<InterfaceDeclaration>)
           break
       }
     })
 
-    // 3 - Remove declare keyword from objects
-    $ctx.objects.forEach(obj => {
-      objectSanitize(obj)
+    // 3 - Normalize export and import statements
+    $ctx.sources.forEach(src => {
+      src.imports.filter(im => im.node.kind === NodeKind.Import).forEach(im => {
+        updateImportStatement(im)
+      })
+      src.exports.filter(ex => ex.node.kind === NodeKind.Export).forEach(ex => {
+        if (ex.src.source.sourceKind === SourceKind.UserEntry && !!ex.path) {
+          updateEntryExportStatement(ex)
+        } else {
+          updateExportStatement(ex)
+        }
+      })
     })
 
-    // 4 - inject complex setters
+    // 4 - Remove declare keyword from objects
+    $ctx.objects.forEach(code => {
+      objectSanitize(code as CodeNode<ClassDeclaration>)
+    })
+
+    // 5 - inject complex setters
     complexTypeSetters($ctx)
 
-    // 5 - filter through the AST and apply necessary mutations
+    // 6 - filter through the AST and apply necessary mutations
     $ctx.sources.forEach(src => {
-      filterAST(src, (node: Node, parent?: Node, parentProp?: string) => {
+      filterAST(src.source, (node: Node, parent?: Node, parentProp?: string) => {
         switch (node.kind) {
           // Check property access on Jig classes
           // Static calls should be on the LocalJig class
@@ -177,12 +202,17 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
    */
   async afterCompile(this: AscTransform, _module: Module): Promise<void> {
     if (this.$ctx) {
-      await this.writeFile('abi.bin', abiToBin(this.$ctx.abi), this.baseDir)
-      await this.writeFile('abi.json', abiToJson(this.$ctx.abi, 2), this.baseDir)
+      await this.writeFile('abi.bin', abiToBin(this.$ctx.toABI()), this.baseDir)
+      await this.writeFile('abi.json', abiToJson(this.$ctx.toABI(), 2), this.baseDir)
       await this.writeFile('docs.json', JSON.stringify(createDocs(this.$ctx), null, 2), this.baseDir)
       this.log('»»» TRANSFORMED «««')
       this.log('*******************')
-      this.$ctx.entries.forEach(entry => { this.log(ASTBuilder.build(entry)) })
+      this.$ctx.sources.forEach(src => {
+        const prefix = src.source.sourceKind === SourceKind.UserEntry ? 'ENTRY>' : '>'
+        this.log('')
+        this.log(`${prefix} : ${src.source.internalPath}`)
+        this.log(ASTBuilder.build(src.source))
+      })
     }
   }
 }
@@ -195,65 +225,50 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
 /**
  * Ensures a constructor exists (if not, it adds one to the code and the ABI).
  */
-function ensureJigConstructor(obj: ClassWrap, ctx: TransformCtx): void {
+function ensureJigConstructor(code: CodeNode<ClassDeclaration>): void {
+  const abiNode = code.abiNode as ClassNode
   // First ensure a constructor exists
-  if (!obj.methods.find(n => n.kind === MethodKind.CONSTRUCTOR)) {
-    const source = obj.node.range.source
-    const code = writeClass(obj)
-    const src = ctx.parse(code, source.normalizedPath)
+  if (!abiNode.methods.find(n => n.kind === MethodKind.CONSTRUCTOR)) {
+    const source = code.node.range.source
+    const ts = writeClass(abiNode)
+    const src = code.src.ctx.parse(ts, source.normalizedPath)
     const node = (src.statements[0] as ClassDeclaration).members[0] as MethodDeclaration
     const idx = Math.max(0, source.statements.findIndex(n => n.kind === NodeKind.MethodDeclaration))
 
     // insert compiled code and constructor into transform ctx
-    obj.node.members.splice(idx, 0, node)
-    obj.methods.unshift({
-      node,
+    code.node.members.splice(idx, 0, node)
+    abiNode.methods.unshift({
       kind: MethodKind.CONSTRUCTOR,
       name: 'constructor',
       args: [],
       rtype: null
-    } as MethodWrap)
+    })
   }
 }
 
 /**
  * Transforms the given jig class to an interface.
  */
-function jigToInterface(obj: ClassWrap, ctx: TransformCtx): void {
-  const parents = collectParents(CodeKind.CLASS, obj.extends, ctx)
+function jigToInterface(code: CodeNode<ClassDeclaration>): void {
+  const abiNode = code.abiNode as ClassNode
+  const parents = code.findAllParents().map(n => n.abiNode as ClassNode)
   const parentFields = parents.flatMap(p => p.fields.map(n => n.name) as string[])
   const parentMethods = parents.flatMap(p => p.methods.map(n => n.name) as string[])
 
-  const fields = (obj.fields as FieldWrap[])
-    .filter(n => n.kind === FieldKind.PUBLIC && !parentFields.includes(n.name))
+  const fields = abiNode.fields.filter(n => {
+    return n.kind === FieldKind.PUBLIC && !parentFields.includes(n.name)
+  })
 
-  const methods = (obj.methods as MethodWrap[])
-    .filter(n => n.kind === MethodKind.INSTANCE && !parentMethods.includes(n.name))
+  const methods = abiNode.methods.filter(n => {
+    return n.kind === MethodKind.INSTANCE && !parentMethods.includes(n.name)
+  })
 
-  const code = writeJigInterface(obj, fields, methods)
+  const source = code.node.range.source
+  const ts = writeJigInterface(abiNode, fields, methods, isExported(code.node))
 
-  const source = obj.node.range.source
-  const src = ctx.parse(code, source.normalizedPath)
-  const idx = source.statements.indexOf(obj.node as Statement)
+  const src = code.src.ctx.parse(ts, source.normalizedPath)
+  const idx = source.statements.indexOf(code.node as Statement)
   source.statements.splice(idx, 0, ...src.statements)
-}
-
-/**
- * Transforms the given Jig class to a remote class implementation of the Jig's
- * interface.
- */
-function jigToRemoteClass(obj: ClassWrap, ctx: TransformCtx): void {
-  const fields = (obj.fields as FieldWrap[])
-    .filter(n => n.kind === FieldKind.PUBLIC)
-
-  const methods = (obj.methods as MethodWrap[])
-    .filter(n => n.kind === MethodKind.CONSTRUCTOR || n.kind === MethodKind.INSTANCE)
-
-  const code = writeJigRemoteClass(obj, fields, methods)
-  const source = obj.node.range.source
-  const src = ctx.parse(code, source.normalizedPath)
-  const idx = source.statements.indexOf(obj.node as Statement)
-  source.statements.splice(idx+1, 0, ...src.statements)
 }
 
 /**
@@ -264,35 +279,126 @@ function jigToRemoteClass(obj: ClassWrap, ctx: TransformCtx): void {
  * a class declalration with no body, add the existing AST nodes to the new
  * class node, and replace the original class.
  */
-function jigToLocalClass(obj: ClassWrap, ctx: TransformCtx): void {
-  const code = writeJigLocalClass(obj)
+function jigToLocalClass(code: CodeNode<ClassDeclaration>): void {
+  const abiNode = code.abiNode as ClassNode
 
-  const source = obj.node.range.source
-  const src = ctx.parse(code, source.normalizedPath)
-  // add origin members into new class
-  ;(<ClassDeclaration>src.statements[0]).members = obj.node.members
-  // replace old with new class
-  const idx = source.statements.indexOf(obj.node as Statement)
-  source.statements.splice(idx, 1, ...src.statements)
+  const source = code.node.range.source
+  const ts = writeJigLocalClass(abiNode, isExported(code.node))
+  
+  const src = code.src.ctx.parse(ts, source.normalizedPath)
+  // add original members into new class
+  ;(<ClassDeclaration>src.statements[0]).members = code.node.members
+  const idx = source.statements.indexOf(code.node as Statement)
+  source.statements.splice(idx+1, 0, ...src.statements)
+}
+
+/**
+ * Transforms the given Jig class to a remote class implementation of the Jig's
+ * interface.
+ */
+function jigToRemoteClass(code: CodeNode<ClassDeclaration>): void {
+  const abiNode = code.abiNode as ClassNode
+  const fields = abiNode.fields
+    .filter(n => n.kind === FieldKind.PUBLIC)
+
+  const methods = abiNode.methods
+    .filter(n => n.kind === MethodKind.CONSTRUCTOR || n.kind === MethodKind.INSTANCE)
+
+  const source = code.node.range.source
+  const ts = writeJigRemoteClass(abiNode, fields, methods, isExported(code.node))
+  
+  const src = code.src.ctx.parse(ts, source.normalizedPath)
+  const idx = source.statements.indexOf(code.node as Statement)
+  source.statements.splice(idx+2, 0, ...src.statements)
 }
 
 /**
  * Transforms the given Jig class into exported functions for each public
  * method.
  */
-function jigToExportedFunctions(obj: ClassWrap, ctx: TransformCtx): void {
-  const codes = (obj.methods as MethodWrap[])
+function jigToBindingFunctions(ex: ExportEdge): void {
+  const abiNode = ex.code.abiNode as ClassNode
+  const ts = abiNode.methods
     .filter(n => n.kind !== MethodKind.PRIVATE && n.kind !== MethodKind.PROTECTED)
-    .reduce((acc: string[], n: MethodWrap): string[] => {
-      acc.push(writeExportedFunction(n, obj))
+    .reduce((acc: string[], n: MethodNode): string[] => {
+      acc.push(writeJigBinding(n, abiNode))
       return acc
     }, [])
 
-  const source = obj.node.range.source
-  const src = ctx.parse(codes.join('\n'), source.normalizedPath)
+  const source = ex.ctx.src.source
+  const src = ex.ctx.graph.parse(ts.join('\n'), source.normalizedPath)
   source.statements.push(...src.statements)
 }
 
+// TODO
+function dropDeclaration(code: CodeNode): void {
+  const source = code.node.range.source
+  const idx = source.statements.indexOf(code.node as Statement)
+  source.statements.splice(idx, 1)
+}
+
+// TODO
+function updateImportStatement(im: ImportNode): void {
+  const names = im.edges.reduce(reduceEdgeNames, [])
+  const ts = writeImportStatement(names, im.path!);
+  const source = im.src.source
+  const src = im.graph.parse(ts, source.normalizedPath)
+  const idx = source.statements.indexOf(im.node)
+  source.statements.splice(idx, 1, ...src.statements)
+}
+
+// TODO
+function updateExportStatement(ex: ExportNode): void {
+  const names = ex.edges.reduce(reduceEdgeNames, [])
+  const ts = writeExportStatement(names, ex.path);
+  const source = ex.src.source
+  const src = ex.graph.parse(ts, source.normalizedPath)
+  const idx = source.statements.indexOf(ex.node)
+  source.statements.splice(idx, 1, ...src.statements)
+}
+
+// TODO
+function updateEntryExportStatement(ex: ExportNode): void {
+  const importNames = ex.edges
+    .reduce(reduceEdgeNames, [])
+
+  const exportNames = ex.edges
+    .filter(e => e.code.node.kind === NodeKind.FunctionDeclaration)
+    .map(e => e.name)
+
+  const ts: string[] = []
+  ts.push(writeImportStatement(importNames, ex.path!))
+  if (exportNames.length) {
+    ts.push(writeExportStatement(exportNames))
+  }
+  
+  const source = ex.src.source
+  const src = ex.graph.parse(ts.join('\n'), source.normalizedPath)
+  const idx = source.statements.indexOf(ex.node)
+  source.statements.splice(idx, 1, ...src.statements)
+}
+
+// TODO
+function reduceEdgeNames(names: string[], e: ImportEdge | ExportEdge): string[] {
+  names.push(e.name)
+  if (
+    e.code.node.kind === NodeKind.ClassDeclaration &&
+    e.ctx.graph.exports.some(ex => ex.code.node === e.code.node)
+  ) {
+    names.push(`_Local${e.name}`)
+    names.push(`_Remote${e.name}`)
+  }
+  if (e.code.node.kind === NodeKind.InterfaceDeclaration) {
+    names.push(`_Remote${e.name}`)
+  }
+  return names
+}
+
+// TODO
+function isExported(node: DeclarationStatement): boolean {
+  return (node.flags & CommonFlags.Export) === CommonFlags.Export &&
+    node.range.source.sourceKind !== SourceKind.UserEntry
+}
 
 // --
 // INTERFACE TRANSFORMATIONS
@@ -301,36 +407,29 @@ function jigToExportedFunctions(obj: ClassWrap, ctx: TransformCtx): void {
 /**
  * Transforms the given Interface to a remote class implementation.
  */
-function interfaceToRemoteClass(obj: InterfaceWrap, ctx: TransformCtx): void {
-  const parents = collectParents(CodeKind.INTERFACE, obj.extends, ctx)
+function interfaceToRemoteClass(code: CodeNode<InterfaceDeclaration>): void {
+  const abiNode = code.abiNode as InterfaceNode
+  const parents = code.findAllParents().map(n => n.abiNode as InterfaceNode)
 
-  const fields = parents.flatMap(n => n.fields as FieldWrap[])
-    .concat(...obj.fields as FieldWrap[])
+  const fields = parents.flatMap(n => n.fields).concat(...abiNode.fields)
+  const methods = parents.flatMap(n => n.methods).concat(...abiNode.methods)
 
-  const methods = parents.flatMap(n => n.methods as FunctionWrap[])
-    .concat(...(obj.methods as FunctionWrap[]))
+  const source = code.node.range.source
+  const ts = writeInterfaceRemoteClass(abiNode, fields, methods, isExported(code.node))
 
-  const code = writeInterfaceRemoteClass(obj, fields, methods)
-  const source = obj.node.range.source
-  const src = ctx.parse(code, source.normalizedPath)
-  source.statements.push(...src.statements)
-}
-
-/**
- * Removes export flag from the interface node.
- */
-function interfaceSanitize(obj: InterfaceWrap): void {
-  obj.node.flags = obj.node.flags & ~CommonFlags.Export
+  const src = code.src.ctx.parse(ts, source.normalizedPath)
+  const idx = source.statements.indexOf(code.node as Statement)
+  source.statements.splice(idx+1, 0, ...src.statements)
 }
 
 /**
  * Removes ambient context from delcared plain objects.
  */
-function objectSanitize(obj: ObjectWrap): void {
-  obj.node.flags &= ~CommonFlags.Ambient
-  obj.node.flags &= ~CommonFlags.Declare
-  obj.fields.forEach(f => {
-    (<FieldWrap>f).node.flags &= ~CommonFlags.Ambient
+function objectSanitize(code: CodeNode<ClassDeclaration>): void {
+  code.node.flags &= ~CommonFlags.Ambient
+  code.node.flags &= ~CommonFlags.Declare
+  code.node.members.forEach(m => {
+    m.flags &= ~CommonFlags.Ambient
   })
 }
 
@@ -342,26 +441,29 @@ function objectSanitize(obj: ObjectWrap): void {
 /**
  * Transforms the given Import class to a remote class implementation.
  */
-function importToRemoteClass(obj: ClassWrap, ctx: TransformCtx, pkg: string): void {
-  const fields = (obj.fields as FieldWrap[])
+function importToRemoteClass(code: CodeNode<ClassDeclaration>, pkgId: string): void {
+  const abiNode = code.abiNode as ClassNode
+
+  const fields = abiNode.fields
     .filter(n => n.kind === FieldKind.PUBLIC)
 
-  const methods = (obj.methods as MethodWrap[])
+  const methods = abiNode.methods
     .filter(n => n.kind !== MethodKind.PRIVATE && n.kind !== MethodKind.PROTECTED)
 
-  const code = writeImportedRemoteClass(obj, fields, methods, pkg)
-  const source = obj.node.range.source
-  const src = ctx.parse(code, source.normalizedPath)
+  const source = code.node.range.source
+  const ts = writeImportedRemoteClass(abiNode, fields, methods, pkgId, isExported(code.node))
+  const src = code.src.ctx.parse(ts, source.normalizedPath)
   source.statements.push(...src.statements)
 }
 
 /**
- * Transforms the given Import class to a remote function implementation.
+ * Transforms the given Import function to a remote function implementation.
  */
-function importToRemoteFunction(fn: FunctionWrap, ctx: TransformCtx, pkg: string): void {
-  const code = writeImportedRemoteFunction(fn, pkg)
-  const source = fn.node.range.source
-  const src = ctx.parse(code, source.normalizedPath)
+function importToRemoteFunction(code: CodeNode<FunctionDeclaration>, pkgId: string): void {
+  const abiNode = code.abiNode as FunctionNode
+  const source = code.node.range.source
+  const ts = writeImportedRemoteFunction(abiNode, pkgId)
+  const src = code.src.ctx.parse(ts, source.normalizedPath)
   source.statements.push(...src.statements)
 }
 
@@ -382,7 +484,7 @@ function dropNode(node: ClassDeclaration | FunctionDeclaration): void {
 /**
  * Inserts complex setter functions for any complex types (maps and sets).
  */
-function complexTypeSetters(ctx: TransformCtx): void {
+function complexTypeSetters(ctx: TransformGraph): void {
   const codes: string[] = []
 
   function pushComplexSetters(type: TypeNode) {
@@ -396,9 +498,9 @@ function complexTypeSetters(ctx: TransformCtx): void {
   if (codes.length) {
     const src = ctx.parse(
       codes.filter((v, i, a) => a.indexOf(v) === i).join('\n'),
-      ctx.entries[0].normalizedPath
+      ctx.entries[0].source.normalizedPath
     )
-    ctx.entries[0].statements.push(...src.statements)
+    ctx.entries[0].source.statements.push(...src.statements)
   }
 }
 
@@ -417,7 +519,7 @@ function mutateInstanceOfJig(
   node: InstanceOfExpression,
   parent: ParentNode,
   prop: string,
-  ctx: TransformCtx
+  ctx: TransformGraph
 ): void {
   const varName = (<IdentifierExpression>node.expression).text
   const jigName = (<NamedTypeNode>node.isType).name.identifier.text
@@ -459,34 +561,49 @@ function mutateJigTypeArg(node: NamedTypeNode): void {
 /**
  * Returns true if the given class name is exported from the specified source.
  */
-function isExportedJig(name: string, source: Source, ctx: TransformCtx): boolean {
+function isExportedJig(name: string, source: Source, ctx: TransformGraph): boolean {
   return ctx.exports.some(ex => {
-    return ex.kind === CodeKind.CLASS &&
+    return ex.code.node.kind === NodeKind.ClassDeclaration &&
       ex.code.name === name &&
-      (<ClassWrap>ex.code).node.range.source.normalizedPath == source.normalizedPath
+      ex.code.node.range.source.normalizedPath == source.normalizedPath
   })
 }
 
-/**
- * Collects all parent nodes for the given class or interface name.
- */
-function collectParents(kind: CodeKind, name: string | null, ctx: TransformCtx): Array<ClassWrap | InterfaceWrap> {
-  const parents: Array<ClassWrap | InterfaceWrap> = []
-  let parent = findParent(kind, name, ctx)
-  while (parent) {
-    parents.unshift(parent)
-    parent = findParent(kind, parent.extends, ctx)
-  }
-  return parents
-}
+///**
+// * Collects all parent nodes for the given class or interface name.
+// */
+//function collectParents(kind: CodeKind, name: string | null, ctx: TransformCtx): Array<ClassWrap | InterfaceWrap> {
+//  const parents: Array<ClassWrap | InterfaceWrap> = []
+//  let parent = findParent(kind, name, ctx)
+//  while (parent) {
+//    parents.unshift(parent)
+//    parent = findParent(kind, parent.extends, ctx)
+//  }
+//  return parents
+//}
 
-/**
- * Finds the parent class or interface node by the given name.
- */
-function findParent(kind: CodeKind, name: string | null, ctx: TransformCtx): ClassWrap | InterfaceWrap | undefined {
-  if (!name) return
-  return (
-    ctx.exports.find(ex => ex.kind === kind && ex.code.name === name) ||
-    ctx.imports.find(im => im.kind === kind && im.code.name === name)
-  )?.code as ClassWrap | InterfaceWrap
-}
+///**
+// * Finds the parent class or interface node by the given name.
+// */
+//function findParent(kind: CodeKind, name: string | null, ctx: TransformCtx): ClassWrap | InterfaceWrap | undefined {
+//  if (!name) return
+//  return (
+//    ctx.exports.find(ex => ex.kind === kind && ex.code.name === name) ||
+//    ctx.imports.find(im => im.kind === kind && im.code.name === name)
+//  )?.code as ClassWrap | InterfaceWrap
+//}
+
+///**
+// * Collects all parent nodes for the given class or interface ndoe.
+// */
+//function collectParents(
+//  code: CodeNode<ClassDeclaration | InterfaceDeclaration>
+//): Array<CodeNode<ClassDeclaration | InterfaceDeclaration>> {
+//  const parents: Array<CodeNode<ClassDeclaration | InterfaceDeclaration>> = []
+//  while(true) {
+//    const parent = code.src.findCode((<ClassNode | InterfaceNode>code.abiNode).extends)
+//    if (!parent) break
+//    parents.push(parent)
+//  }
+//  return parents
+//}
