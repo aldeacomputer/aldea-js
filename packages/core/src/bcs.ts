@@ -511,7 +511,7 @@ export class BCS {
     this.registerType<Uint32Array>('Uint32Array', createTypedArrayEncoder(Uint32Array))
   }
 
-  // TODO
+  // Registers Aldea types
   private registerMagicTypes(): void {
     this.registerType<any>('_Option', {
       decode: (reader, type) => {
@@ -650,8 +650,8 @@ function collectJigParents(abi: Abi, jig: ClassNode | InterfaceNode): ClassNode[
  return parents
 }
 
-// TODO
-function getCodeKindNodeName(kind: number): string {
+// Returns type name for the given code kind.
+function getCodeKindNodeName(kind: CodeKind): string {
   switch (kind) {
     case CodeKind.CLASS:      return 'abi_class_node'
     case CodeKind.FUNCTION:   return 'abi_function_node'

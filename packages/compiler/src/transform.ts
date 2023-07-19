@@ -19,16 +19,15 @@ import {
   Source,
   InterfaceDeclaration,
   SourceKind,
-  ExportStatement,
   DeclarationStatement,
   DiagnosticCategory,
 } from 'assemblyscript'
 
 import { abiToBin, abiToJson } from '@aldea/core'
-import { ClassNode, CodeKind, FieldKind, FunctionNode, InterfaceNode, MethodKind, MethodNode, TypeNode } from '@aldea/core/abi'
+import { ClassNode, FieldKind, FunctionNode, InterfaceNode, MethodKind, MethodNode, TypeNode } from '@aldea/core/abi'
 import { CodeNode, ExportEdge, ExportNode, ImportEdge, ImportNode, TransformGraph } from './transform/graph/index.js'
 import { createDocs } from './transform/docs.js'
-import { filterAST, isConstructor, isInstance, isPrivate, isStatic } from './transform/filters.js'
+import { filterAST } from './transform/filters.js'
 
 import {
   writeClass,
@@ -330,76 +329,6 @@ function jigToBindingFunctions(ex: ExportEdge): void {
   source.statements.push(...src.statements)
 }
 
-// TODO
-function dropDeclaration(code: CodeNode): void {
-  const source = code.node.range.source
-  const idx = source.statements.indexOf(code.node as Statement)
-  source.statements.splice(idx, 1)
-}
-
-// TODO
-function updateImportStatement(im: ImportNode): void {
-  const names = im.edges.reduce(reduceEdgeNames, [])
-  const ts = writeImportStatement(names, im.path!);
-  const source = im.src.source
-  const src = im.graph.parse(ts, source.normalizedPath)
-  const idx = source.statements.indexOf(im.node)
-  source.statements.splice(idx, 1, ...src.statements)
-}
-
-// TODO
-function updateExportStatement(ex: ExportNode): void {
-  const names = ex.edges.reduce(reduceEdgeNames, [])
-  const ts = writeExportStatement(names, ex.path);
-  const source = ex.src.source
-  const src = ex.graph.parse(ts, source.normalizedPath)
-  const idx = source.statements.indexOf(ex.node)
-  source.statements.splice(idx, 1, ...src.statements)
-}
-
-// TODO
-function updateEntryExportStatement(ex: ExportNode): void {
-  const importNames = ex.edges
-    .reduce(reduceEdgeNames, [])
-
-  const exportNames = ex.edges
-    .filter(e => e.code.node.kind === NodeKind.FunctionDeclaration)
-    .map(e => e.name)
-
-  const ts: string[] = []
-  ts.push(writeImportStatement(importNames, ex.path!))
-  if (exportNames.length) {
-    ts.push(writeExportStatement(exportNames))
-  }
-  
-  const source = ex.src.source
-  const src = ex.graph.parse(ts.join('\n'), source.normalizedPath)
-  const idx = source.statements.indexOf(ex.node)
-  source.statements.splice(idx, 1, ...src.statements)
-}
-
-// TODO
-function reduceEdgeNames(names: string[], e: ImportEdge | ExportEdge): string[] {
-  names.push(e.name)
-  if (
-    e.code.node.kind === NodeKind.ClassDeclaration &&
-    e.ctx.graph.exports.some(ex => ex.code.node === e.code.node)
-  ) {
-    names.push(`_Local${e.name}`)
-    names.push(`_Remote${e.name}`)
-  }
-  if (e.code.node.kind === NodeKind.InterfaceDeclaration) {
-    names.push(`_Remote${e.name}`)
-  }
-  return names
-}
-
-// TODO
-function isExported(node: DeclarationStatement): boolean {
-  return (node.flags & CommonFlags.Export) === CommonFlags.Export &&
-    node.range.source.sourceKind !== SourceKind.UserEntry
-}
-
 // --
 // INTERFACE TRANSFORMATIONS
 // --
@@ -469,16 +398,64 @@ function importToRemoteFunction(code: CodeNode<FunctionDeclaration>, pkgId: stri
 
 
 // --
-// AST MUTATIONS
+// MISCELANEOUS MUTATIONS
 // --
 
 /**
- * Removes the given AST node from the source.
+ * Removes the given code AST node from the source.
  */
-function dropNode(node: ClassDeclaration | FunctionDeclaration): void {
-  const source = node.range.source
-  const idx = source.statements.indexOf(node as Statement)
-  if (idx > -1) { source.statements.splice(idx, 1) }
+function dropDeclaration(code: CodeNode): void {
+  const source = code.node.range.source
+  const idx = source.statements.indexOf(code.node as Statement)
+  source.statements.splice(idx, 1)
+}
+
+
+/**
+ * Updates an import statement with Jig class names where needed.
+ */
+function updateImportStatement(im: ImportNode): void {
+  const names = im.edges.reduce(reduceEdgeNames, [])
+  const ts = writeImportStatement(names, im.path!);
+  const source = im.src.source
+  const src = im.graph.parse(ts, source.normalizedPath)
+  const idx = source.statements.indexOf(im.node)
+  source.statements.splice(idx, 1, ...src.statements)
+}
+
+/**
+ * Updates an export statement with Jig class names where needed.
+ */
+function updateExportStatement(ex: ExportNode): void {
+  const names = ex.edges.reduce(reduceEdgeNames, [])
+  const ts = writeExportStatement(names, ex.path);
+  const source = ex.src.source
+  const src = ex.graph.parse(ts, source.normalizedPath)
+  const idx = source.statements.indexOf(ex.node)
+  source.statements.splice(idx, 1, ...src.statements)
+}
+
+/**
+ * Replaces an entry file export statement by removeing Jig class names where needed.
+ */
+function updateEntryExportStatement(ex: ExportNode): void {
+  const importNames = ex.edges
+    .reduce(reduceEdgeNames, [])
+
+  const exportNames = ex.edges
+    .filter(e => e.code.node.kind === NodeKind.FunctionDeclaration)
+    .map(e => e.name)
+
+  const ts: string[] = []
+  ts.push(writeImportStatement(importNames, ex.path!))
+  if (exportNames.length) {
+    ts.push(writeExportStatement(exportNames))
+  }
+  
+  const source = ex.src.source
+  const src = ex.graph.parse(ts.join('\n'), source.normalizedPath)
+  const idx = source.statements.indexOf(ex.node)
+  source.statements.splice(idx, 1, ...src.statements)
 }
 
 /**
@@ -569,41 +546,28 @@ function isExportedJig(name: string, source: Source, ctx: TransformGraph): boole
   })
 }
 
-///**
-// * Collects all parent nodes for the given class or interface name.
-// */
-//function collectParents(kind: CodeKind, name: string | null, ctx: TransformCtx): Array<ClassWrap | InterfaceWrap> {
-//  const parents: Array<ClassWrap | InterfaceWrap> = []
-//  let parent = findParent(kind, name, ctx)
-//  while (parent) {
-//    parents.unshift(parent)
-//    parent = findParent(kind, parent.extends, ctx)
-//  }
-//  return parents
-//}
+/**
+ * reduce import and export edges into a list of names.
+ */
+function reduceEdgeNames(names: string[], e: ImportEdge | ExportEdge): string[] {
+  names.push(e.name)
+  if (
+    e.code.node.kind === NodeKind.ClassDeclaration &&
+    e.ctx.graph.exports.some(ex => ex.code.node === e.code.node)
+  ) {
+    names.push(`_Local${e.name}`)
+    names.push(`_Remote${e.name}`)
+  }
+  if (e.code.node.kind === NodeKind.InterfaceDeclaration) {
+    names.push(`_Remote${e.name}`)
+  }
+  return names
+}
 
-///**
-// * Finds the parent class or interface node by the given name.
-// */
-//function findParent(kind: CodeKind, name: string | null, ctx: TransformCtx): ClassWrap | InterfaceWrap | undefined {
-//  if (!name) return
-//  return (
-//    ctx.exports.find(ex => ex.kind === kind && ex.code.name === name) ||
-//    ctx.imports.find(im => im.kind === kind && im.code.name === name)
-//  )?.code as ClassWrap | InterfaceWrap
-//}
-
-///**
-// * Collects all parent nodes for the given class or interface ndoe.
-// */
-//function collectParents(
-//  code: CodeNode<ClassDeclaration | InterfaceDeclaration>
-//): Array<CodeNode<ClassDeclaration | InterfaceDeclaration>> {
-//  const parents: Array<CodeNode<ClassDeclaration | InterfaceDeclaration>> = []
-//  while(true) {
-//    const parent = code.src.findCode((<ClassNode | InterfaceNode>code.abiNode).extends)
-//    if (!parent) break
-//    parents.push(parent)
-//  }
-//  return parents
-//}
+/**
+ * Returns true if the given statement is exported froma user entry.
+ */
+function isExported(node: DeclarationStatement): boolean {
+  return (node.flags & CommonFlags.Export) === CommonFlags.Export &&
+    node.range.source.sourceKind !== SourceKind.UserEntry
+}

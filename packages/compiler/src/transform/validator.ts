@@ -34,7 +34,7 @@ import {
 
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
 import { filterAST, isAmbient, isConst, isConstructor, isExported, isGetter, isInstance, isPrivate, isProtected, isReadonly, isSetter, isStatic } from './filters.js'
-import { TransformGraph, CodeNode, ImportEdge, ImportNode, ExportNode } from './graph/index.js'
+import { TransformGraph, CodeNode, ImportEdge, ImportNode, ExportNode, SourceNode } from './graph/index.js'
 import { isClass, isFunction, isInterface } from './graph/helpers.js'
 
 // Allowed top-level statements - everything else is an error!
@@ -162,15 +162,7 @@ export class Validator {
     })
 
     this.ctx.entries.forEach(src => {
-      // TODO create proper validation for this
-      if (!src.exports.length) {
-        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.Error,
-          AldeaDiagnosticCode.Invalid_class,
-          ['User entry files must export at least one.'],
-          src.source.range
-        ))
-      }
+      this.validateEntrySource(src)
     })
 
     this.ctx.exports.forEach(ex => {
@@ -193,16 +185,7 @@ export class Validator {
 
     this.ctx.imports.forEach(im => {
       this.validatePackageId(im)
-
-      // TODO create proper validation for this
-      if (this.ctx.exports.some(ex => ex.code.node === im.code.node)) {
-        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-          DiagnosticCategory.Error,
-          AldeaDiagnosticCode.Invalid_class,
-          ['Imports must not also be exported from package.'],
-          im.code.node.range
-        ))
-      }
+      this.validateImportedCode(im)
 
       switch (im.code.node.kind) {
         case NodeKind.ClassDeclaration:
@@ -455,6 +438,17 @@ export class Validator {
     }
   }
 
+  private validateEntrySource(src: SourceNode): void {
+    if (!src.exports.length) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.Error,
+        AldeaDiagnosticCode.Invalid_package,
+        ['Entry file must have at least one named export.'],
+        src.source.range
+      ))
+    }
+  }
+
   private validateExportStatement(ex: ExportNode): void {
     // Ensure no default export
     if (ex.node.kind === NodeKind.ExportDefault) {
@@ -500,6 +494,17 @@ export class Validator {
         AldeaDiagnosticCode.Illegal_import,
         ['Imports cannot be renamed except from external dependencies.'],
         im.node.range
+      ))
+    }
+  }
+
+  private validateImportedCode(im: ImportEdge): void {
+    if (this.ctx.exports.some(ex => ex.code.node === im.code.node)) {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.Error,
+        AldeaDiagnosticCode.Illegal_export,
+        ['Imports cannot be exported from package.'],
+        im.code.node.range
       ))
     }
   }
@@ -783,7 +788,7 @@ function isAllowedLiteralOther(node: Expression | null): Boolean {
   ].includes(node.kind)
 }
 
-// TODO
+// Returns true if node has flags for given method kind
 function nodeHasMethodFlags(node: MethodDeclaration, kind: MethodKind): boolean {
   switch (kind) {
     case MethodKind.STATIC: return isStatic(node.flags)

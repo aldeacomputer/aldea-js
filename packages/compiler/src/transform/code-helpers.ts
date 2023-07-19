@@ -216,12 +216,16 @@ export function writeImportedRemoteFunction(fn: FunctionNode, pkgId: string): st
   `.trim()
 }
 
-// TODO
+/**
+ * Writes an import statement for the given list of names and import path.
+ */
 export function writeImportStatement(names: string[], path: string) {
   return `import { ${names.join(', ')} } from '${path}'`
 }
 
-// TODO
+/**
+ * Writes an export statement for the given list of names and optional import path.
+ */
 export function writeExportStatement(names: string[], path?: string) {
   const from = path ? ` from '${path}'` : ''
   return `export { ${names.join(', ')} }${from}`
