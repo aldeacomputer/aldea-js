@@ -1,7 +1,7 @@
 import {TxExecution} from './tx-execution.js'
 import {PkgData, Storage} from "./storage.js";
-import {CompilerResult} from '@aldea/compiler'
-import {Address, BCS, Pointer, Tx, abiFromBin, util} from "@aldea/core";
+import {CompilerResult, PackageParser, writeDependency} from '@aldea/compiler'
+import {Address, BCS, Pointer, Tx, abiFromBin, base16, util} from "@aldea/core";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {JigState} from "./jig-state.js";
 import {Buffer} from "buffer";
@@ -26,7 +26,7 @@ const COIN_PKG_ID = new Uint8Array([
   0, 0, 0, 0, 0, 0, 0, 0,
 ])
 
-export type CompileFn = (entry: string[], src: Map<string, string>) => Promise<CompilerResult>;
+export type CompileFn = (entry: string[], src: Map<string, string>, deps: Map<string, string>) => Promise<CompilerResult>;
 
 export class VM {
   private readonly storage: Storage;
@@ -60,7 +60,16 @@ export class VM {
 
   async compileSources (entries: string[], sources: Map<string, string>): Promise<PkgData> {
     const id = calculatePackageId(entries, sources)
-    const result = await this.compile(entries, sources)
+
+    const pkg = await PackageParser.create(entries, {
+      getSrc: (src) => sources.get(src),
+      getDep: (pkgId) => {
+        const { abi } = this.storage.getModule(base16.decode(pkgId))
+        return writeDependency(abi)
+      }, 
+    })
+
+    const result = await this.compile(pkg.entries, pkg.code, pkg.deps)
 
     return new PkgData(
       abiFromBin(result.output.abi),
