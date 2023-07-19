@@ -14,6 +14,7 @@ export {
   Pointer, PointerSerializer,
   PrivKey,
   PubKey,
+  SharedKeyPair,
   Tx, TxSerializer,
   OpCode,
   Instruction, InstructionSerializer, InstructionRef,

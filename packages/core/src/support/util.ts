@@ -44,6 +44,18 @@ export function strToBytes(str: string): Uint8Array {
   return new TextEncoder().encode(str)
 }
 
+/**
+ * Computes `x ^ (2 ^ power) mod p`
+ */
+export function pow2(x: bigint, power: bigint, modulo: bigint): bigint {
+  let res = x
+  while (power-- > 0n) {
+    res *= res
+    res %= modulo
+  }
+  return res
+}
+
 const {
   bytesToHex,
   hexToBytes,
