@@ -118,7 +118,7 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
 
     // 3 - Normalize export and import statements
     $ctx.sources.forEach(src => {
-      src.imports.filter(im => im.node.kind === NodeKind.Import).forEach(im => {
+      src.imports.filter(im => im.node.kind === NodeKind.Import && !/^~lib\//.test(im.internalPath!)).forEach(im => {
         updateImportStatement(im)
       })
       src.exports.filter(ex => ex.node.kind === NodeKind.Export).forEach(ex => {

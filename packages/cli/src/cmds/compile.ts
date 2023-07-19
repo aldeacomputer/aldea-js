@@ -48,10 +48,8 @@ async function compileCode(entries: string[], opts: Opts) {
   })
 
   deps.forEach(src => log(' ', dim('-'), src))
-
-  //const pkg = buildPkg(sources)
-  //const entry = opts.entry.length ? opts.entry : [...pkg.keys()].sort()
-  const res = await aldeac(pkg.entries, pkg.code)
+  
+  const res = await aldeac(pkg.entries, pkg.code, pkg.deps)
   const pkgId = blake3.hash(BCS.pkg.encode([pkg.entries, pkg.code]))
 
   if (!opts.dryRun) {

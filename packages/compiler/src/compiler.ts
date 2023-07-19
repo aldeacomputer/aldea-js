@@ -70,7 +70,7 @@ export async function compile(
 
   function readFile(filename: string, baseDir: string): string | null {
     if (src.has(filename)) { return src.get(filename)! }
-    const m = filename.match(/^pkg:\/\/(([a-f0-9]{2})+).ts/)
+    const m = filename.match(/^(pkg:\/\/([a-f0-9]{2})+).ts/)
     if (m && deps.has(m[1])) { return deps.get(m[1])! }
     try { return fs.readFileSync(join(baseDir, filename), 'utf8') }
     catch(e) { return null } 

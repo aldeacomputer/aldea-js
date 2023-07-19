@@ -193,6 +193,17 @@ export class Validator {
 
     this.ctx.imports.forEach(im => {
       this.validatePackageId(im)
+
+      // TODO create proper validation for this
+      if (this.ctx.exports.some(ex => ex.code.node === im.code.node)) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.Error,
+          AldeaDiagnosticCode.Invalid_class,
+          ['Imports must not also be exported from package.'],
+          im.code.node.range
+        ))
+      }
+
       switch (im.code.node.kind) {
         case NodeKind.ClassDeclaration:
           // must not export from entry
@@ -637,17 +648,16 @@ export class Validator {
     abiNode: FunctionNode | MethodNode,
     node: FunctionDeclaration | MethodDeclaration
   ): void {
-    const name = normalizeTypeName(abiNode.rtype)
     // Ensures all exposed return types are allowed
     if (
-      name !== 'void' &&
-      !whitelist.types.includes(name) &&
-      !this.exposedClasses.map(n => n.name).includes(name)
+      typeof abiNode.rtype?.name === 'string' && abiNode.rtype.name !== 'void' &&
+      !whitelist.types.includes(abiNode.rtype.name) &&
+      !this.exposedClasses.map(n => n.name).includes(abiNode.rtype.name)
     ) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.Error,
         AldeaDiagnosticCode.Invalid_method_type,
-        [name, abiNode.name],
+        [abiNode.rtype.name, abiNode.name],
         node.signature.returnType.range
       ))
     }

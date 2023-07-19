@@ -54,7 +54,7 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
     case AldeaDiagnosticCode.Invalid_field_type:
       return 'Invalid type. `{0}` type cannot be serialized on `{1}` class.'
     case AldeaDiagnosticCode.Invalid_method_type:
-      return 'Invalid type. `{0}` type cannot be be passed to/from `{1}` method.'
+      return 'Invalid type. `{0}` type cannot be passed to/from `{1}` method.'
     case AldeaDiagnosticCode.Invalid_decorator:
       return 'Invalid decorator. AssemblyScript decorators are not allowed.'
     case AldeaDiagnosticCode.Invalid_package:

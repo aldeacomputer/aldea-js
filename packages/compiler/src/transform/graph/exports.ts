@@ -35,7 +35,6 @@ export class ExportNode {
     } else {
       this.edges = [new ExportEdge(this, node)]
     }
-    
   }
 
   get graph(): TransformGraph {
