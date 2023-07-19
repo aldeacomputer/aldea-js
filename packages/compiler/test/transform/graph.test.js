@@ -1,6 +1,6 @@
 import test from 'ava'
 import { mockProgram } from '../support/mock-program.js'
-import { TransformCtx } from '../../dist/transform/ctx.js'
+import { TransformGraph } from '../../dist/transform/graph/index.js'
 import { Transform } from '../../dist/transform.js'
 
 test.beforeEach(t => {
@@ -11,7 +11,7 @@ test('ctx collects user sources and entries', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {}
   }`)
-  const ctx = new TransformCtx(mock.parser)
+  const ctx = new TransformGraph(mock.parser)
   // bit of a rubbish test as the mock program
   // only allows giving one source. oh well
   t.is(ctx.sources.length, 1)
@@ -24,7 +24,7 @@ test('ctx collects exported classes and functions', async t => {
   export function test(): void {}
   class NotExported {}
   }`)
-  const ctx = new TransformCtx(mock.parser)
+  const ctx = new TransformGraph(mock.parser)
 
   t.is(ctx.exports.length, 2)
   t.is(ctx.objects.length, 0)
@@ -36,7 +36,7 @@ test('ctx collects all imported classes and functions', async t => {
   @imported('00000000_1') declare class A extends Jig { a: u8; }
   @imported('00000000_2') declare function b(): void;
   }`)
-  const ctx = new TransformCtx(mock.parser)
+  const ctx = new TransformGraph(mock.parser)
   t.is(ctx.imports.length, 2)
 })
 
@@ -46,7 +46,7 @@ test('ctx collects plain objects exposed in exported api', async t => {
   declare class A { a: u8; }
   declare class B { a: u8; }
   }`)
-  const ctx = new TransformCtx(mock.parser)
+  const ctx = new TransformGraph(mock.parser)
   t.is(ctx.objects.length, 2)
 })
 
@@ -56,7 +56,7 @@ test('ctx ignores plain objects not exposed in exported api', async t => {
   declare class A { a: u8; }
   declare class B { a: u8; }
   }`)
-  const ctx = new TransformCtx(mock.parser)
+  const ctx = new TransformGraph(mock.parser)
   t.is(ctx.objects.length, 0)
 })
 
@@ -66,44 +66,45 @@ test('ctx collects all exposed types', async t => {
   declare class A { a: u8; }
   declare class B { a: u8; }
   }`)
-  const ctx = new TransformCtx(mock.parser)
+  const ctx = new TransformGraph(mock.parser)
   t.is(ctx.exposedTypes.size, 5)
   ctx.exposedTypes.forEach((_val, key) => {
     t.true(['A', 'B', 'string', 'u8', 'void'].includes(key))
   })
 })
 
-test('ctx.abi has all the exports, imports and plain objects', async t => {
+test('ctx.toABI() has all the exports, imports and plain objects', async t => {
   const mock = await mockProgram(`
-  @imported('00000000_1') declare class A extends Jig { a: u8; }
-  @imported('00000000_2') declare function a(n: u8): A {}
-  export class B extends Jig { b: string; }
-  export function b(n: string, m: D): B {}
+  @imported('0000000000000000000000000000000000000000000000000000000000000000') declare class A extends Jig { a: u8; }
+  @imported('0000000000000000000000000000000000000000000000000000000000000000') declare function a(n: u8): A;
+  export class B extends Jig { b: string = 'b'; }
+  export function b(n: string, m: D): B { return new B() }
   export class C extends Jig {}
   declare class D { d: u64; }
   class NotExported {}
-  }`)
-  const ctx = new TransformCtx(mock.parser)
+  `)
+  const ctx = new TransformGraph(mock.parser)
   t.context.transform.afterParse(mock.parser)
   await mock.compile()
   ctx.program = mock.pgm
 
-  t.is(ctx.abi.exports.length, 3)
-  t.true(ctx.abi.exports.some(ex => ex.code.name === 'B'))
-  t.true(ctx.abi.exports.some(ex => ex.code.name === 'b'))
-  t.true(ctx.abi.exports.some(ex => ex.code.name === 'C'))
-  t.is(ctx.abi.imports.length, 2)
-  t.true(ctx.abi.imports.some(im => im.code.name === 'A'))
-  t.true(ctx.abi.imports.some(im => im.code.name === 'a'))
-  t.is(ctx.abi.objects.length, 1)
-  t.true(ctx.abi.objects[0].name === 'D')
-  t.is(ctx.abi.typeIds.length, 11)
-  ctx.abi.typeIds.forEach(({ name }) => {
+  const abi = ctx.toABI()
+  t.is(abi.exports.length, 3)
+  t.true(abi.exports.some(ex => ex.code.name === 'B'))
+  t.true(abi.exports.some(ex => ex.code.name === 'b'))
+  t.true(abi.exports.some(ex => ex.code.name === 'C'))
+  t.is(abi.imports.length, 2)
+  t.true(abi.imports.some(im => im.name === 'A'))
+  t.true(abi.imports.some(im => im.name === 'a'))
+  t.is(abi.objects.length, 1)
+  t.true(abi.objects[0].name === 'D')
+  t.is(abi.typeIds.length, 11)
+  abi.typeIds.forEach(({ name }) => {
     t.true(['A', 'B', '$B', 'C', '$C', 'D', 'string', 'Jig', 'JigInitParams', 'Output', 'Lock'].includes(name))
   })
 })
 
-test('ctx.abi exported classes contain public and private fields', async t => {
+test('ctx.toABI() exported classes contain public and private fields', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {
     a: u8;
@@ -112,18 +113,19 @@ test('ctx.abi exported classes contain public and private fields', async t => {
   }
   }`)
 
-  const ctx = new TransformCtx(mock.parser)
+  const ctx = new TransformGraph(mock.parser)
   t.context.transform.afterParse(mock.parser)
   await mock.compile()
   ctx.program = mock.pgm
 
-  t.is(ctx.abi.exports[0].code.fields.length, 3)
-  ctx.abi.exports[0].code.fields.forEach(f => {
+  const abi = ctx.toABI()
+  t.is(abi.exports[0].code.fields.length, 3)
+  abi.exports[0].code.fields.forEach(f => {
     t.true(['a', 'b', 'c'].includes(f.name))
   })
 })
 
-test('ctx.abi exported classes contain only public methods', async t => {
+test('ctx.toABI() exported classes contain only public methods', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {
     a(): void {}
@@ -132,18 +134,19 @@ test('ctx.abi exported classes contain only public methods', async t => {
   }
   }`)
 
-  const ctx = new TransformCtx(mock.parser)
+  const ctx = new TransformGraph(mock.parser)
   t.context.transform.afterParse(mock.parser)
   await mock.compile()
   ctx.program = mock.pgm
 
-  t.is(ctx.abi.exports[0].code.methods.length, 2)
-  ctx.abi.exports[0].code.methods.forEach(f => {
+  const abi = ctx.toABI()
+  t.is(abi.exports[0].code.methods.length, 2)
+  abi.exports[0].code.methods.forEach(f => {
     t.true(['constructor', 'a'].includes(f.name))
   })
 })
 
-test('ctx.abi class constructors have no return type', async t => {
+test('ctx.toABI() class constructors have no return type', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {
     a: u8;
@@ -152,11 +155,12 @@ test('ctx.abi class constructors have no return type', async t => {
   }
   }`)
 
-  const ctx = new TransformCtx(mock.parser)
+  const ctx = new TransformGraph(mock.parser)
   t.context.transform.afterParse(mock.parser)
   await mock.compile()
   ctx.program = mock.pgm
 
-  t.is(ctx.abi.exports[0].code.methods[0].name, 'constructor')
-  t.is(ctx.abi.exports[0].code.methods[0].rtype, null)
+  const abi = ctx.toABI()
+  t.is(abi.exports[0].code.methods[0].name, 'constructor')
+  t.is(abi.exports[0].code.methods[0].rtype, null)
 })

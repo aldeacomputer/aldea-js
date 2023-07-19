@@ -45,7 +45,7 @@ export function abiToJson(abi: Abi, space: number = 0): string {
   }
 
   return JSON.stringify(abi, function(key, val) {
-    if (key === 'node' || (key === 'code' && isImport(this))) {
+    if (key === 'node' || key === 'source' || (key === 'code' && isImport(this))) {
       return undefined
     } else {
       return val

@@ -16,7 +16,7 @@ import {
 export enum AldeaDiagnosticCode {
   Invalid_source_statement = 400,
   Invalid_export,
-  Invalid_jig_class,
+  Invalid_class,
   Invalid_obj_class,
   Invalid_class_member,
   Invalid_jig_member,
@@ -28,6 +28,8 @@ export enum AldeaDiagnosticCode {
   Illegal_access_global,
   Illegal_access_property,
   Illegal_assignment,
+  Illegal_import,
+  Illegal_export,
   Private_member = 420,
   Private_member_warn,
 }
@@ -41,8 +43,8 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
       return 'Illegal statement. Only classes, functions, interfaces, enums and literal constants can be declared.'
     case AldeaDiagnosticCode.Invalid_export:
       return 'Invalid export. {0} must not be exported from the entry.'
-    case AldeaDiagnosticCode.Invalid_jig_class:
-      return 'Invalid class. {0} {1} inherit from `Jig`.'
+    case AldeaDiagnosticCode.Invalid_class:
+      return 'Invalid class. {0}'
     case AldeaDiagnosticCode.Invalid_obj_class:
       return 'Invalid class. Plain objects cannot use inheritance.'
     case AldeaDiagnosticCode.Invalid_class_member:
@@ -52,7 +54,7 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
     case AldeaDiagnosticCode.Invalid_field_type:
       return 'Invalid type. `{0}` type cannot be serialized on `{1}` class.'
     case AldeaDiagnosticCode.Invalid_method_type:
-      return 'Invalid type. `{0}` type cannot be be passed to/from `{1}` method.'
+      return 'Invalid type. `{0}` type cannot be passed to/from `{1}` method.'
     case AldeaDiagnosticCode.Invalid_decorator:
       return 'Invalid decorator. AssemblyScript decorators are not allowed.'
     case AldeaDiagnosticCode.Invalid_package:
@@ -66,7 +68,10 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
       return 'Illegal access. The `{0}` property is restricted.'
     case AldeaDiagnosticCode.Illegal_assignment:
       return 'Illegal assignment. `{0}` cannot be reassigned.'
-    
+    case AldeaDiagnosticCode.Illegal_import:
+      return 'Illegal import. {0}'
+    case AldeaDiagnosticCode.Illegal_export:
+      return 'Illegal export. {0}'
     case AldeaDiagnosticCode.Private_member:
       return 'Private and protected members are not accessable on imported jigs.' // todo
     case AldeaDiagnosticCode.Private_member_warn:

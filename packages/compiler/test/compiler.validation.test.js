@@ -62,7 +62,7 @@ function methodStmtCode(code) {
 
 test('throws if source has 0 exports', async t => {
   const e = await t.throwsAsync(() => compile('class Test extends Jig {}'))
-  t.regex(e.stderr.toString(), /must export at least one/)
+  t.regex(e.stderr.toString(), /must have at least one named export/)
 })
 
 test('compiles if source has >= 1 exports', async t => {
@@ -266,6 +266,9 @@ test('throws if invalid origin pointer is given', async t => {
 })
 
 test('compiles if with valid imported class', async t => {
+  compile(importedClassMbrCode('a: string;')).catch(e => {
+    console.log(e.stderr.toString())
+  })
   await t.notThrowsAsync(() => compile(importedClassMbrCode('a: string;')))
 })
 

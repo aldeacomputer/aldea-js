@@ -4,6 +4,9 @@ import { fileURLToPath } from 'url'
 import asc from 'assemblyscript/asc'
 import { AscTransform, Transform } from './transform.js'
 
+export { PackageParser } from './package/parser.js'
+export { writeDependency } from './package/code-helpers.js'
+
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 const extension = '.ts'
@@ -37,34 +40,23 @@ export interface CompilerResult {
 /**
  * Compiles the given AssemblyScript code string into a WASM binary.
  */
-export async function compile(src: string | string[] | Map<string, string>): Promise<CompilerResult>;
-export async function compile(entry: string | string[] | Map<string, string>, src: Map<string, string>): Promise<CompilerResult>;
-export async function compile(entryOrSrc: string | string[] | Map<string, string>, src?: Map<string, string>): Promise<CompilerResult> {
-  let input: Map<string, string>
-  let entry: string[] = []
-  
-  if (src instanceof Map) {
-    if (entryOrSrc instanceof Map) throw new Error('entry point(s) expect as first arg, Map given')
-    input = src
-    entry = Array.isArray(entryOrSrc) ? entryOrSrc : [entryOrSrc]
-  } else {
-    if (entryOrSrc instanceof Map) {
-      input = entryOrSrc
-    } else if (Array.isArray(entryOrSrc)) {
-      input = entry.reduce((map, src, i) => {
-        map.set(`input${i}.ts`, src)
-        return map
-      }, new Map<string, string>())
-    } else if (typeof entryOrSrc === 'string') {
-      input = new Map([['input.ts', entryOrSrc]])
+export async function compile(src: string | Map<string, string>): Promise<CompilerResult>;
+export async function compile(entry: string[], src: Map<string, string>, deps: Map<string, string>): Promise<CompilerResult>;
+export async function compile(
+  entry: string | string[] | Map<string, string>,
+  src: Map<string, string> = new Map(),
+  deps: Map<string, string> = new Map(),
+): Promise<CompilerResult> {
+  if (!Array.isArray(entry)) {
+    if (typeof entry === 'string') {
+      return compile(['main.ts'], new Map<string, string>([['main.ts',  entry]]), src)
     } else {
-      throw new Error(`src code expected as first ar, ${typeof entryOrSrc} given`)
+      return compile([...entry.keys()], entry, src)
     }
-    entry = [...input.keys()]
   }
 
   entry.forEach(e => {
-    if (!input.has(e)) {
+    if (!src.has(e)) {
       throw new Error(`given entry not found in source code: ${e}`)
     }
   })
@@ -77,9 +69,10 @@ export async function compile(entryOrSrc: string | string[] | Map<string, string
   ]).concat(baseOpts)
 
   function readFile(filename: string, baseDir: string): string | null {
-    if (input.has(filename)) { return input.get(filename)! }
-    const path = join(baseDir, filename)
-    try { return fs.readFileSync(path, 'utf8') }
+    if (src.has(filename)) { return src.get(filename)! }
+    const m = filename.match(/^(pkg:\/\/([a-f0-9]{2})+).ts/)
+    if (m && deps.has(m[1])) { return deps.get(m[1])! }
+    try { return fs.readFileSync(join(baseDir, filename), 'utf8') }
     catch(e) { return null } 
   }
 
