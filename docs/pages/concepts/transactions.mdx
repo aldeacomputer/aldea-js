@@ -9,11 +9,12 @@ import {VideoPlayer} from '../../customComponents/videoPlayer'
 
 All changes to the state of the Aldea Computer happen through transactions. A transaction is a list of instructions that are executed in order when the transaction is processed.
 
+![transaction illustration](/transactions.png)
+
 A block is a list of transactions that are processed in a specific order. When a chain of blocks is processed, all the instructions in the transactions are executed in order, resulting in a deterministic set of outcomes.
 
-<VideoPlayer/>
-
 ## Instructions
+
 
 In Aldea, an instruction is a unit of code that performs a specific task. There are 11 different instructions that the Aldea computer can recognize and execute. These instructions can load Jigs and packages of code, call methods on Jigs or execute static functions, deploy new packages, and add signatures to transactions. Each instruction takes in a certain number of arguments and returns a result. Instructions can reference the result of previous instructions by using the index of the previous instruction.
 

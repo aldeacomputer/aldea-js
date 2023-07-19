@@ -1,18 +1,14 @@
 import Image from 'next/image'
-//import lightLogo from './public/logoLight.png'
-import biColorLogo from './public/logoBiColor.png'
+import docsLogo from './public/sublogo_docs.png'
 
 export default {
-  github: 'https://github.com/runonbitcoin/aldea-zero',
+  github: 'https://github.com/aldeacomputer',
   docsRepositoryBase: 'https://github.com/shuding/nextra/blob/master',
   titleSuffix: ' – Aldea Docs',
   logo: (
     <>
       {/*<Image width={'160'} height={'70'} src={lightLogo}/>*/}
-      <Image width={'120'} height={'35'} src={biColorLogo}/>
-      <span className="docsSubtitle">
-        docs
-      </span>
+      <Image width={'180'} height={'28'} src={docsLogo}/>
     </>
   ),
   head: (
@@ -30,6 +26,10 @@ export default {
       <meta name="og:title" content="Aldea Docs"/>
       <meta name="apple-mobile-web-app-title" content="Aldea Docs"/>
       <meta name="msapplication-TileImage" content="/ms-icon-144x144.png"/>
+      <link rel="preconnect" href="https://fonts.googleapis.com"/>
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true"/>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
       <script
         lang="javascript"
         dangerouslySetInnerHTML={{
