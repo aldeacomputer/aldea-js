@@ -80,7 +80,8 @@ export class PackageParser {
 
         if (pkgM) {
           this.depUrls.push(fileName)
-          await this.loadDependency(pkgM[1], false)
+          const src = await this.loadDependency(pkgM[1], false)
+          if (src) this.parser.parseFile(src, fileName, false)
         }
       } else {
         const fileName = internalPath + '.ts'
@@ -98,7 +99,7 @@ export class PackageParser {
     } while(true)
   }
 
-  private async loadSource(fileName: string, assert: boolean = true): Promise<string | void> {
+  private async loadSource(fileName: string, assert: boolean = true): Promise<string | undefined> {
     const src = await this.loader.getSrc(fileName)
     if (src) {
       this.code.set(fileName, src)
@@ -108,7 +109,7 @@ export class PackageParser {
     }
   }
 
-  private async loadDependency(pkgId: string, assert: boolean = true): Promise<string | void> {
+  private async loadDependency(pkgId: string, assert: boolean = true): Promise<string | undefined> {
     const src = typeof this.loader.getDep === 'function' ?
       await this.loader.getDep(pkgId) :
       null
