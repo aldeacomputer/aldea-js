@@ -1,5 +1,18 @@
 # @aldea/cli
 
+## 0.3.0
+
+### Minor Changes
+
+- 06dddbd: Package dependency management commands.
+
+### Patch Changes
+
+- Updated dependencies [06dddbd]
+  - @aldea/compiler@0.3.0
+  - @aldea/wallet-lib@0.2.8
+  - @aldea/sdk@0.4.0
+
 ## 0.2.12
 
 ### Patch Changes

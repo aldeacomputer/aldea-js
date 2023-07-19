@@ -1,5 +1,15 @@
 # @aldea/core
 
+## 0.4.0
+
+### Minor Changes
+
+- fe17cd7: New Shared KeyPairs
+
+### Patch Changes
+
+- 06dddbd: New compiler sourge graph to support multi-file packages and magic dependency imports
+
 ## 0.3.9
 
 ### Patch Changes

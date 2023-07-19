@@ -1,5 +1,17 @@
 # @aldea/compiler
 
+## 0.3.0
+
+### Minor Changes
+
+- 06dddbd: New compiler sourge graph to support multi-file packages and magic dependency imports
+
+### Patch Changes
+
+- Updated dependencies [fe17cd7]
+- Updated dependencies [06dddbd]
+  - @aldea/core@0.4.0
+
 ## 0.2.8
 
 ### Patch Changes

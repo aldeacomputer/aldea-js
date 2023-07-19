@@ -1,5 +1,18 @@
 # @aldea/vm
 
+## 0.4.0
+
+### Minor Changes
+
+- 06dddbd: Supports dynamic dependency injection at package compile time.
+
+### Patch Changes
+
+- Updated dependencies [fe17cd7]
+- Updated dependencies [06dddbd]
+  - @aldea/core@0.4.0
+  - @aldea/compiler@0.3.0
+
 ## 0.3.9
 
 ### Patch Changes
