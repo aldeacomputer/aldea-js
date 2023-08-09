@@ -78,7 +78,7 @@ export class Tx {
    * Returns the sighash of the current transaction. Can optionally be passed
    * an index to return the sighash upto a given instruction.
    */
-  sighash(to: number = -1): Uint8Array {
+  sighash(to: number = this.instructions.length): Uint8Array {
     const buf = new BufWriter()
     const instructions = this.instructions.slice(0, to)
     
@@ -99,7 +99,7 @@ export class Tx {
    * Returns a valid signature for the current tx using the given key.
    * // todo - review this function!!
    */
-  createSignature (privKey: PrivKey, to: number = -1): Uint8Array {
+  createSignature (privKey: PrivKey, to: number = this.instructions.length): Uint8Array {
     const msg = this.sighash(to)
     return sign(msg, privKey)
   }
@@ -146,7 +146,9 @@ export class Tx {
       .every((i, idx) => {
         if (i.opcode === OpCode.SIGN || i.opcode === OpCode.SIGNTO) {
           const inst = i as SignInstruction | SignToInstruction
-          const msg = this.sighash(i.opcode === OpCode.SIGNTO ? idx : -1)
+          const msg = i.opcode === OpCode.SIGNTO
+            ? this.sighash(idx)
+            : this.sighash()
           return verify(inst.sig, msg, inst.pubkey)
         } else {
           return true
