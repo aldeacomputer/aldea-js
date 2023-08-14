@@ -1,0 +1,25 @@
+{
+  "name": "@aldea/rust-interface",
+  "description": "Tiny interface between rust and the compiler.",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "aldea-c": "./dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "packageManager": "yarn@3.2.3",
+  "dependencies": {
+    "@aldea/compiler": "workspace:^",
+    "@aldea/sdk": "workspace:^"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  }
+}
