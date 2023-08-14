@@ -1,11 +1,12 @@
-import { assert } from 'chai'
+import {assert, expect} from 'chai'
 import { compile } from '@aldea/compiler'
 import { WasmInstance } from '../src/wasm-instance.js'
 import {TxExecution} from "../src/tx-execution.js";
 import {VM, Storage, MomentClock} from "../src/index.js";
-import {Tx, abiFromBin} from "@aldea/core";
+import {Tx, abiFromBin, BCS, base16} from "@aldea/core";
 import {JigRef} from "../src/jig-ref.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
+import {hash} from "@aldea/core/support/blake3";
 
 async function compileToWasm(src: string, id: Uint8Array = new Uint8Array([0, 0, 0, 0])): Promise<WasmInstance> {
   try {
@@ -31,6 +32,18 @@ describe('reading basic types from memory', () => {
     const res = wasm.functionCall(wasm.abi.functionByName('test'), [])
     assert.typeOf(res.value, 'number')
     assert.equal(res.value, -42)
+  })
+
+  it('thingy', async () => {
+    let srcs = new Map<string, string>();
+    srcs.set('entry1.ts', 'export class Coso extends Jig {}')
+    srcs.set('entry2.ts', 'export class Cosito extends Jig {}')
+
+    // expect(result).to.not.eql(null)
+    let encoded = BCS.pkg.encode([['entry1.ts', 'entry2.ts'], srcs])
+    console.log('encoded', base16.encode(encoded))
+    let hashed = hash(encoded)
+    console.log(base16.encode(hashed))
   })
 
   it('reads i32 as number', async () => {

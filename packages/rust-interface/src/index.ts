@@ -1,6 +1,6 @@
 import {BCS, BufWriter} from "@aldea/core";
 import {compile} from "@aldea/compiler";
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 export async function main(): Promise<void> {
   const inputFileName = process.argv[2]
@@ -26,4 +26,7 @@ export async function main(): Promise<void> {
   writeFileSync(outputFileName, writer.toBytes())
 }
 
-main().catch(() => process.exit(1))
+main().catch((e) => {
+  console.error(e)
+  process.exit(1)
+})
