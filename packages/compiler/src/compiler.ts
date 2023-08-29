@@ -3,8 +3,12 @@ import { dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import asc from 'assemblyscript/asc'
 import { AscTransform, Transform } from './transform.js'
+import { Parser } from 'assemblyscript'
+import { PackageParser } from './package/parser.js'
+import { TransformGraph } from './transform/graph/graph.js'
+import { createDocs, Docs } from './transform/docs.js'
 
-export { PackageParser } from './package/parser.js'
+export { PackageParser }
 export { writeDependency } from './package/code-helpers.js'
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -123,75 +127,35 @@ export async function compile(
   }
 }
 
-///**
-// * Compiles AssemblyScript code using the given parameters.
-// * 
-// * This method is a Command action, designed to be called from Commander.
-// */
-//export async function compileCommand(src: string, opts: any, cmd: Command): Promise<void> {
-//  const baseDir = resolve(process.cwd(), dirname(src))
-//  const srcFile = basename(src)
-//
-//  const outFile = opts.output
-//    ? opts.output
-//    : srcFile.replace(/\.\w+$/, '.wasm');
-//
-//  if (!fs.existsSync(join(baseDir, srcFile))) {
-//    cmd.error(`file does not exist: ${src}`)
-//  }
-//
-//  const argv = [
-//    srcFile,
-//    '--baseDir', baseDir,
-//    '--outFile', outFile,
-//    '--textFile', outFile.replace('.wasm', '.wat'),
-//    '--sourceMap', // delete eventually
-//  ].concat(baseOpts)
-//
-//  function listFiles(dirname: string, baseDir: string): string[] {
-//    return fs.readdirSync(resolve(baseDir, dirname)).filter(file => {
-//      return extension_re_except_d.test(file)
-//    })
-//  }
-//
-//  function writeFile(filename: string, contents: string | Uint8Array, baseDir: string): void {
-//    if (/^(abi|docs)\.(bin|json)$/.test(filename)) {
-//      filename = outFile.replace(/wasm$/, filename)
-//    }
-//    fs.mkdirSync(resolve(baseDir, dirname(filename)), { recursive: true })
-//    fs.writeFileSync(join(baseDir, filename), contents)
-//  }
-//
-//  const customStdout = asc.createMemoryStream()
-//
-//  // Create a dynamic transform class as merging the prototype
-//  // is not safe concurrently
-//  class DynamicTransform extends Transform implements AscTransform {
-//    baseDir: string = baseDir
-//    writeFile = writeFile
-//    log(line: string) { customStdout.write(line + '\n') }
-//  }
-//
-//  const transform = new DynamicTransform()
-//  const { error, stdout, stderr, stats } = await asc.main(argv, {
-//    listFiles,
-//    writeFile,
-//    stdout: customStdout,
-//    // @ts-ignore
-//    transforms: [transform]
-//  })
-//
-//  if (!error) {
-//    console.log("Compilation success: ")
-//    console.log(stats.toString())
-//    console.log(stdout.toString())
-//  } else {
-//    // useful to uncomment this to debug failed compilation
-//    // transform.$ctx?.entries.forEach(entry => { console.log(ASTBuilder.build(entry)) })
-//    console.log("Compilation failed: " + error.message)
-//    console.log(stderr.toString())
-//  }
-//}
+export async function compileDocs(src: string | Map<string, string>): Promise<Partial<Docs>>;
+export async function compileDocs(entry: string[], src: Map<string, string>): Promise<Partial<Docs>>;
+export async function compileDocs(
+  entry: string | string[] | Map<string, string>,
+  src: Map<string, string> = new Map()
+): Promise<Partial<Docs>> {
+  if (!Array.isArray(entry)) {
+    if (typeof entry === 'string') {
+      return compileDocs(['main.ts'], new Map<string, string>([['main.ts',  entry]]))
+    } else {
+      return compileDocs([...entry.keys()], entry)
+    }
+  }
+
+  entry.forEach(e => {
+    if (!src.has(e)) {
+      throw new Error(`given entry not found in source code: ${e}`)
+    }
+  })
+
+  const parser = new PackageParser(entry, {
+    getSrc: (fileName) => src.get(fileName)
+  })
+
+  await parser.parse()
+  
+  const ctx = new TransformGraph(parser.parser)
+  return createDocs(ctx)
+}
 
 /**
  * Compile Error class

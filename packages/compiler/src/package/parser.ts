@@ -33,7 +33,7 @@ export class PackageParser {
   code = new Map<string, string>()
   deps = new Map<string, string>()
   private depUrls = new Array<string>()
-  private parser = new Parser()
+  parser = new Parser()
 
   constructor(
     public entries: string[],

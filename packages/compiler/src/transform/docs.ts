@@ -7,23 +7,23 @@ import { isConstructor, isInstance, isStatic } from './filters.js'
 const PKGDOC_BLOCK_REGEX = /^\s*\/\*\*(?:(?!\*\/).)+\*\//s
 const COMMENT_BLOCK_REGEX = /\/\*\*(?:(?!\*\/).)+\*\/\s*$/s
 
-interface Docs {
+export interface Docs {
   package: PackageInfo;
   docs: DocMap;
 }
 
-interface PackageInfo {
+export interface PackageInfo {
   description: string;
   tags: Tag[];
 }
 
-interface Tag {
+export interface Tag {
   tag: string;
   name: string;
   description: string;
 }
 
-interface DocMap {
+export interface DocMap {
   [name: string]: string;
 }
 
