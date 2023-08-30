@@ -71,7 +71,7 @@ __metadata:
     "@as-pect/cli": ^8.1.0
     "@assemblyscript/loader": 0.27.5
     "@types/node": ^20.1.5
-    assemblyscript: "npm:@aldea/assemblyscript@^0.1.0"
+    assemblyscript: "npm:@aldea/assemblyscript@^0.27.9"
     ava: ^5.2.0
     comment-parser: ^1.3.1
     concat: ^1.0.3
@@ -3406,16 +3406,29 @@ __metadata:
   languageName: node
   linkType: hard
 
-"assemblyscript@npm:^0.27.2":
-  version: 0.27.5
-  resolution: "assemblyscript@npm:0.27.5"
+"assemblyscript@npm:@aldea/assemblyscript@^0.27.9":
+  version: 0.27.9
+  resolution: "@aldea/assemblyscript@npm:0.27.9"
   dependencies:
     binaryen: 112.0.0-nightly.20230411
     long: ^5.2.1
   bin:
     asc: bin/asc.js
     asinit: bin/asinit.js
-  checksum: a0ca5b5631e7a229de7f737925e2b10d7de4d642bd208cfd8e6df86f48707f13cd660967213299e0581d15d44473dd41d25dd6cd6e8b5067af1eda0e1fe90193
+  checksum: 600b19dc0eccfc3f564a172f73e404572cfec4b6bdad4a1615b54f76735f0480dcbfbd3b53c0603c5f35012918c8345bdbda0100fca4c3ed6206f1d4f6724c83
+  languageName: node
+  linkType: hard
+
+"assemblyscript@npm:^0.27.2":
+  version: 0.27.9
+  resolution: "assemblyscript@npm:0.27.9"
+  dependencies:
+    binaryen: 112.0.0-nightly.20230411
+    long: ^5.2.1
+  bin:
+    asc: bin/asc.js
+    asinit: bin/asinit.js
+  checksum: 962b8eeafe0cf821265e3bd46088543f34edc6fc07eb94ab6215b732f78bb9be2f36f333d88dff4bf98d64345036c4d8514eb9c1d960c8ff02372c4e437a0bab
   languageName: node
   linkType: hard
 
