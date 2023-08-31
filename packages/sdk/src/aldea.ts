@@ -120,11 +120,14 @@ export class Aldea {
   async getPackageSrc(pkgId: string): Promise<PackageResponse> {
     const bcs = new BCS({ addPkgTypes: true })
     const buf = await this.api.get(`package/${pkgId}/source`).arrayBuffer()
-    const [entries, files] = bcs.decode('pkg', new Uint8Array(buf))
+    const [entries, files] = bcs.decode('pkg', new Uint8Array(buf)) as [string[], Map<string, string>]
     return {
       id: pkgId,
       entries,
-      files,
+      files: [...files.entries()].reduce<FileResponse[]>((files, [name, content]) => {
+        files.push({ name, content })
+        return files
+      }, []),
     }
   }
 

@@ -278,7 +278,7 @@ test('Aldea.getPackageSrc() returns an ABI json object if exists', async t => {
   const res = await aldea.getPackageSrc('29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69')
   t.true(typeof res.id === 'string')
   t.true(Array.isArray(res.entries))
-  t.true('files' in res)
+  t.true(Array.isArray(res.files))
 })
 
 test('Aldea.getPackageSrc() throws error if notfound', async t => {
