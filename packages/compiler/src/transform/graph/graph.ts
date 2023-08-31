@@ -79,6 +79,7 @@ export class TransformGraph {
     this.objects = this.sources
       .flatMap(s => s.codes)
       .filter(n => isClass(n.node) && isAmbient(n.node.flags))
+      .filter(n => !this.imports.some(im => im.code === n))
       .filter(n => this.exports.some(ex => isExposed(ex.code, n)))
 
     this.collectExposedTypes()

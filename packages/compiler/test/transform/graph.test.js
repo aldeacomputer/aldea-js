@@ -30,14 +30,16 @@ test('ctx collects exported classes and functions', async t => {
   t.is(ctx.objects.length, 0)
 })
 
-test('ctx collects all imported classes and functions', async t => {
+test.only('ctx collects all imported classes and functions', async t => {
   const mock = await mockProgram(`
-  export class Test extends Jig {}
   @imported('00000000_1') declare class A extends Jig { a: u8; }
   @imported('00000000_2') declare function b(): void;
+  export function test(): A { return new A() };
   }`)
   const ctx = new TransformGraph(mock.parser)
   t.is(ctx.imports.length, 2)
+  // ensure not also captured as plain objects
+  t.is(ctx.objects.length, 0)
 })
 
 test('ctx collects plain objects exposed in exported api', async t => {
