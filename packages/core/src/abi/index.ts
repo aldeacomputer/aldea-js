@@ -5,6 +5,7 @@ import {
   InterfaceNode,
   MethodKind,
   MethodNode,
+  ObjectNode,
   TypeNode,
 } from './types.js'
 
@@ -17,12 +18,12 @@ export * from './validations.js'
  */
 export function normalizeNodeName(
   node: ClassNode | FunctionNode | InterfaceNode | FieldNode | MethodNode,
-  parent?: ClassNode | InterfaceNode
+  parent?: ClassNode | InterfaceNode | ObjectNode,
 ): string {
   if (parent && parent.fields.includes(node as FieldNode)) {
     return `${parent.name}.${node.name}`
-  } else if (parent && parent.methods.includes(node as MethodNode & FunctionNode)) {
-    const delim = (<MethodNode>node).kind === MethodKind.INSTANCE ? '$' : '_'
+  } else if (parent && (<ClassNode | InterfaceNode>parent).methods.includes(node as MethodNode & FunctionNode)) {
+    const delim = 'kind' in node ? (node.kind === MethodKind.INSTANCE ? '$' : '_'): '$';
     return parent.name + delim + node.name
   } else {
     return node.name
