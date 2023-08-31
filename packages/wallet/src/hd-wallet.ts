@@ -7,6 +7,7 @@ import {
   OpCode,
   Output,
   Pointer,
+  PrivKey,
   Tx,
 } from '@aldea/sdk'
 import {Wallet} from "./wallet.js";
@@ -28,7 +29,7 @@ export class HdWallet extends Wallet {
     return this.storage.allUtxos()
   }
 
-  async signTx(partialTx: Tx): Promise<Tx> {
+  async signTx(partialTx: Tx, updateSigs?: PrivKey | HDPrivKey | Array<PrivKey | HDPrivKey>): Promise<Tx> {
     const outputIds = partialTx.instructions
       .filter(i => i.opcode === OpCode.LOAD)
       .map(i => {
@@ -60,7 +61,7 @@ export class HdWallet extends Wallet {
       }
     }
 
-    return this.client.createTx({ extend: partialTx }, txb => {
+    return this.client.createTx({ extend: partialTx, updateSigs }, txb => {
       for (const path of paths) {
         const priv = this.hd.derive(path.replace('M', 'm')) as HDPrivKey
         txb.sign(priv)

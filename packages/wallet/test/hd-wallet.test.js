@@ -163,3 +163,22 @@ test('works with lowSync', async (t) => {
   const addr2 = await wallet.getNextAddress()
   t.notDeepEqual(addr1, addr2)
 })
+
+test('existing sigs are updated when updateSigns method is used', async t => {
+  const addr = await t.context.wallet.getNextAddress()
+  const mint = await t.context.aldea.api.post('mint', { json: { address: addr.toString(), amount: 100 }}).json()
+  const output = Output.fromJson(mint)
+  await t.context.wallet.addUtxo(output)
+
+  const key = HDPrivKey.fromRandom()
+  const builder = (txb) => {
+    const pkgRef = txb.import('446f2f5ebbcbd8eb081d207a67c1c9f1ba3d15867c12a92b96e7520382883846')
+    const nftRef = txb.new(pkgRef, 'NFT', ['name', 32, 'moreName'])
+    txb.sign(key)
+  }
+
+  const tx1 = await t.context.wallet.createFundedTx(builder)
+  const tx2 = await t.context.wallet.createFundedTx({ updateSigs: key }, builder)
+  t.false(tx1.verify())
+  t.true(tx2.verify())
+})
