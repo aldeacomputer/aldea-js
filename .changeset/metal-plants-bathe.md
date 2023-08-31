@@ -2,4 +2,4 @@
 "@aldea/compiler": patch
 ---
 
-update assemblyscript dependency to fix compiler mismatch error
+Update assemblyscript dependency to fix compiler mismatch error.
