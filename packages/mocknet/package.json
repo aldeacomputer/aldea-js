@@ -15,7 +15,7 @@
     "clean": "rimraf dist/* || true",
     "ci": "yarn test",
     "dev": "nodemon yarn start",
-    "lint": "standard --fix",
+    "lint": "standard --fix --env mocha",
     "start": "mocknet",
     "test": "yarn build && mocha"
   },
