@@ -1,6 +1,6 @@
 {
   "name": "@aldea/rust-interface",
-  "description": "Tiny interface between rust and the compiler.",
+  "description": "Tiny interface between the rust node and the compiler.",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "type": "module",
@@ -12,7 +12,8 @@
     "src/**/*"
   ],
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "lint": "ts-standard --fix"
   },
   "packageManager": "yarn@3.2.3",
   "dependencies": {
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.19.2",
+    "ts-standard": "^12.0.2",
     "typescript": "^5.0.4"
   }
 }
