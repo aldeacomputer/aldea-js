@@ -1,4 +1,4 @@
-import  { ParsedArgs } from 'minimist'
+import { ParsedArgs } from 'minimist'
 import { createLibp2p, Libp2p } from 'libp2p'
 import { bootstrap } from '@libp2p/bootstrap'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
@@ -11,8 +11,8 @@ import { config, logger } from '../globals.js'
 /**
  * Creates a new instance of Libp2p
  */
-export async function createNode(argv: ParsedArgs = {'_': []}): Promise<Libp2p> {
-  return createLibp2p({
+export async function createNode (argv: ParsedArgs = { _: [] }): Promise<Libp2p> {
+  return await createLibp2p({
     // config
     addresses: {
       listen: config.listen_addrs
@@ -24,19 +24,19 @@ export async function createNode(argv: ParsedArgs = {'_': []}): Promise<Libp2p> 
       enabled: config.nat_enabled
     },
     relay: {
-      enabled: true,
+      enabled: true
     },
     // layers
     connectionEncryption: plugConnectionEncryption(argv),
     peerDiscovery: plugPeerDiscovery(argv),
     pubsub: plugPubSub(argv),
     streamMuxers: plugStreamMuxers(argv),
-    transports: plugTransports(argv),
+    transports: plugTransports(argv)
   })
 }
 
 // Start function
-export async function startNode(node: Libp2p): Promise<void> {
+export async function startNode (node: Libp2p): Promise<void> {
   await node.start()
   if (node.isStarted()) {
     logger.info('🟢 Node started: %s', node.peerId.toString())
@@ -47,7 +47,7 @@ export async function startNode(node: Libp2p): Promise<void> {
 }
 
 // Stop function
-export async function stopNode(node: Libp2p): Promise<void> {
+export async function stopNode (node: Libp2p): Promise<void> {
   await node.stop()
   if (!node.isStarted()) {
     logger.info('🔴 Node stopped: %s', node.peerId.toString())
@@ -58,21 +58,21 @@ export async function stopNode(node: Libp2p): Promise<void> {
 type Libp2pPlug = (components: any) => any
 
 // Plugs a list of connection encryptor components
-function plugConnectionEncryption(argv: ParsedArgs): Array<Libp2pPlug> {
+function plugConnectionEncryption (argv: ParsedArgs): Libp2pPlug[] {
   return [
     noise()
   ]
 }
 
 // Plugs a list of peer discovery components
-function plugPeerDiscovery(argv: ParsedArgs): Array<Libp2pPlug> {
-  const plugs: Array<Libp2pPlug> = []
+function plugPeerDiscovery (argv: ParsedArgs): Libp2pPlug[] {
+  const plugs: Libp2pPlug[] = []
 
   let peers: string[] = []
   if (Array.isArray(argv.peer)) peers = argv.peer
   if (typeof argv.peer === 'string') peers = [argv.peer]
 
-  if (peers.length) {
+  if (peers.length > 0) {
     plugs.push(bootstrap({
       list: peers
     }))
@@ -86,22 +86,22 @@ function plugPeerDiscovery(argv: ParsedArgs): Array<Libp2pPlug> {
 }
 
 // Plugs a pubsub component
-function plugPubSub(argv: ParsedArgs): Libp2pPlug {
+function plugPubSub (argv: ParsedArgs): Libp2pPlug {
   return gossipsub({
     allowPublishToZeroPeers: true,
-    fallbackToFloodsub: false,
+    fallbackToFloodsub: false
   })
 }
 
 // Plugs a list of stream muxer components
-function plugStreamMuxers(argv: ParsedArgs): Array<Libp2pPlug> {
+function plugStreamMuxers (argv: ParsedArgs): Libp2pPlug[] {
   return [
     yamux()
   ]
 }
 
 // Plugs a list of transport components
-function plugTransports(argv: ParsedArgs): Array<Libp2pPlug> {
+function plugTransports (argv: ParsedArgs): Libp2pPlug[] {
   return [
     tcp()
   ]
