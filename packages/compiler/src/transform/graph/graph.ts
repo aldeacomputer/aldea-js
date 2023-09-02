@@ -41,7 +41,7 @@ import {
 import { isAmbient } from '../filters.js';
 import { Validator } from '../validator.js'
 
-
+const ABI_VERSION = 1
 
 export class TransformGraph {
   sources: SourceNode[];
@@ -88,7 +88,7 @@ export class TransformGraph {
 
   toABI(): abi.Abi {
     return {
-      version: 1,
+      version: ABI_VERSION,
       imports: this.imports.map(toAbiImport),
       exports: this.exports.map(toAbiExport),
       objects: this.objects.map(o => o.abiNode as ObjectNode),

@@ -67,11 +67,11 @@ class TestAbiBuilder {
 
   build (): AbiAccess {
     return new AbiAccess({
+      version: 1,
       exports: this.exports,
       imports: this.imports,
       objects: this.objects,
-      typeIds: [],
-      version: 1
+      typeIds: []
     })
   }
 
