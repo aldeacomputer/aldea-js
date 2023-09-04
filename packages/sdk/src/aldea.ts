@@ -1,4 +1,4 @@
-import ky, { AfterResponseHook, BeforeRequestHook } from 'ky-universal'
+import ky, { AfterResponseHook, BeforeRequestHook, Options } from 'ky-universal'
 import {
   Address,
   BCS,
@@ -13,6 +13,10 @@ import { TxBuilder, TxBuilderOpts } from './tx-builder.js'
 
 export type CreateTxCallback = (tx: TxBuilder, ref: (idx: number) => InstructionRef) => void | Promise<void>
 
+export interface AldeaClientOpts {
+  cache: boolean;
+}
+
 /**
  * The Aldea class connects to a remote Aldea instance and provide a top-level
  * API for interacting with the Node, building and commiting new transactions.
@@ -21,14 +25,24 @@ export class Aldea {
   api: typeof ky;
   cache = new Map<string, Response>();
 
-  constructor(url: string) {
-    this.api = ky.create({
+  constructor(url: string, options?: Partial<AldeaClientOpts>) {
+    const opts: AldeaClientOpts = {
+      cache: true,
+      ...options,
+    }
+
+    const kyOpts: Options = {
       prefixUrl: new URL(url),
-      hooks: {
+    }
+
+    if (opts.cache) {
+      kyOpts.hooks = {
         beforeRequest: [ cacheGetter.bind(this) ],
         afterResponse: [ cacheSetter.bind(this) ],
-      },
-    })
+      }
+    }
+
+    this.api = ky.create(kyOpts)
   }
 
   /**
