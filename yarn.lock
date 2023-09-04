@@ -155,7 +155,6 @@ __metadata:
     pino: ^8.14.1
     pino-pretty: ^10.0.0
     rimraf: ^5.0.0
-    standard: ^17.0.0
     supertest: ^6.3.3
     ts-standard: ^12.0.2
     typescript: ^5.0.4
@@ -6082,18 +6081,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-config-standard@npm:17.1.0":
-  version: 17.1.0
-  resolution: "eslint-config-standard@npm:17.1.0"
-  peerDependencies:
-    eslint: ^8.0.1
-    eslint-plugin-import: ^2.25.2
-    eslint-plugin-n: "^15.0.0 || ^16.0.0 "
-    eslint-plugin-promise: ^6.0.0
-  checksum: 8ed14ffe424b8a7e67b85e44f75c46dc4c6954f7c474c871c56fb0daf40b6b2a7af2db55102b12a440158b2be898e1fb8333b05e3dbeaeaef066fdbc863eaa88
-  languageName: node
-  linkType: hard
-
 "eslint-import-resolver-node@npm:^0.3.7":
   version: 0.3.7
   resolution: "eslint-import-resolver-node@npm:0.3.7"
@@ -6105,7 +6092,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-module-utils@npm:^2.7.4, eslint-module-utils@npm:^2.8.0":
+"eslint-module-utils@npm:^2.8.0":
   version: 2.8.0
   resolution: "eslint-module-utils@npm:2.8.0"
   dependencies:
@@ -6156,32 +6143,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-import@npm:^2.27.5":
-  version: 2.27.5
-  resolution: "eslint-plugin-import@npm:2.27.5"
-  dependencies:
-    array-includes: ^3.1.6
-    array.prototype.flat: ^1.3.1
-    array.prototype.flatmap: ^1.3.1
-    debug: ^3.2.7
-    doctrine: ^2.1.0
-    eslint-import-resolver-node: ^0.3.7
-    eslint-module-utils: ^2.7.4
-    has: ^1.0.3
-    is-core-module: ^2.11.0
-    is-glob: ^4.0.3
-    minimatch: ^3.1.2
-    object.values: ^1.1.6
-    resolve: ^1.22.1
-    semver: ^6.3.0
-    tsconfig-paths: ^3.14.1
-  peerDependencies:
-    eslint: ^2 || ^3 || ^4 || ^5 || ^6 || ^7.2.0 || ^8
-  checksum: f500571a380167e25d72a4d925ef9a7aae8899eada57653e5f3051ec3d3c16d08271fcefe41a30a9a2f4fefc232f066253673ee4ea77b30dba65ae173dade85d
-  languageName: node
-  linkType: hard
-
-"eslint-plugin-n@npm:^15.0.0, eslint-plugin-n@npm:^15.7.0":
+"eslint-plugin-n@npm:^15.0.0":
   version: 15.7.0
   resolution: "eslint-plugin-n@npm:15.7.0"
   dependencies:
@@ -6199,7 +6161,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-promise@npm:^6.0.0, eslint-plugin-promise@npm:^6.1.1":
+"eslint-plugin-promise@npm:^6.0.0":
   version: 6.1.1
   resolution: "eslint-plugin-promise@npm:6.1.1"
   peerDependencies:
@@ -6231,31 +6193,6 @@ __metadata:
   peerDependencies:
     eslint: ^3 || ^4 || ^5 || ^6 || ^7 || ^8
   checksum: b4c3d76390b0ae6b6f9fed78170604cc2c04b48e6778a637db339e8e3911ec9ef22510b0ae77c429698151d0f1b245f282177f384105b6830e7b29b9c9b26610
-  languageName: node
-  linkType: hard
-
-"eslint-plugin-react@npm:^7.32.2":
-  version: 7.32.2
-  resolution: "eslint-plugin-react@npm:7.32.2"
-  dependencies:
-    array-includes: ^3.1.6
-    array.prototype.flatmap: ^1.3.1
-    array.prototype.tosorted: ^1.1.1
-    doctrine: ^2.1.0
-    estraverse: ^5.3.0
-    jsx-ast-utils: ^2.4.1 || ^3.0.0
-    minimatch: ^3.1.2
-    object.entries: ^1.1.6
-    object.fromentries: ^2.0.6
-    object.hasown: ^1.1.2
-    object.values: ^1.1.6
-    prop-types: ^15.8.1
-    resolve: ^2.0.0-next.4
-    semver: ^6.3.0
-    string.prototype.matchall: ^4.0.8
-  peerDependencies:
-    eslint: ^3 || ^4 || ^5 || ^6 || ^7 || ^8
-  checksum: 2232b3b8945aa50b7773919c15cd96892acf35d2f82503667a79e2f55def90f728ed4f0e496f0f157acbe1bd4397c5615b676ae7428fe84488a544ca53feb944
   languageName: node
   linkType: hard
 
@@ -6384,7 +6321,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^8.40.0, eslint@npm:^8.41.0":
+"eslint@npm:^8.40.0":
   version: 8.43.0
   resolution: "eslint@npm:8.43.0"
   dependencies:
@@ -14246,15 +14183,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"semver@npm:^6.3.0":
-  version: 6.3.0
-  resolution: "semver@npm:6.3.0"
-  bin:
-    semver: ./bin/semver.js
-  checksum: 1b26ecf6db9e8292dd90df4e781d91875c0dcc1b1909e70f5d12959a23c7eebb8f01ea581c00783bbee72ceeaad9505797c381756326073850dc36ed284b21b9
-  languageName: node
-  linkType: hard
-
 "semver@npm:^6.3.1":
   version: 6.3.1
   resolution: "semver@npm:6.3.1"
@@ -14783,25 +14711,6 @@ __metadata:
     pkg-conf: ^3.1.0
     xdg-basedir: ^4.0.0
   checksum: cd530a9711778b6d8c15f66cc12c4fb9583df7a641a523eb84acb9f706674d97fe33bc89d57e621aeea9e2e1f91fa44aca235f76e661b91eaf2b5911d6b2cb23
-  languageName: node
-  linkType: hard
-
-"standard@npm:^17.0.0":
-  version: 17.1.0
-  resolution: "standard@npm:17.1.0"
-  dependencies:
-    eslint: ^8.41.0
-    eslint-config-standard: 17.1.0
-    eslint-config-standard-jsx: ^11.0.0
-    eslint-plugin-import: ^2.27.5
-    eslint-plugin-n: ^15.7.0
-    eslint-plugin-promise: ^6.1.1
-    eslint-plugin-react: ^7.32.2
-    standard-engine: ^15.0.0
-    version-guard: ^1.1.1
-  bin:
-    standard: bin/cmd.cjs
-  checksum: 50ae95e13675bf9da914992d451cf3b80a0ced9e6c906902b94a9c25d0a9d8ac8b1774932454f8b7a30e34f6402d7aa2a7fe897a95efcbcd9caf87916a49b0f6
   languageName: node
   linkType: hard
 
@@ -15642,7 +15551,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsconfig-paths@npm:^3.14.1, tsconfig-paths@npm:^3.14.2, tsconfig-paths@npm:^3.5.0":
+"tsconfig-paths@npm:^3.14.2, tsconfig-paths@npm:^3.5.0":
   version: 3.14.2
   resolution: "tsconfig-paths@npm:3.14.2"
   dependencies:
@@ -16309,13 +16218,6 @@ __metadata:
     core-util-is: 1.0.2
     extsprintf: ^1.2.0
   checksum: c431df0bedf2088b227a4e051e0ff4ca54df2c114096b0c01e1cbaadb021c30a04d7dd5b41ab277bcd51246ca135bf931d4c4c796ecae7a4fef6d744ecef36ea
-  languageName: node
-  linkType: hard
-
-"version-guard@npm:^1.1.1":
-  version: 1.1.1
-  resolution: "version-guard@npm:1.1.1"
-  checksum: dea634f0b6626820c27778e17add00a07615d89a544a2f281fd62c92d1bba7cbe8c4bd55236da3c3c65f39a1d51025dea1051e51c333796284a3971364ca0915
   languageName: node
   linkType: hard
 
