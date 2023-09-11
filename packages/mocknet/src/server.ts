@@ -1,34 +1,33 @@
-import express from 'express'
-import { Express, Request, Response, NextFunction } from 'express'
+import express, { Express, Request, Response, NextFunction } from 'express'
 import { ParsedArgs } from 'minimist'
 import cors from 'cors'
 import statuses from 'http-status'
 import morgan from 'morgan'
 import asyncHandler from 'express-async-handler'
 import { Libp2p } from 'libp2p'
-import { CompileError } from "@aldea/compiler"
-import { VM, Storage, Clock,  } from "@aldea/vm"
+import { CompileError } from '@aldea/compiler'
+import { VM, Storage, Clock } from '@aldea/vm'
 import { JigState } from '@aldea/vm/jig-state'
 import { ExecutionResult } from '@aldea/vm/execution-result'
-import { Address, base16, Pointer, Tx, abiToBin, abiToJson, BCS, ed25519 } from "@aldea/core"
-import { buildVm } from "./build-vm.js"
-import { HttpNotFound } from "./errors.js"
+import { Address, base16, Pointer, Tx, abiToBin, abiToJson, BCS, ed25519 } from '@aldea/core'
+import { buildVm } from './build-vm.js'
+import { HttpNotFound } from './errors.js'
 import { logStream, logger } from './globals.js'
 import { createNode } from './p2p/node.js'
 import { LoadInstruction, CallInstruction, LockInstruction, SignInstruction, FundInstruction } from '@aldea/core/instructions'
 
 export interface iApp {
-  app: Express;
-  p2p?: Libp2p;
-  storage: Storage;
-  vm: VM;
+  app: Express
+  p2p?: Libp2p
+  storage: Storage
+  vm: VM
 }
 
-export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Promise<iApp> {
+export async function buildApp (clock: Clock, argv: ParsedArgs = { _: [] }): Promise<iApp> {
   const { vm, storage, minterPriv, coinOrigin } = await buildVm(clock)
-  const p2p: Libp2p | undefined = argv.p2p ? await createNode(argv) : undefined
+  const p2p: Libp2p | undefined = argv.p2p !== undefined ? await createNode(argv) : undefined
 
-  const serializeJigState = (jigState: JigState) => {
+  const serializeJigState = (jigState: JigState): object => {
     const lock = jigState.serializedLock
     return {
       id: base16.encode(jigState.id()),
@@ -37,21 +36,20 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
       class: jigState.classPtr().toString(),
       lock: {
         type: lock.type,
-        data: lock.data ? base16.encode(lock.data) : ''
+        data: base16.encode(lock.data)
       },
       state: base16.encode(jigState.stateBuf),
       created_at: jigState.createdAt
     }
   }
 
-  const serializeExecResult = (txExec: ExecutionResult) => {
+  const serializeExecResult = (txExec: ExecutionResult): object => {
     return {
       id: txExec.tx.id,
       rawtx: txExec.tx.toHex(),
       packages: txExec.deploys.map((pkg) => {
         const pkgId = base16.encode(pkg.hash)
         const data = storage.getModule(pkg.hash, () => {
-
           throw new HttpNotFound(`Unknown package: ${pkgId}`, { pkg_id: pkgId })
         })
         return {
@@ -90,7 +88,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
   app.get('/tx/:txid', (req, res) => {
     const txid = req.params.txid
     const exec = storage.getTransaction(txid)
-    if (!exec) {
+    if (exec == null) {
       throw new HttpNotFound(`unknown tx: ${txid}`, { txid })
     }
     res.status(200).send(serializeExecResult(exec))
@@ -99,7 +97,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
   app.get('/rawtx/:txid', (req, res) => {
     const txid = req.params.txid
     const exec = storage.getTransaction(txid)
-    if (!exec) {
+    if (exec == null) {
       throw new HttpNotFound(`unknown tx: ${txid}`, { txid })
     }
     res.set('content-type', 'application/octet-stream')
@@ -110,21 +108,21 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     const outputId = req.params.outputId
     const state = storage.getHistoricalUtxo(
       base16.decode(outputId),
-      () => { throw new HttpNotFound(`state not found: ${outputId}`, { outputId })}
+      () => { throw new HttpNotFound(`state not found: ${outputId}`, { outputId }) }
     )
     const wasm = storage.wasmForPackageId(state.packageId)
     res.set('content-type', 'application/json')
     res.send(JSON.stringify({
       state: state.objectState(wasm)
     }, (_key: string, value: any) => {
-      return typeof value === 'bigint' ? value.toString() : value;
+      return typeof value === 'bigint' ? value.toString() : value
     }))
   })
   app.get('/output/:outputId', (req, res) => {
     const outputId = req.params.outputId
     const jigState = storage.getHistoricalUtxo(
       base16.decode(outputId),
-      () => { throw new HttpNotFound(`${outputId} not found`, { outputId })}
+      () => { throw new HttpNotFound(`${outputId} not found`, { outputId }) }
     )
     res.status(200).send(serializeJigState(jigState))
   })
@@ -133,7 +131,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     const origin = req.params.origin
     const jigState = storage.getJigStateByOrigin(
       Pointer.fromString(origin)
-    ).orElse(() => { throw new HttpNotFound(`${origin} not found`, { origin })})
+    ).orElse(() => { throw new HttpNotFound(`${origin} not found`, { origin }) })
     res.status(200).send(serializeJigState(jigState))
   })
 
@@ -159,28 +157,26 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     tx.push(new FundInstruction(2))
     tx.push(new LockInstruction(1, Address.fromString(address).hash))
     tx.push(new SignInstruction(new Uint8Array(), minterPriv.toPubKey().toBytes()))
-    ;(<SignInstruction>tx.instructions[5]).sig = ed25519.sign(tx.sighash(), minterPriv)
+    ;(tx.instructions[5] as SignInstruction).sig = ed25519.sign(tx.sighash(), minterPriv)
 
     const result = await vm.execTx(tx)
     emitTx(tx)
 
-    const coinOutput = result.outputs[1]
-    if (!coinOutput) {
+    const coinOutput = result.outputs.at(1)
+    if (coinOutput == null) {
       throw new Error('coin output should exist')
     }
     res.status(200).json(serializeJigState(coinOutput))
   }))
 
   app.get('/package/:packageId/abi.:format', (req, res) => {
-    const {packageId, format} = req.params
+    const { packageId, format } = req.params
 
     const data = storage.getModule(base16.decode(packageId), (pkgId) => {
       throw new HttpNotFound(`package with id ${pkgId} not found`, { package_id: packageId })
     })
-    if (!data) {
 
-    }
-    if (format === 'json' || !format) {
+    if (format === 'json' || format.length === 0) {
       res.set('content-type', 'application/json')
       res.status(200).send(abiToJson(data.abi))
     } else if (format === 'bin') {
@@ -192,7 +188,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
   })
 
   app.get('/package/:packageId/source', (req, res) => {
-    const {packageId} = req.params
+    const { packageId } = req.params
     const data = storage.getModule(base16.decode(packageId), () => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
     })
@@ -202,7 +198,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
   })
 
   app.get('/package/:packageId/wasm', (req, res) => {
-    const {packageId} = req.params
+    const { packageId } = req.params
     const data = storage.getModule(base16.decode(packageId), () => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
     })
@@ -211,7 +207,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
   })
 
   app.get('/package/:packageId/docs', (req, res) => {
-    const {packageId} = req.params
+    const { packageId } = req.params
     const data = storage.getModule(base16.decode(packageId), () => {
       throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
     })
@@ -233,7 +229,7 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
         message: 'there was an error compiling a package',
         code: 'COMPILE_ERROR',
         data: {
-          message: err.stderr.toString()
+          message: err.stderr.toString() // eslint-disable-line
         }
       })
     } else {
@@ -246,22 +242,23 @@ export async function buildApp(clock: Clock, argv: ParsedArgs = {'_': []}): Prom
     }
   })
 
-  function emitTx(tx: Tx): void {
-    if (p2p?.isStarted()) {
+  function emitTx (tx: Tx): void {
+    if (p2p == null) { return }
+    if (p2p.isStarted()) {
       logger.info('⬆️ Outbound TX: %s', tx.id)
-      p2p.pubsub.publish('tx', tx.toBytes())
+      p2p.pubsub.publish('tx', tx.toBytes()).catch(() => {})
     }
   }
 
-  if (p2p) {
+  if (p2p != null) {
     p2p.pubsub.subscribe('tx')
-    p2p.pubsub.addEventListener('message', async e => {
+    p2p.pubsub.addEventListener('message', e => {
       if (e.detail.topic === 'tx') {
         try {
           const tx = Tx.fromBytes(e.detail.data)
           logger.info('⬇️ Inbound TX: %s', tx.id)
-          await vm.execTx(tx)
-        } catch(e: any) {
+          vm.execTx(tx).catch(() => {})
+        } catch (e: any) {
           logger.error('❌ Error: %s', e.message)
         }
       }

@@ -15,7 +15,7 @@
     "clean": "rimraf dist/* || true",
     "ci": "yarn test",
     "dev": "nodemon yarn start",
-    "lint": "standard --fix",
+    "lint": "ts-standard --fix --env mocha",
     "start": "mocknet",
     "test": "yarn build && mocha"
   },
@@ -48,8 +48,8 @@
     "mocha": "^10.2.0",
     "nodemon": "^2.0.22",
     "rimraf": "^5.0.0",
-    "standard": "^17.0.0",
     "supertest": "^6.3.3",
+    "ts-standard": "^12.0.2",
     "typescript": "^5.0.4"
   }
 }

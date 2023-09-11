@@ -23,7 +23,9 @@ export class Env {
   constructor(config: Config) {
     this.opts = config
     this.cwd = process.cwd()
-    this._aldea = new Aldea(this.opts.nodeUrl)
+    this._aldea = new Aldea(this.opts.nodeUrl, {
+      cache: false
+    })
   }
 
   get codeDir(): string { return join(this.cwd, this.opts.codeDir) }

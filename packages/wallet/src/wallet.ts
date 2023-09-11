@@ -3,10 +3,14 @@ import {
   Address,
   CommitTxResponse,
   CreateTxCallback,
+  HDPrivKey,
   OpCode,
   Output,
+  Pointer,
+  PrivKey,
   Tx,
-  base16, Pointer, TxBuilderOpts
+  TxBuilderOpts, 
+  base16, 
 } from "@aldea/sdk"
 
 import {COIN_CLASS_PTR} from "./constants.js";
@@ -21,7 +25,7 @@ export abstract class Wallet {
 
   abstract getNextAddress(): Promise<Address>
   abstract getInventory(): Promise<Array<Output>>
-  abstract signTx(partialTx: Tx): Promise<Tx>
+  abstract signTx(partialTx: Tx, updateSigs?: PrivKey | HDPrivKey | Array<PrivKey | HDPrivKey>): Promise<Tx>
   abstract saveTxExec(tx: Tx, outputList: Output[]): Promise<void>
   abstract addUtxo(output: Output): Promise<void>
   abstract sync(): Promise<void>
@@ -82,6 +86,6 @@ export abstract class Wallet {
     }
     const userTx = await this.client.createTx(opts, builder)
     const fundedTx = await this.fundTx(userTx)
-    return this.signTx(fundedTx)
+    return this.signTx(fundedTx, opts.updateSigs)
   }
 }

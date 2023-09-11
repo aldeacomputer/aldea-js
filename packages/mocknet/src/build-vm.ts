@@ -1,16 +1,15 @@
-import { base16, Pointer, PrivKey } from "@aldea/core"
-import { VM, Storage, Clock } from "@aldea/vm"
-import { compile } from "@aldea/compiler";
+import { base16, Pointer, PrivKey } from '@aldea/core'
+import { VM, Storage, Clock } from '@aldea/vm'
+import { compile } from '@aldea/compiler'
 import { logger } from './globals.js'
 
 export interface iVM {
-  storage: Storage;
-  vm: VM;
+  storage: Storage
+  vm: VM
 
-  minterPriv: PrivKey;
+  minterPriv: PrivKey
   coinOrigin: Pointer
 }
-
 
 const nftSourceCode = `export class NFT extends Jig {
   name: string;
@@ -34,18 +33,18 @@ export async function buildVm (clock: Clock): Promise<iVM> {
   const storage = new Storage()
   const vm = new VM(storage, storage, clock, compile)
 
-  let result = await compile(nftSourceCode)
+  const result = await compile(nftSourceCode)
   const id = vm.addPreCompiled(
     result.output.wasm,
     nftSourceCode,
     result.output.abi,
-    new Uint8Array(Buffer.from(result.output.docs || '{}'))
+    new Uint8Array(Buffer.from(result.output.docs ?? '{}'))
   )
 
   logger.info(`Deployed nft class with id: ${base16.encode(id)}`)
 
   // big number of coins that is kind of in the safe js range.
-  const coin = vm.mint(minterAddress, 2**40, magicBytes)
+  const coin = vm.mint(minterAddress, 2 ** 40, magicBytes)
 
   return { storage, vm, minterPriv: minterPrivKey, coinOrigin: coin.origin }
 }

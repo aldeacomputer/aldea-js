@@ -1,5 +1,6 @@
 import {
   Address,
+  HDPrivKey,
   LockType,
   Output,
   PrivKey,
@@ -49,8 +50,8 @@ export class SingleKeyWallet extends Wallet {
     await this.storage.saveTx(tx)
   }
 
-  async signTx(partialTx: Tx): Promise<Tx> {
-    return this.client.createTx({ extend: partialTx }, txb => {
+  async signTx(partialTx: Tx, updateSigs?: PrivKey | HDPrivKey | Array<PrivKey | HDPrivKey>): Promise<Tx> {
+    return this.client.createTx({ extend: partialTx, updateSigs }, txb => {
       txb.sign(this.privKey)
     })
   }

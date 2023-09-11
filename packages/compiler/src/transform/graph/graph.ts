@@ -41,7 +41,7 @@ import {
 import { isAmbient } from '../filters.js';
 import { Validator } from '../validator.js'
 
-
+const ABI_VERSION = 1
 
 export class TransformGraph {
   sources: SourceNode[];
@@ -79,6 +79,7 @@ export class TransformGraph {
     this.objects = this.sources
       .flatMap(s => s.codes)
       .filter(n => isClass(n.node) && isAmbient(n.node.flags))
+      .filter(n => !this.imports.some(im => im.code === n))
       .filter(n => this.exports.some(ex => isExposed(ex.code, n)))
 
     this.collectExposedTypes()
@@ -87,7 +88,7 @@ export class TransformGraph {
 
   toABI(): abi.Abi {
     return {
-      version: 1,
+      version: ABI_VERSION,
       imports: this.imports.map(toAbiImport),
       exports: this.exports.map(toAbiExport),
       objects: this.objects.map(o => o.abiNode as ObjectNode),

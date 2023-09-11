@@ -97,7 +97,9 @@ export class BCS {
   constructor(abiOrOpts: Abi | Partial<BCSOpts>, options?: Partial<BCSOpts>) {
     // Handle overloading
     if (isAbi(abiOrOpts)) {
-      this.abi = structuredClone(abiOrOpts)
+      this.abi = typeof structuredClone === 'function' ?
+        structuredClone(abiOrOpts) :
+        JSON.parse(JSON.stringify(abiOrOpts))
     } else {
       options = abiOrOpts
     }

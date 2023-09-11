@@ -1,11 +1,12 @@
-import {BCS, BufWriter} from "@aldea/core";
-import {compile} from "@aldea/compiler";
-import { readFileSync, writeFileSync } from 'node:fs';
+import { BCS, BufWriter } from '@aldea/core'
+import { compile } from '@aldea/compiler'
+import { readFileSync, writeFileSync } from 'node:fs'
 
-export async function main(): Promise<void> {
+export async function main (): Promise<void> {
   const inputFileName = process.argv[2]
   const outputFileName = process.argv[3]
-  if (!inputFileName) {
+
+  if (inputFileName.length === 0) {
     console.log('no filename provided')
     process.exit(1)
   }
@@ -16,7 +17,7 @@ export async function main(): Promise<void> {
 
   const result = await compile(entries, files, new Map())
 
-  let writer = new BufWriter()
+  const writer = new BufWriter()
 
   writer.writeULEB(result.output.wasm.byteLength)
   writer.writeBytes(result.output.wasm)

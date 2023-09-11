@@ -1,8 +1,8 @@
-import { expect } from "chai"
+import { expect } from 'chai'
 import request from 'supertest'
-import {BCS, Pointer, Tx, PrivKey, instructions, Address, base16, ed25519, util} from "@aldea/core"
-import { StubClock } from "@aldea/vm"
-import { buildApp } from "../dist/server.js"
+import { BCS, Pointer, Tx, PrivKey, instructions, Address, base16, ed25519, util } from '@aldea/core'
+import { StubClock } from '@aldea/vm'
+import { buildApp } from '../dist/server.js'
 
 const {
   ImportInstruction,
@@ -18,15 +18,13 @@ const NFT_PKG_ID = '446f2f5ebbcbd8eb081d207a67c1c9f1ba3d15867c12a92b96e752038288
 
 describe('api', () => {
   let app
-  let vm
   let storage
-  let clock = new StubClock()
+  const clock = new StubClock()
 
   beforeEach(async () => {
-    const builded = await buildApp(clock)
-    app = builded.app
-    vm = builded.vm
-    storage = builded.storage
+    const built = await buildApp(clock)
+    app = built.app
+    storage = built.storage
   })
 
   const userPriv = PrivKey.fromRandom()
@@ -41,17 +39,15 @@ describe('api', () => {
     return base16.decode(response.body.id)
   }
 
-
   describe('GET /status', function () {
     it('works', async () => {
       const response = await request(app)
         .get('/status')
         .expect(200)
         .expect('Content-Type', /application\/json/)
-      expect(response.body).to.eql({ok: true})
+      expect(response.body).to.eql({ ok: true })
     })
   })
-
 
   describe('POST /tx', function () {
     it('returns correct data when the tx goes trough', async () => {
@@ -212,7 +208,6 @@ describe('api', () => {
     })
   })
 
-
   describe('when a tx already exists', () => {
     let outputs
     beforeEach(async () => {
@@ -290,7 +285,7 @@ describe('api', () => {
         expect(response.body.message).to.eql('0000000000000000000000000000000000000000000000000000000000000000 not found')
         expect(response.body.data).to.eql({ outputId: '0000000000000000000000000000000000000000000000000000000000000000' })
       })
-    });
+    })
 
     describe('GET /utxos-by-address', () => {
       it('empty list when it does not exist', async () => {
@@ -331,7 +326,7 @@ describe('api', () => {
       })
 
       it('returns not found when does not exists', async () => {
-        let fakeTxid = new Array(64).fill('0').join('');
+        const fakeTxid = new Array(64).fill('0').join('')
         const response = await request(app)
           .get(`/output-by-origin/${fakeTxid}_0`)
           .expect('Content-Type', /application\/json/)
@@ -395,7 +390,7 @@ describe('api', () => {
       await request(app)
         .get(`/package/${pkgId}/abi.bin`)
         .expect(200)
-        .expect('Content-Type', /application\/octet\-stream/)
+        .expect('Content-Type', /application\/octet-stream/)
     })
 
     it('returns not found when does not exist', async () => {
@@ -411,7 +406,6 @@ describe('api', () => {
         .expect(404)
         .expect('Content-Type', /application\/json/)
     })
-
   })
 
   describe('GET /package/:packageId/source', () => {
@@ -420,7 +414,7 @@ describe('api', () => {
       await request(app)
         .get(`/package/${pkgId}/source`)
         .expect(200)
-        .expect('Content-Type', /application\/octet\-stream/)
+        .expect('Content-Type', /application\/octet-stream/)
 
       // expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
     })
@@ -433,7 +427,6 @@ describe('api', () => {
 
       // expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
     })
-
   })
 
   describe('GET /package/:packageId/docs', () => {
@@ -477,7 +470,6 @@ describe('api', () => {
       expect(response.body).to.have.keys(['docs'])
       expect(response.body.docs).to.have.keys(['SomeClass', 'SomeClass$m1'])
     })
-
   })
 
   describe('GET /package/:packageId/wasm', () => {
@@ -486,10 +478,9 @@ describe('api', () => {
       await request(app)
         .get(`/package/${pkgId}/source`)
         .expect(200)
-        .expect('Content-Type', /application\/octet\-stream/)
+        .expect('Content-Type', /application\/octet-stream/)
 
       // expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
     })
-
   })
 })
