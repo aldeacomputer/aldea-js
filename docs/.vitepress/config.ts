@@ -77,10 +77,10 @@ export default defineConfig({
       ]
     },
 
-    docFooter: {
-      prev: false,
-      next: false,
-    },
+    //docFooter: {
+    //  prev: false,
+    //  next: false,
+    //},
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/aldeacomputer' }

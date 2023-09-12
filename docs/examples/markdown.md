@@ -37,12 +37,12 @@ export default {
 **Input**
 
 ```md
-::: info
-This is an info box.
-:::
-
 ::: tip
 This is a tip.
+:::
+
+::: info
+This is an info box.
 :::
 
 ::: warning
@@ -60,12 +60,12 @@ This is a details block.
 
 **Output**
 
-::: info
-This is an info box.
-:::
-
 ::: tip
 This is a tip.
+:::
+
+::: info
+This is an info box.
 :::
 
 ::: warning
