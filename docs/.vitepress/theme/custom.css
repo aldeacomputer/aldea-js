@@ -174,3 +174,15 @@
 .VPMenu .link:hover {
   background-color: transparent;
 }
+
+/**
+ * Tutorial
+ */
+
+.xLayout.tutorial {
+  --vp-layout-max-width: auto;
+}
+
+.Layout.tutorial .VPNav {
+  position: relative;
+}

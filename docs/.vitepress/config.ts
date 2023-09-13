@@ -21,7 +21,7 @@ export default defineConfig({
           }
         ],
       },
-      { text: 'Tutorial', link: '/tutorial' },
+      { text: 'Tutorial', link: '/tutorial/start' },
     ],
 
     sidebar: {
@@ -74,6 +74,10 @@ export default defineConfig({
             { text: '@aldea/sdk', link: '/api/sdk/modules' },
           ]
         }
+      ],
+      '/tutorial': [
+        { text: 'Start', link: '/tutorial/start' },
+        { text: 'Next', link: '/tutorial/next' },
       ]
     },
 
