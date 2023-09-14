@@ -3,7 +3,7 @@ import {
   Storage,
   VM
 } from '../src/index.js'
-import {expect} from 'chai'
+import {assert, expect} from 'chai'
 import {TxExecution} from "../src/tx-execution.js";
 import {BCS, Pointer, PrivKey, ref, Tx, ed25519} from "@aldea/core";
 import {SignInstruction} from "@aldea/core/instructions";
@@ -967,6 +967,24 @@ describe('execute txs', () => {
 
     let state = result.outputs[0].parsedState(abiFor('with-booleans'))
     expect(state).to.eql([true, false])
+  })
+
+  it('fails when try to fund with a non authorized coin', () => {
+    let coin = vm.mint(userAddr)
+
+    let stmt = exec.loadJigByOutputId(coin.id())
+
+    try {
+      exec.fundByIndex(stmt.idx)
+      expect.fail("Missign signature")
+    } catch (e) {
+      if (e instanceof PermissionError) {
+        expect(e.message).to.eql(`no permission to remove lock from jig ${coin.origin}`)
+      } else {
+        assert.fail("Wrong type of error")
+      }
+    }
+
   })
 
   it('operates with booleans correctly', () => {

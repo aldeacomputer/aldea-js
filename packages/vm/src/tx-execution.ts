@@ -283,6 +283,9 @@ class TxExecution {
 
   fundByIndex(coinIdx: number): StatementResult {
     const coinJig = this.getStatementResult(coinIdx).asJig()
+    if (!coinJig.lock.canBeChangedBy(this)) {
+      throw new PermissionError(`no permission to remove lock from jig ${coinJig.origin}`)
+    }
     const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'motos').value
     this.fundAmount += Number(amount)
     coinJig.changeLock(new FrozenLock())
