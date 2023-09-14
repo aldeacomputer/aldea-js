@@ -44,7 +44,8 @@ describe('execute txs', () => {
       'sheep',
       'sheep-counter',
       'tower',
-      'weapon'
+      'weapon',
+      'with-booleans'
     ])
 
     storage = data.storage
@@ -956,6 +957,31 @@ describe('execute txs', () => {
     expect(value.value).to.eql(buff)
   })
 
+  it('process booleans in the right way', () => {
+    let importStmt = exec.importModule(modIdFor('with-booleans'))
+    let bcs = new BCS(abiFor('with-booleans'))
+    let args = bcs.encode("WithBooleans_constructor", [true, false])
+    let newStmt = exec.instantiateByIndex(importStmt.idx, 0, args)
+    exec.lockJigToUserByIndex(newStmt.idx, userAddr)
+    let result = exec.finalize()
+
+    let state = result.outputs[0].parsedState(abiFor('with-booleans'))
+    expect(state).to.eql([true, false])
+  })
+
+  it('operates with booleans correctly', () => {
+    let importStmt = exec.importModule(modIdFor('with-booleans'))
+    let bcs = new BCS(abiFor('with-booleans'))
+    let args = bcs.encode("WithBooleans_constructor", [true, false])
+    let newStmt = exec.instantiateByIndex(importStmt.idx, 0, args)
+    exec.callInstanceMethodByIndex(newStmt.idx, 1, new Uint8Array())
+    exec.lockJigToUserByIndex(newStmt.idx, userAddr)
+
+    let result = exec.finalize()
+    let state = result.outputs[0].parsedState(abiFor('with-booleans'))
+    expect(state).to.eql([false, true])
+  })
+
   it('can lower an imported interface', () => {
     const result1 = ((): ExecutionResult => {
       const exec1 = emptyExec([userPriv])
@@ -1042,23 +1068,6 @@ describe('execute txs', () => {
     expect(result6.outputs[1].lockData()).to.eql(userAddr.hash)
   })
 
-  // it('tower magic', () => {
-  //   const importStmt = exec.importModule(modIdFor('tower'))
-  //   const towerJigStmt = exec.instantiateByClassName(importStmt.asInstance, 'Tower', [])
-  //   exec.lockJigToUser(towerJigStmt.asJig(), userAddr)
-  //   const result = exec.finalize()
-  //
-  //   expect(result.outputs).to.have.length(1)
-  //
-  // })
-  //
-  // it('tower pkg_id', () => {
-  //   const map = new Map<string, string>();
-  //   const value1 = fs.readFileSync('./assembly/aldea/tower.ts');
-  //   map.set('tower.ts', value1.toString())
-  //   let pkgId = calculatePackageId(['tower.ts'], map)
-  //   console.log(base16.encode(pkgId))
-  // })
 
 
   it('can lock to a new address fails if there is no signature for the previous one', () => {
