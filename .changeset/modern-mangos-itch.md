@@ -3,3 +3,4 @@
 ---
 
 Fixed bug with booleans
+Checking coin locks before funding.
