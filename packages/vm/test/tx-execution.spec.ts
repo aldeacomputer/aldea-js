@@ -984,7 +984,22 @@ describe('execute txs', () => {
         assert.fail("Wrong type of error")
       }
     }
+  })
 
+  it('fails when try to fund with a non coin', () => {
+    let importStmt = exec.importModule(modIdFor('flock'))
+    let newStmt = exec.instantiateByIndex(importStmt.idx, 0, new Uint8Array())
+
+    try {
+      exec.fundByIndex(newStmt.idx)
+      expect.fail("Should not allow to fund with something that is not a coin")
+    } catch (e) {
+      if (e instanceof ExecutionError) {
+        expect(e.message).to.eql(`Not a coin: ${exec.txContext.tx.id}_0`)
+      } else {
+        assert.fail("Wrong type of error")
+      }
+    }
   })
 
   it('operates with booleans correctly', () => {

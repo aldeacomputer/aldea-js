@@ -16,6 +16,7 @@ import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStateme
 import {TxContext} from "./tx-context/tx-context.js";
 import {PkgData} from "./storage.js";
 import {ExecFuncInstruction} from "@aldea/core/instructions";
+import {COIN_CLASS_PTR} from "@aldea/wallet-lib/constants";
 
 const MIN_FUND_AMOUNT = 100
 
@@ -285,6 +286,9 @@ class TxExecution {
     const coinJig = this.getStatementResult(coinIdx).asJig()
     if (!coinJig.lock.canBeChangedBy(this)) {
       throw new PermissionError(`no permission to remove lock from jig ${coinJig.origin}`)
+    }
+    if (!coinJig.classPtr().equals(COIN_CLASS_PTR) ) {
+      throw new ExecutionError(`Not a coin: ${coinJig.origin}`)
     }
     const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'motos').value
     this.fundAmount += Number(amount)
