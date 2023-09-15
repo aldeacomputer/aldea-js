@@ -89,5 +89,18 @@ export default defineConfig({
     socialLinks: [
       { icon: 'github', link: 'https://github.com/aldeacomputer' }
     ]
+  },
+
+  vite: {
+    plugins: [{
+      name: 'WebContainer Headers',
+      configureServer(server) {
+        server.middlewares.use((_req, res, next) => {
+          res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
+          res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
+          next()
+        })
+      }
+    }]
   }
 })

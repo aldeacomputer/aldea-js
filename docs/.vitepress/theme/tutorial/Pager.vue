@@ -1,5 +1,5 @@
 <template>
-  <footer class="flex items-center h-12 text-14 bg-neutral-800">
+  <footer class="flex items-center h-12 text-14 bg-dark-elv">
     <PagerLink :link="control.prev?.link">&laquo; Prev</PagerLink>
     <div class="flex-auto px-4 text-neutral-200 text-center">
       Page x / y

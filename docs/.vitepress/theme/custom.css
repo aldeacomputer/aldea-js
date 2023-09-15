@@ -63,10 +63,10 @@
 }
 
 .dark {
-  --vp-c-bg: #202020;
-  --vp-c-bg-alt: #161616;
-  --vp-c-bg-elv: #262626;
-  --vp-c-bg-soft: var(--vp-c-bg-alt);
+  --vp-c-bg: #1b1b1f;
+  --vp-c-bg-alt: #161618;
+  --vp-c-bg-elv: #202127;
+  --vp-c-bg-soft: #202127;
   --vp-c-brand-1: var(--aldea-blue-1);
   --vxp-code-line-highlight-color: rgba(255,255,255,0.1);
 }

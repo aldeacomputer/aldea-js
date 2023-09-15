@@ -10,15 +10,13 @@
         </div>
         <Pager />
       </article>
-      <div class="flex flex-auto flex-col bg-neutral-800">
-        <div class="flex flex-auto border-b border-neutral-700">
-          <FileDrawer class="w-52 border-r border-neutral-700" />
+      <div class="flex flex-auto flex-col bg-dark-alt">
+        <div class="flex flex-auto border-b border-gray-800">
+          <FileDrawer class="w-52 border-r border-gray-800" />
           <Editor class="flex-auto" />
         </div>
-        <div class="flex flex-col h-2/5">
-          <Terminal class="flex-auto" />
-          <StatusBar />
-        </div>
+        <Terminal class="h-2/5" />
+        <StatusBar />
       </div>
     </main>
   </div>

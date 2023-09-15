@@ -1,6 +1,7 @@
 // https://vitepress.dev/guide/custom-theme
 import { h } from 'vue'
-import { useRoute } from 'vitepress'
+import { createPinia } from 'pinia'
+import { useRoute, EnhanceAppContext } from 'vitepress'
 import Theme from 'vitepress/theme'
 import TutorialLayout from './tutorial/Layout.vue'
 import './custom.css'
@@ -19,7 +20,8 @@ export default {
     }
     
   },
-  enhanceApp({ app, router, siteData }) {
+  enhanceApp({ app, router, siteData }: EnhanceAppContext) {
+    app.use(createPinia())
     //app.component('tutorial', TutorialLayout)
     // ...
   }
