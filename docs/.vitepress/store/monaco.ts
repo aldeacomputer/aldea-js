@@ -1,8 +1,8 @@
-import { computed, ref, shallowRef, toRaw } from 'vue'
+import { computed, ref, shallowRef, toRaw, watch } from 'vue'
 import { defineStore } from 'pinia'
 import loader from '@monaco-editor/loader'
 import type * as  monaco from 'monaco-editor'
-import { FileNode, DirectoryNode } from '@webcontainer/api'
+import { FileNode, DirectoryNode, FileSystemTree } from '@webcontainer/api'
 import { useWebContainer } from './container'
 
 export const useMonaco = defineStore('monaco', () => {
@@ -10,10 +10,19 @@ export const useMonaco = defineStore('monaco', () => {
 
   const monacoRef = shallowRef<typeof monaco>()
   const editor = shallowRef<monaco.editor.IStandaloneCodeEditor>()
-  //const models = ref<monaco.editor.IModel[]>([])
+  const currentFile = ref<string>('')
 
   const ready = new Promise<typeof monaco>(async resolve => {
     monacoRef.value = await loader.init()
+
+    monacoRef.value.editor.defineTheme('aldea', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#161618',
+      },
+  });
     monacoRef.value.languages.typescript.typescriptDefaults.setCompilerOptions({
       strict: true,
       alwaysStrict: true,
@@ -70,32 +79,46 @@ export const useMonaco = defineStore('monaco', () => {
   function mountEditor(el: HTMLElement) {
     editor.value = monacoRef.value!.editor.create(el, {
       automaticLayout: true,
+      fontFamily: "'IBM Plex Mono', monospace",
+      fontSize: 14,
       formatOnType: true,
       formatOnPaste: true,
+      folding: false,
       language: 'typescript',
       minimap: { enabled: false },
       renderLineHighlight: 'none',
-      theme: 'vs-dark',
+      theme: 'aldea',
       tabSize: 2,
       padding: { top: 8 },
     })
   }
 
-  async function openFile(path: string) {   
-    const src = await container.fs.readFile(path, 'utf8')
-    const uri = monacoRef.value!.Uri.parse(`file:///${path}`)
-    let model = monacoRef.value!.editor.getModel(uri)
-    if (model) {
-      model.setValue(src)
-    } else {
-      model = monacoRef.value!.editor.createModel(src, undefined, uri)
-      model.onDidChangeContent(async e => {
-        const value = model!.getValue()
-        await container.fs.writeFile(path, value, 'utf8')
-      })
-    }
-    editor.value!.setModel(model)
+  function openFile(path) {
+    container.ready.then(async ({ fs }) => {
+      const src = await fs.readFile(path, 'utf8')
+      const uri = monacoRef.value!.Uri.parse(`file:///${path}`)
+      let model = monacoRef.value!.editor.getModel(uri)
+      currentFile.value = path
+      if (model) {
+        model.setValue(src)
+      } else {
+        model = monacoRef.value!.editor.createModel(src, undefined, uri)
+        model.onDidChangeContent(async e => {
+          const value = model!.getValue()
+          await fs.writeFile(path, value, 'utf8')
+        })
+      }
+      editor.value!.setModel(model)
+    })
   }
 
-  return { ready, editor, mountEditor, openFile }
+  function solveFiles(files: Record<string, string>) {
+    Object.entries(files).forEach(([path, src]) => {
+      const uri = monacoRef.value!.Uri.parse(`file:///${path}`)
+      const model = monacoRef.value!.editor.getModel(uri)
+      model!.setValue(src)
+    })
+  }
+
+  return { ready, currentFile, editor, mountEditor, openFile, solveFiles }
 })

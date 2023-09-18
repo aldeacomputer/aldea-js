@@ -1,13 +1,13 @@
 <template>
   <div
-    v-if="isDir(node)">
-    <div class="flex items-center gap-2 py-2">
+    v-if="isDir">
+    <div class="flex items-center gap-2 py-1">
       <CaFolders class="text-18" />
-      <span>{{ name }}</span>
+      <span>{{ file.name }}</span>
     </div>
-    <ul class="pl-6 pb-2">
-      <li v-for="nestedNode, name of node.directory">
-        <FileTree :base="fullPath" :name="(name as string)" :node="nestedNode" />
+    <ul class="pl-6">
+      <li v-for="child of file.children">
+        <FileTree :base="file.path" :file="child" />
       </li>
     </ul>
   </div>
@@ -15,41 +15,26 @@
   <div
     v-else
     class="flex items-center gap-2 py-1 hover:text-interactive transition-colors cursor-pointer"
-    @click="openFile">
+    :class="{'text-interactive underline': file.path === monaco.currentFile}"
+    @click="monaco.openFile(file.path)">
     <CaDocumentBlank class="text-18" />
-    <span>{{ name }}</span>
+    <span>{{ file.name }}</span>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { FileNode, DirectoryNode } from '@webcontainer/api'
 import { CaDocumentBlank, CaFolders } from '@kalimahapps/vue-icons'
-import { useMonaco } from '../../store'
+import { useMonaco, FileListNode } from '../../store'
 
 const monaco = useMonaco()
 
 const props = withDefaults(defineProps<{
   base?: string;
-  name: string;
-  node: FileNode | DirectoryNode;
+  file: FileListNode;
 }>(), {
   base: ''
 })
 
-const fullPath = computed(() => {
-  return [props.base, props.name].join('/').replace(/^\//, '')
-})
-
-function isDir(node: FileNode | DirectoryNode): node is DirectoryNode {
-  return 'directory' in node
-}
-
-function isFile(node: FileNode | DirectoryNode): node is FileNode {
-  return 'file' in node
-}
-
-function openFile() {
-  if ('file' in props.node) monaco.openFile(fullPath.value)
-}
+const isDir = computed(() => Array.isArray(props.file.children))
 </script>

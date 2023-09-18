@@ -1,9 +1,9 @@
-import { computed, reactive, ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
-import { FileSystemTree, SpawnOptions, WebContainer, WebContainerProcess } from '@webcontainer/api'
+import { SpawnOptions, WebContainer, WebContainerProcess } from '@webcontainer/api'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
-import { baseFiles } from './files'
+import { FileListNode, FrontmatterFileTree, baseFiles, fmToFileSystemTree, fsToFileList } from './files'
 
 export const useWebContainer = defineStore('web-container', () => {
   const containerRef = shallowRef<WebContainer>()
@@ -11,14 +11,9 @@ export const useWebContainer = defineStore('web-container', () => {
   const fitAddon = new FitAddon()
   terminal.loadAddon(fitAddon)
 
-  
-
-  const files = reactive<FileSystemTree>({...baseFiles})
-  const path = ref<string>('/package.json')
-
   const ready = new Promise<WebContainer>(async resolve => {
-    containerRef.value = await WebContainer.boot()
-    await containerRef.value.mount(files)
+    containerRef.value = await WebContainer.boot({ workdirName: 'tutorial' })
+    await containerRef.value.mount(baseFiles)
     // resolve
     resolve(containerRef.value)
     // continue some async stuff
@@ -31,7 +26,7 @@ export const useWebContainer = defineStore('web-container', () => {
     terminal.onData(data => input.write(data))
   })
 
-  const fs = computed(() => containerRef.value!.fs)
+  const files = ref<FileListNode[]>([])
 
   async function exec(cmd: string, opts?: SpawnOptions): Promise<WebContainerProcess>
   async function exec(cmd: string, args: string[], opts?: SpawnOptions): Promise<WebContainerProcess>
@@ -51,10 +46,30 @@ export const useWebContainer = defineStore('web-container', () => {
     return proc
   }
 
+  async function execAll(cmds?: string[]) {
+    if (Array.isArray(cmds)) {
+      for (let str of cmds) {
+        const [cmd, ...args] = str.split(' ')
+        await exec(cmd, args).then(p => p.exit)
+      }
+    }
+  }
+
+  async function loadFiles(src?: Record<string, string>) {
+    if (src) {
+      const fileTree = fmToFileSystemTree(src)
+      await containerRef.value!.mount(fileTree)
+      files.value = fsToFileList(fileTree)
+        .concat(fsToFileList(baseFiles))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    }
+    
+  }
+
   async function mountTerminal(el: HTMLElement) {
     terminal.open(el)
     fitAddon.fit()
   }
 
-  return { ready, files, fs, path, terminal, exec, mountTerminal }
+  return { ready, files, terminal, exec, execAll, mountTerminal, loadFiles }
 })

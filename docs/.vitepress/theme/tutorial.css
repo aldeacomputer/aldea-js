@@ -8,4 +8,5 @@
 
 .xterm .xterm-rows {
   font-family: var(--vp-font-family-mono) !important;
+  font-size: 14px !important;
 }

@@ -12,6 +12,7 @@ const root = ref<HTMLElement>()
 
 onMounted(async () => {
   await container.ready
-  container.mountTerminal(root.value!)
+  await container.mountTerminal(root.value!)
+  console.log('mounted?')
 })
 </script>
