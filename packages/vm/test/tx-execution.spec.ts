@@ -673,6 +673,7 @@ describe('execute txs', () => {
 
   it('adds statements for funds', () => {
     const minted = vm.mint(userAddr, 100)
+    const exec = emptyExec([userPriv])
     const coinIdx = exec.loadJigByOutputId(minted.id()).idx
     exec.fundByIndex(coinIdx)
     const stmt = exec.getStatementResult(1)
