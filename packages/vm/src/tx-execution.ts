@@ -16,7 +16,8 @@ import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStateme
 import {TxContext} from "./tx-context/tx-context.js";
 import {PkgData} from "./storage.js";
 import {ExecFuncInstruction} from "@aldea/core/instructions";
-import {COIN_CLASS_PTR} from "@aldea/wallet-lib/constants";
+
+const COIN_CLASS_PTR = Pointer.fromBytes(new Uint8Array(34))
 
 const MIN_FUND_AMOUNT = 100
 
