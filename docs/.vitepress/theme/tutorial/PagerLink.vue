@@ -2,20 +2,32 @@
   <component
     :is="linkComponent"
     :href="link"
-    class="w-40 px-4 py-3"
-    :class="!!link ? 'text-neutral-100 bg-neutral-700 hover:bg-neutral-600 transition-colors' : 'text-neutral-400'">
+    class="flex items-center gap-4 px-4 py-3"
+    :class="{
+      'text-neutral-300 hover:text-neutral-100 hover:bg-white/5 transition-colors': link,
+      'text-neutral-600': !link,
+      'flex-row-reverse': next
+    }">
+    <component :is="iconComponent" />
     <slot></slot>
   </component>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { CaChevronLeft, CaChevronRight } from '@kalimahapps/vue-icons'
 
 const props = defineProps<{
-  link?: string
+  link?: string;
+  prev?: boolean;
+  next?: boolean;
 }>()
 
 const linkComponent = computed(() => {
   return !!props.link ? 'a' : 'div'
+})
+
+const iconComponent = computed(() => {
+  return props.next ? CaChevronRight : CaChevronLeft
 })
 </script>

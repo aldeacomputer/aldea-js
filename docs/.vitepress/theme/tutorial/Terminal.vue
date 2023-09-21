@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useWebContainer } from '../../store'
 import 'xterm/css/xterm.css'
 
@@ -13,6 +13,5 @@ const root = ref<HTMLElement>()
 onMounted(async () => {
   await container.ready
   await container.mountTerminal(root.value!)
-  console.log('mounted?')
 })
 </script>

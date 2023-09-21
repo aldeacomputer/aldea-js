@@ -21,7 +21,7 @@ export default defineConfig({
           }
         ],
       },
-      { text: 'Tutorial', link: '/tutorial/start' },
+      { text: 'Tutorial', link: '/tutorial/fields' },
     ],
 
     sidebar: {
@@ -76,8 +76,22 @@ export default defineConfig({
         }
       ],
       '/tutorial': [
-        { text: 'Start', link: '/tutorial/start' },
-        { text: 'Next', link: '/tutorial/next' },
+        {
+          text: 'Getting started',
+          items: [
+            { text: '1. Fields', link: '/tutorial/fields' },
+            { text: '2. Methods', link: '/tutorial/methods' },
+          ]
+        },
+        {
+          text: 'Intermediate',
+          items: [
+            { text: '1. abc', link: '/tutorial/abc' },
+            { text: '2. def', link: '/tutorial/def' },
+            { text: '2. ghi', link: '/tutorial/ghi' },
+          ]
+        }
+        
       ]
     },
 

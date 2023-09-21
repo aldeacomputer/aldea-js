@@ -3,14 +3,14 @@
     <VPNav :inert="false" />
 
     <main class="flex flex-auto main">
-      <article class="flex flex-col w-2/5">
+      <article class="relative flex flex-col w-2/5 shrink-0">
         <NavSelect />
-        <div class="flex-auto px-9 py-6 overflow-y-auto">
+        <div class="flex-auto px-9 py-6 overflow-y-auto | VPDoc">
           <Content class="w-full max-w-2xl mx-auto | vp-doc" />
         </div>
         <Pager />
       </article>
-      <div class="flex flex-auto flex-col bg-dark-alt">
+      <div class="flex flex-col w-3/5 grow-0 bg-dark-alt">
         <div class="flex h-3/5 grow-0 border-b border-gray-800">
           <FileDrawer class="w-52 border-r border-gray-800" />
           <Editor class="flex-auto" />

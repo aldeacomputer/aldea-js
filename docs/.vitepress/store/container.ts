@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { SpawnOptions, WebContainer, WebContainerProcess } from '@webcontainer/api'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
-import { FileListNode, FrontmatterFileTree, baseFiles, fmToFileSystemTree, fsToFileList } from './files'
+import { FileListNode, baseFiles, fmToFileSystemTree, fsToFileList } from './files'
 
 export const useWebContainer = defineStore('web-container', () => {
   const containerRef = shallowRef<WebContainer>()

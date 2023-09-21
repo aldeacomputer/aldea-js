@@ -29,7 +29,7 @@ solution:
 open: 'aldea/main.ts'
 ---
 
-# Tutorial 2: methods
+# 2: Methods
 
 Some learning text about methods...
 

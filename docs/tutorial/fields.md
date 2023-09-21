@@ -2,14 +2,6 @@
 sidebar: false
 setup:
   - 'rm -rf aldea'
-filesx:
-  aldea:
-    main.ts: |
-      export class Potion extends Jig {
-        constructor() {
-          super()
-        }
-      }
 files:
   aldea/main.ts: |
     export class Potion extends Jig {
@@ -17,7 +9,7 @@ files:
         super()
       }
     }
-  aldea/xxx.ts: abc
+  aldea/foobar.txt: abc
 solution:
   aldea/main.ts: |
     export class Potion extends Jig {
@@ -31,9 +23,13 @@ solution:
 open: 'aldea/main.ts'
 ---
 
-# Tutorial 1: fields
+# 1: Fields
 
 Some learning text about fields...
+
+::: info
+Did you know, bla bla bla
+:::
 
 - add a field called `foo` with a type of `u16`
 - add a field called `bar` with a type of `u16`
