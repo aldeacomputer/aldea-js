@@ -1,5 +1,14 @@
 # @aldea/sdk
 
+## 0.5.0
+
+### Patch Changes
+
+- 9a9db5c: Fixed bug where aldea.getPackageSrc returned files in wrong data format.
+- 65763fc: SDK api client caching is configurable. CLI defaults to caching off.
+- Updated dependencies [62ac390]
+  - @aldea/core@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes

@@ -1,8 +1,9 @@
 {
   "name": "@aldea/rust-interface",
   "description": "Tiny interface between the rust node and the compiler.",
-  "version": "0.1.0",
   "license": "Apache-2.0",
+  "private": true,
+  "version": "0.1.0",
   "type": "module",
   "bin": {
     "aldea-c": "./dist/index.js"

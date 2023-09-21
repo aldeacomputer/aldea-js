@@ -1,5 +1,11 @@
 # @aldea/core
 
+## 0.5.0
+
+### Patch Changes
+
+- 62ac390: Wrap structuredClone so it falls back to json stringify/parse in node < 18.
+
 ## 0.4.0
 
 ### Minor Changes

@@ -10,6 +10,7 @@
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
-    "@aldea/docs"
+    "@aldea/docs",
+    "@aldea/rust-interface"
   ]
 }

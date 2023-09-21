@@ -1,5 +1,21 @@
 # @aldea/cli
 
+## 0.3.1
+
+### Patch Changes
+
+- 65763fc: SDK api client caching is configurable. CLI defaults to caching off.
+- Updated dependencies [4c66791]
+- Updated dependencies [74ab0de]
+- Updated dependencies [9a9db5c]
+- Updated dependencies [eb39ed5]
+- Updated dependencies [65763fc]
+- Updated dependencies [37a9715]
+- Updated dependencies [85431b6]
+  - @aldea/compiler@0.4.0
+  - @aldea/sdk@0.5.0
+  - @aldea/wallet-lib@0.2.9
+
 ## 0.3.0
 
 ### Minor Changes
