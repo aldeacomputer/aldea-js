@@ -86,7 +86,7 @@ export class Tx {
       const { opcode } = instructions[i]
       if (opcode === OpCode.SIGN || opcode === OpCode.SIGNTO) {
         buf.writeU8(opcode)
-        buf.writeBytes((<SignInstruction | SignToInstruction>instructions[i]).pubkey)
+        buf.writeFixedBytes((<SignInstruction | SignToInstruction>instructions[i]).pubkey)
       } else {
         buf.write<Instruction>(InstructionSerializer, instructions[i])
       }
