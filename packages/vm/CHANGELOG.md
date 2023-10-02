@@ -1,5 +1,23 @@
 # @aldea/vm
 
+## 0.5.0
+
+### Minor Changes
+
+- 4c66791: Sending parameters as little endian instead of big endian.
+
+### Patch Changes
+
+- b681d96: Fixed bug with booleans
+  Checking coin locks before funding.
+- Updated dependencies [4c66791]
+- Updated dependencies [74ab0de]
+- Updated dependencies [37a9715]
+- Updated dependencies [62ac390]
+- Updated dependencies [85431b6]
+  - @aldea/compiler@0.4.0
+  - @aldea/core@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes

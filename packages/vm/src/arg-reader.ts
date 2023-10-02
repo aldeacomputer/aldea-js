@@ -18,13 +18,13 @@ export class ArgReader {
   }
 
   readF32(): number {
-    const val = this.view.getFloat32(this.cursor)
+    const val = this.view.getFloat32(this.cursor, true)
     this.cursor += 4
     return val
   }
 
   readF64(): number {
-    const val = this.view.getFloat64(this.cursor)
+    const val = this.view.getFloat64(this.cursor, true)
     this.cursor += 8
     return val
   }
@@ -36,19 +36,19 @@ export class ArgReader {
   }
 
   readI16(): number {
-    const val = this.view.getInt16(this.cursor)
+    const val = this.view.getInt16(this.cursor, true)
     this.cursor += 2
     return val
   }
 
   readI32(): number {
-    const val = this.view.getInt32(this.cursor)
+    const val = this.view.getInt32(this.cursor, true)
     this.cursor += 4
     return val
   }
 
   readI64(): bigint {
-    const val = this.view.getBigInt64(this.cursor)
+    const val = this.view.getBigInt64(this.cursor, true)
     this.cursor += 8
     return val
   }
@@ -60,19 +60,19 @@ export class ArgReader {
   }
 
   readU16(): number {
-    const val = this.view.getUint16(this.cursor)
+    const val = this.view.getUint16(this.cursor, true)
     this.cursor += 2
     return val
   }
 
   readU32(): number {
-    const val = this.view.getUint32(this.cursor)
+    const val = this.view.getUint32(this.cursor, true)
     this.cursor += 4
     return val
   }
 
   readU64(): bigint {
-    const val = this.view.getBigUint64(this.cursor)
+    const val = this.view.getBigUint64(this.cursor, true)
     this.cursor += 8
     return val
   }

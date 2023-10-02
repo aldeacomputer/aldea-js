@@ -87,6 +87,8 @@ export function getTypedArrayConstructor(type: TypeNode) {
 
 export function getTypedArrayForPtr(type: TypeNode) {
   switch (type.name) {
+    case 'bool':
+      return Uint8Array
     case 'i8':
       return Int8Array
     case 'i16':

@@ -3,7 +3,7 @@ import {
   Storage,
   VM
 } from '../src/index.js'
-import {expect} from 'chai'
+import {assert, expect} from 'chai'
 import {TxExecution} from "../src/tx-execution.js";
 import {BCS, Pointer, PrivKey, ref, Tx, ed25519} from "@aldea/core";
 import {SignInstruction} from "@aldea/core/instructions";
@@ -44,7 +44,8 @@ describe('execute txs', () => {
       'sheep',
       'sheep-counter',
       'tower',
-      'weapon'
+      'weapon',
+      'with-booleans'
     ])
 
     storage = data.storage
@@ -672,6 +673,7 @@ describe('execute txs', () => {
 
   it('adds statements for funds', () => {
     const minted = vm.mint(userAddr, 100)
+    const exec = emptyExec([userPriv])
     const coinIdx = exec.loadJigByOutputId(minted.id()).idx
     exec.fundByIndex(coinIdx)
     const stmt = exec.getStatementResult(1)
@@ -956,6 +958,64 @@ describe('execute txs', () => {
     expect(value.value).to.eql(buff)
   })
 
+  it('process booleans in the right way', () => {
+    let importStmt = exec.importModule(modIdFor('with-booleans'))
+    let bcs = new BCS(abiFor('with-booleans'))
+    let args = bcs.encode("WithBooleans_constructor", [true, false])
+    let newStmt = exec.instantiateByIndex(importStmt.idx, 0, args)
+    exec.lockJigToUserByIndex(newStmt.idx, userAddr)
+    let result = exec.finalize()
+
+    let state = result.outputs[0].parsedState(abiFor('with-booleans'))
+    expect(state).to.eql([true, false])
+  })
+
+  it('fails when try to fund with a non authorized coin', () => {
+    let coin = vm.mint(userAddr)
+
+    let stmt = exec.loadJigByOutputId(coin.id())
+
+    try {
+      exec.fundByIndex(stmt.idx)
+      expect.fail("Missign signature")
+    } catch (e) {
+      if (e instanceof PermissionError) {
+        expect(e.message).to.eql(`no permission to remove lock from jig ${coin.origin}`)
+      } else {
+        assert.fail("Wrong type of error")
+      }
+    }
+  })
+
+  it('fails when try to fund with a non coin', () => {
+    let importStmt = exec.importModule(modIdFor('flock'))
+    let newStmt = exec.instantiateByIndex(importStmt.idx, 0, new Uint8Array())
+
+    try {
+      exec.fundByIndex(newStmt.idx)
+      expect.fail("Should not allow to fund with something that is not a coin")
+    } catch (e) {
+      if (e instanceof ExecutionError) {
+        expect(e.message).to.eql(`Not a coin: ${exec.txContext.tx.id}_0`)
+      } else {
+        assert.fail("Wrong type of error")
+      }
+    }
+  })
+
+  it('operates with booleans correctly', () => {
+    let importStmt = exec.importModule(modIdFor('with-booleans'))
+    let bcs = new BCS(abiFor('with-booleans'))
+    let args = bcs.encode("WithBooleans_constructor", [true, false])
+    let newStmt = exec.instantiateByIndex(importStmt.idx, 0, args)
+    exec.callInstanceMethodByIndex(newStmt.idx, 1, new Uint8Array())
+    exec.lockJigToUserByIndex(newStmt.idx, userAddr)
+
+    let result = exec.finalize()
+    let state = result.outputs[0].parsedState(abiFor('with-booleans'))
+    expect(state).to.eql([false, true])
+  })
+
   it('can lower an imported interface', () => {
     const result1 = ((): ExecutionResult => {
       const exec1 = emptyExec([userPriv])
@@ -1042,23 +1102,6 @@ describe('execute txs', () => {
     expect(result6.outputs[1].lockData()).to.eql(userAddr.hash)
   })
 
-  // it('tower magic', () => {
-  //   const importStmt = exec.importModule(modIdFor('tower'))
-  //   const towerJigStmt = exec.instantiateByClassName(importStmt.asInstance, 'Tower', [])
-  //   exec.lockJigToUser(towerJigStmt.asJig(), userAddr)
-  //   const result = exec.finalize()
-  //
-  //   expect(result.outputs).to.have.length(1)
-  //
-  // })
-  //
-  // it('tower pkg_id', () => {
-  //   const map = new Map<string, string>();
-  //   const value1 = fs.readFileSync('./assembly/aldea/tower.ts');
-  //   map.set('tower.ts', value1.toString())
-  //   let pkgId = calculatePackageId(['tower.ts'], map)
-  //   console.log(base16.encode(pkgId))
-  // })
 
 
   it('can lock to a new address fails if there is no signature for the previous one', () => {

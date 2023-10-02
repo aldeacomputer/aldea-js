@@ -1,5 +1,14 @@
 # @aldea/wallet-lib
 
+## 0.2.9
+
+### Patch Changes
+
+- eb39ed5: Fixes issue where wallet not treating TxBuilder updateSigs option correctly.
+- Updated dependencies [9a9db5c]
+- Updated dependencies [65763fc]
+  - @aldea/sdk@0.5.0
+
 ## 0.2.8
 
 ### Patch Changes

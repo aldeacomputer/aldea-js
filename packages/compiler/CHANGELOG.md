@@ -1,5 +1,19 @@
 # @aldea/compiler
 
+## 0.4.0
+
+### Minor Changes
+
+- 4c66791: Sending parameters as little endian instead of big endian.
+- 85431b6: Compiler provides standalone compileDocs function.
+
+### Patch Changes
+
+- 74ab0de: Fixed bug where imported classes in some conditions also appeared in ABI as plain objects.
+- 37a9715: Update assemblyscript dependency to fix compiler mismatch error.
+- Updated dependencies [62ac390]
+  - @aldea/core@0.5.0
+
 ## 0.3.0
 
 ### Minor Changes
