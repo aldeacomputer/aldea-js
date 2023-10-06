@@ -5,7 +5,7 @@
     <main class="flex flex-auto main">
       <article class="relative flex flex-col w-2/5 shrink-0">
         <NavSelect />
-        <div class="flex-auto px-9 py-6 overflow-y-auto | VPDoc">
+        <div class="flex-auto px-9 pt-6 pb-12 overflow-y-auto | VPDoc">
           <Content class="w-full max-w-2xl mx-auto | vp-doc" />
         </div>
         <Pager />

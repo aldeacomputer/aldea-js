@@ -22,7 +22,5 @@ export default {
   },
   enhanceApp({ app, router, siteData }: EnhanceAppContext) {
     app.use(createPinia())
-    //app.component('tutorial', TutorialLayout)
-    // ...
   }
 }

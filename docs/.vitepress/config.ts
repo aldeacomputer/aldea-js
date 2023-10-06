@@ -8,7 +8,7 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Docs', link: '/examples/markdown' },
+      { text: 'Learn', link: '/learn/about-aldea' },
       {
         text: 'API',
         items: [
@@ -21,45 +21,28 @@ export default defineConfig({
           }
         ],
       },
-      { text: 'Tutorial', link: '/tutorial/fields' },
+      { text: 'Tutorial', link: '/tutorial/basics/jig-fields' },
     ],
 
     sidebar: {
-      '/examples': [
+      '/learn': [
         {
-          text: 'Examples',
+          text: 'Getting started',
           items: [
-            { text: 'Markdown Examples', link: '/examples/markdown' },
-            { text: 'Runtime API Examples', link: '/examples/api' },
+            { text: 'About Aldea', link: '/learn/about-aldea' },
+            { text: 'Development quickstart', link: '/learn/dev-quickstart' },
+            { text: 'AssemblyScript', link: '/learn/assemblyscript' },
           ]
         },
         {
-          text: 'Nested navigation',
+          text: 'Key concepts',
           items: [
-            {
-              text: 'Level 1',
-              link: '/404',
-              items: [
-                {
-                  text: 'Level 2',
-                  link: '/404',
-                  items: [
-                    {
-                      text: 'Level 3',
-                      link: '/404',
-                      items: [
-                        {
-                          text: 'Level 4',
-                          link: '/404'
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
+            { text: 'Jigs', link: '/learn/jigs' },
+            { text: 'Packages', link: '/learn/packages' },
+            { text: 'Transactions', link: '/learn/transactions' },
+            { text: 'Blocks', link: '/learn/blocks' },
           ]
-        }
+        },
       ],
       '/api': [
         {
@@ -77,21 +60,18 @@ export default defineConfig({
       ],
       '/tutorial': [
         {
-          text: 'Getting started',
+          text: 'Basics: Introduction to Jigs',
           items: [
-            { text: '1. Fields', link: '/tutorial/fields' },
-            { text: '2. Methods', link: '/tutorial/methods' },
-          ]
-        },
-        {
-          text: 'Intermediate',
-          items: [
-            { text: '1. abc', link: '/tutorial/abc' },
-            { text: '2. def', link: '/tutorial/def' },
-            { text: '2. ghi', link: '/tutorial/ghi' },
+            { text: 'Introduction', link: '/tutorial/basics/introduction' },
+            { text: 'Fields: Modelling objects', link: '/tutorial/basics/jig-fields' },
+            { text: 'Methods: Interactive objects', link: '/tutorial/basics/jig-methods' },
+            { text: 'Composability: Jigs interacting with Jigs', link: '/tutorial/basics/jig-composability' },
+            { text: 'Freezing Jigs', link: '/tutorial/basics/freezing-jigs' },
+            { text: 'Discover the CLI', link: '/tutorial/basics/cli' },
+            { text: 'Building transactions', link: '/tutorial/basics/txbuilder' },
+            { text: 'Create a potion mixer', link: '/tutorial/basics/potion-mixer' },
           ]
         }
-        
       ]
     },
 
