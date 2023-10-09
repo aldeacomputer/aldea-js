@@ -1,4 +1,4 @@
-import ky, { AfterResponseHook, BeforeRequestHook, Options } from 'ky-universal'
+import ky, { AfterResponseHook, BeforeRequestHook, Options } from 'ky'
 import {
   Address,
   BCS,
