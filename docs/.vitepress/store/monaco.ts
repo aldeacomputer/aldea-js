@@ -4,6 +4,9 @@ import loader from '@monaco-editor/loader'
 import type * as  monaco from 'monaco-editor'
 import { FileNode, DirectoryNode, FileSystemTree } from '@webcontainer/api'
 import { useWebContainer } from './container'
+import type { TypeLib } from '../../types/shared'
+import { data as aldeaTypes } from '../../types/aldea.data'
+import { data as ascTypes } from '../../types/assemblyscript.data'
 
 export const useMonaco = defineStore('monaco', () => {
   const container = useWebContainer()
@@ -11,6 +14,12 @@ export const useMonaco = defineStore('monaco', () => {
   const monacoRef = shallowRef<typeof monaco>()
   const editor = shallowRef<monaco.editor.IStandaloneCodeEditor>()
   const currentFile = ref<string>('')
+
+  function loadTypes(lib: TypeLib): void {
+    var libUri = `ts:filename/${lib.filename}`
+    monacoRef.value!.languages.typescript.javascriptDefaults.addExtraLib(lib.contents, libUri)
+    monacoRef.value!.editor.createModel(lib.contents, 'typescript', monacoRef.value!.Uri.parse(libUri))
+  }
 
   const ready = new Promise<typeof monaco>(async resolve => {
     monacoRef.value = await loader.init()
@@ -22,7 +31,9 @@ export const useMonaco = defineStore('monaco', () => {
       colors: {
         'editor.background': '#161618',
       },
-  });
+    })
+
+
     monacoRef.value.languages.typescript.typescriptDefaults.setCompilerOptions({
       strict: true,
       alwaysStrict: true,
@@ -56,6 +67,9 @@ export const useMonaco = defineStore('monaco', () => {
       //  "pkg://*": [".packages/*"]
       //}
     })
+
+    loadTypes(aldeaTypes)
+    loadTypes(ascTypes)
 
     //container.ready.then(() => {
     //  Object.entries(container.files).forEach(([name, node]) => traverseFileTree('', name, node))
