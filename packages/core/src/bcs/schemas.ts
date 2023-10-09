@@ -52,7 +52,7 @@ export const AbiSchema: AbiSchemeInterface = {
   ],
   abi_interface_node: [
     { name: 'name', type: type('string') },
-    { name: 'extends', type: type('Array', [type('string')]) },
+    { name: 'extends', type: type('string', [], true) },
     { name: 'fields', type: type('Array', [type('abi_field_node')]) },
     { name: 'methods', type: type('Array', [type('abi_function_node')]) },
   ],
