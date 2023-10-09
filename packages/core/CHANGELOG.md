@@ -1,5 +1,12 @@
 # @aldea/core
 
+## 0.6.0
+
+### Patch Changes
+
+- e9d7a06: Minor change to improve consistency with ABI de/serialization across implementations.
+- 1d17fc5: Fixes minor issue with tx sighash algo.
+
 ## 0.5.0
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @aldea/cli
 
+## 0.3.2
+
+### Patch Changes
+
+- Updated dependencies [3852849]
+  - @aldea/sdk@0.6.0
+  - @aldea/wallet-lib@0.2.10
+  - @aldea/compiler@0.4.1
+
 ## 0.3.1
 
 ### Patch Changes
