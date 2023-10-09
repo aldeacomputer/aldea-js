@@ -23,8 +23,11 @@ async function walletTopup({ mint }: { mint?: number | boolean }) {
   const addr = await env.wallet.getNextAddress()
 
   if (mint) {
+    const headers = { 'content-type': 'application/json' }
     const params = { amount: mint, address: addr.toString() }
-    const res = await env.aldea.api.post('mint', { json: params }).json<OutputResponse>()
+    // Explicitly set headers and encode json data to work around weirdness
+    // in tutorial (webcontainer changing content-type to text/plain) 
+    const res = await env.aldea.api.post('mint', { headers, body: JSON.stringify(params) }).json<OutputResponse>()
     const output = await env.aldea.loadOutput(res.id)
     await env.wallet.addUtxo(output)
 

@@ -1,5 +1,11 @@
 # @aldea/cli
 
+## 0.3.3
+
+### Patch Changes
+
+- 57b4127: Fixes issue preventing mint command working in webcontainers
+
 ## 0.3.2
 
 ### Patch Changes
