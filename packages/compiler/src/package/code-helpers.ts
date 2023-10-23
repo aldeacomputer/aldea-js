@@ -7,7 +7,6 @@ import {
   FunctionNode,
   InterfaceNode,
   FieldNode,
-  FieldKind,
   MethodNode,
   MethodKind,
   ArgNode,
@@ -95,10 +94,7 @@ function writeFunction(f: FunctionNode): string {
 
 // Writes a field statement for the given FieldNode
 function writeField(f: FieldNode): string {
-  let mod = ''
-  if (f.kind === FieldKind.PRIVATE) { mod = 'private ' }
-  if (f.kind === FieldKind.PROTECTED) { mod = 'protected ' }
-  return `${mod}${f.name}: ${normalizeTypeName(f.type)};`
+  return `${f.name}: ${normalizeTypeName(f.type)};`
 }
 
 // Writes a method statement for the given MethodNode

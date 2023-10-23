@@ -14,7 +14,6 @@ import {
 import {
   ArgNode,
   ClassNode,
-  FieldKind,
   FieldNode,
   FunctionNode,
   InterfaceNode,
@@ -162,11 +161,7 @@ function toInterfaceNode(node: InterfaceDeclaration): InterfaceNode {
 }
 
 function toFieldNode(node: FieldDeclaration): FieldNode {
-  const kind = isPrivate(node.flags) ? FieldKind.PRIVATE :
-    (isProtected(node.flags) ? FieldKind.PROTECTED : FieldKind.PUBLIC);
-
   return {
-    kind,
     name: node.name.text,
     type: toTypeNode(node.type as NamedTypeNode)
   }

@@ -19,15 +19,6 @@ export enum MethodKind {
 }
 
 /**
- * Field kind
- */
- export enum FieldKind {
-  PUBLIC,
-  PRIVATE,
-  PROTECTED,
-}
-
-/**
  * ABI interface
  */
 export interface Abi {
@@ -101,7 +92,6 @@ export interface ObjectNode {
  * Field interface
  */
 export interface FieldNode {
-  kind: FieldKind;
   name: string;
   type: TypeNode;
 }

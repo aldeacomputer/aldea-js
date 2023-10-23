@@ -24,7 +24,7 @@ import {
 } from 'assemblyscript'
 
 import { abiToBin, abiToJson } from '@aldea/core'
-import { ClassNode, FieldKind, FunctionNode, InterfaceNode, MethodKind, MethodNode, TypeNode } from '@aldea/core/abi'
+import { ClassNode, FunctionNode, InterfaceNode, MethodKind, MethodNode, TypeNode } from '@aldea/core/abi'
 import { CodeNode, ExportEdge, ExportNode, ImportEdge, ImportNode, TransformGraph } from './transform/graph/index.js'
 import { createDocs } from './transform/docs.js'
 import { filterAST } from './transform/filters.js'
@@ -254,9 +254,7 @@ function jigToInterface(code: CodeNode<ClassDeclaration>): void {
   const parentFields = parents.flatMap(p => p.fields.map(n => n.name) as string[])
   const parentMethods = parents.flatMap(p => p.methods.map(n => n.name) as string[])
 
-  const fields = abiNode.fields.filter(n => {
-    return n.kind === FieldKind.PUBLIC && !parentFields.includes(n.name)
-  })
+  const fields = abiNode.fields.filter(n => !parentFields.includes(n.name))
 
   const methods = abiNode.methods.filter(n => {
     return n.kind === MethodKind.INSTANCE && !parentMethods.includes(n.name)
@@ -287,6 +285,14 @@ function jigToLocalClass(code: CodeNode<ClassDeclaration>): void {
   const src = code.src.ctx.parse(ts, source.normalizedPath)
   // add original members into new class
   ;(<ClassDeclaration>src.statements[0]).members = code.node.members
+  // remove access modifiers from fields
+  ;(<ClassDeclaration>src.statements[0]).members
+    .filter(n => n.kind === NodeKind.FieldDeclaration)
+    .forEach(n => {
+      n.flags &= ~CommonFlags.Protected
+      n.flags &= ~CommonFlags.Private
+      n.flags &= ~CommonFlags.Readonly
+    })
   const idx = source.statements.indexOf(code.node as Statement)
   source.statements.splice(idx+1, 0, ...src.statements)
 }
@@ -297,9 +303,8 @@ function jigToLocalClass(code: CodeNode<ClassDeclaration>): void {
  */
 function jigToRemoteClass(code: CodeNode<ClassDeclaration>): void {
   const abiNode = code.abiNode as ClassNode
-  const fields = abiNode.fields
-    .filter(n => n.kind === FieldKind.PUBLIC)
 
+  const fields = abiNode.fields
   const methods = abiNode.methods
     .filter(n => n.kind === MethodKind.CONSTRUCTOR || n.kind === MethodKind.INSTANCE)
 
@@ -374,8 +379,6 @@ function importToRemoteClass(code: CodeNode<ClassDeclaration>, pkgId: string): v
   const abiNode = code.abiNode as ClassNode
 
   const fields = abiNode.fields
-    .filter(n => n.kind === FieldKind.PUBLIC)
-
   const methods = abiNode.methods
     .filter(n => n.kind !== MethodKind.PRIVATE && n.kind !== MethodKind.PROTECTED)
 

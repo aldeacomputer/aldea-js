@@ -91,8 +91,7 @@ function validateMethodNode(obj: any): obj is MethodNode {
 
 // Validates the given object implements the FieldNode interface
 function validateFieldNode(obj: any): obj is FieldNode {
-  return "kind" in obj &&
-    "name" in obj &&
+  return "name" in obj &&
     "type" in obj && validateTypeNode(obj.type)
 }
 

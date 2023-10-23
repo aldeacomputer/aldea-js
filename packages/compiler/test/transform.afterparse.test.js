@@ -52,11 +52,12 @@ test('afterParse() creates interface declaring all jig public fields and instanc
   }`)
 
   t.context.transform.afterParse(mock.parser)
-  t.is(mock.interfaces[0].members.length, 2)
+  t.is(mock.interfaces[0].members.length, 3)
   t.is(
     ASTBuilder.build(mock.interfaces[0]),
     'interface Test extends Jig {\n'+
     '  a: string;\n'+
+    '  b: string;\n'+
     '  aa(): string;\n'+
     '}'
   )
@@ -94,13 +95,13 @@ test('afterParse() local jig mirrors real jig, remote jig has implements public 
 
   t.context.transform.afterParse(mock.parser)
   t.is(mock.classes[0].members.length, 7)
-  t.is(mock.classes[1].members.length, 3)
+  t.is(mock.classes[1].members.length, 4)
   t.regex(
     ASTBuilder.build(mock.classes[1].members[0]),
     /^get a\(\): string {/
   )
   t.regex(
-    ASTBuilder.build(mock.classes[1].members[2]),
+    ASTBuilder.build(mock.classes[1].members[3]),
     /^aa\(\): string {/
   )
 })

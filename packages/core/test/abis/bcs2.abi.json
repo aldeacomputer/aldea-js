@@ -8,7 +8,6 @@
         "extends": "Jig",
         "fields": [
           {
-            "kind": 0,
             "name": "a",
             "type": {
               "name": "string",
@@ -17,7 +16,6 @@
             }
           },
           {
-            "kind": 0,
             "name": "b",
             "type": {
               "name": "string",
@@ -61,7 +59,6 @@
         "extends": "GrandParent",
         "fields": [
           {
-            "kind": 0,
             "name": "c",
             "type": {
               "name": "u32",
@@ -113,7 +110,6 @@
         "extends": "Parent",
         "fields": [
           {
-            "kind": 0,
             "name": "d",
             "type": {
               "name": "Map",

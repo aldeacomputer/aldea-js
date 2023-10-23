@@ -11,19 +11,19 @@ describe("ArgWriter", () => {
   test("encodes an i16", () => {
     const args = new ArgWriter(2)
     args.writeI16(32767)
-    expect(toHex(args.buffer)).toBe('7fff')
+    expect(toHex(args.buffer)).toBe('ff7f')
   })
 
   test("encodes an i32", () => {
     const args = new ArgWriter(4)
     args.writeI32(2147483647)
-    expect(toHex(args.buffer)).toBe('7fffffff')
+    expect(toHex(args.buffer)).toBe('ffffff7f')
   })
 
   test("encodes an i64", () => {
     const args = new ArgWriter(8)
     args.writeI64(9223372036854775807)
-    expect(toHex(args.buffer)).toBe('7fffffffffffffff')
+    expect(toHex(args.buffer)).toBe('ffffffffffffff7f')
   })
 
   test("encodes an u8", () => {
@@ -53,12 +53,12 @@ describe("ArgWriter", () => {
   test("encodes an f32", () => {
     const args = new ArgWriter(4)
     args.writeF32(123.123)
-    expect(toHex(args.buffer)).toBe('42f63efa')
+    expect(toHex(args.buffer)).toBe('fa3ef642')
   })
 
   test("encodes an f64", () => {
     const args = new ArgWriter(8)
     args.writeF64(12345.12345)
-    expect(toHex(args.buffer)).toBe('40c81c8fcd35a858')
+    expect(toHex(args.buffer)).toBe('58a835cd8f1cc840')
   })
 })

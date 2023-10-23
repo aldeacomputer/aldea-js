@@ -8,7 +8,6 @@
         "extends": "Jig",
         "fields": [
           {
-            "kind": 0,
             "name": "a",
             "type": {
               "name": "string",
@@ -17,7 +16,6 @@
             }
           },
           {
-            "kind": 0,
             "name": "b",
             "type": {
               "name": "u64",
@@ -99,7 +97,6 @@
         "extends": "Jig",
         "fields": [
           {
-            "kind": 0,
             "name": "a",
             "type": {
               "name": "string",
@@ -108,7 +105,6 @@
             }
           },
           {
-            "kind": 0,
             "name": "b",
             "type": {
               "name": "Baz",
@@ -286,7 +282,6 @@
       "name": "Primitives",
       "fields": [
         {
-          "kind": 0,
           "name": "foo",
           "type": {
             "name": "string",
@@ -295,7 +290,6 @@
           }
         },
         {
-          "kind": 0,
           "name": "i8",
           "type": {
             "name": "i8",
@@ -304,7 +298,6 @@
           }
         },
         {
-          "kind": 0,
           "name": "u8",
           "type": {
             "name": "u8",
@@ -313,7 +306,6 @@
           }
         },
         {
-          "kind": 0,
           "name": "i64",
           "type": {
             "name": "i64",
@@ -322,7 +314,6 @@
           }
         },
         {
-          "kind": 0,
           "name": "u64",
           "type": {
             "name": "u64",
@@ -336,7 +327,6 @@
       "name": "Recursive",
       "fields": [
         {
-          "kind": 0,
           "name": "foo",
           "type": {
             "name": "string",
@@ -345,7 +335,6 @@
           }
         },
         {
-          "kind": 0,
           "name": "bar",
           "type": {
             "name": "Array",

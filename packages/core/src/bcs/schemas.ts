@@ -57,7 +57,6 @@ export const AbiSchema: AbiSchemeInterface = {
     { name: 'methods', type: type('Array', [type('abi_function_node')]) },
   ],
   abi_field_node: [
-    { name: 'kind', type: type('u8') },
     { name: 'name', type: type('string') },
     { name: 'type', type: type('abi_type_node') },
   ],
