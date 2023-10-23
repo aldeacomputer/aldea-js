@@ -33,9 +33,9 @@ open: 'aldea/potion.ts'
 
 # Composability: Jigs interacting with Jigs
 
-Aldea really begins to shine when Jigs start interacting with other Jigs. This is called composability, and the deeper you get into your Aldea learning journey, the more you'll discover that compsability is one of Aldea's super strengths.
+Aldea truly shines when Jigs interact with other Jigs. This is known as composability, and as you progress in your Aldea learning journey, you'll discover that composability is one of Aldea's greatest strengths.
 
-But for now, lets start with a simple example. Change the field declarations on your `Potion` class to add `red`, `green` and `blue` properties, each with the type `u8`.
+Let's begin with a simple example for now. Modify the field declarations in your `Potion` class to include `red`, `green`, and `blue` properties, each of type `u8`.
 
 ```ts
 export class Potion extends Jig {
@@ -45,19 +45,19 @@ export class Potion extends Jig {
 }
 ```
 
-These properties represent the channels of the RGB color model. They each have the type `u8` which is an 8-bit unsigned integer.
+These properties represent the channels of the RGB color model and are of type `u8`, which is an 8-bit unsigned integer.
 
 ::: info What the type?
-In TypeScript there is a single `number` type that can be any numeric value up to a certain length.
+In TypeScript, there is a single `number` type that can represent any numeric value up to a certain length.
 
-AssemblyScript is slightly lower lever so in Aldea we care about the length of the integer and it's signedness.
+In Aldea, which is based on AssemblyScript, we have to pay attention to the length and signedness of integers.
 
-- There are 4 signed integer types: `i8`, `i16`, `i32` and `i64`
-- 4 unsigned integer types: `u8`, `u16`, `u32` and `u64`
-- And two float types: `f32` and `f64`
+- There are 4 signed integer types: `i8`, `i16`, `i32`, and `i64`.
+- There are 4 unsigned integer types: `u8`, `u16`, `u32`, and `u64`.
+- There are also 2 float types: `f32` and `f64`.
 :::
 
-Also update your `Potion` constructor to accept and initialize the three properties:
+Also update the constructor of your `Potion` class to accept and initialize these three properties:
 
 ```ts
 export class Potion extends Jig {
@@ -74,7 +74,7 @@ export class Potion extends Jig {
 
 ## Mixing two potions
 
-Write a method declaration that recieves a second potion as an argument. We'll use the following simple algorithm for mixing the colors:
+Write a method declaration that takes a second potion as an argument. We'll use the following simple algorithm to mix the colors:
 
 ```ts
 export class Potion extends Jig {
@@ -89,12 +89,12 @@ export class Potion extends Jig {
 }
 ```
 
-What's going on here? We are mixing two colors together simply by adding the respective channels togther. The three new values for red, green and blue are then used to return an entirely new `Potion` jig. Color theory purists may raise their eyebrows at this mixing algorithm, but it's simple code and it nicely avoids repeated mixing trending towards an average gray color.
+What's happening here? We mix two colors by simply adding their respective color channels together. The resulting values for red, green, and blue are used to create a new `Potion` jig. While this mixing algorithm may not satisfy color theory purists, it is a straightforward approach that avoids repeated mixing trending to an average gray color.
 
 ::: info Integer overflows
-In TypeScript simply adding the two color integers together may result in a value outside of the range `0..255`. We would need to caculate the modulus with the divisor 256.
+In TypeScript, adding two color integers together may result in a value outside the range of `0..255`. In that case, we would need to calculate the modulus with a divisor of 256.
 
-In AssemblyScript, because our color types are `u8` we don't need to worry about that as when an arithmetic operation overflows it automatically wraps around.
+However, in AssemblyScript, since our color types are `u8`, we don't need to worry about this issue. When an arithmetic operation overflows, it automatically wraps around.
 
 ```ts
 // typescript
@@ -105,6 +105,6 @@ In AssemblyScript, because our color types are `u8` we don't need to worry about
 ```
 :::
 
-Before you click that "next" button and move on to the next lesson, ask yourself, are we missing anything?
+Before you proceed to the next lesson, take a moment to consider if we have missed anything.
 
-Think about it... We started with two potions, mixed them together and created a third potion. What haven't we done?
+Think about it... We started with two potions, mixed them together, and created a third potion. What haven't we done?

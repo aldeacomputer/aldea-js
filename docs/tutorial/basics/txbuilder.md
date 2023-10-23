@@ -65,19 +65,19 @@ open: 'scripts/tx.js'
 
 # Building transactions
 
-Up until now, the lessons have put you firmly the realm of the Jig Developer. We have been thinking about code, and writing code, that lives and runs *inside* the Aldea Computer. But, to *use* on-chain code requires us to think a little differently.
+Until now, the lessons have focused on the role of the Jig Developer, involving code that operates *inside* the Aldea Computer. However, using on-chain code requires a different approach.
 
-It's time to shift gears and enter the realm of the App Developer. Real-world apps and services exist *outside* of the blockchain, written witha avriety of languages, hosted on traditional servers, with real-world users and customers. In this sense, an app can be seen as an *interface* to the blockchain - the place where the real world meets the blockchain world.
+It's time to transition to the role of an App Developer. Real-world applications and services exist outside the blockchain, written in various languages, hosted on traditional servers, and catering to real-world users and customers. In this context, an app serves as an interface between the real world and the blockchain.
 
-The only way to interact with, and change the state on the Aldea Computer is through creating transactions. A transaction is a list of instructions that can import and load on-chain code, as well as call methods and functions. A transaction results in *outputs* - either new instances of Jigs or existing Jigs that have been updated.
+To interact with and modify the state of the Aldea Computer, we need to create transactions. A transaction is a set of instructions that can import and load on-chain code, as well as invoke methods and functions. Executing a transaction produces *outputs*, which can be either new instances of Jigs or updates to existing Jigs.
 
 ## TxBuilder API
 
 :::info Aldea SDK
-In these examples we'll use the official Aldea JavaScript SDK. Similar tooling is being built for Rust and Elixir developers and in future we expect Aldea tooling becoming available for many languages.
+In these examples, we'll use the official Aldea JavaScript SDK. Similar tooling is being developed for Rust and Elixir, and we anticipate that Aldea tooling will be available for many languages in the future.
 :::
 
-The `TxBuilder` API ([documentation here](/api/sdk/classes/TxBuilder-1.md)) is part of our SDK. It uses the builder pattern to construct a new transaction, instruction by instruction.
+The `TxBuilder` API (see [documentation here](/api/sdk/classes/TxBuilder-1.md)) is part of our SDK. It utilizes the builder pattern to construct a new transaction, step by step.
 
 ```ts
 env.wallet.createFundedTx(txb => {
@@ -85,9 +85,9 @@ env.wallet.createFundedTx(txb => {
 })
 ```
 
-The `Wallet#createFundedTx()` wraps around the `TxBuilder` API and will automatically add instructions to fund the transaction with the correct amount of coins from the CLI wallet. The method accepts a callback that recieves a `TxBuilder` instance. Every method we call on `txb` appends a new instruction to the transaction.
+The `Wallet#createFundedTx()` function wraps around the `TxBuilder` API and automatically adds instructions to fund the transaction with the correct amount of coins from the CLI wallet. This function takes a callback that receives a `TxBuilder` instance. Each method we invoke on `txb` appends a new instruction to the transaction.
 
-For example, the following code adds an `IMPORT` instruction that imports a package by it's ID.
+For example, the following code adds an `IMPORT` instruction to import a package by its ID.
 
 ```ts
 env.wallet.createFundedTx(txb => {
@@ -95,9 +95,9 @@ env.wallet.createFundedTx(txb => {
 })
 ```
 
-Each `TxBuilder` method returns an `InstructionRef`, which is a reference to that instruction. This is useful as subsequent instructions often refer to a previous instruction.
+Every `TxBuilder` method returns an `InstructionRef`, which is a reference to that particular instruction. This is useful because subsequent instructions often refer to previous ones.
 
-For example, the two new lines in this example each add a `NEW` instruction, the references the package imported from the first instruction.
+In the next example, each of the two new lines adds a `NEW` instruction that references the package imported in the first instruction.
 
 ```ts
 env.wallet.createFundedTx(txb => {
@@ -107,9 +107,9 @@ env.wallet.createFundedTx(txb => {
 })
 ```
 
-You can probably guess that each of these `NEW` instructions create a new instance of a `Potion` Jig with the given arguments.
+You can probably guess that each of the `NEW` instructions creates a new instance of a `Potion` Jig with the specified arguments.
 
-This next line adds a `CALL` instruction to the transaction. The instruction is to call the `mix` method on the first referenced Jig, passing the second referenced Jig as an argument.
+The next line adds a `CALL` instruction to the transaction. This instruction calls the `mix` method on the first referenced Jig, passing the second referenced Jig as an argument.
 
 ```ts
 env.wallet.createFundedTx(txb => {
@@ -120,7 +120,7 @@ env.wallet.createFundedTx(txb => {
 })
 ```
 
-You'll hopefully recall that the `mix()` method consumes the two input potions and returns a new instance of `Potion`. We have one more instruction to add:
+As you may recall, the `mix()` method consumes the two input potions and returns a new instance of `Potion`. We have one more instruction to add:
 
 ```ts
 env.wallet.createFundedTx(txb => {
@@ -132,26 +132,26 @@ env.wallet.createFundedTx(txb => {
 })
 ```
 
-This final line adds a `LOCK` instruction, which locks the referenced Jig to the given address. It is unnecessary to lock the first two `Potion` instances as the mix method consumes and freezes them (`FROZEN` is a lock type).
+The final line adds a `LOCK` instruction, which locks the referenced Jig to the specified address. It is unnecessary to lock the first two `Potion` instances because the mix method consumes and freezes them (`FROZEN` is a lock type).
 
 ::: info Locking all Jigs
-In every transaction, all outputs &mdash; that is all Jigs either created or updated &mdash; must end the transaction locked to one of Aldea's primary lock types. If any outputs are left unlocked, then the transaction is invalid.
+In every transaction, all outputs &mdash; that is, all created or updated Jigs &mdash; must end the transaction locked to one of Aldea's primary lock types. If any outputs are left unlocked, the transaction is considered invalid.
 :::
 
 ## Commit the transaction
 
-Add all the `TxBuilder` code to the placeholder in `scripts/tx.js` (or click the blue "Solve" button below). We can now use Node.js to run the script which will both build and commit the transaction to the Aldea Computer.
+Insert all the `TxBuilder` code into the placeholder in `scripts/tx.js` (or click the blue "Solve" button below). We can now use Node.js to execute the script, which will build and commit the transaction to the Aldea Computer.
 
 ```sh
 node scripts/tx
 ```
 
-The script will respond with the transaction ID and the output ID of the mixed `Potion` instance. You can copy the values and search for them on [the Aldea Explorer](https://explorer.aldea.computer).
+The script will provide the transaction ID and the output ID of the mixed `Potion` instance. You can copy these values and search for them on [the Aldea Explorer](https://explorer.aldea.computer).
 
-## What next?
+## What's next?
 
-Congratulations! You have started building on Aldea. You have created and deployed code on chain, and created a transaction that interacts with your code.
+Congratulations! You have begun building on the Aldea Computer. You have created and deployed code on the blockchain and created a transaction that interacts with your code.
 
-These few lessons are just the beginning - to introduce you to the basic programming model of Aldea. Hopefully it all feels very familiar, even if you have no previous blockchain experience.
+These lessons are just the beginning, introducing the basic programming model of Aldea. Even if you have no prior experience with blockchain, hopefully Aldea's programming model feels natural, or even familiar.
 
-We're working on further lessons that will extend your knowledge into more intermediate and advanced concepts. In the mean time, to learn more please ready our [learning resources](/learn/about-aldea) and [API documentation](/api/sdk/modules).
+We are developing additional lessons that will expand your knowledge with intermediate and advanced concepts. In the meantime, you can learn more by exploring our [learning resources](/learn/about-aldea) and [API documentation](/api/sdk/modules).
