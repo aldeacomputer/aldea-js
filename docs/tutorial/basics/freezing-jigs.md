@@ -65,11 +65,11 @@ All Jigs have a `.$lock` property which exposes the `Lock` object &mdash; an API
 - `Jig` - the Jig is locked to another Jig, meaning only the parent Jig can call methods on the child Jig.
 - `Public` - the Jig is a public Jig, meaning anyone call call it's methods (Aldea-style smart contracts).
 
-We'll cover each of those lock types in future lessons. But for now, lets turn our focus to a fourth, pseudo lock type:
+We'll cover each of those lock types in future lessons. But for now, lets turn our focus to what is essentially a fourth lock type:
 
 - `Frozen` - the Jig is forever frozen. It can never again be updated or spent in future transactions.
 
-Frozen Jigs are, as the name suggests, locked forever &mdash; unable to move, unable to be updated. This sounds like what we want to do to our input `Potion` Jigs.
+Frozen Jigs are, as the name suggests, fronzen forever &mdash; unable to be updated, unable to be unfrozen. This sounds like what we want to do to our input `Potion` Jigs.
 
 Add the following method to your `Potion` class:
 

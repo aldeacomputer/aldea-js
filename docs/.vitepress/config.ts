@@ -21,7 +21,7 @@ export default defineConfig({
           }
         ],
       },
-      { text: 'Tutorial', link: '/tutorial/basics/jig-fields' },
+      { text: 'Tutorial', link: '/tutorial/basics/introduction' },
     ],
 
     sidebar: {
@@ -69,7 +69,6 @@ export default defineConfig({
             { text: 'Freezing Jigs', link: '/tutorial/basics/freezing-jigs' },
             { text: 'Discover the CLI', link: '/tutorial/basics/cli' },
             { text: 'Building transactions', link: '/tutorial/basics/txbuilder' },
-            { text: 'Create a potion mixer', link: '/tutorial/basics/potion-mixer' },
           ]
         }
       ]
