@@ -12,8 +12,7 @@ export enum CodeKind {
  */
 export enum MethodKind {
   CONSTRUCTOR,
-  INSTANCE,
-  PRIVATE,
+  PUBLIC,
   PROTECTED,
 }
 

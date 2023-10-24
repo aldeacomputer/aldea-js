@@ -592,7 +592,7 @@ function abiPluck(abi: Abi | undefined, name: string): Partial<{
     const klass = node.code as ClassNode
     method = methodName === 'constructor' ?
       klass.methods.find(m => m.kind === MethodKind.CONSTRUCTOR && m.name === methodName) :
-      klass.methods.find(m => m.kind > MethodKind.CONSTRUCTOR && m.name === methodName)
+      klass.methods.find(m => m.kind >= MethodKind.PUBLIC && m.name === methodName)
     }
     if (node && node.kind === CodeKind.INTERFACE) {
       const int = node.code as InterfaceNode

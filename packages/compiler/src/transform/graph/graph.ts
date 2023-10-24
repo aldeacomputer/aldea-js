@@ -259,7 +259,6 @@ function toAbiCodeKind(node: DeclarationStatement): abi.CodeKind {
 
 function toAbiClass(abiNode: ClassNode): ClassNode {
   const methods = abiNode.methods
-    .filter(m => ![MethodKind.PRIVATE, MethodKind.PROTECTED].includes(m.kind))
   if (!methods.some(m => m.kind === MethodKind.CONSTRUCTOR)) {
     methods.unshift({
       kind: MethodKind.CONSTRUCTOR,

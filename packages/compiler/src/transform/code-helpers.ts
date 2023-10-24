@@ -126,11 +126,10 @@ export function writeJigBinding(
   obj: ClassNode,
 ): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
-  const isInstance = method.kind === MethodKind.INSTANCE
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
   const rtype = isConstructor ? `${obj.name}` : normalizeTypeName(method.rtype)
   const callable = isConstructor ? `new _Local${obj.name}` : `ctx.${method.name}`
-  if (isInstance) args.unshift(`ctx: ${obj.name}`)
+  if (!isConstructor) args.unshift(`ctx: ${obj.name}`)
 
   return `
   export function ${obj.name}_${method.name}(${args.join(', ')}): ${rtype} {
@@ -283,9 +282,6 @@ export function writeRemoteGetter(field: FieldNode): string {
  */
 export function writeRemoteMethod(method: MethodNode, obj: ClassNode, pkg?: string): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
-  const isInstance = method.kind === MethodKind.INSTANCE
-
-
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
 
   if (isConstructor) {

@@ -116,6 +116,13 @@ export function isSetter(flags: number): boolean {
 }
 
 /**
+ * Returns true if the node has a public modifier.
+ */
+export function isPublic(flags: number): boolean {
+  return (flags & CommonFlags.Public) === CommonFlags.Public
+}
+
+/**
  * Returns true if the node has a private modifier.
  */
 export function isPrivate(flags: number): boolean {

@@ -27,7 +27,7 @@ import { abiToBin, abiToJson } from '@aldea/core'
 import { ClassNode, FunctionNode, InterfaceNode, MethodKind, MethodNode, TypeNode } from '@aldea/core/abi'
 import { CodeNode, ExportEdge, ExportNode, ImportEdge, ImportNode, TransformGraph } from './transform/graph/index.js'
 import { createDocs } from './transform/docs.js'
-import { filterAST } from './transform/filters.js'
+import { filterAST, isProtected, isPublic } from './transform/filters.js'
 
 import {
   writeClass,
@@ -257,7 +257,7 @@ function jigToInterface(code: CodeNode<ClassDeclaration>): void {
   const fields = abiNode.fields.filter(n => !parentFields.includes(n.name))
 
   const methods = abiNode.methods.filter(n => {
-    return n.kind === MethodKind.INSTANCE && !parentMethods.includes(n.name)
+    return n.kind >= MethodKind.PUBLIC && !parentMethods.includes(n.name)
   })
 
   const source = code.node.range.source
@@ -283,16 +283,18 @@ function jigToLocalClass(code: CodeNode<ClassDeclaration>): void {
   const ts = writeJigLocalClass(abiNode, isExported(code.node))
   
   const src = code.src.ctx.parse(ts, source.normalizedPath)
-  // add original members into new class
-  ;(<ClassDeclaration>src.statements[0]).members = code.node.members
-  // remove access modifiers from fields
-  ;(<ClassDeclaration>src.statements[0]).members
-    .filter(n => n.kind === NodeKind.FieldDeclaration)
-    .forEach(n => {
-      n.flags &= ~CommonFlags.Protected
+  // add original members into new class with transformations
+  // 1 - all fields become public
+  // 2 - protected modifer is removed from methods (private is kept)
+  ;(<ClassDeclaration>src.statements[0]).members = code.node.members.map(n => {
+    n.flags &= ~CommonFlags.Readonly
+    n.flags &= ~CommonFlags.Protected
+    if (n.kind === NodeKind.FieldDeclaration) {
       n.flags &= ~CommonFlags.Private
-      n.flags &= ~CommonFlags.Readonly
-    })
+      if (!isPublic(n.flags)) { n.flags |= CommonFlags.Public }
+    }
+    return n
+  })
   const idx = source.statements.indexOf(code.node as Statement)
   source.statements.splice(idx+1, 0, ...src.statements)
 }
@@ -305,8 +307,7 @@ function jigToRemoteClass(code: CodeNode<ClassDeclaration>): void {
   const abiNode = code.abiNode as ClassNode
 
   const fields = abiNode.fields
-  const methods = abiNode.methods
-    .filter(n => n.kind === MethodKind.CONSTRUCTOR || n.kind === MethodKind.INSTANCE)
+  const methods = abiNode.methods //.filter(n => n.kind <= MethodKind.PUBLIC)
 
   const source = code.node.range.source
   const ts = writeJigRemoteClass(abiNode, fields, methods, isExported(code.node))
@@ -323,7 +324,7 @@ function jigToRemoteClass(code: CodeNode<ClassDeclaration>): void {
 function jigToBindingFunctions(ex: ExportEdge): void {
   const abiNode = ex.code.abiNode as ClassNode
   const ts = abiNode.methods
-    .filter(n => n.kind !== MethodKind.PRIVATE && n.kind !== MethodKind.PROTECTED)
+    .filter(n => n.kind <= MethodKind.PUBLIC)
     .reduce((acc: string[], n: MethodNode): string[] => {
       acc.push(writeJigBinding(n, abiNode))
       return acc
@@ -379,8 +380,7 @@ function importToRemoteClass(code: CodeNode<ClassDeclaration>, pkgId: string): v
   const abiNode = code.abiNode as ClassNode
 
   const fields = abiNode.fields
-  const methods = abiNode.methods
-    .filter(n => n.kind !== MethodKind.PRIVATE && n.kind !== MethodKind.PROTECTED)
+  const methods = abiNode.methods.filter(n => n.kind <= MethodKind.PUBLIC)
 
   const source = code.node.range.source
   const ts = writeImportedRemoteClass(abiNode, fields, methods, pkgId, isExported(code.node))

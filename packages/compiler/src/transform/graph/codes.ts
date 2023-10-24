@@ -123,7 +123,7 @@ function toClassNode(
   })
 
   const methods = node.members.filter(n => {
-    return !isStatic(n.flags) && n.kind === NodeKind.MethodDeclaration
+    return n.kind === NodeKind.MethodDeclaration && !isStatic(n.flags) && !isPrivate(n.flags)
   })
 
   return {
@@ -176,12 +176,9 @@ function toMethodNode(node: MethodDeclaration): MethodNode {
     case isProtected(node.flags):
       kind = MethodKind.PROTECTED
       break
-    case isPrivate(node.flags):
-      kind = MethodKind.PRIVATE
-      break
     case isInstance(node.flags):
     default:
-      kind = MethodKind.INSTANCE
+      kind = MethodKind.PUBLIC
   }
 
   const rtype = kind === MethodKind.CONSTRUCTOR ?

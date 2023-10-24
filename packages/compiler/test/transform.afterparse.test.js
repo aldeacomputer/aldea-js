@@ -39,7 +39,7 @@ test('afterParse() creates interface for each jig class', async t => {
   )
 })
 
-test('afterParse() creates interface declaring all jig public fields and instance methods', async t => {
+test('afterParse() creates interface declaring all fields and methods except private methods', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {
     a: string = 'a';
@@ -51,13 +51,14 @@ test('afterParse() creates interface declaring all jig public fields and instanc
   }`)
 
   t.context.transform.afterParse(mock.parser)
-  t.is(mock.interfaces[0].members.length, 3)
+  t.is(mock.interfaces[0].members.length, 4)
   t.is(
     ASTBuilder.build(mock.interfaces[0]),
     'interface Test extends Jig {\n'+
     '  a: string;\n'+
     '  b: string;\n'+
     '  aa(): string;\n'+
+    '  cc(): string;\n'+
     '}'
   )
 })
@@ -93,7 +94,7 @@ test('afterParse() local jig mirrors real jig, remote jig has implements public 
 
   t.context.transform.afterParse(mock.parser)
   t.is(mock.classes[0].members.length, 6)
-  t.is(mock.classes[1].members.length, 4)
+  t.is(mock.classes[1].members.length, 5)
   t.regex(
     ASTBuilder.build(mock.classes[1].members[0]),
     /^get a\(\): string {/
