@@ -33,7 +33,6 @@ import {
 import {
   CallInstruction,
   DeployInstruction,
-  ExecFuncInstruction,
   ExecInstruction,
   FundInstruction,
   ImportInstruction,
@@ -168,15 +167,6 @@ export class TxBuilder {
     return this._tx
   }
 
-  // DEPRECATED
-  concat(tx: Tx): TxBuilder {
-    console.warn('TxBuilder#concat is deprecated. Use `new TxBuilder(aldea, { extend: Tx })`')
-    for (let instruction of tx.instructions) {
-      this.push(instruction)
-    }
-    return this
-  }
-
   /**
    * Pushes an IMPORT instruction onto the Transaction.
    */
@@ -219,19 +209,10 @@ export class TxBuilder {
 
   /**
    * Pushes an EXEC instruction onto the Transaction. Accepts an InstructionRef
-   * (which must refer to a PkgResult), a class name and static method name,
-   * and a list of args.
-   */
-  exec(ref: InstructionRef, className: string, methodName: string, args: any[] = []): InstructionRef {
-    return this.push(TxBuilder.execInstruction, ref, className, methodName, args)
-  }
-
-  /**
-   * Pushes an EXECFUNC instruction onto the Transaction. Accepts an InstructionRef
    * (which must refer to a PkgResult), a function name and a list of args.
    */
-  execFunc(ref: InstructionRef, functionName: string, args: any[] = []): InstructionRef {
-    return this.push(TxBuilder.execFuncInstruction, ref, functionName, args)
+  exec(ref: InstructionRef, functionName: string, args: any[] = []): InstructionRef {
+    return this.push(TxBuilder.execInstruction, ref, functionName, args)
   }
 
   /**
@@ -352,13 +333,6 @@ export class TxBuilder {
       }
       case OpCode.EXEC: {
         const i = instruction as ExecInstruction
-        const res = this.getResult(ref(i.idx), ResultType.PKG) as PkgResult
-        const klass = res.abi.exports[i.exportIdx].code as ClassNode
-        const rtype = klass.methods[i.methodIdx].rtype
-        return this.resultFromReturnType(res.abi, rtype)
-      }
-      case OpCode.EXECFUNC: {
-        const i = instruction as ExecFuncInstruction
         const res = this.getResult(ref(i.idx), ResultType.PKG) as PkgResult
         const func = res.abi.exports[i.exportIdx].code as FunctionNode
         return this.resultFromReturnType(res.abi, func.rtype)
@@ -481,32 +455,19 @@ export namespace TxBuilder {
     const klass = res.abi.exports[res.exportIdx].code as ClassNode
     const method = findMethod(klass, methodName, `method not found: ${ methodName }`)
     const methodIdx = klass.methods.findIndex(m => m === method)
-    const argsBuf = new BCS(res.abi).encode(`${klass.name}$${method.name}`, args)
+    const argsBuf = new BCS(res.abi).encode(`${klass.name}_${method.name}`, args)
     return new CallInstruction(ref.idx, methodIdx, argsBuf)
   }
 
   /**
    * Creates and returns an EXEC instruction.
    */
-  export function execInstruction(txb: TxBuilder, ref: InstructionRef, className: string, methodName: string, args: any[]): ExecInstruction {
-    const res = txb.getResult(ref, ResultType.PKG) as PkgResult
-    const klass = findClass(res.abi, className, `class not found: ${ className }`)
-    const method = findMethod(klass, methodName, `method not found: ${ methodName }`)
-    const klassIdx = res.abi.exports.findIndex(e => e.code === klass)
-    const methodIdx = klass.methods.findIndex(m => m === method)
-    const argsBuf = new BCS(res.abi).encode(`${klass.name}_${method.name}`, args)
-    return new ExecInstruction(ref.idx, klassIdx, methodIdx, argsBuf)
-  }
-
-  /**
-   * Creates and returns an EXECFUNC instruction.
-   */
-  export function execFuncInstruction(txb: TxBuilder, ref: InstructionRef, functionName: string, args: any[]): ExecFuncInstruction {
+  export function execInstruction(txb: TxBuilder, ref: InstructionRef, functionName: string, args: any[]): ExecInstruction {
     const res = txb.getResult(ref, ResultType.PKG) as PkgResult
     const func = findFunction(res.abi, functionName, `function not found: ${ functionName }`)
     const funcIdx = res.abi.exports.findIndex(e => e.code === func)
     const argsBuf = new BCS(res.abi).encode(functionName, args)
-    return new ExecFuncInstruction(ref.idx, funcIdx, argsBuf)
+    return new ExecInstruction(ref.idx, funcIdx, argsBuf)
   }
 
   /**

@@ -45,8 +45,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
     tx.new(ref(0), 'Badge', ['foo'])
     tx.call(ref(1), 'send', [700, addr.hash])
     tx.call(ref(2), 'rename', ['bar'])
-    tx.exec(ref(0), 'Badge', 'helloWorld', ['mum'])
-    tx.execFunc(ref(0), 'helloWorld', ['dad'])
+    tx.exec(ref(0), 'helloWorld', ['dad'])
   
     tx.fund(ref(1))
     tx.lock(ref(2), addr)
@@ -67,7 +66,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
   t.true(tx1 instanceof Tx)
   t.true(tx2 instanceof Tx)
 
-  t.is(tx2.instructions.length, 14)
+  t.is(tx2.instructions.length, 13)
   t.is(tx2.instructions[0].opcode, OpCode.IMPORT)
   t.deepEqual(tx2.instructions[0].pkgId, base16.decode(pkgId))
 
@@ -85,45 +84,39 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
   t.is(tx2.instructions[4].opcode, OpCode.CALL)
   t.is(tx2.instructions[4].idx, 1)
   t.is(tx2.instructions[4].methodIdx, 1)
-  t.deepEqual(decodeArgs(coinAbi, 'Coin$send', tx2.instructions[4].argsBuf), [700n, addr.hash])
+  t.deepEqual(decodeArgs(coinAbi, 'Coin_send', tx2.instructions[4].argsBuf), [700n, addr.hash])
 
   t.is(tx2.instructions[5].opcode, OpCode.CALL)
   t.is(tx2.instructions[5].idx, 2)
   t.is(tx2.instructions[5].methodIdx, 1)
-  t.deepEqual(decodeArgs(pkgAbi, 'Badge$rename', tx2.instructions[5].argsBuf), ['bar'])
+  t.deepEqual(decodeArgs(pkgAbi, 'Badge_rename', tx2.instructions[5].argsBuf), ['bar'])
 
   t.is(tx2.instructions[6].opcode, OpCode.EXEC)
   t.is(tx2.instructions[6].idx, 0)
-  t.is(tx2.instructions[6].exportIdx, 0)
-  t.is(tx2.instructions[6].methodIdx, 2)
-  t.deepEqual(decodeArgs(pkgAbi, 'Badge_helloWorld', tx2.instructions[6].argsBuf), ['mum'])
+  t.is(tx2.instructions[6].exportIdx, 1)
+  t.deepEqual(decodeArgs(pkgAbi, 'helloWorld', tx2.instructions[6].argsBuf), ['dad'])
 
-  t.is(tx2.instructions[7].opcode, OpCode.EXECFUNC)
-  t.is(tx2.instructions[7].idx, 0)
-  t.is(tx2.instructions[7].exportIdx, 1)
-  t.deepEqual(decodeArgs(pkgAbi, 'helloWorld', tx2.instructions[7].argsBuf), ['dad'])
+  t.is(tx2.instructions[7].opcode, OpCode.FUND)
+  t.is(tx2.instructions[7].idx, 1)
 
-  t.is(tx2.instructions[8].opcode, OpCode.FUND)
-  t.is(tx2.instructions[8].idx, 1)
-
-  t.is(tx2.instructions[9].opcode, OpCode.LOCK)
-  t.is(tx2.instructions[9].idx, 2)
+  t.is(tx2.instructions[8].opcode, OpCode.LOCK)
+  t.is(tx2.instructions[8].idx, 2)
   t.deepEqual(tx2.instructions[9].pubkeyHash, addr.hash)
 
-  t.is(tx2.instructions[10].opcode, OpCode.LOCK)
-  t.is(tx2.instructions[10].idx, 3)
-  t.deepEqual(tx2.instructions[10].pubkeyHash, addr.hash)
+  t.is(tx2.instructions[9].opcode, OpCode.LOCK)
+  t.is(tx2.instructions[9].idx, 3)
+  t.deepEqual(tx2.instructions[9].pubkeyHash, addr.hash)
 
-  t.is(tx2.instructions[11].opcode, OpCode.DEPLOY)
-  t.deepEqual(BCS.pkg.decode(tx2.instructions[11].pkgBuf), [['index.ts'], pkg])
+  t.is(tx2.instructions[10].opcode, OpCode.DEPLOY)
+  t.deepEqual(BCS.pkg.decode(tx2.instructions[10].pkgBuf), [['index.ts'], pkg])
 
-  t.is(tx2.instructions[12].opcode, OpCode.SIGN)
+  t.is(tx2.instructions[11].opcode, OpCode.SIGN)
+  t.is(tx2.instructions[11].sig.length, 64)
+  t.deepEqual(tx2.instructions[11].pubkey, keys.pubKey.toBytes())
+
+  t.is(tx2.instructions[12].opcode, OpCode.SIGNTO)
   t.is(tx2.instructions[12].sig.length, 64)
   t.deepEqual(tx2.instructions[12].pubkey, keys.pubKey.toBytes())
-
-  t.is(tx2.instructions[13].opcode, OpCode.SIGNTO)
-  t.is(tx2.instructions[13].sig.length, 64)
-  t.deepEqual(tx2.instructions[13].pubkey, keys.pubKey.toBytes())
 
   t.true(tx2.verify())
 })
