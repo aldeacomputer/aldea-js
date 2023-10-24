@@ -40,9 +40,6 @@ export declare function vm_constructor_remote(pkgId: string, name: string, args:
 @external("vm", "vm_call_method")
 export declare function vm_call_method<T>(origin: ArrayBuffer, fn: string, args: ArrayBuffer): T;
 // @ts-ignore
-@external("vm", "vm_call_static")
-export declare function vm_call_static<T>(pkgId: string, fn: string, args: ArrayBuffer): T;
-// @ts-ignore
 @external("vm", "vm_call_function")
 export declare function vm_call_function<T>(pkgId: string, fn: string, args: ArrayBuffer): T;
 // @ts-ignore

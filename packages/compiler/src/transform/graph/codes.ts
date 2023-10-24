@@ -108,7 +108,7 @@ function toClassNode(
   parents: Array<CodeNode<ClassDeclaration>>,
 ): ClassNode {
   const fields = node.members.filter(n => {
-    return n.kind === NodeKind.FieldDeclaration && !isStatic(n.flags)
+    return !isStatic(n.flags) && n.kind === NodeKind.FieldDeclaration
   })
 
   const pFieldNames = parents
@@ -123,7 +123,7 @@ function toClassNode(
   })
 
   const methods = node.members.filter(n => {
-    return n.kind === NodeKind.MethodDeclaration
+    return !isStatic(n.flags) && n.kind === NodeKind.MethodDeclaration
   })
 
   return {
@@ -173,14 +173,11 @@ function toMethodNode(node: MethodDeclaration): MethodNode {
     case isConstructor(node.flags):
       kind = MethodKind.CONSTRUCTOR
       break
-    case isStatic(node.flags):
-      kind = MethodKind.STATIC
+    case isProtected(node.flags):
+      kind = MethodKind.PROTECTED
       break
     case isPrivate(node.flags):
       kind = MethodKind.PRIVATE
-      break
-    case isProtected(node.flags):
-      kind = MethodKind.PROTECTED
       break
     case isInstance(node.flags):
     default:

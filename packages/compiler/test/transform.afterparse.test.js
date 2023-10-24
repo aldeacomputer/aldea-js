@@ -46,9 +46,8 @@ test('afterParse() creates interface declaring all jig public fields and instanc
     private b: string = 'b';
 
     aa(): string { return this.a }
-    private static bb(): string { return this.b }
-    protected static cc(): string { return this.b }
-    static ss(): string { return 's' }
+    private bb(): string { return this.b }
+    protected cc(): string { return this.b }
   }`)
 
   t.context.transform.afterParse(mock.parser)
@@ -88,13 +87,12 @@ test('afterParse() local jig mirrors real jig, remote jig has implements public 
     private b: string = 'b';
 
     aa(): string { return this.a }
-    private static bb(): string { return this.b }
-    protected static cc(): string { return this.b }
-    static ss(): string { return 's' }
+    private bb(): string { return this.b }
+    protected cc(): string { return this.b }
   }`)
 
   t.context.transform.afterParse(mock.parser)
-  t.is(mock.classes[0].members.length, 7)
+  t.is(mock.classes[0].members.length, 6)
   t.is(mock.classes[1].members.length, 4)
   t.regex(
     ASTBuilder.build(mock.classes[1].members[0]),
@@ -122,23 +120,6 @@ test('afterParse() adds exported constructors methods', async t => {
   )
 })
 
-test('afterParse() adds exported static methods', async t => {
-  const mock = await mockProgram(`
-  export class Test extends Jig {
-    static helloWorld(str: string): string { return 'hello '+str }
-  }`)
-
-  t.is(mock.functions.length, 0)
-  t.context.transform.afterParse(mock.parser)
-  t.is(mock.functions.length, 2)
-  t.is(
-    ASTBuilder.build(mock.functions[1]),
-    'export function Test_helloWorld(a0: string): string {\n'+
-    '  return _LocalTest.helloWorld(a0);\n'+
-    '}'
-  )
-})
-
 test('afterParse() adds exported public instance methods', async t => {
   const mock = await mockProgram(`
   export class Test extends Jig {
@@ -150,7 +131,7 @@ test('afterParse() adds exported public instance methods', async t => {
   t.is(mock.functions.length, 2)
   t.is(
     ASTBuilder.build(mock.functions[1]),
-    'export function Test$helloWorld(ctx: Test, a0: string): string {\n'+
+    'export function Test_helloWorld(ctx: Test, a0: string): string {\n'+
     '  return ctx.helloWorld(a0);\n'+
     '}'
   )
@@ -240,7 +221,6 @@ test('afterParse() adds proxy methods to imported static and instance methods', 
   @imported('0000000000000000000000000000000000000000000000000000000000000000')
   declare class Test {
     a(b: u8): u8;
-    static b(a: u8): u8;
   }
   `)
   
@@ -251,14 +231,6 @@ test('afterParse() adds proxy methods to imported static and instance methods', 
     '  const args = new ArgWriter(1);\n'+
     '  args.writeU8(a0);\n'+
     '  return vm_call_method<u8>(this.$output.origin, "a", args.buffer);\n'+
-    '}'
-  )
-  t.is(
-    ASTBuilder.build(mock.classes[0].members[2]),
-    'static b(a0: u8): u8 {\n'+
-    '  const args = new ArgWriter(1);\n'+
-    '  args.writeU8(a0);\n'+
-    '  return vm_call_static<u8>("0000000000000000000000000000000000000000000000000000000000000000", "Test_b", args.buffer);\n'+
     '}'
   )
 })

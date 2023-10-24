@@ -127,16 +127,13 @@ export function writeJigBinding(
 ): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
-  const separator = isInstance ? '$' : '_'
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
   const rtype = isConstructor ? `${obj.name}` : normalizeTypeName(method.rtype)
-  const callable = isConstructor ? `new _Local${obj.name}` : (
-    isInstance ? `ctx.${method.name}` : `${obj.name}.${method.name}`
-  )
+  const callable = isConstructor ? `new _Local${obj.name}` : `ctx.${method.name}`
   if (isInstance) args.unshift(`ctx: ${obj.name}`)
 
   return `
-  export function ${obj.name}${separator}${method.name}(${args.join(', ')}): ${rtype} {
+  export function ${obj.name}_${method.name}(${args.join(', ')}): ${rtype} {
     return ${callable}(${ method.args.map((_f, i) => `a${i}`).join(', ') })
   }
   `.trim()
@@ -282,15 +279,13 @@ export function writeRemoteGetter(field: FieldNode): string {
  * Writes a method on a remote class.
  * 
  * - For constructors calls `vm_constructor_local` or `vm_constructor_remote`.
- * - For static methods returns the result of `vm_call_static`.
  * - For instance methods returns the result of `vm_call_method`.
  */
 export function writeRemoteMethod(method: MethodNode, obj: ClassNode, pkg?: string): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const isInstance = method.kind === MethodKind.INSTANCE
-  const isStatic = method.kind === MethodKind.STATIC
 
-  if (isStatic && !pkg) { throw new Error('static methods require package ID') }
+
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
 
   if (isConstructor) {
@@ -308,12 +303,10 @@ export function writeRemoteMethod(method: MethodNode, obj: ClassNode, pkg?: stri
 
   } else {
     const rtype = normalizeTypeName(method.rtype)
-    const callable = isInstance ?
-      `vm_call_method<${rtype}>(this.$output.origin, '${method.name}', args.buffer)` :
-      `vm_call_static<${rtype}>('${pkg}', '${obj.name}_${method.name}', args.buffer)` ;
+    const callable = `vm_call_method<${rtype}>(this.$output.origin, '${method.name}', args.buffer)`
 
     return `
-    ${isStatic ? 'static ' : ''}${method.name}(${args.join(', ')}): ${rtype} {
+    ${method.name}(${args.join(', ')}): ${rtype} {
       ${ writeArgWriter(method.args) }
       return ${callable}
     }

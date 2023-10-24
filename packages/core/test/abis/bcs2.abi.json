@@ -27,7 +27,7 @@
         "implements": [],
         "methods": [
           {
-            "kind": 1,
+            "kind": 0,
             "name": "constructor",
             "args": [
               {
@@ -70,7 +70,7 @@
         "implements": [],
         "methods": [
           {
-            "kind": 1,
+            "kind": 0,
             "name": "constructor",
             "args": [
               {
@@ -132,7 +132,7 @@
         "implements": [],
         "methods": [
           {
-            "kind": 1,
+            "kind": 0,
             "name": "constructor",
             "args": [
               {

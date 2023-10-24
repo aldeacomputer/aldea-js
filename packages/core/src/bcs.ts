@@ -577,35 +577,36 @@ export class BCS {
 // Trys to find either a jig, function, or method from the abi matching the
 // specified name.
 function abiPluck(abi: Abi | undefined, name: string): Partial<{
- jig: ClassNode | InterfaceNode,
- method: FunctionNode | MethodNode,
+  jig: ClassNode | InterfaceNode,
+  method: FunctionNode | MethodNode,
 }> {
- if (!abi) return {}
- let jig: ClassNode | InterfaceNode | undefined
- let method: FunctionNode | MethodNode | undefined
- const match = name.match(/^(\w+)(\$|_)(\w+)$/)
+  if (!abi) return {}
+  let jig: ClassNode | InterfaceNode | undefined
+  let method: FunctionNode | MethodNode | undefined
+  const match = name.match(/^(\w+)(_)(\w+)$/)
 
- if (match?.length === 4) {
-   const [_, jigName, sep, methodName] = match
-   const node = abi.exports.find(a => a.code.name === jigName)
-   if (node && node.kind === CodeKind.CLASS) {
-     const klass = node.code as ClassNode
-     const kind = methodName === 'constructor' ? MethodKind.CONSTRUCTOR : (sep === '$' ? MethodKind.INSTANCE : MethodKind.STATIC)
-     method = klass.methods.find(m => m.kind === kind && m.name === methodName)
-   }
-   if (node && node.kind === CodeKind.INTERFACE) {
-     const int = node.code as InterfaceNode
-     method = int.methods.find(m => m.name === methodName)
-   }
- } else {
-   jig = findClass(abi, name) || undefined
-   if (!jig) {
-     jig = findInterface(abi, name) || undefined
-   }
-   method = findFunction(abi, name) || undefined
- }
+  if (match?.length === 4) {
+    const [_str, jigName, _sep, methodName] = match
+    const node = abi.exports.find(a => a.code.name === jigName)
+    if (node && node.kind === CodeKind.CLASS) {
+    const klass = node.code as ClassNode
+    method = methodName === 'constructor' ?
+      klass.methods.find(m => m.kind === MethodKind.CONSTRUCTOR && m.name === methodName) :
+      klass.methods.find(m => m.kind > MethodKind.CONSTRUCTOR && m.name === methodName)
+    }
+    if (node && node.kind === CodeKind.INTERFACE) {
+      const int = node.code as InterfaceNode
+      method = int.methods.find(m => m.name === methodName)
+    }
+  } else {
+    jig = findClass(abi, name) || undefined
+    if (!jig) {
+      jig = findInterface(abi, name) || undefined
+    }
+    method = findFunction(abi, name) || undefined
+  }
 
- return { jig, method }
+  return { jig, method }
 }
 
 // Asserts the given bool is true.

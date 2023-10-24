@@ -170,7 +170,6 @@ export class Validator {
         case NodeKind.ClassDeclaration:
           this.validateJigInheritance(ex.code as CodeNode<ClassDeclaration>)
           this.validateJigMembers(ex.code as CodeNode<ClassDeclaration>)
-          this.validatePrivateMembers(ex.code as CodeNode<ClassDeclaration>, true)
           this.validateClassTypes(ex.code as CodeNode<ClassDeclaration>)
           break
         case NodeKind.FunctionDeclaration:
@@ -248,6 +247,15 @@ export class Validator {
   private validateCodeDeclaration(code: CodeNode): void {
     if (code.node.kind === NodeKind.ClassDeclaration) {
       const abiNode = code.abiNode as ClassNode
+
+      if (code.isJig && (<ClassDeclaration>code.node).members.some(n => isStatic(n.flags))) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.Error,
+          AldeaDiagnosticCode.Invalid_class_member,
+          ['Static members'],
+          code.node.range
+        ))
+      }
 
       if (code.isJig && !(
         this.exportedClassNodes.some(n => code.node === n) ||
@@ -355,12 +363,12 @@ export class Validator {
     //}
 
     node.members.forEach(n => {
-      // Ensure no static properties
-      if (n.kind === NodeKind.FieldDeclaration && isStatic(n.flags)) {
+      // Ensure no static properties or methods
+      if (isStatic(n.flags)) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
           DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_class_member,
-          ['Static properties'],
+          ['Static members'],
           n.range
         ))
       }
@@ -594,24 +602,15 @@ export class Validator {
     })
   }
 
-  private validatePrivateMembers(code: CodeNode<ClassDeclaration>, warn: boolean = false): void {
+  private validatePrivateMembers(code: CodeNode<ClassDeclaration>): void {
     code.node.members.forEach(n => {
       if (isPrivate(n.flags) || isProtected(n.flags)) {
-        if (warn) {
-          this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-            DiagnosticCategory.Warning,
-            AldeaDiagnosticCode.Private_member_warn,
-            [],
-            n.range
-          ))
-        } else {
-          this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-            DiagnosticCategory.Error,
-            AldeaDiagnosticCode.Private_member,
-            [],
-            n.range
-          ))
-        }
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.Error,
+          AldeaDiagnosticCode.Private_member,
+          [],
+          n.range
+        ))
       }
     })
   }
@@ -791,7 +790,6 @@ function isAllowedLiteralOther(node: Expression | null): Boolean {
 // Returns true if node has flags for given method kind
 function nodeHasMethodFlags(node: MethodDeclaration, kind: MethodKind): boolean {
   switch (kind) {
-    case MethodKind.STATIC: return isStatic(node.flags)
     case MethodKind.CONSTRUCTOR: return isConstructor(node.flags)
     case MethodKind.INSTANCE: return isInstance(node.flags)
     case MethodKind.PRIVATE: return isPrivate(node.flags)

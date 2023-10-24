@@ -2,7 +2,6 @@ export {
   vm_constructor_local,
   vm_constructor_remote,
   vm_call_method,
-  vm_call_static,
   vm_call_function,
   vm_get_prop,
   vm_debug_str,

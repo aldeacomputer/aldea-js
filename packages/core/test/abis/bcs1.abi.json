@@ -27,7 +27,7 @@
         "implements": [],
         "methods": [
           {
-            "kind": 1,
+            "kind": 0,
             "name": "constructor",
             "args": [
               {
@@ -50,7 +50,7 @@
             "rtype": null
           },
           {
-            "kind": 2,
+            "kind": 1,
             "name": "setA",
             "args": [
               {
@@ -69,7 +69,7 @@
             }
           },
           {
-            "kind": 2,
+            "kind": 1,
             "name": "setB",
             "args": [
               {
@@ -116,7 +116,7 @@
         "implements": [],
         "methods": [
           {
-            "kind": 1,
+            "kind": 0,
             "name": "constructor",
             "args": [
               {
@@ -139,7 +139,7 @@
             "rtype": null
           },
           {
-            "kind": 2,
+            "kind": 1,
             "name": "setA",
             "args": [
               {
@@ -158,7 +158,7 @@
             }
           },
           {
-            "kind": 2,
+            "kind": 1,
             "name": "setB",
             "args": [
               {
@@ -188,7 +188,7 @@
         "implements": [],
         "methods": [
           {
-            "kind": 1,
+            "kind": 0,
             "name": "constructor",
             "args": [],
             "rtype": null

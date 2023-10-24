@@ -18,7 +18,7 @@
         ],
         "methods": [
           {
-            "kind": 1,
+            "kind": 0,
             "name": "constructor",
             "args": [
               {
@@ -32,7 +32,7 @@
             "rtype": null
           },
           {
-            "kind": 2,
+            "kind": 1,
             "name": "send",
             "args": [
               {
@@ -56,7 +56,7 @@
             }
           },
           {
-            "kind": 2,
+            "kind": 1,
             "name": "combine",
             "args": [
               {

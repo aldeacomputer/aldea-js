@@ -87,11 +87,7 @@ export function createDocs(ctx: TransformGraph): Partial<Docs> {
       abiNode.methods.forEach(n => {
         if (ex.code.node.kind === NodeKind.ClassDeclaration) {
           const isFlagged = (flags: number) => {
-            switch ((<MethodNode>n).kind) {
-              case MethodKind.STATIC: return isStatic(flags)
-              case MethodKind.CONSTRUCTOR: return isConstructor(flags)
-              default: return isInstance(flags)
-            }
+            return (<MethodNode>n).kind === MethodKind.CONSTRUCTOR ? isConstructor(flags) : isInstance(flags)
           }
           
           const node = members.find(m => m.kind === NodeKind.MethodDeclaration && isFlagged(m.flags) && m.name.text === n.name)!
