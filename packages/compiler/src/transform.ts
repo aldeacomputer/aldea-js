@@ -24,7 +24,7 @@ import {
 } from 'assemblyscript'
 
 import { abiToBin, abiToJson } from '@aldea/core'
-import { ClassNode, FunctionNode, InterfaceNode, MethodKind, MethodNode, TypeNode } from '@aldea/core/abi'
+import { ClassNode, CodeKind, FunctionNode, InterfaceNode, MethodKind, MethodNode, TypeNode } from '@aldea/core/abi'
 import { CodeNode, ExportEdge, ExportNode, ImportEdge, ImportNode, TransformGraph } from './transform/graph/index.js'
 import { createDocs } from './transform/docs.js'
 import { filterAST, isProtected, isPublic } from './transform/filters.js'
@@ -80,8 +80,8 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
 
     // 1 - apply necessary transformations to each exported code declaration
     $ctx.exports.forEach(ex => {
-      switch (ex.code.node.kind) {
-        case NodeKind.ClassDeclaration:
+      switch (ex.code.abiCodeKind) {
+        case CodeKind.CLASS:
           ensureJigConstructor(ex.code as CodeNode<ClassDeclaration>)
           jigToInterface(ex.code as CodeNode<ClassDeclaration>)
           jigToLocalClass(ex.code as CodeNode<ClassDeclaration>)
@@ -89,28 +89,33 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
           jigToBindingFunctions(ex)
           dropDeclaration(ex.code)
           break
-        case NodeKind.FunctionDeclaration:
+        case CodeKind.FUNCTION:
           break
-        case NodeKind.InterfaceDeclaration:
+        case CodeKind.INTERFACE:
           interfaceToRemoteClass(ex.code as CodeNode<InterfaceDeclaration>)
+          break
+        case CodeKind.OBJECT:
+          objectSanitize(ex.code as CodeNode<ClassDeclaration>)
           break
       }
     })
 
     // 2 - apply necessary transformations to each import
     $ctx.imports.forEach(im => {
-      switch (im.code.node.kind) {
-        case NodeKind.ClassDeclaration:
+      switch (im.code.abiCodeKind) {
+        case CodeKind.CLASS:
           ensureJigConstructor(im.code as CodeNode<ClassDeclaration>)
           importToRemoteClass(im.code as CodeNode<ClassDeclaration>, im.pkgId!)
           dropDeclaration(im.code)
           break
-        case NodeKind.FunctionDeclaration:
+          case CodeKind.FUNCTION:
           importToRemoteFunction(im.code as CodeNode<FunctionDeclaration>, im.pkgId!)
           dropDeclaration(im.code)
           break
-        case NodeKind.InterfaceDeclaration:
+        case CodeKind.INTERFACE:
           interfaceToRemoteClass(im.code as CodeNode<InterfaceDeclaration>)
+          break
+        case CodeKind.OBJECT:
           break
       }
     })
@@ -361,11 +366,14 @@ function interfaceToRemoteClass(code: CodeNode<InterfaceDeclaration>): void {
  * Removes ambient context from delcared plain objects.
  */
 function objectSanitize(code: CodeNode<ClassDeclaration>): void {
-  code.node.flags &= ~CommonFlags.Ambient
-  code.node.flags &= ~CommonFlags.Declare
-  code.node.members.forEach(m => {
-    m.flags &= ~CommonFlags.Ambient
-  })
+  //code.node.flags &= ~CommonFlags.Declare
+  //code.node.flags &= ~CommonFlags.Ambient
+  //code.node.members.forEach(m => {
+  //  m.flags &= ~CommonFlags.Ambient
+  //})
+  if (!isExported(code.node)) {
+    code.node.flags &= ~CommonFlags.Export
+  }
 }
 
 
@@ -568,7 +576,7 @@ function reduceEdgeNames(names: string[], e: ImportEdge | ExportEdge): string[] 
 }
 
 /**
- * Returns true if the given statement is exported froma user entry.
+ * Returns true if the given statement is exported NOT from a user entry.
  */
 function isExported(node: DeclarationStatement): boolean {
   return (node.flags & CommonFlags.Export) === CommonFlags.Export &&

@@ -24,6 +24,7 @@ import {
 
 import {
   ClassNode,
+  CodeKind,
   FunctionNode,
   InterfaceNode,
   MethodKind,
@@ -135,11 +136,11 @@ export class Validator {
     return this.cache.get<Array<ClassNode | InterfaceNode | ObjectNode>>('exposedClasses', () => {
       const classes: Array<ClassNode | InterfaceNode | ObjectNode> = []
       this.ctx.exports.map(ex => ex.code).forEach(code => {
-        if (isClass(code.node))     { classes.push(code.abiNode as ClassNode) }
+        if (isClass(code.node))     { classes.push(code.abiNode as ClassNode | ObjectNode) }
         if (isInterface(code.node)) { classes.push(code.abiNode as InterfaceNode) }
       })
       this.ctx.imports.map(im => im.code).forEach(code => {
-        if (isClass(code.node))     { classes.push(code.abiNode as ClassNode) }
+        if (isClass(code.node))     { classes.push(code.abiNode as ClassNode | ObjectNode) }
         if (isInterface(code.node)) { classes.push(code.abiNode as InterfaceNode) }
       })
       classes.push(...this.ctx.objects.map(o => o.abiNode as ObjectNode))
@@ -166,18 +167,20 @@ export class Validator {
     })
 
     this.ctx.exports.forEach(ex => {
-      switch (ex.code.node.kind) {
-        case NodeKind.ClassDeclaration:
+      switch (ex.code.abiCodeKind) {
+        case CodeKind.CLASS:
           this.validateJigInheritance(ex.code as CodeNode<ClassDeclaration>)
           this.validateJigMembers(ex.code as CodeNode<ClassDeclaration>)
           this.validateClassTypes(ex.code as CodeNode<ClassDeclaration>)
           break
-        case NodeKind.FunctionDeclaration:
+        case CodeKind.FUNCTION:
           this.validateFunctionArgTypes(ex.code as CodeNode<FunctionDeclaration>)
           this.validateFunctionReturnType(ex.code as CodeNode<FunctionDeclaration>)
           break
-        case NodeKind.InterfaceDeclaration:
+        case CodeKind.INTERFACE:
           //this.validateInterfaceInheritance(code as InterfaceNode)
+          break
+        case CodeKind.OBJECT:
           break
       }
     })
@@ -269,7 +272,7 @@ export class Validator {
         ))
       }
 
-      if (!code.isJig && this.exportedClassNodes.some(n => code.node === n)) {
+      if (!code.isJig && !code.isObj && this.exportedClassNodes.some(n => code.node === n)) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
           DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_class,
@@ -307,18 +310,18 @@ export class Validator {
 
   private validateClassDeclarationNode(node: ClassDeclaration): void {
     // Ensures class is not ambient and exported from entry
-    if (
-      isExported(node.flags) &&
-      isAmbient(node.flags) &&
-      node.range.source.sourceKind === SourceKind.UserEntry
-    ) {
-      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-        DiagnosticCategory.Error,
-        AldeaDiagnosticCode.Invalid_export,
-        ['Ambient classes'],
-        node.range
-      ))
-    }
+    //if (
+    //  isExported(node.flags) &&
+    //  isAmbient(node.flags) &&
+    //  node.range.source.sourceKind === SourceKind.UserEntry
+    //) {
+    //  this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+    //    DiagnosticCategory.Error,
+    //    AldeaDiagnosticCode.Invalid_export,
+    //    ['Ambient classes'],
+    //    node.range
+    //  ))
+    //}
 
     // Ensures sidekick code is not exported from entry
     if (

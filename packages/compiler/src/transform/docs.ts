@@ -1,5 +1,5 @@
 import { parse } from 'comment-parser'
-import { ClassNode, InterfaceNode, MethodKind, MethodNode, ObjectNode, normalizeNodeName } from '@aldea/core/abi'
+import { ClassNode, CodeKind, InterfaceNode, MethodKind, MethodNode, ObjectNode, normalizeNodeName } from '@aldea/core/abi'
 import { TransformGraph } from './graph/index.js'
 import { ClassDeclaration, DeclarationStatement, InterfaceDeclaration, NodeKind } from 'assemblyscript'
 import { isConstructor, isInstance, isStatic } from './filters.js'
@@ -75,15 +75,18 @@ export function createDocs(ctx: TransformGraph): Partial<Docs> {
   // 2. parse comments for all exports
   ctx.exports.forEach(ex => {
     parseCommentBlock(ex.code.node, ex.code.name)
+    const abiKind = ex.code.abiCodeKind
     const abiNode = ex.code.abiNode as ClassNode | InterfaceNode
     const members = (<ClassDeclaration | InterfaceDeclaration>ex.code.node).members
 
-    if (ex.code.node.kind === NodeKind.ClassDeclaration || ex.code.node.kind === NodeKind.InterfaceDeclaration) {
+    if ([CodeKind.CLASS, CodeKind.INTERFACE, CodeKind.OBJECT].includes(abiKind)) {
       abiNode.fields.forEach(n => {
         const node = members.find(m => m.kind === NodeKind.FieldDeclaration && m.name.text === n.name)!
         parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
-      });
+      })
+    }
 
+    if ([CodeKind.CLASS, CodeKind.INTERFACE].includes(abiKind)) {
       abiNode.methods.forEach(n => {
         if (ex.code.node.kind === NodeKind.ClassDeclaration) {
           const isFlagged = (flags: number) => {
@@ -96,7 +99,7 @@ export function createDocs(ctx: TransformGraph): Partial<Docs> {
           const node = members.find(m => m.kind === NodeKind.MethodDeclaration && m.name.text === n.name)!
           parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
         }
-      });
+      })
     }
   })
 
@@ -109,7 +112,7 @@ export function createDocs(ctx: TransformGraph): Partial<Docs> {
     abiNode.fields.forEach(n => {
       const node = members.find(m => m.kind === NodeKind.FieldDeclaration && m.name.text === n.name)!
       parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
-    });
+    })
   })
 
   return docs

@@ -38,6 +38,9 @@ function validateExportNode(obj: any): obj is ExportNode {
     case CodeKind.INTERFACE:
       validateCode = validateInterfaceNode
       break
+    case CodeKind.OBJECT:
+      validateCode = validateObjectNode
+      break
     default:
       validateCode = () => false
   }

@@ -5,6 +5,7 @@ export enum CodeKind {
   CLASS,
   FUNCTION,
   INTERFACE,
+  OBJECT,
 }
 
 /**
@@ -32,7 +33,7 @@ export interface Abi {
  */
 export interface ExportNode {
   kind: CodeKind;
-  code: ClassNode | FunctionNode | InterfaceNode;
+  code: ClassNode | FunctionNode | InterfaceNode | ObjectNode;
 }
 
 /**

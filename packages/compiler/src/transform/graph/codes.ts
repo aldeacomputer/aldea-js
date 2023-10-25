@@ -8,12 +8,12 @@ import {
   NamedTypeNode,
   NodeKind,
   ParameterNode,
-  Statement,
 } from 'assemblyscript'
 
 import {
   ArgNode,
   ClassNode,
+  CodeKind,
   FieldNode,
   FunctionNode,
   InterfaceNode,
@@ -51,7 +51,9 @@ export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
   get abiNode(): ClassNode | FunctionNode | InterfaceNode | ObjectNode {
     if (!this.#abiNode) {
       if (isClass(this.node)) {
-        this.#abiNode = toClassNode(this.node, this.findAllParents())
+        this.#abiNode = this.isObj ?
+          toObjectNode(this.node) :
+          toClassNode(this.node, this.findAllParents())
       } else if (isFunction(this.node)) {
         this.#abiNode = toFunctionNode(this.node)
       } else if (isInterface(this.node)) {
@@ -60,6 +62,17 @@ export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
     }
     if (!this.#abiNode) { throw new Error('//todo xxxx') }
     return this.#abiNode
+  }
+
+  get abiCodeKind(): CodeKind {
+    switch(this.node.kind) {
+      case NodeKind.ClassDeclaration:
+        return this.isObj ? CodeKind.OBJECT : CodeKind.CLASS
+      case NodeKind.FunctionDeclaration: return CodeKind.FUNCTION
+      case NodeKind.InterfaceDeclaration: return CodeKind.INTERFACE
+      default:
+        throw new Error(`unrecognised code kind: ${this.node.kind}`)
+    }
   }
 
   get isJig(): boolean {
@@ -74,8 +87,7 @@ export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
 
   get isObj(): boolean {
     if (isClass(this.node)) {
-      return isAmbient(this.node.flags) &&
-        !this.node.extendsType &&
+      return !this.node.extendsType &&
         !this.node.members.some(n => n.kind === NodeKind.MethodDeclaration) &&
         !this.src.ctx.imports.some(im => im.code.node === this.node)
     } else {
@@ -157,6 +169,17 @@ function toInterfaceNode(node: InterfaceDeclaration): InterfaceNode {
     extends: node.extendsType?.name.identifier.text || '',
     fields: fields.map(n => toFieldNode(n as FieldDeclaration)),
     methods: methods.map(n => toFunctionNode(n as FunctionDeclaration)),
+  }
+}
+
+function toObjectNode(node: ClassDeclaration): ObjectNode {
+  const fields = node.members.filter(n => {
+    return n.kind === NodeKind.FieldDeclaration && !isStatic(n.flags)
+  })
+
+  return {
+    name: node.name.text,
+    fields: fields.map(n => toFieldNode(n as FieldDeclaration)),
   }
 }
 

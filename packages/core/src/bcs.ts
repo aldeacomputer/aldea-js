@@ -659,6 +659,7 @@ function getCodeKindNodeName(kind: CodeKind): string {
     case CodeKind.CLASS:      return 'abi_class_node'
     case CodeKind.FUNCTION:   return 'abi_function_node'
     case CodeKind.INTERFACE:  return 'abi_interface_node'
+    case CodeKind.OBJECT:     return 'abi_object_node'
     default: throw new Error(`invalid ABI code kind: ${kind}`)
   }
 }

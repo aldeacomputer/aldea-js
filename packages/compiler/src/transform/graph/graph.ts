@@ -76,6 +76,7 @@ export class TransformGraph {
     this.exports = this.entries
       .flatMap(s => s.exports.flatMap(n => n.edges))
 
+    this.objects = []
     this.objects = this.sources
       .flatMap(s => s.codes)
       .filter(n => isClass(n.node) && isAmbient(n.node.flags))
@@ -213,17 +214,18 @@ export class TransformGraph {
 }
 
 function isExposed(code: CodeNode, obj: CodeNode): boolean {
-  let abiNode: ClassNode | FunctionNode | InterfaceNode
-  switch (code.node.kind) {
-    case NodeKind.ClassDeclaration:
-    case NodeKind.InterfaceDeclaration:
-      abiNode = code.abiNode as ClassNode | InterfaceNode
-      return abiNode.fields.some(f => f.type.name === obj.name) ||
-        abiNode.methods.some(m => m.args.some(a => a.type.name === obj.name)) ||
-        abiNode.methods.some(m => m.rtype?.name === obj.name)
-    case NodeKind.FunctionDeclaration:
-      abiNode = code.abiNode as FunctionNode
-      return abiNode.args.some(a => a.type.name === obj.name) || abiNode.rtype.name === obj.name
+  switch (code.abiCodeKind) {
+    case CodeKind.CLASS:
+    case CodeKind.INTERFACE:
+      type T = ClassNode | InterfaceNode
+      return (<T>code.abiNode).fields.some(f => f.type.name === obj.name) ||
+        (<T>code.abiNode).methods.some(m => m.args.some(a => a.type.name === obj.name)) ||
+        (<T>code.abiNode).methods.some(m => m.rtype?.name === obj.name)
+    case CodeKind.FUNCTION:
+      return (<FunctionNode>code.abiNode).args.some(a => a.type.name === obj.name) ||
+        (<FunctionNode>code.abiNode).rtype.name === obj.name
+    case CodeKind.OBJECT:
+      return (<ObjectNode>code.abiNode).fields.some(f => f.type.name === obj.name)
     default:
       return false
   }
@@ -231,29 +233,19 @@ function isExposed(code: CodeNode, obj: CodeNode): boolean {
 
 function toAbiImport(im: ImportEdge): abi.ImportNode {
   return {
-    kind: toAbiCodeKind(im.code.node),
+    kind: im.code.abiCodeKind,
     name: im.code.name,
     pkg: im.pkgId!,
   }
 }
 
 function toAbiExport(ex: ExportEdge): abi.ExportNode {
-  const kind = toAbiCodeKind(ex.code.node)
+  const kind = ex.code.abiCodeKind
   return {
     kind,
     code: kind === CodeKind.CLASS ?
       toAbiClass(ex.code.abiNode as ClassNode) :
-      ex.code.abiNode as FunctionNode | InterfaceNode
-  }
-}
-
-function toAbiCodeKind(node: DeclarationStatement): abi.CodeKind {
-  switch(node.kind) {
-    case NodeKind.ClassDeclaration: return abi.CodeKind.CLASS
-    case NodeKind.FunctionDeclaration: return abi.CodeKind.FUNCTION
-    case NodeKind.InterfaceDeclaration: return abi.CodeKind.INTERFACE
-    default:
-      throw new Error(`unrecognised code kind: ${node.kind}`)
+      ex.code.abiNode as FunctionNode | InterfaceNode | ObjectNode
   }
 }
 
