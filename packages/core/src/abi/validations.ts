@@ -1,116 +1,108 @@
 import {
   Abi,
-  ExportNode,
-  ImportNode,
-  ObjectNode,
-  FieldNode,
   ArgNode,
-  FunctionNode,
-  MethodNode,
-  TypeNode,
-  CodeKind,
   ClassNode,
+  CodeDef,
+  CodeKind,
+  FieldNode,
+  FunctionNode,
   InterfaceNode,
+  MethodNode,
+  ObjectNode,
+  ProxyNode,
   TypeIdNode,
+  TypeNode,
 } from './types.js'
 
 /**
  * Validates the given object implements the ABI interface
  */
 export function validateAbi(obj: any): obj is Abi {
-  return "version" in obj &&
-    Array.isArray(obj.exports) && obj.exports.every(validateExportNode) &&
-    Array.isArray(obj.imports) && obj.imports.every(validateImportNode) &&
-    Array.isArray(obj.objects) && obj.objects.every(validateObjectNode) &&
+  return typeof obj?.version === 'number' &&
+    Array.isArray(obj.exports) && obj.exports.every((v: any) => typeof v === 'number') &&
+    Array.isArray(obj.imports) && obj.imports.every((v: any) => typeof v === 'number') &&
+    Array.isArray(obj.defs) && obj.defs.every(validateCodeDef) &&
     Array.isArray(obj.typeIds) && obj.typeIds.every(validateTypeIdNode)
 }
 
 // Validates the given object implements the ExportNode interface
-function validateExportNode(obj: any): obj is ExportNode {
-  let validateCode: (obj: any) => boolean
+function validateCodeDef(obj: any): obj is CodeDef {
   switch (obj?.kind) {
-    case CodeKind.CLASS:
-      validateCode = validateClassNode
-      break
-    case CodeKind.FUNCTION:
-      validateCode = validateFunctionNode
-      break
-    case CodeKind.INTERFACE:
-      validateCode = validateInterfaceNode
-      break
-    case CodeKind.OBJECT:
-      validateCode = validateObjectNode
-      break
+    case CodeKind.CLASS:      return validateClassNode(obj)
+    case CodeKind.FUNCTION:   return validateFunctionNode(obj)
+    case CodeKind.INTERFACE:  return validateInterfaceNode(obj)
+    case CodeKind.OBJECT:     return validateObjectNode(obj)
+    case CodeKind.PROXY_CLASS:
+    case CodeKind.PROXY_FUNCTION:
+      return validateProxyNode(obj)
     default:
-      validateCode = () => false
+      return false
   }
-
-  return "kind" in obj &&
-    typeof obj.code === 'object' && validateCode(obj.code)
 }
 
-// Validates the given object implements the ImportNode interface
-function validateImportNode(obj: any): obj is ImportNode {
-  return "kind" in obj && "name" in obj && "pkg" in obj
+// TODO
+function validateProxyNode(obj: any): obj is ProxyNode {
+  return typeof obj?.name === 'string' &&
+    typeof obj?.pkg === 'string'
 }
 
 // Validates the given object implements the ClassNode interface
 function validateClassNode(obj: any): obj is ClassNode {
-  return "name" in obj &&
-    "extends" in obj &&
-    Array.isArray(obj.implements) && obj.implements.every(validateTypeNode) &&
+  return typeof obj?.name === 'string' &&
+    typeof obj?.extends === 'string' &&
+    Array.isArray(obj.implements) && obj.implements.every((v: any) => typeof v === 'string') &&
     Array.isArray(obj.fields) && obj.fields.every(validateFieldNode) &&
     Array.isArray(obj.methods) && obj.methods.every(validateMethodNode)
 }
 
-// Validates the given object implements the ObjectNode interface
-function validateObjectNode(obj: any): obj is ObjectNode {
-  return "name" in obj &&
-    Array.isArray(obj.fields) && obj.fields.every(validateFieldNode)
-}
-
 // Validates the given object implements the FunctionNode interface
 function validateFunctionNode(obj: any): obj is FunctionNode {
-  return "name" in obj &&
+  return typeof obj?.name === 'string' &&
     Array.isArray(obj.args) && obj.args.every(validateArgNode) &&
-    "rtype" in obj && validateTypeNode(obj.rtype)
+    'rtype' in obj && validateTypeNode(obj.rtype)
 }
 
 // Validates the given object implements the InterfaceNode interface
 function validateInterfaceNode(obj: any): obj is InterfaceNode {
-  return "name" in obj &&
-    "extends" in obj &&
+  return typeof obj?.name === 'string' &&
+    Array.isArray(obj.extends) && obj.extends.every((v: any) => typeof v === 'string') &&
     Array.isArray(obj.fields) && obj.fields.every(validateFieldNode) &&
     Array.isArray(obj.methods) && obj.methods.every(validateFunctionNode)
 }
 
-// Validates the given object implements the MethodNode interface
-function validateMethodNode(obj: any): obj is MethodNode {
-  return "kind" in obj &&
-    "name" in obj &&
-    Array.isArray(obj.args) && obj.args.every(validateArgNode) &&
-    "rtype" in obj && (obj.rtype === null || validateTypeNode(obj.rtype))
+// Validates the given object implements the ObjectNode interface
+function validateObjectNode(obj: any): obj is ObjectNode {
+  return typeof obj?.name === 'string' &&
+    Array.isArray(obj.fields) && obj.fields.every(validateFieldNode)
 }
 
 // Validates the given object implements the FieldNode interface
 function validateFieldNode(obj: any): obj is FieldNode {
-  return "name" in obj &&
-    "type" in obj && validateTypeNode(obj.type)
+  return typeof obj?.name === 'string' &&
+    'type' in obj && validateTypeNode(obj.type)
+}
+
+// Validates the given object implements the MethodNode interface
+function validateMethodNode(obj: any): obj is MethodNode {
+  return typeof obj?.kind === 'number' &&
+    typeof obj?.name === 'string' &&
+    Array.isArray(obj.args) && obj.args.every(validateArgNode) &&
+    'rtype' in obj && (obj.rtype === null || validateTypeNode(obj.rtype))
 }
 
 // Validates the given object implements the FieldNode interface
 function validateArgNode(obj: any): obj is ArgNode {
-  return "name" in obj &&
-    "type" in obj && validateTypeNode(obj.type)
+  return typeof obj?.name === 'string' &&
+    'type' in obj && validateTypeNode(obj.type)
 }
 
 // Validates the given object implements the TypeNode interface
 function validateTypeNode(obj: any): obj is TypeNode {
-  return "name" in obj &&
+  return typeof obj?.name === 'string' &&
     Array.isArray(obj.args) && obj.args.every(validateTypeNode)
 }
 
 // Validates the given entry is a valid TypeId
 function validateTypeIdNode(obj: any): obj is TypeIdNode {
-  return "id" in obj && "name" in obj
+  return typeof obj?.id === 'number' && typeof obj?.name === 'string'
 }

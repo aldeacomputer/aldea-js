@@ -1,17 +1,16 @@
-import {findClass, findFunction, findInterface,} from './abi/query.js'
-import { AbiSchema, PkgSchema } from './bcs/schemas.js'
-
 import {
   Abi,
   ClassNode,
+  CodeDef,
   CodeKind,
-  ExportNode,
   FieldNode,
   FunctionNode, InterfaceNode,
-  MethodKind,
   MethodNode,
   TypeNode,
 } from './abi/types.js'
+
+import { AbiQuery, isClass, isFunctionLike, isInterface } from './abi/query.js'
+import { AbiSchema, PkgSchema } from './bcs/schemas.js'
 
 import {  
   BufReader,
@@ -119,17 +118,15 @@ export class BCS {
     this.registerMagicTypes()
 
     if (this.abi) {
-      for (let obj of this.abi.objects) {
-        this.registerObjectType(obj.name, obj.fields)
-      }
-      for (let ex of this.abi.exports) {
-        if (ex.kind === CodeKind.CLASS || ex.kind === CodeKind.INTERFACE) {
-          this.jigNames.push(ex.code.name)
+      for (let code of this.abi.defs) {
+        if (code.kind === CodeKind.OBJECT) {
+          this.registerObjectType(code.name, code.fields)
         }
-      }
-      for (let im of this.abi.imports) {
-        if (im.kind === CodeKind.CLASS || im.kind === CodeKind.INTERFACE) {
-          this.jigNames.push(im.name)
+        if (code.kind === CodeKind.CLASS || code.kind === CodeKind.INTERFACE) {
+          this.jigNames.push(code.name)
+        }
+        if (code.kind === CodeKind.PROXY_CLASS) {
+          this.jigNames.push(code.name)
         }
       }
     }
@@ -141,14 +138,14 @@ export class BCS {
   decode(name: string, data: Uint8Array): any {
     const reader = new BufReader(data)
     const encoder = this.typeEncoders.get(name)
-    const { jig, method } = abiPluck(this.abi, name)
+    const { jig, parents, method } = abiPluck(this.abi, name)
 
     if (encoder) {
       const res = encoder.decode.call(this, reader, encoder.type!)
       encoder.assert(res)
       return res
-    } else if (jig) {
-      const types = this.collectJigFieldTypes(jig)
+    } else if (jig && parents) {
+      const types = this.collectJigFieldTypes(jig, parents)
       return this.decodeTypes(types, reader)
     } else if (method) {
       const idxEnc = this.typeEncoders.get('_RefIndexes') as BCSEncoder<number[]>
@@ -165,13 +162,13 @@ export class BCS {
    */
   encode(name: string, val: any, writer = new BufWriter()): Uint8Array {
     const encoder = this.typeEncoders.get(name)
-    const { jig, method } = abiPluck(this.abi, name)
+    const { jig, parents, method } = abiPluck(this.abi, name)
 
     if (encoder) {
       encoder.assert(val)
       encoder.encode.call(this, writer, val, encoder.type)
-    } else if (jig) {
-      const types = this.collectJigFieldTypes(jig)
+    } else if (jig && parents) {
+      const types = this.collectJigFieldTypes(jig, parents)
       this.encodeTypes(types, val, writer)
     } else if (method) {
       const idxs = refIndexes(val)
@@ -285,12 +282,11 @@ export class BCS {
 
   // Collects a list of field types for the given Jig ClassNode.
   // Iterates over parents to include inherited fields too.
-  private collectJigFieldTypes(jig: ClassNode | InterfaceNode): TypeNode[] {
+  private collectJigFieldTypes(jig: ClassNode | InterfaceNode, parents: Array<ClassNode | InterfaceNode>): TypeNode[] {
     const fields: FieldNode[] = []
 
     // Collect parent fields
     if (this.abi) {
-      const parents = collectJigParents(this.abi, jig)
       for (let parent of parents) {
         for (let field of parent.fields) {
           if (fields.findIndex(f => f.name == field.name) < 0) {
@@ -548,22 +544,22 @@ export class BCS {
     for (let [name, fields] of Object.entries(AbiSchema)) {
       this.registerObjectType(name, fields)
     }
-    this.registerType<ExportNode>('abi_export_node', {
+    this.registerType<CodeDef>('abi_code_def', {
       assert: (val) => typeof val === 'object',
       decode: (reader) => {
         const kind = reader.readU8()
         const name = getCodeKindNodeName(kind)
         const encoder = this.getTypeEncoder(name)
-        const code = encoder.decode.call(this, reader, encoder.type)
+        const code: any = encoder.decode.call(this, reader, encoder.type)
         encoder.assert(code)
-        return { kind, code } as ExportNode
+        return { kind, ...code } as CodeDef
       },
       encode: (writer, val) => {
         writer.writeU8(val.kind)
         const name = getCodeKindNodeName(val.kind)
         const encoder = this.getTypeEncoder(name)
         encoder.assert(val)
-        encoder.encode.call(this, writer, val.code, encoder.type)
+        encoder.encode.call(this, writer, val, encoder.type)
       },
     })
   }
@@ -577,36 +573,29 @@ export class BCS {
 // Trys to find either a jig, function, or method from the abi matching the
 // specified name.
 function abiPluck(abi: Abi | undefined, name: string): Partial<{
-  jig: ClassNode | InterfaceNode,
-  method: FunctionNode | MethodNode,
+  jig: ClassNode | InterfaceNode;
+  parents: Array<ClassNode | InterfaceNode>;
+  method: FunctionNode | MethodNode;
 }> {
-  if (!abi) return {}
-  let jig: ClassNode | InterfaceNode | undefined
-  let method: FunctionNode | MethodNode | undefined
-  const match = name.match(/^(\w+)(_)(\w+)$/)
-
-  if (match?.length === 4) {
-    const [_str, jigName, _sep, methodName] = match
-    const node = abi.exports.find(a => a.code.name === jigName)
-    if (node && node.kind === CodeKind.CLASS) {
-    const klass = node.code as ClassNode
-    method = methodName === 'constructor' ?
-      klass.methods.find(m => m.kind === MethodKind.CONSTRUCTOR && m.name === methodName) :
-      klass.methods.find(m => m.kind >= MethodKind.PUBLIC && m.name === methodName)
+  try {
+    const query = new AbiQuery(abi!)
+    const res = query.search(name)
+    if (isClass(res)) {
+      const parents = query.getClassParents()
+      return { jig: res, parents }
     }
-    if (node && node.kind === CodeKind.INTERFACE) {
-      const int = node.code as InterfaceNode
-      method = int.methods.find(m => m.name === methodName)
+    if (isInterface(res)) {
+      const parents = query.getInterfaceParents()
+      return { jig: res, parents }
     }
-  } else {
-    jig = findClass(abi, name) || undefined
-    if (!jig) {
-      jig = findInterface(abi, name) || undefined
+    if (isFunctionLike(res)) {
+      return { method: res }
     }
-    method = findFunction(abi, name) || undefined
+  } catch(e) {
+    // no-op
   }
-
-  return { jig, method }
+  
+  return { }
 }
 
 // Asserts the given bool is true.
@@ -642,17 +631,6 @@ function createTypedArrayEncoder<T>(TypedArray: { new(buf: ArrayBuffer): T }): B
  }
 }
 
-// Collects the parents of the given jig ClassNode.
-function collectJigParents(abi: Abi, jig: ClassNode | InterfaceNode): ClassNode[] {
- const parents: ClassNode[] = []
- let parent = findClass(abi, jig.extends || 'Jig')
- while (parent) {
-   parents.unshift(parent)
-   parent = findClass(abi, parent.extends)
- }
- return parents
-}
-
 // Returns type name for the given code kind.
 function getCodeKindNodeName(kind: CodeKind): string {
   switch (kind) {
@@ -660,6 +638,9 @@ function getCodeKindNodeName(kind: CodeKind): string {
     case CodeKind.FUNCTION:   return 'abi_function_node'
     case CodeKind.INTERFACE:  return 'abi_interface_node'
     case CodeKind.OBJECT:     return 'abi_object_node'
+    case CodeKind.PROXY_CLASS:
+    case CodeKind.PROXY_FUNCTION:
+      return 'abi_proxy_node'
     default: throw new Error(`invalid ABI code kind: ${kind}`)
   }
 }
@@ -667,7 +648,7 @@ function getCodeKindNodeName(kind: CodeKind): string {
 // Returns true if the given value is an ABI object.
 function isAbi(obj: any): obj is Abi {
   return typeof obj === 'object' &&
-    ['version', 'exports', 'imports', 'objects', 'typeIds'].every(k => k in obj) 
+    ['version', 'exports', 'imports', 'defs', 'typeIds'].every(k => k in obj) 
 }
 
 // Returns true if the given val is a number or bigint.
