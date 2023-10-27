@@ -16,18 +16,19 @@ import {
 
 import {
   Abi,
+  AbiQuery,
   ClassNode,
+  CodeDef,
   CodeKind,
-  ExportNode,
-  findClass,
-  findFunction,
-  findImport,
-  findInterface,
-  findMethod,
   FunctionNode,
-  ImportNode,
   InterfaceNode,
+  MethodNode,
+  ProxyNode,
   TypeNode,
+  assertClassLike,
+  assertNodeKind,
+  assertProxy,
+  isProxy,
 } from '@aldea/core/abi'
 
 import {
@@ -327,14 +328,13 @@ export class TxBuilder {
       case OpCode.CALL: {
         const i = instruction as CallInstruction
         const res = this.getResult(ref(i.idx), ResultType.JIG) as JigResult
-        const klass = res.abi.exports[res.exportIdx].code as ClassNode
-        const rtype = klass.methods[i.methodIdx].rtype
-        return this.resultFromReturnType(res.abi, rtype)
+        const method = new AbiQuery(res.abi).fromExports().byIndex(res.exportIdx).getMethod(i.methodIdx)
+        return this.resultFromReturnType(res.abi, method.rtype)
       }
       case OpCode.EXEC: {
         const i = instruction as ExecInstruction
         const res = this.getResult(ref(i.idx), ResultType.PKG) as PkgResult
-        const func = res.abi.exports[i.exportIdx].code as FunctionNode
+        const func = new AbiQuery(res.abi).fromExports().byIndex(i.exportIdx).getFunction()
         return this.resultFromReturnType(res.abi, func.rtype)
       }
       case OpCode.FUND:
@@ -356,33 +356,30 @@ export class TxBuilder {
   // Returns a typed instruction result from a method/function call
   private async resultFromReturnType(abi: Abi, rtype: TypeNode | null): Promise<InstructionResult> {
     if (rtype) {
-      let exported: ExportNode | void
-      let imported: ImportNode | void
-      let interfaceNode: InterfaceNode | void
+      let exported: CodeDef | undefined
+      let imported: CodeDef | undefined
+      //let interfaceNode: InterfaceNode | undefined
+      const query = new AbiQuery(abi)
 
       if (rtype.name === 'Coin') {
         const coinAbi = await this.aldea.getPackageAbi('0000000000000000000000000000000000000000000000000000000000000000')
-        const klass = findClass(coinAbi, 'Coin', `class not found: Coin`)
-        const exportIdx = coinAbi.exports.findIndex(e => e.code === klass)
+        const coinQuery = new AbiQuery(coinAbi)
+        const exportIdx = coinQuery.fromExports().byName('Coin').getIndex()
         return jigResult(coinAbi, exportIdx)
       }
 
-      exported = abi.exports.find(e => e.code.name === rtype.name)
-      if (exported) {
-        if (exported.kind !== CodeKind.CLASS && exported.kind !== CodeKind.INTERFACE) throw new Error(`Type ${rtype.name} not found`)
-        const exportIdx = abi.exports.findIndex(e => e === exported)
+      if (query.fromExports().byName(rtype.name).hasResult) {
+        exported = query.getCode()
+        assertClassLike(exported)
+        const exportIdx = query.getIndex()
         return jigResult(abi, exportIdx)
       }
 
-      imported = findImport(abi, rtype.name)
-      if (imported) {
-        const name = imported.name
+      if (query.fromImports().byName(rtype.name).hasResult) {
+        imported = query.getCode()
+        assertProxy(imported)
         const remoteAbi = await this.aldea.getPackageAbi(imported.pkg)
-        const exportIdx = remoteAbi.exports.findIndex(e => e.code.name === name)
-        const exportedNode = remoteAbi.exports[exportIdx]
-        if (!exportedNode || exportedNode.kind === CodeKind.FUNCTION) {
-          throw new Error(`jig type ${rtype.name} not found`)
-        }
+        const exportIdx = new AbiQuery(remoteAbi).fromExports().byName(imported.name).getIndex()
         return jigResult(remoteAbi, exportIdx)
       }
     }
@@ -441,9 +438,8 @@ export namespace TxBuilder {
    */
   export function newInstruction(txb: TxBuilder, ref: InstructionRef, className: string, args: any[]): NewInstruction {
     const res = txb.getResult(ref, ResultType.PKG) as PkgResult
-    const klass = findClass(res.abi, className, `class not found: ${ className }`)
-    const exportIdx = res.abi.exports.findIndex(e => e.code === klass)
-    const argsBuf = new BCS(res.abi).encode(`${klass.name}_constructor`, args)
+    const exportIdx = new AbiQuery(res.abi).fromExports().byName(className).getIndex()
+    const argsBuf = new BCS(res.abi).encode(`${className}_constructor`, args)
     return new NewInstruction(ref.idx, exportIdx, argsBuf)
   }
 
@@ -452,9 +448,11 @@ export namespace TxBuilder {
    */
   export function callInstruction(txb: TxBuilder, ref: InstructionRef, methodName: string, args: any[]): CallInstruction {
     const res = txb.getResult(ref, ResultType.JIG) as JigResult
-    const klass = res.abi.exports[res.exportIdx].code as ClassNode
-    const method = findMethod(klass, methodName, `method not found: ${ methodName }`)
-    const methodIdx = klass.methods.findIndex(m => m === method)
+    const query = new AbiQuery(res.abi).fromExports().byIndex(res.exportIdx)
+    const klass = query.getCode()
+    assertClassLike(klass)
+    const method = query.getMethod(methodName) as MethodNode
+    const methodIdx = (<MethodNode[]>klass.methods).indexOf(method)
     const argsBuf = new BCS(res.abi).encode(`${klass.name}_${method.name}`, args)
     return new CallInstruction(ref.idx, methodIdx, argsBuf)
   }
@@ -464,8 +462,7 @@ export namespace TxBuilder {
    */
   export function execInstruction(txb: TxBuilder, ref: InstructionRef, functionName: string, args: any[]): ExecInstruction {
     const res = txb.getResult(ref, ResultType.PKG) as PkgResult
-    const func = findFunction(res.abi, functionName, `function not found: ${ functionName }`)
-    const funcIdx = res.abi.exports.findIndex(e => e.code === func)
+    const funcIdx = new AbiQuery(res.abi).fromExports().byName(functionName).getIndex()
     const argsBuf = new BCS(res.abi).encode(functionName, args)
     return new ExecInstruction(ref.idx, funcIdx, argsBuf)
   }

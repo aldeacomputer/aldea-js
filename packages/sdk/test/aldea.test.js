@@ -246,9 +246,9 @@ test('Aldea.getPackageAbi() returns an ABI json object if exists', async t => {
   })
   const res = await aldea.getPackageAbi('29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69')
   t.true(typeof res.version === 'number')
-  t.true(Array.isArray(res.exports))
-  t.true(Array.isArray(res.imports))
-  t.true(Array.isArray(res.objects))
+  t.true(Array.isArray(res.exports) && res.exports.every(n => typeof n === 'number'))
+  t.true(Array.isArray(res.imports) && res.imports.every(n => typeof n === 'number'))
+  t.true(Array.isArray(res.defs))
   t.true('typeIds' in res)
 })
 

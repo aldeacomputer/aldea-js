@@ -9,6 +9,7 @@ import {
   MethodNode,
   ObjectNode,
   ProxyInterfaceNode,
+  ProxyNode,
 } from "./types.js"
 
 export class AbiQuery {
@@ -102,6 +103,13 @@ export class AbiQuery {
     })
   }
 
+  getIndex(): number {
+    assertExists(this.#target)
+    const idx = this.#scope.indexOf(this.#target)
+    assertExists(idx >= 0)
+    return idx
+  }
+
   byKind(kind: CodeKind): this
   byKind(kinds: CodeKind[]): this
   byKind(kind: CodeKind | CodeKind[]): this {
@@ -166,39 +174,38 @@ export function assertExists<T>(bool: T | null | undefined, msg: string = 'subje
   if (!bool) throw new Error(`not found: the ${msg} does not exist`)
 }
 
-export function assertNodeKind<T extends {}>(node: any, keys: Array<keyof T>): asserts node is T
-export function assertNodeKind<T extends {}>(node: any, kind: CodeKind): asserts node is T
-export function assertNodeKind<T extends {}>(node: any, keysOrKind: Array<keyof T> | CodeKind): asserts node is T {
+export function assertNodeKind<T extends {}>(node: any, keys: Array<keyof T>, kind?: CodeKind): asserts node is T {
   assertExists<T>(node)
-  if (Array.isArray(keysOrKind)) {
-    if (!keysOrKind.every(k => k in node)) {
-      throw new Error(`invalid type, keys not found: ${keysOrKind.join(', ')}`)
-    }
-  } else {
-    if (!('kind' in node && node.kind === keysOrKind)) {
-      throw new Error(`invalid type, kind not matching: ${keysOrKind}`)
-    }
+  if (!keys.every(k => k in node)) {
+    throw new Error(`invalid type, keys not found: ${keys.join(', ')}`)
+  }
+  if (typeof kind !== 'undefined' && !('kind' in node && node.kind === kind)) {
+    throw new Error(`invalid type, kind not matching: ${kind}`)
   }
 }
 
 export function assertClass(node: any): asserts node is ClassNode {
-  assertNodeKind<ClassNode>(node, CodeKind.CLASS)
+  assertNodeKind<ClassNode>(node, ['fields', 'methods'], CodeKind.CLASS)
 }
 
 export function assertFunction(node: any): asserts node is FunctionNode {
-  assertNodeKind<FunctionNode>(node, CodeKind.FUNCTION)
+  assertNodeKind<FunctionNode>(node, ['args', 'rtype'], CodeKind.FUNCTION)
 }
 
 export function assertInterface(node: any): asserts node is InterfaceNode {
-  assertNodeKind<InterfaceNode>(node, CodeKind.INTERFACE)
+  assertNodeKind<InterfaceNode>(node, ['fields', 'methods'], CodeKind.INTERFACE)
 }
 
 export function assertObject(node: any): asserts node is ObjectNode {
-  assertNodeKind<ObjectNode>(node, CodeKind.OBJECT)
+  assertNodeKind<ObjectNode>(node, ['fields'], CodeKind.OBJECT)
 }
 
-export function assertClassLike(node: any): asserts node is ClassNode | InterfaceNode | ObjectNode {
-  assertNodeKind<ClassNode | InterfaceNode | ObjectNode>(node, ['fields'])
+export function assertProxy(node: any): asserts node is ProxyNode {
+  assertNodeKind<ProxyNode>(node, ['kind', 'pkg'])
+}
+
+export function assertClassLike(node: any): asserts node is ClassNode | InterfaceNode {
+  assertNodeKind<ClassNode | InterfaceNode>(node, ['methods', 'fields'])
 }
 
 export function assertFunctionLike(node: any): asserts node is FunctionNode | MethodNode {
@@ -234,6 +241,10 @@ export function isInterface(node: any): node is InterfaceNode {
 
 export function isObject(node: any): node is ObjectNode {
   return isNodeKind<ObjectNode>(node, ['fields'], CodeKind.OBJECT)
+}
+
+export function isProxy(node: any): node is ProxyNode {
+  return isNodeKind<ProxyNode>(node, ['kind', 'pkg'])
 }
 
 export function isClassLike(node: any): node is ClassNode | InterfaceNode | ObjectNode {

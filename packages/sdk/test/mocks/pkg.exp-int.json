@@ -1,71 +1,61 @@
 {
   "version": 1,
-  "exports": [
+  "exports": [0, 1],
+  "imports": [],
+  "defs": [
     {
       "kind": 2,
-      "code": {
-        "name": "Interface1",
-        "extends": null,
-        "fields": [],
-        "methods": [
-          {
-            "name": "m1",
-            "args": [],
-            "rtype": {
-              "name": "string",
-              "nullable": false,
-              "args": []
-            }
+      "name": "Interface1",
+      "extends": null,
+      "fields": [],
+      "methods": [
+        {
+          "name": "m1",
+          "args": [],
+          "rtype": {
+            "name": "string",
+            "nullable": false,
+            "args": []
           }
-        ]
-      }
+        }
+      ]
     },
     {
       "kind": 0,
-      "code": {
-        "name": "Implementation1",
-        "extends": "Jig",
-        "implements": [
-          {
+      "name": "Implementation1",
+      "extends": "Jig",
+      "implements": ["Interface1"],
+      "fields": [],
+      "methods": [
+        {
+          "kind": 0,
+          "name": "constructor",
+          "args": [],
+          "rtype": null
+        },
+        {
+          "kind": 1,
+          "name": "m1",
+          "args": [],
+          "rtype": {
+            "name": "string",
+            "nullable": false,
+            "args": []
+          }
+        },
+        {
+          "kind": 1,
+          "name": "m2",
+          "args": [],
+          "rtype": {
             "name": "Interface1",
             "nullable": false,
             "args": []
           }
-        ],
-        "fields": [],
-        "methods": [
-          {
-            "kind": 0,
-            "name": "constructor",
-            "args": [],
-            "rtype": null
-          },
-          {
-            "kind": 1,
-            "name": "m1",
-            "args": [],
-            "rtype": {
-              "name": "string",
-              "nullable": false,
-              "args": []
-            }
-          },
-          {
-            "kind": 1,
-            "name": "m2",
-            "args": [],
-            "rtype": {
-              "name": "Interface1",
-              "nullable": false,
-              "args": []
-            }
-          }
-        ]
-      }
+        }
+      ]
     }
   ],
-  "imports": [],
-  "objects": [],
   "typeIds": [
     {
       "id": 2,
