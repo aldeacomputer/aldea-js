@@ -180,7 +180,7 @@ test('afterParse() replaces imported ambient class with concrete implementation'
   export function test(t: Test): void {}
 
   @imported('0000000000000000000000000000000000000000000000000000000000000000')
-  declare class Test {}
+  declare class Test extends Jig {}
   `)
 
   t.is(mock.source.statements.length, 2)
@@ -201,7 +201,7 @@ test('afterParse() adds getters to all imported class properties', async t => {
   export function test(t: Test): void {}
 
   @imported('0000000000000000000000000000000000000000000000000000000000000000')
-  declare class Test {
+  declare class Test extends Jig {
     a: u32;
   }
   `)
@@ -220,7 +220,7 @@ test('afterParse() adds proxy methods to imported static and instance methods', 
   export function test(t: Test): void {}
 
   @imported('0000000000000000000000000000000000000000000000000000000000000000')
-  declare class Test {
+  declare class Test extends Jig {
     a(b: u8): u8;
   }
   `)

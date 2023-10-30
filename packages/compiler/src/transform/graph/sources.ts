@@ -62,7 +62,10 @@ export class SourceNode {
   }
 
   get idx(): number {
-    if (typeof this.#idx === 'undefined') this.#idx = this.ctx.sources.indexOf(this)
+    if (typeof this.#idx === 'undefined') {
+      // for some bizaro reason, indexOf is unreliable here
+      this.#idx = this.ctx.sources.findIndex(src => src.internalPath === this.internalPath)
+    }
     return this.#idx
   }
 

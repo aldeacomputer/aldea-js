@@ -14,15 +14,15 @@ test('compiles multiple sources', async t => {
       import { Foo } from './foo'
       export { Foo }
       export function test(foo: Foo): string { return foo.name }
-    `.trim()]
+    `.trim()],
   ])
 
-  const res = await compile(['input.ts'], sources) //.catch(err => console.log(err.stderr.toString()))
+  const res = await compile(['input.ts'], sources)
   const abi = abiFromBin(res.output.abi)
 
   t.is(abi.exports.length, 2)
-  t.is(abi.exports.map(i => abi.defs[i] )[0].name, 'test')
-  t.is(abi.exports.map(i => abi.defs[i] )[1].name, 'Foo')
+  t.is(abi.exports.map(i => abi.defs[i] )[0].name, 'Foo')
+  t.is(abi.exports.map(i => abi.defs[i] )[1].name, 'test')
 })
 
 test('compiles multiple entries', async t => {
@@ -44,9 +44,9 @@ test('compiles multiple entries', async t => {
   const abi = abiFromBin(res.output.abi)
 
   t.is(abi.exports.length, 3)
-  t.is(abi.exports.map(i => abi.defs[i] )[0].name, 'test1')
-  t.is(abi.exports.map(i => abi.defs[i] )[1].name, 'test2')
-  t.is(abi.exports.map(i => abi.defs[i] )[2].name, 'Foo')
+  t.is(abi.exports.map(i => abi.defs[i] )[0].name, 'Foo')
+  t.is(abi.exports.map(i => abi.defs[i] )[1].name, 'test1')
+  t.is(abi.exports.map(i => abi.defs[i] )[2].name, 'test2')
 })
 
 test('child classes do not include fields of parents', async t => {
@@ -103,4 +103,26 @@ test('child classes do not include methods of parents unless overwritten', async
   t.is(abi.exports.map(i => abi.defs[i] )[2].name, 'C')
   t.is(abi.exports.map(i => abi.defs[i] )[2].methods.length, 2)
   t.is(abi.exports.map(i => abi.defs[i] )[2].methods[1].name, 'foo')
+})
+
+test('imported plain objects handled', async t => {
+  const src = `
+  @imported('0000000000000000000000000000000000000000000000000000000000000000')
+  declare class A {
+    name: string;
+  }
+  export class B extends Jig {
+    foo(a: A): string {
+      return a.name
+    }
+  }
+  `.trim()
+  
+  const res = await compile(src)
+  const abi = abiFromBin(res.output.abi)
+
+  t.is(abi.imports.length, 1)
+  t.is(abi.imports.map(i => abi.defs[i] )[0].name, 'A')
+  t.is(abi.exports.length, 1)
+  t.is(abi.exports.map(i => abi.defs[i] )[0].name, 'B')
 })

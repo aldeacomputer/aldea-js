@@ -317,3 +317,19 @@ test('throws if non Jig descendent is exported', async t => {
   t.regex(e.stderr.toString(), /Invalid class/)
   t.regex(e.stderr.toString(), /export class C extends B {}/)
 })
+
+test('throws if exposed object is not exported', async t => {
+  const src = `
+  declare class A { name: string }
+  export class Test extends Jig {
+    a: A;
+    constructor(name: string) {
+      super()
+      this.a = { name }
+    }
+  }
+  `.trim()
+  const e = await t.throwsAsync(() => compile(src))
+  // TODO - should be better error about exporting plain objects
+  t.regex(e.stderr.toString(), /Invalid type/)
+})

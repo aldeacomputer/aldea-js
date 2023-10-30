@@ -57,6 +57,7 @@ export class ImportEdge {
   name: string;
   foreignName: string;
   pkgId?: string;
+  #abiNode?: ImportCode;
 
   constructor(
     public ctx: ImportNode,
@@ -89,13 +90,15 @@ export class ImportEdge {
   get abiNode(): ImportCode {
     if (this.abiCodeKind === CodeKind.OBJECT) {
       return this.code.abiNode as ObjectNode
-    } else {
-      return {
-        kind: this.abiCodeKind as CodeKind.PROXY_CLASS | CodeKind.PROXY_FUNCTION | CodeKind.PROXY_INTERFACE,
+    }
+    if (!this.#abiNode) {
+      this.#abiNode = {
+        kind: this.abiCodeKind,
         name: this.code.name,
         pkg: this.pkgId!,
-      }
+      } as ImportCode
     }
+    return this.#abiNode
   }
 
   get code(): CodeNode {

@@ -82,8 +82,8 @@ export class TransformGraph {
     
     return {
       version: ABI_VERSION,
-      imports: defs.reduce(getImportIdx, []),
-      exports: defs.reduce(getExportIdx, []),
+      imports: this.imports.map(im => defs.indexOf(im.abiNode)),
+      exports: this.exports.map(im => defs.indexOf(im.abiNode)),
       defs,
       typeIds: this.mapTypeIds()
     }
@@ -235,29 +235,6 @@ function isExposed(code: CodeNode, obj: CodeNode): boolean {
     default:
       return false
   }
-}
-
-function getImportIdx(idxs: number[], code: CodeDef, idx: number): number[] {
-  if (code.kind >= CodeKind.PROXY_CLASS) { idxs.push(idx) }
-  return idxs
-}
-
-function getExportIdx(idxs: number[], code: CodeDef, idx: number): number[] {
-  if (code.kind < CodeKind.PROXY_CLASS) { idxs.push(idx) }
-  return idxs
-}
-
-function toAbiClass(abiNode: ClassNode): ClassNode {
-  const methods = abiNode.methods
-  if (!methods.some(m => m.kind === MethodKind.CONSTRUCTOR)) {
-    methods.unshift({
-      kind: MethodKind.CONSTRUCTOR,
-      name: 'constructor',
-      args: [],
-      rtype: null,
-    })
-  }
-  return { ...abiNode, methods }
 }
 
 // Normalizes class name to match normalized type name

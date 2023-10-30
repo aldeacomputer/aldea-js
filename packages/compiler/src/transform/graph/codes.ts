@@ -93,9 +93,7 @@ export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
 
   get isObj(): boolean {
     if (isClass(this.node)) {
-      return !this.node.extendsType &&
-        !this.node.members.some(n => n.kind === NodeKind.MethodDeclaration) &&
-        !this.src.ctx.imports.some(im => im.code.node === this.node)
+      return !this.node.extendsType && !this.node.members.some(n => n.kind === NodeKind.MethodDeclaration)
     } else {
       return false
     }
