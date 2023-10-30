@@ -11,7 +11,6 @@ import {
   LiteralExpression,
   LiteralKind,
   MethodDeclaration,
-  NamedTypeNode,
   NewExpression,
   Node,
   NodeKind,
@@ -143,7 +142,6 @@ export class Validator {
         if (isClass(code.node))     { classes.push(code.abiNode as ClassNode | ObjectNode) }
         if (isInterface(code.node)) { classes.push(code.abiNode as InterfaceNode) }
       })
-      classes.push(...this.ctx.objects.map(o => o.abiNode as ObjectNode))
       return classes
     })
   }
@@ -189,27 +187,24 @@ export class Validator {
       this.validatePackageId(im)
       this.validateImportedCode(im)
 
-      switch (im.code.node.kind) {
-        case NodeKind.ClassDeclaration:
+      switch (im.abiCodeKind) {
+        case CodeKind.PROXY_CLASS:
           // must not export from entry
           this.validateJigInheritance(im.code as CodeNode<ClassDeclaration>)
           this.validateJigMembers(im.code as CodeNode<ClassDeclaration>)
           this.validatePrivateMembers(im.code as CodeNode<ClassDeclaration>)
           this.validateClassTypes(im.code as CodeNode<ClassDeclaration>)
           break
-        case NodeKind.FunctionDeclaration:
+        case CodeKind.PROXY_FUNCTION:
           // must not export from entry
           this.validateFunctionArgTypes(im.code as CodeNode<FunctionDeclaration>)
           this.validateFunctionReturnType(im.code as CodeNode<FunctionDeclaration>)
           break
-        case NodeKind.InterfaceDeclaration:
+        case CodeKind.PROXY_INTERFACE:
+          break
+        case CodeKind.OBJECT:
           break
       }
-    })
-
-    this.ctx.objects.forEach(code => {
-      // must not export from entry
-      this.validateFieldTypes(code as CodeNode<ClassDeclaration>)
     })
 
     this.ctx.sources.forEach(src => {

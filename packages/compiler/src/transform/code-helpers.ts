@@ -7,6 +7,7 @@ import {
   InterfaceNode,
   MethodKind,
   MethodNode,
+  ObjectNode,
   TypeNode,
   normalizeTypeName
 } from '@aldea/core/abi'
@@ -71,7 +72,6 @@ export function writeJigLocalClass(
   exported: boolean = false,
 ): string {
   const interfaces = obj.implements
-    .map(normalizeTypeName)
     .concat(obj.name)
     .join(', ')
 
@@ -92,7 +92,6 @@ export function writeJigRemoteClass(
   exported: boolean = false,
 ): string {
   const interfaces = obj.implements
-    .map(normalizeTypeName)
     .concat(obj.name)
     .join(', ')
 
@@ -166,6 +165,23 @@ export function writeInterfaceRemoteClass(
   }
   // required to ensure compilation
   idof<_Remote${obj.name}>()
+  `.trim()
+}
+
+/**
+ * Writes a object class declaration for the given object node.
+ * 
+ * Returns an empty declaration as the transform method injects the body into
+ * the AST.
+ */
+export function writeObjectClass(
+  obj: ObjectNode,
+  exported: boolean = false,
+): string {
+  return `
+  ${exported ? 'export ' : ''}class ${obj.name} {}
+  // required to ensure compilation
+  idof<${obj.name}>()
   `.trim()
 }
 

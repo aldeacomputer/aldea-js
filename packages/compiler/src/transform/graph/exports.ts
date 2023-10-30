@@ -16,6 +16,7 @@ import {
   isExportMember,
   isExportStatement,
 } from './helpers.js'
+import { ClassNode, CodeKind, ExportCode, FunctionNode, InterfaceNode, ObjectNode } from '@aldea/core/abi';
 
 export class ExportNode {
   path?: string;
@@ -68,6 +69,14 @@ export class ExportEdge {
       this.name = node.name.text
       this.exportedName = isDefault ? 'default' : node.name.text
     }
+  }
+
+  get abiCodeKind(): CodeKind {
+    return this.code.abiCodeKind
+  }
+
+  get abiNode(): ExportCode {
+    return this.code.abiNode
   }
 
   get code(): CodeNode {

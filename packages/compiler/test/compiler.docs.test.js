@@ -50,7 +50,7 @@ export function c(): D {
 /**
  * Object D
  */
-declare class D {
+export declare class D {
   /** a */
   a: u8;
   /** b */
@@ -78,7 +78,7 @@ export function c(): D {
   return { a: 1, b: 'foo' }
 }
 
-declare class D {
+export declare class D {
   a: u8;
   b: string;
 }

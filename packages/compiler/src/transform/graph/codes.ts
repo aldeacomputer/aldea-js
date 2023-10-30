@@ -34,12 +34,13 @@ import {
   isInterface,
 } from './helpers.js'
 
-import { isAmbient, isConstructor, isInstance, isPrivate, isProtected, isStatic } from '../filters.js';
+import { isConstructor, isInstance, isPrivate, isProtected, isStatic } from '../filters.js';
 
 
 export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
   name: string;
   #abiNode?: ClassNode | FunctionNode | InterfaceNode | ObjectNode;
+  #idx?: number;
 
   constructor(
     public src: SourceNode,
@@ -60,7 +61,7 @@ export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
         this.#abiNode = toInterfaceNode(this.node)
       }
     }
-    if (!this.#abiNode) { throw new Error('//todo xxxx') }
+    if (!this.#abiNode) { throw new Error(`abi node not created for node kind: ${this.node.kind}`) }
     return this.#abiNode
   }
 
@@ -73,6 +74,11 @@ export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
       default:
         throw new Error(`unrecognised code kind: ${this.node.kind}`)
     }
+  }
+
+  get idx(): number {
+    if (typeof this.#idx === 'undefined') this.#idx = this.src.codes.indexOf(this)
+    return this.#idx
   }
 
   get isJig(): boolean {
@@ -134,21 +140,34 @@ function toClassNode(
     }
   })
 
-  const methods = node.members.filter(n => {
-    return n.kind === NodeKind.MethodDeclaration && !isStatic(n.flags) && !isPrivate(n.flags)
-  })
+  const methods = node.members
+    .filter(n => {
+      return n.kind === NodeKind.MethodDeclaration && !isStatic(n.flags) && !isPrivate(n.flags)
+    })
+    .map(n => toMethodNode(n as MethodDeclaration))
+
+  if (!methods.some(m => m.kind === MethodKind.CONSTRUCTOR)) {
+    methods.unshift({
+      kind: MethodKind.CONSTRUCTOR,
+      name: 'constructor',
+      args: [],
+      rtype: null,
+    })
+  }
 
   return {
+    kind: CodeKind.CLASS,
     name: node.name.text,
     extends: node.extendsType?.name.identifier.text || '',
-    implements: (node.implementsTypes || []).map(n => toTypeNode(n)),
+    implements: (node.implementsTypes || []).map(n => n.name.identifier.text),
     fields: fields.map(n => toFieldNode(n as FieldDeclaration)),
-    methods: methods.map(n => toMethodNode(n as MethodDeclaration)),
+    methods: methods,
   }
 }
 
 function toFunctionNode(node: FunctionDeclaration): FunctionNode {
   return {
+    kind: CodeKind.FUNCTION,
     name: node.name.text,
     args: node.signature.parameters.map(n => toArgNode(n as ParameterNode)),
     rtype: toTypeNode(node.signature.returnType as NamedTypeNode),
@@ -156,6 +175,7 @@ function toFunctionNode(node: FunctionDeclaration): FunctionNode {
 }
 
 function toInterfaceNode(node: InterfaceDeclaration): InterfaceNode {
+  const extendsName = node.extendsType?.name.identifier.text
   const fields = node.members.filter(n => {
     return n.kind === NodeKind.FieldDeclaration && !isStatic(n.flags)
   })
@@ -165,8 +185,9 @@ function toInterfaceNode(node: InterfaceDeclaration): InterfaceNode {
   })
 
   return {
+    kind: CodeKind.INTERFACE,
     name: node.name.text,
-    extends: node.extendsType?.name.identifier.text || '',
+    extends: (extendsName ? [extendsName] : []),
     fields: fields.map(n => toFieldNode(n as FieldDeclaration)),
     methods: methods.map(n => toFunctionNode(n as FunctionDeclaration)),
   }
@@ -178,6 +199,7 @@ function toObjectNode(node: ClassDeclaration): ObjectNode {
   })
 
   return {
+    kind: CodeKind.OBJECT,
     name: node.name.text,
     fields: fields.map(n => toFieldNode(n as FieldDeclaration)),
   }

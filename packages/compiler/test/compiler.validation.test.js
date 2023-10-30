@@ -32,7 +32,7 @@ function importedClassMbrCode(code) {
 // template for adding class members with plain object
 function classMbrWithDepCode(code) {
   return `
-  declare class A { foo: u8; }
+  export declare class A { foo: u8; }
   export class Test extends Jig {
     ${code}
   }

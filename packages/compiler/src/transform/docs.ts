@@ -103,17 +103,5 @@ export function createDocs(ctx: TransformGraph): Partial<Docs> {
     }
   })
 
-  // 3. parse comments for plain objects
-  ctx.objects.forEach(obj => {
-    parseCommentBlock(obj.node, obj.name)
-    const abiNode = obj.abiNode as ObjectNode
-    const members = (<ClassDeclaration>obj.node).members
-
-    abiNode.fields.forEach(n => {
-      const node = members.find(m => m.kind === NodeKind.FieldDeclaration && m.name.text === n.name)!
-      parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
-    })
-  })
-
   return docs
 }

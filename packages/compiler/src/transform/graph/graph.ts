@@ -1,7 +1,5 @@
 import {
   Class,
-  ClassDeclaration,
-  DeclarationStatement,
   NodeKind,
   Parser,
   Program,
@@ -21,6 +19,7 @@ import {
   normalizeTypeName,
   CodeKind,
   MethodKind,
+  CodeDef,
 } from '@aldea/core/abi';
 
 import {
@@ -48,8 +47,6 @@ export class TransformGraph {
   entries: SourceNode[];
   imports: ImportEdge[];
   exports: ExportEdge[];
-
-  objects: CodeNode[];
   exposedTypes = new Map<string, TypeNode>();
 
   program?: Program;
@@ -76,23 +73,18 @@ export class TransformGraph {
     this.exports = this.entries
       .flatMap(s => s.exports.flatMap(n => n.edges))
 
-    this.objects = []
-    this.objects = this.sources
-      .flatMap(s => s.codes)
-      .filter(n => isClass(n.node) && isAmbient(n.node.flags))
-      .filter(n => !this.imports.some(im => im.code === n))
-      .filter(n => this.exports.some(ex => isExposed(ex.code, n)))
-
     this.collectExposedTypes()
     this.validate()
   }
 
   toABI(): abi.Abi {
+    const defs = this.getOrderedDefs()
+    
     return {
       version: ABI_VERSION,
-      imports: this.imports.map(toAbiImport),
-      exports: this.exports.map(toAbiExport),
-      objects: this.objects.map(o => o.abiNode as ObjectNode),
+      imports: defs.reduce(getImportIdx, []),
+      exports: defs.reduce(getExportIdx, []),
+      defs,
       typeIds: this.mapTypeIds()
     }
   }
@@ -105,6 +97,18 @@ export class TransformGraph {
 
   validate(): void {
     new Validator(this).validate()
+  }
+
+  private getOrderedDefs(): CodeDef[] {
+    return [...this.imports, ...this.exports]
+      .sort((a, b) => {
+        if (a.code.src.idx === b.code.src.idx) {
+          return a.code.idx - b.code.idx
+        } else {
+          return a.code.src.idx - b.code.src.idx
+        }
+      })
+      .map(edge => edge.abiNode)
   }
 
   private collectExposedTypes(): void {
@@ -140,7 +144,6 @@ export class TransformGraph {
   
     this.exports.forEach(ex => applyCode(ex.code))
     this.imports.forEach(im => applyCode(im.code))
-    this.objects.forEach(applyCode)
   }
 
   private mapTypeIds(): TypeIdNode[] {
@@ -149,6 +152,9 @@ export class TransformGraph {
 
       // Build whitelist
       const whitelist = ['JigInitParams', 'Output', 'Lock', 'Coin']
+      this.exports
+        .filter(ex => ex.code.isObj)
+        .forEach(ex => whitelist.push(ex.name))
       this.imports
         .filter(im => im.code.node.kind === NodeKind.ClassDeclaration)
         .forEach(im => whitelist.push(im.name))
@@ -164,7 +170,7 @@ export class TransformGraph {
       // Build export list
       const exportList: string[] = []
       this.exports
-        .filter(ex => ex.code.node.kind === NodeKind.ClassDeclaration)
+        .filter(ex => ex.code.isJig)
         .forEach(ex => exportList.push(ex.name))
       
       // Building interface list
@@ -231,22 +237,14 @@ function isExposed(code: CodeNode, obj: CodeNode): boolean {
   }
 }
 
-function toAbiImport(im: ImportEdge): abi.ImportNode {
-  return {
-    kind: im.code.abiCodeKind,
-    name: im.code.name,
-    pkg: im.pkgId!,
-  }
+function getImportIdx(idxs: number[], code: CodeDef, idx: number): number[] {
+  if (code.kind >= CodeKind.PROXY_CLASS) { idxs.push(idx) }
+  return idxs
 }
 
-function toAbiExport(ex: ExportEdge): abi.ExportNode {
-  const kind = ex.code.abiCodeKind
-  return {
-    kind,
-    code: kind === CodeKind.CLASS ?
-      toAbiClass(ex.code.abiNode as ClassNode) :
-      ex.code.abiNode as FunctionNode | InterfaceNode | ObjectNode
-  }
+function getExportIdx(idxs: number[], code: CodeDef, idx: number): number[] {
+  if (code.kind < CodeKind.PROXY_CLASS) { idxs.push(idx) }
+  return idxs
 }
 
 function toAbiClass(abiNode: ClassNode): ClassNode {
