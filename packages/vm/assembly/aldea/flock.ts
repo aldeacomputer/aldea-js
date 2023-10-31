@@ -21,13 +21,6 @@ export class Flock extends Jig {
     this.size++
   }
 
-  /**
-   * Makes the flock grow by 1 using advanced external mathematical magic.
-   */
-  growWithMath (): void {
-    this.size = BasicMath.inc(this.size);
-  }
-
   groWithExternalFunction (): void {
     this.size = fAddOne(this.size);
   }
@@ -59,15 +52,6 @@ export class Flock extends Jig {
   returnLockAddres (): ArrayBuffer {
     return this.$lock.getAddressOrFail()
   }
-
-  static createWithSize(n: u32): Flock {
-    const aFlock = new Flock();
-    while (n > 0) {
-      aFlock.grow()
-      n--
-    }
-    return aFlock
-  }
 }
 
 export class FlockBag extends Jig {
@@ -88,18 +72,6 @@ export class FlockBag extends Jig {
       fl.grow()
     })
   }
-}
-
-export class InternalFlockOperations extends Jig {
-  static growFlock (aFlock: Flock): void {
-    aFlock.grow()
-  }
-}
-
-// @ts-ignore
-@imported('df61ae40a3fb30adf1804b118e88d53112b88b527e1be33cc122e4170ae62f76')
-declare class BasicMath extends Jig {
-  static inc (n: u32): u32;
 }
 
 // @ts-ignore

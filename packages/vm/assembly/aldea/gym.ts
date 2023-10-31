@@ -1,5 +1,3 @@
-import { toHex } from 'aldea/bytes'
-
 //@ts-ignore
 @imported("f5438178e7420b65297292e18892bd0bd12146a6080af01fba48512c5cb0e718")
 declare interface Runner extends Jig{
@@ -27,7 +25,8 @@ export class Gym extends Jig {
   unsubscribe(target: Runner): Runner {
     for (let i = 0; i < this.affiliates.length; i++) {
       const affiliate = this.affiliates[i]
-      if (toHex(affiliate.$output.origin) === toHex(target.$output.origin)) {
+      const areTheSame = Uint8Array.wrap(affiliate.$output.origin) == Uint8Array.wrap(target.$output.origin)
+      if (areTheSame) {
         affiliate.$lock.unlock()
         return affiliate
       }

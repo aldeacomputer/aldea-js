@@ -74,14 +74,6 @@ export class Shepherd extends Jig {
     return `Flock with size: ${this.flock.size}`
   }
 
-  growFlockUsingInternalTools (): void {
-    InternalFlockOperations.growFlock(this.flock)
-  }
-
-  growFlockUsingExternalTools (): void {
-    ExternalFlockOperations.growFlock(this.flock)
-  }
-
   myClassPtr (): ArrayBuffer {
     return this.$output.classPtr
   }
@@ -98,22 +90,12 @@ export class Shepherd extends Jig {
     return this.flock.$output.location
   }
 
-  static returnAFlock (someFlock: Flock): Flock {
-    return someFlock
-  }
-
   breedANewFlock(size: u32): Flock {
     const newFlock = new Flock()
     for (let i: u32 = 0; i++; i < size) {
       newFlock.grow()
     }
     return this.replace(newFlock)
-  }
-}
-
-export class ExternalFlockOperations extends Jig  {
-  static growFlock (aFlock: Flock): void {
-    aFlock.grow()
   }
 }
 
@@ -130,11 +112,5 @@ declare class Flock extends Jig {
   size: u32;
   legCount (): u32;
   grow (): void;
-}
-
-// @ts-ignore
-@imported('a6ab705aab2865a323f2dac53f7427dc6b2c9ebef697965e1bef392e4bbad8a4')
-declare class InternalFlockOperations extends Jig {
-  static growFlock (aFlock: Flock): void
 }
 
