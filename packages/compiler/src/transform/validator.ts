@@ -29,7 +29,6 @@ import {
   MethodKind,
   MethodNode,
   ObjectNode,
-  normalizeTypeName
 } from '@aldea/core/abi'
 
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
@@ -466,10 +465,8 @@ export class Validator {
       ))
     }
 
-    // Ensure no renaming of imports - unless dependency import
-    else if (
-      !ex.edges.every(n => n.name === n.exportedName)
-    ) {
+    // Ensure no renaming of exports
+    else if (!ex.edges.every(n => n.name === n.exportedName)) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.Error,
         AldeaDiagnosticCode.Illegal_export,
