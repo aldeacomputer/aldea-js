@@ -62,7 +62,7 @@ declare module 'aldea/jig' {
 	    lockData: ArrayBuffer;
 	}
 	/**
-	 * TODO
+	 * Base Jig interface
 	 */
 	export interface Jig {
 	    readonly $output: Output;
@@ -71,7 +71,7 @@ declare module 'aldea/jig' {
 	/**
 	 * Base Jig class
 	 */
-	export class _BaseJig implements Jig {
+	export class __BaseJig implements Jig {
 	    readonly $output: Output;
 	    readonly $lock: Lock;
 	    constructor(params: JigInitParams);
@@ -79,13 +79,13 @@ declare module 'aldea/jig' {
 	/**
 	 * Local Jig class
 	 */
-	export class _LocalJig extends _BaseJig {
+	export class __LocalJig extends __BaseJig {
 	    constructor();
 	}
 	/**
-	 * Remote Jig class
+	 * Proxy Jig class
 	 */
-	export class _RemoteJig extends _BaseJig {
+	export class __ProxyJig extends __BaseJig {
 	    constructor(params: JigInitParams);
 	}
 
@@ -113,13 +113,13 @@ declare module 'aldea/auth' {
 
 }
 declare module 'aldea/coin' {
-	import { _RemoteJig } from 'aldea/jig';
+	import { __ProxyJig } from 'aldea/jig';
 	/**
 	 * Coin class
 	 *
 	 * Built in Jig that proxies calls to the VM for handling.
 	 */
-	export class Coin extends _RemoteJig {
+	export class Coin extends __ProxyJig {
 	    constructor();
 	    get motos(): u64;
 	    send(motos: u64): Coin;
@@ -335,5 +335,7 @@ declare const caller: typeof import('aldea/caller').caller;
 /** BigInt */
 declare const BigInt: typeof import('vendor/big-int').BigInt;
 
-/** Debug */
-declare function vm_debug_str(msg: string): void;
+declare namespace console {
+  /** Debug */
+  function debug(msg: string): void;
+}

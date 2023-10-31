@@ -500,7 +500,7 @@ function complexTypeSetters(ctx: TransformGraph): void {
  */
 function mutateJigPropertyAccess(node: PropertyAccessExpression): void {
   const id = node.expression as IdentifierExpression
-  id.text = `_Local${id.text}`
+  id.text = `__Local${id.text}`
 }
 
 /**
@@ -515,7 +515,7 @@ function mutateInstanceOfJig(
   const varName = (<IdentifierExpression>node.expression).text
   const jigName = (<NamedTypeNode>node.isType).name.identifier.text
 
-  const code = `(${varName} instanceof _Local${jigName} || ${varName} instanceof _Remote${jigName})`
+  const code = `(${varName} instanceof __Local${jigName} || ${varName} instanceof __Proxy${jigName})`
   const src = ctx.parse(code, node.range.source.normalizedPath)
   // @ts-ignore
   const exp = src.statements[0].expression
@@ -533,7 +533,7 @@ function mutateInstanceOfJig(
  */
 function mutateNewJigExpression(node: NewExpression): void {
   const id = node.typeName.identifier as IdentifierExpression
-  id.text = `_Remote${id.text}`
+  id.text = `__Proxy${id.text}`
 }
 
 /**
@@ -541,7 +541,7 @@ function mutateNewJigExpression(node: NewExpression): void {
  */
 function mutateJigTypeArg(node: NamedTypeNode): void {
   const id = node.name.identifier
-  id.text = `_Remote${id.text}`
+  id.text = `__Proxy${id.text}`
 }
 
 
@@ -566,11 +566,11 @@ function isExportedJig(name: string, source: Source, ctx: TransformGraph): boole
 function reduceEdgeNames(names: string[], e: ImportEdge | ExportEdge): string[] {
   names.push(e.name)
   if (e.code.abiCodeKind === CodeKind.CLASS) {
-    names.push(`_Local${e.name}`)
-    names.push(`_Remote${e.name}`)
+    names.push(`__Local${e.name}`)
+    names.push(`__Proxy${e.name}`)
   }
   if (e.code.abiCodeKind === CodeKind.INTERFACE) {
-    names.push(`_Remote${e.name}`)
+    names.push(`__Proxy${e.name}`)
   }
   return names
 }

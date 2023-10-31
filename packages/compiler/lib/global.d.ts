@@ -19,5 +19,7 @@ declare const caller: typeof import('aldea/caller').caller;
 /** BigInt */
 declare const BigInt: typeof import('vendor/big-int').BigInt;
 
-/** Debug */
-declare function vm_debug_str(msg: string): void;
+declare namespace console {
+  /** Debug */
+  function debug(msg: string): void;
+}

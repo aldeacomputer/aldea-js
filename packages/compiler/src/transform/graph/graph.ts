@@ -151,7 +151,10 @@ export class TransformGraph {
     if (!this.#typeIds) {
 
       // Build whitelist
-      const whitelist = ['JigInitParams', 'Output', 'Lock', 'Coin']
+      const whitelist = [
+        'JigInitParams', 'Output', 'Lock', 'Coin',
+        'BigInt', 'Uint32Array',
+      ]
       this.exports
         .filter(ex => ex.code.isObj)
         .forEach(ex => whitelist.push(ex.name))
@@ -195,21 +198,21 @@ export class TransformGraph {
           arr.push({ id, name })
         }
         // the basejig is simply known as... Jig
-        if (name === '_BaseJig') {
+        if (name === '__BaseJig') {
           arr.push({ id, name: 'Jig' })
         }
         // for local jigs we rename to the original with $ prefix
-        if (/^_Local/.test(name)) {
-          const lname = name.replace(/^_Local/, '')
+        if (/^__Local/.test(name)) {
+          const lname = name.replace(/^__Local/, '')
           if (exportList.includes(lname)) {
-            arr.push({ id, name: `$${lname}` })
+            arr.push({ id, name: `*${lname}` })
           }
         }
         // for remote jigs and interfaces we rename to the original
-        if (/^_Remote/.test(name)) {
-          const rname = name.replace(/^_Remote/, '')
-          if (exportList.includes(rname) || interfaceList.includes(rname)) {
-            arr.push({ id, name: rname })
+        if (/^__Proxy/.test(name)) {
+          const pname = name.replace(/^__Proxy/, '')
+          if (exportList.includes(pname) || interfaceList.includes(pname)) {
+            arr.push({ id, name: pname })
           }
         }
         return arr

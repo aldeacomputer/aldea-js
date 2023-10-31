@@ -1,6 +1,6 @@
-import { ArgWriter } from './arg-writer'
-import { _RemoteJig } from './jig'
-import { vm_call_method, vm_get_prop } from './imports'
+import { __ArgWriter } from './arg-writer'
+import { __ProxyJig } from './jig'
+import { __vm_call_method, __vm_get_prop } from './imports'
 
 /**
  * Coin class
@@ -8,24 +8,24 @@ import { vm_call_method, vm_get_prop } from './imports'
  * Built in Jig that proxies calls to the VM for handling.
  */
 @final
-export class Coin extends _RemoteJig {
+export class Coin extends __ProxyJig {
   // @ts-ignore
   constructor() {
     throw new Error('coins cannot be instantiated from constructor')
   }
 
   get motos(): u64 {
-    return vm_get_prop<u64>(
+    return __vm_get_prop<u64>(
       this.$output.origin,
       'motos'
     )
   }
 
   send(motos: u64): Coin {
-    const args = new ArgWriter(12)
+    const args = new __ArgWriter(12)
     args.writeU64(motos)
 
-    return vm_call_method<Coin>(
+    return __vm_call_method<Coin>(
       this.$output.origin,
       'send',
       args.buffer
@@ -33,10 +33,10 @@ export class Coin extends _RemoteJig {
   }
 
   combine(coins: Coin[]): Coin {
-    const args = new ArgWriter(4)
+    const args = new __ArgWriter(4)
     args.writeU32(changetype<usize>(coins))
 
-    return vm_call_method<Coin>(
+    return __vm_call_method<Coin>(
       this.$output.origin,
       'combine',
       args.buffer

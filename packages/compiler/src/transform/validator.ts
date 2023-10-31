@@ -56,10 +56,6 @@ const blacklist = {
     'changetype', 'idof', 'offsetof',
     'load', 'store',
     'unchecked', 'call_indirect',
-    'vm_local_call_start', 'vm_local_call_end',
-    'vm_remote_call_i', 'vm_remote_call_s', 'vm_remote_prop',
-    'vm_local_authcheck', 'vm_local_state', 'vm_local_lock',
-    'vm_remote_authcheck', 'vm_remote_state', 'vm_remote_lock',
   ],
   patterns: <{[key: string]: string[]}>{
     i32: [

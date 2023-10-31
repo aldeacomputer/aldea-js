@@ -1,5 +1,4 @@
 import test from 'ava'
-import { ASTBuilder, SourceKind } from 'assemblyscript'
 import { mockProgram } from '../support/mock-program.js'
 import { TransformGraph } from '../../dist/transform/graph/index.js'
 import { Transform } from '../../dist/transform.js'
@@ -101,7 +100,7 @@ test('ctx.toABI() has all the exports, imports and plain objects', async t => {
   t.true(abi.imports.some(i => abi.defs[i].name === 'a'))
   t.is(abi.typeIds.length, 11)
   abi.typeIds.forEach(({ name }) => {
-    t.true(['A', 'B', '$B', 'C', '$C', 'D', 'string', 'Jig', 'JigInitParams', 'Output', 'Lock'].includes(name))
+    t.true(['A', 'B', '*B', 'C', '*C', 'D', 'string', 'Jig', 'JigInitParams', 'Output', 'Lock'].includes(name))
   })
 })
 

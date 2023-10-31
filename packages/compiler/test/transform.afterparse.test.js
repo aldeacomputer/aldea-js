@@ -73,11 +73,11 @@ test('afterParse() creates local and remote class for each jig class', async t =
   t.is(mock.classes.length, 2)
   t.regex(
     ASTBuilder.build(mock.classes[0]),
-    /^class _LocalTest extends _LocalJig implements Test {/
+    /^class __LocalTest extends __LocalJig implements Test {/
   )
   t.regex(
     ASTBuilder.build(mock.classes[1]),
-    /^class _RemoteTest extends _RemoteJig implements Test {/
+    /^class __ProxyTest extends __ProxyJig implements Test {/
   )
 })
 
@@ -116,7 +116,7 @@ test('afterParse() adds exported constructors methods', async t => {
   t.is(
     ASTBuilder.build(mock.functions[0]),
     'export function Test_constructor(): Test {\n'+
-    '  return new _LocalTest();\n'+
+    '  return new __LocalTest();\n'+
     '}'
   )
 })
@@ -162,7 +162,7 @@ test('afterParse() creates remote class for each interface', async t => {
   t.is(mock.classes.length, 1)
   t.regex(
     ASTBuilder.build(mock.classes[0]),
-    /^class _RemoteFoo extends _RemoteJig implements Foo {/
+    /^class __ProxyFoo extends __ProxyJig implements Foo {/
   )
   t.regex(
     ASTBuilder.build(mock.classes[0].members[0]),
@@ -192,7 +192,7 @@ test('afterParse() replaces imported ambient class with concrete implementation'
   t.false(isAmbient(mock.classes[0].flags))
   t.regex(
     ASTBuilder.build(mock.classes[0]),
-    /^class Test extends _RemoteJig {.+}/s
+    /^class Test extends __ProxyJig {.+}/s
   )
 })
 
@@ -210,7 +210,7 @@ test('afterParse() adds getters to all imported class properties', async t => {
   t.is(
     ASTBuilder.build(mock.classes[0].members[0]),
     'get a(): u32 {\n'+
-    '  return vm_get_prop<u32>(this.$output.origin, "a");\n'+
+    '  return __vm_get_prop<u32>(this.$output.origin, "a");\n'+
     '}'
   )
 })
@@ -229,9 +229,9 @@ test('afterParse() adds proxy methods to imported static and instance methods', 
   t.is(
     ASTBuilder.build(mock.classes[0].members[1]),
     'a(a0: u8): u8 {\n'+
-    '  const args = new ArgWriter(1);\n'+
+    '  const args = new __ArgWriter(1);\n'+
     '  args.writeU8(a0);\n'+
-    '  return vm_call_method<u8>(this.$output.origin, "a", args.buffer);\n'+
+    '  return __vm_call_method<u8>(this.$output.origin, "a", args.buffer);\n'+
     '}'
   )
 })

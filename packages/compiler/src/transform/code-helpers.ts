@@ -76,7 +76,7 @@ export function writeJigLocalClass(
     .join(', ')
 
   return `
-  ${exported ? 'export ' : ''}class _Local${obj.name} extends _Local${obj.extends} implements ${interfaces} {}
+  ${exported ? 'export ' : ''}class __Local${obj.name} extends __Local${obj.extends} implements ${interfaces} {}
   `.trim()
 }
 
@@ -106,12 +106,12 @@ export function writeJigRemoteClass(
   }, []).join('\n')
 
   return `
-  ${exported ? 'export ' : ''}class _Remote${obj.name} extends _Remote${obj.extends} implements ${interfaces} {
+  ${exported ? 'export ' : ''}class __Proxy${obj.name} extends __Proxy${obj.extends} implements ${interfaces} {
     ${fieldCode}
     ${methodCode}
   }
   // required to ensure compilation
-  idof<_Remote${obj.name}>()
+  idof<__Proxy${obj.name}>()
   `.trim()
 }
 
@@ -127,7 +127,7 @@ export function writeJigBinding(
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
   const rtype = isConstructor ? `${obj.name}` : normalizeTypeName(method.rtype)
-  const callable = isConstructor ? `new _Local${obj.name}` : `ctx.${method.name}`
+  const callable = isConstructor ? `new __Local${obj.name}` : `ctx.${method.name}`
   if (!isConstructor) args.unshift(`ctx: ${obj.name}`)
 
   return `
@@ -159,12 +159,12 @@ export function writeInterfaceRemoteClass(
   }, []).join('\n')
 
   return `
-  ${exported ? 'export ' : ''}class _Remote${obj.name} extends _RemoteJig implements ${obj.name} {
+  ${exported ? 'export ' : ''}class __Proxy${obj.name} extends __ProxyJig implements ${obj.name} {
     ${fieldCode}
     ${methodCode}
   }
   // required to ensure compilation
-  idof<_Remote${obj.name}>()
+  idof<__Proxy${obj.name}>()
   `.trim()
 }
 
@@ -206,7 +206,7 @@ export function writeImportedRemoteClass(
   }, []).join('\n')
 
   return `
-  ${exported ? 'export ' : ''}class ${obj.name} extends _RemoteJig {
+  ${exported ? 'export ' : ''}class ${obj.name} extends __ProxyJig {
     ${fieldCode}
     ${methodCode}
   }
@@ -223,7 +223,7 @@ export function writeImportedRemoteFunction(fn: FunctionNode, pkgId: string): st
   return `
   export function ${fn.name}(${args.join(', ')}): ${rtype} {
     ${ writeArgWriter(fn.args) }
-    return vm_call_function<${rtype}>('${pkgId}', '${fn.name}', args.buffer)
+    return __vm_call_function<${rtype}>('${pkgId}', '${fn.name}', args.buffer)
   }
   `.trim()
 }
@@ -279,13 +279,13 @@ export function writeMapSetter(type: TypeNode): string {
 }
 
 /**
- * Writes a getter on a remote class. Returns the result of `vm_get_prop`.
+ * Writes a getter on a remote class. Returns the result of `__vm_get_prop`.
  */
 export function writeRemoteGetter(field: FieldNode): string {
   const type = normalizeTypeName(field.type)
   return `
   get ${field.name}(): ${type} {
-    return vm_get_prop<${type}>(this.$output.origin, '${field.name}')
+    return __vm_get_prop<${type}>(this.$output.origin, '${field.name}')
   }
   `.trim()
 }
@@ -293,8 +293,8 @@ export function writeRemoteGetter(field: FieldNode): string {
 /**
  * Writes a method on a remote class.
  * 
- * - For constructors calls `vm_constructor_local` or `vm_constructor_remote`.
- * - For instance methods returns the result of `vm_call_method`.
+ * - For constructors calls `__vm_constructor_local` or `__vm_constructor_remote`.
+ * - For instance methods returns the result of `__vm_call_method`.
  */
 export function writeRemoteMethod(method: MethodNode, obj: ClassNode, pkg?: string): string {
   const isConstructor = method.kind === MethodKind.CONSTRUCTOR
@@ -302,8 +302,8 @@ export function writeRemoteMethod(method: MethodNode, obj: ClassNode, pkg?: stri
 
   if (isConstructor) {
     const callable = pkg ?
-      `vm_constructor_remote('${pkg}', '${obj.name}', args.buffer)` :
-      `vm_constructor_local('${obj.name}', args.buffer)` ;
+      `__vm_constructor_remote('${pkg}', '${obj.name}', args.buffer)` :
+      `__vm_constructor_local('${obj.name}', args.buffer)` ;
 
     return `
     constructor(${args.join(', ')}) {
@@ -315,7 +315,7 @@ export function writeRemoteMethod(method: MethodNode, obj: ClassNode, pkg?: stri
 
   } else {
     const rtype = normalizeTypeName(method.rtype)
-    const callable = `vm_call_method<${rtype}>(this.$output.origin, '${method.name}', args.buffer)`
+    const callable = `__vm_call_method<${rtype}>(this.$output.origin, '${method.name}', args.buffer)`
 
     return `
     ${method.name}(${args.join(', ')}): ${rtype} {
@@ -338,7 +338,7 @@ export function writeRemoteInterfaceMethod(method: FunctionNode, obj: InterfaceN
   return `
   ${method.name}(${args.join(', ')}): ${rtype} {
     ${ writeArgWriter(method.args) }
-    return vm_call_method<${rtype}>(this.$output.origin, '${method.name}', args.buffer)
+    return __vm_call_method<${rtype}>(this.$output.origin, '${method.name}', args.buffer)
   }
   `.trim()
 }
@@ -352,7 +352,7 @@ export function writeArgWriter(fields: ArgNode[]): string {
   const bytes = fields.reduce((sum, n) => sum + getTypeBytes(n.type), 0)
   const chunks = fields.map((n, i) => `args.${ writeArgWriterEncodeMethod(n, i) }`)
   return `
-  const args = new ArgWriter(${bytes})
+  const args = new __ArgWriter(${bytes})
   ${ chunks.join('\n') }
   `.trim()
 }
