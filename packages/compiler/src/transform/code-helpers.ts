@@ -131,7 +131,7 @@ export function writeJigBinding(
   if (!isConstructor) args.unshift(`ctx: ${obj.name}`)
 
   return `
-  export function ${obj.name}_${method.name}(${args.join(', ')}): ${rtype} {
+  export function __${obj.name}_${method.name}(${args.join(', ')}): ${rtype} {
     return ${callable}(${ method.args.map((_f, i) => `a${i}`).join(', ') })
   }
   `.trim()

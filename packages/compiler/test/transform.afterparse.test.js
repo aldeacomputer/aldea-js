@@ -115,7 +115,7 @@ test('afterParse() adds exported constructors methods', async t => {
   t.is(mock.functions.length, 1)
   t.is(
     ASTBuilder.build(mock.functions[0]),
-    'export function Test_constructor(): Test {\n'+
+    'export function __Test_constructor(): Test {\n'+
     '  return new __LocalTest();\n'+
     '}'
   )
@@ -132,7 +132,7 @@ test('afterParse() adds exported public instance methods', async t => {
   t.is(mock.functions.length, 2)
   t.is(
     ASTBuilder.build(mock.functions[1]),
-    'export function Test_helloWorld(ctx: Test, a0: string): string {\n'+
+    'export function __Test_helloWorld(ctx: Test, a0: string): string {\n'+
     '  return ctx.helloWorld(a0);\n'+
     '}'
   )
