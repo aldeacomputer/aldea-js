@@ -11,3 +11,5 @@ export { Jig, _LocalJig, _RemoteJig, JigInitParams } from './aldea/jig'
 export { Coin } from './aldea/coin'
 export { caller } from './aldea/caller'
 export { ArgWriter } from './aldea/arg-writer'
+
+export { BigInt } from './vendor/big-int'

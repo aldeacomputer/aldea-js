@@ -16,5 +16,8 @@ declare class Coin extends Jig {
 /** Global caller instance */
 declare const caller: typeof import('aldea/caller').caller;
 
+/** BigInt */
+declare const BigInt: typeof import('vendor/big-int').BigInt;
+
 /** Debug */
 declare function vm_debug_str(msg: string): void;
