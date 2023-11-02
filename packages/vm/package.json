@@ -46,7 +46,7 @@
     "@types/mocha": "^10.0.1",
     "@typescript-eslint/eslint-plugin": "^5.59.6",
     "@typescript-eslint/parser": "^5.59.6",
-    "assemblyscript": "npm:@aldea/assemblyscript@^0.1.0",
+    "assemblyscript": "npm:@aldea/assemblyscript@0.27.14-X",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",
     "esbuild": "^0.17.19",

@@ -43,6 +43,9 @@ export function writeJigInterface(
   methods: MethodNode[],
   exported: boolean = false,
 ): string {
+  const interfaces = [obj.extends]
+    .concat(obj.implements)
+    .join(', ')
   const fieldCode = fields
     .map(n => `${n.name}: ${normalizeTypeName(n.type)}`)
     .join('\n')
@@ -54,7 +57,7 @@ export function writeJigInterface(
     .join('\n')
 
   return `
-  ${exported ? 'export ' : ''}interface ${obj.name} extends ${obj.extends} {
+  ${exported ? 'export ' : ''}interface ${obj.name} extends ${interfaces} {
     ${fieldCode}
     ${methodCode}
   }
@@ -71,12 +74,8 @@ export function writeJigLocalClass(
   obj: ClassNode,
   exported: boolean = false,
 ): string {
-  const interfaces = obj.implements
-    .concat(obj.name)
-    .join(', ')
-
   return `
-  ${exported ? 'export ' : ''}class __Local${obj.name} extends __Local${obj.extends} implements ${interfaces} {}
+  ${exported ? 'export ' : ''}class __Local${obj.name} extends __Local${obj.extends} implements ${obj.name} {}
   `.trim()
 }
 
@@ -91,10 +90,6 @@ export function writeJigRemoteClass(
   methods: MethodNode[],
   exported: boolean = false,
 ): string {
-  const interfaces = obj.implements
-    .concat(obj.name)
-    .join(', ')
-
   const fieldCode = fields.reduce((acc: string[], n: FieldNode): string[] => {
     acc.push(writeRemoteGetter(n))
     return acc
@@ -106,7 +101,7 @@ export function writeJigRemoteClass(
   }, []).join('\n')
 
   return `
-  ${exported ? 'export ' : ''}class __Proxy${obj.name} extends __Proxy${obj.extends} implements ${interfaces} {
+  ${exported ? 'export ' : ''}class __Proxy${obj.name} extends __Proxy${obj.extends} implements ${obj.name} {
     ${fieldCode}
     ${methodCode}
   }

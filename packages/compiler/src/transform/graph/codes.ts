@@ -58,7 +58,7 @@ export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
       } else if (isFunction(this.node)) {
         this.#abiNode = toFunctionNode(this.node)
       } else if (isInterface(this.node)) {
-        this.#abiNode = toInterfaceNode(this.node)
+        this.#abiNode = toInterfaceNode(this.node, this.findAllParents())
       }
     }
     if (!this.#abiNode) { throw new Error(`abi node not created for node kind: ${this.node.kind}`) }
@@ -110,10 +110,17 @@ export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
 
   findAllParents(): Array<CodeNode<ClassDeclaration | InterfaceDeclaration>> {
     const parents: Array<CodeNode<ClassDeclaration | InterfaceDeclaration>> = []
-    let parent = this.findParent()
-    while (parent) {
-      parents.push(parent)
-      parent = parent.findParent()
+    if (isClass(this.node)) {
+      let parent = this.findParent()
+      while (parent) {
+        parents.push(parent)
+        parent = parent.findParent()
+      }
+    } else if (isInterface(this.node)) {
+      this.node.implementsTypes?.forEach(type => {
+        const code = this.src.findCode(type.name.identifier.text)
+        if (code) parents.push(code as CodeNode<InterfaceDeclaration>)
+      })
     }
     return parents
   }
@@ -172,8 +179,10 @@ function toFunctionNode(node: FunctionDeclaration): FunctionNode {
   }
 }
 
-function toInterfaceNode(node: InterfaceDeclaration): InterfaceNode {
-  const extendsName = node.extendsType?.name.identifier.text
+function toInterfaceNode(
+  node: InterfaceDeclaration,
+  parents: Array<CodeNode<InterfaceDeclaration>>
+): InterfaceNode {
   const fields = node.members.filter(n => {
     return n.kind === NodeKind.FieldDeclaration && !isStatic(n.flags)
   })
@@ -185,7 +194,7 @@ function toInterfaceNode(node: InterfaceDeclaration): InterfaceNode {
   return {
     kind: CodeKind.INTERFACE,
     name: node.name.text,
-    extends: (extendsName ? [extendsName] : []),
+    extends: parents.map(p => p.name),
     fields: fields.map(n => toFieldNode(n as FieldDeclaration)),
     methods: methods.map(n => toFunctionNode(n as FunctionDeclaration)),
   }
