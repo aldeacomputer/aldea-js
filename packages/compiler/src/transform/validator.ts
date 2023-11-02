@@ -185,7 +185,7 @@ export class Validator {
       switch (im.abiCodeKind) {
         case CodeKind.PROXY_CLASS:
           // must not export from entry
-          this.validateJigInheritance(im.code as CodeNode<ClassDeclaration>)
+          //this.validateJigInheritance(im.code as CodeNode<ClassDeclaration>)
           this.validateJigMembers(im.code as CodeNode<ClassDeclaration>)
           this.validatePrivateMembers(im.code as CodeNode<ClassDeclaration>)
           this.validateClassTypes(im.code as CodeNode<ClassDeclaration>)
@@ -553,15 +553,18 @@ export class Validator {
   }
 
   private validateJigInheritance(code: CodeNode<ClassDeclaration>): void {
-    // Ensure imported or exported object inherits from Jig
-    //if (!code.isJig) {
-    //  this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-    //    DiagnosticCategory.Error,
-    //    AldeaDiagnosticCode.Invalid_jig_class,
-    //    [code.name, 'must inherit from `Jig`'],
-    //    code.node.range
-    //  ))
-    //}
+    if (
+      code.isJig &&
+      code.node.extendsType?.name.identifier.text !== 'Jig' &&
+      !code.node.members.some(n => n.kind === NodeKind.MethodDeclaration && isConstructor(n.flags))
+    ) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.Error,
+          AldeaDiagnosticCode.Invalid_class,
+          ['Constructor method required for child Jig class.'],
+          code.node.range
+        ))
+    }
   }
 
   private validateJigMembers(code: CodeNode<ClassDeclaration>): void {

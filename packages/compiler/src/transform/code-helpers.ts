@@ -29,7 +29,7 @@ export function writeClass(obj: ClassNode): string {
 export function writeConstructor(obj: ClassNode): string {
   return `
   constructor() {
-    ${ obj.extends ? 'super()' : '' }
+    super()
   }
   `.trim()
 }

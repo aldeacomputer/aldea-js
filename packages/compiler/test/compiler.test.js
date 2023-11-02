@@ -56,9 +56,11 @@ test('child classes do not include fields of parents', async t => {
   }
   export class B extends A {
     b: string = 'b';
+    constructor() { super() }
   }
   export class C extends B {
     a: string = 'c';
+    constructor() { super() }
   }
   `.trim()
   
@@ -82,9 +84,11 @@ test('child classes do not include methods of parents unless overwritten', async
     foo(): void {}
   }
   export class B extends A {
+    constructor() { super() }
     bar(): void {}
   }
   export class C extends B {
+    constructor() { super() }
     foo(): void {}
   }
   `.trim()
