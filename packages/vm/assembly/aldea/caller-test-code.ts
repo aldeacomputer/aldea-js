@@ -100,7 +100,11 @@ export class RightCaller extends Jig {
   }
 }
 
-export class SubclassCaller extends RightCaller {}
+export class SubclassCaller extends RightCaller {
+  constructor () {
+    super();
+  }
+}
 
 
 export class AnotherCaller extends Jig {
