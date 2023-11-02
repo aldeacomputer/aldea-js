@@ -1,5 +1,5 @@
 import {base16, BCS, Pointer} from "@aldea/core";
-import {Abi, ArgNode, ClassNode, FieldNode, FunctionNode, findField, TypeNode} from "@aldea/core/abi";
+import {Abi, ArgNode, ClassNode, FieldNode, findField, FunctionNode, TypeNode} from "@aldea/core/abi";
 import {JigRef} from "./jig-ref.js"
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
@@ -99,15 +99,13 @@ export class WasmInstance {
         },
         vm_jig_link: (jigPtr: number, rtid: number): WasmPointer =>  {
           const nextOrigin = this.currentExec.createNextOrigin()
-          const className = this.abi.nameFromRtid(rtid)
-          if (!className) {
-            throw new Error('should exist')
-          }
-
-          const classIdx = this.abi.classIdxByName(className)
+          let rtIdNode = this.abi.rtIdById(rtid)
+              .expect(new Error(`Runtime id "${rtid}" not found in ${base16.encode(this.id)}`))
+          const classIdx = this.abi.exportedClassIdxByName(rtIdNode.name)
+              .expect(new Error(`Class named "${rtIdNode.name}" not found in ${base16.encode(this.id)}`))
 
           this.currentExec.linkJig(new JigRef(
-            new Internref(className, jigPtr),
+            new Internref(rtIdNode.name, jigPtr),
             classIdx,
             this,
             nextOrigin,
@@ -150,7 +148,7 @@ export class WasmInstance {
           const fnName = this.liftString(fnNamePtr)
           const argsBuf = this.liftBuffer(argsBufPtr)
           const targetPkg = this.currentExec.loadModule(base16.decode(pkgId))
-          const functionNode = targetPkg.abi.functionByName(fnName)
+          const functionNode = targetPkg.abi.exportedFnByName(fnName)
           const result = targetPkg.functionCall(functionNode, this.liftArguments(argsBuf, functionNode.args))
 
           return this.insertValue(result.value, result.node)
@@ -180,22 +178,26 @@ export class WasmInstance {
           const originBuf = this.liftBuffer(originPtr)
           this.currentExec.remoteLockHandler(Pointer.fromBytes(originBuf), type, argBuf)
         },
-        vm_caller_typecheck: (rtid: number, exact: boolean): boolean => {
+        vm_caller_typecheck: (rtIdToCheck: number, exact: boolean): boolean => {
           const callerOrigin = this.currentExec.stackPreviousToTop()
 
+          // If no caller then the caller is not of the given type.
           if (!callerOrigin) {
             return false
           }
 
+          // Get caller ref
           const callerRef = this.currentExec.getJigRefByOrigin(callerOrigin)
-          if (!callerRef.package.abi.rtidExists(rtid)) {
+          const callerAbi = callerRef.package.abi
+
+          if (callerAbi.rtIdById(rtIdToCheck).isAbsent()) {
             return false
           }
-          const type = callerRef.package.abi.typeFromRtid(rtid)
-
+          const rtIdNode = callerRef.package.abi.rtIdById(rtIdToCheck).get()
+          const type = emptyTn(rtIdNode.name)
 
           // check if it's an exported class
-          const exportedIndex = this.abi.findExportIndex(type.name)
+          const exportedIndex = this.abi.exportedByName(type.name).get().toAbiClass().idx
 
           // Case when exported and exact, check is exactly the class
           if (exportedIndex > -1 && exact) {
@@ -205,20 +207,25 @@ export class WasmInstance {
           // Case when exported and not exact, check inheritance chain
           if (exportedIndex > -1 && !exact) {
             // both classes belong to the same package. We check if caller is subclass of exportedIndex
-            return this.abi.isSubclassByIndex(callerRef.classIdx, exportedIndex)
-            // return callerRef.classPtr().equals(new Pointer(this.id, exportedIndex))
+            const callerClass = this.abi.exportedByIdx(callerRef.classIdx).get().toAbiClass()
+            return callerClass.isSubclassByIndex(exportedIndex)
           }
 
 
           // check if imported class
-          const importedIndex = this.abi.findImportedIndex(type.name)
-          if (importedIndex === -1) {
+          this.abi.importedByName(type.name)
+          const maybeImportedIndex = this.abi.importedByName(type.name)
+          if (maybeImportedIndex.isAbsent()) {
             return false
           }
-          const imported = this.abi.importedByIndex(importedIndex)
-          const module = this.currentExec.getLoadedModule(imported.pkg)
-          const externalExportedIndex = module.abi.findExportIndex(type.name)
-          return callerRef.classPtr().equals(new Pointer(imported.pkg, externalExportedIndex))
+          const importedIndex = maybeImportedIndex.get().idx
+          const imported = this.abi.importedByIndex(importedIndex).get().toImportedClass()
+          const module = this.currentExec.getLoadedModule(imported.pkgId)
+          const externalExportedIndex = module.abi
+              .exportedByName(type.name)
+              .get()
+              .idx
+          return callerRef.classPtr().equals(new Pointer(imported.pkgId, externalExportedIndex))
         },
         vm_caller_outputcheck: (): boolean => {
           const callerOrigin = this.currentExec.stackPreviousToTop()
@@ -261,7 +268,7 @@ export class WasmInstance {
           const className = this.liftString(classNamePtr)
           // const classIdx = this.abi.classIdxByName(className)
           const argsBuf = this.liftBuffer(argsPtr)
-          const methodNode = this.abi.classByName(className).methodByName('constructor')
+          const methodNode = this.abi.exportedByName(className).get().toAbiClass().methodByName('constructor').get()
           const args = this.liftArguments(argsBuf, methodNode.args)
 
           const instance = this.currentExec.instantiate(this, className, args)
@@ -285,7 +292,7 @@ export class WasmInstance {
           const argBuf = this.liftBuffer(argBufPtr)
           const pkg = this.currentExec.loadModule(base16.decode(pkgIdStr))
 
-          const abiNode = pkg.abi.classByName(className).methodByName('constructor')
+          const abiNode = pkg.abi.exportedByName(className).get().toAbiClass().methodByName('constructor').get()
           const args = this.liftArguments(argBuf, abiNode.args)
           const result = this.currentExec.instantiate(pkg, className, args)
           const jigRef = result.value as JigRef
@@ -351,8 +358,8 @@ export class WasmInstance {
     }
   }
 
-  hidrate (classIdx: number, jigState: JigState): Internref {
-    const objectNode = this.abi.classByIndex(classIdx)
+  hydrate (classIdx: number, jigState: JigState): Internref {
+    const objectNode = this.abi.exportedByIdx(classIdx).get().toAbiClass()
     const bcs = new BCS(this.abi.abi)
 
     const frozenState = jigState.stateBuf
@@ -385,7 +392,7 @@ export class WasmInstance {
   }
 
   getPropValue (ref: Internref, classIdx: number, fieldName: string): Prop {
-    const objNode = this.abi.classByIndex(classIdx)
+    const objNode = this.abi.exportedClassByIdx(classIdx)
     const classNode = objNode as ClassNode
     const field = findField(classNode, fieldName, `unknown field: ${fieldName}`)
 
@@ -428,7 +435,7 @@ export class WasmInstance {
   }
 
   extractState(ref: Internref, classIdx: number): Uint8Array {
-    const abiObj =  this.abi.classByIndex(classIdx)
+    const abiObj =  this.abi.exportedClassByIdx(classIdx)
     const visitor = new LiftJigStateVisitor(this.abi, this, ref.ptr)
     const lifted = visitor.visitPlainObject(
       abiObj,

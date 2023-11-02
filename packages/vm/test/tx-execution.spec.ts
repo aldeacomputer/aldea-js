@@ -707,7 +707,7 @@ describe('execute txs', () => {
     expect(
       () => exec.instantiateByIndex(
         counterPkgStmt.idx,
-        counterPkgStmt.asInstance.abi.classIdxByName('Shepherd'),
+        counterPkgStmt.asInstance.abi.exportedClassIdxByName('Shepherd'),
         new BCS(counterPkgStmt.asInstance.abi.abi).encode('Shepherd_constructor', [ref(flockPkg.idx)])
       )
     ).to.throw(ExecutionError)

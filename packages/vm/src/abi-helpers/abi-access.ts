@@ -1,197 +1,90 @@
 import {
   Abi,
-  ClassNode,
   CodeKind,
-  ExportNode,
-  findClass, FunctionNode,
-  ImportNode, normalizeTypeName,
+  InterfaceNode,
+  normalizeTypeName,
   ObjectNode,
   TypeIdNode,
-  TypeNode,
-  findFunction, InterfaceNode
+  TypeNode
 } from "@aldea/core/abi";
-import {ClassNodeWrapper} from "./class-node-wrapper.js";
-import {
-  basicJigAbiNode,
-  coinNode, emptyTn,
-  JIG_TOP_CLASS_NAME,
-  jigInitParamsAbiNode, jigNode,
-  lockAbiNode,
-  outputAbiNode
-} from "./well-known-abi-nodes.js";
-import {ExecutionError} from "../errors.js";
-
-const classNotFound = (className: string): ClassNodeWrapper => {
-  throw new Error(`Class with name "${className}" not found.`)
-}
+// import {
+//   basicJigAbiNode,
+//   coinNode,
+//   emptyTn,
+//   JIG_TOP_CLASS_NAME,
+//   jigInitParamsAbiNode,
+//   jigNode,
+//   lockAbiNode,
+//   outputAbiNode
+// } from "./well-known-abi-nodes.js";
+import {Option} from "../support/option.js";
+import {AbiExport} from "./abi-helpers/abi-export.js";
+import {AbiImport} from "./abi-helpers/abi-import.js";
+import {AbiClass} from "./abi-helpers/abi-class.js";
+import {AbiFunction} from "./abi-helpers/abi-function.js";
+import {AbiProxyDef} from "./abi-helpers/abi-proxy-def.js";
 
 export class AbiAccess {
   readonly abi: Abi;
+  private _exports: AbiExport[]
+  private _imports: AbiImport[]
+  private rtids: TypeIdNode[]
   constructor(abi: Abi) {
     this.abi = abi
-  }
-
-  classByName(name: string, onNotFound: (a: string) => ClassNodeWrapper = classNotFound): ClassNodeWrapper {
-    const abiNode = findClass(this, name)
-    if (!abiNode) {
-      return onNotFound(name)
-    }
-    return new ClassNodeWrapper(abiNode, this)
-  }
-
-  classIdxByName (name: string): number {
-    name = name.replace(/^\$|/, '')
-    const index = this.exports.findIndex(e => e.code.name === name)
-    if (index < 0) {
-      throw new Error(`Unknown class name: ${name}`)
-    }
-    return index
-  }
-
-  findExportIndex (exportName: string) {
-    return this.abi.exports.findIndex(e => e.code.name === exportName)
+    this._exports = this.abi.exports.map(e =>
+      new AbiExport(this.abi, e)
+    )
+    this._imports = this.abi.imports.map(i => new AbiImport(abi, i))
+    this.rtids = this.abi.typeIds
   }
 
   get version(): number {
     return this.abi.version
   }
 
-  get exports(): ExportNode[] {
-    return this.abi.exports
+  get exports(): AbiExport[] {
+    return this.exports
   }
 
-  get imports(): ImportNode[] {
-    return [...this.abi.imports, coinNode, jigNode]
+  get imports(): AbiImport[] {
+    return this._imports
   }
 
-  get objects(): ObjectNode[] {
-    return [
-      ...this.abi.objects,
-      outputAbiNode,
-      lockAbiNode,
-      jigInitParamsAbiNode,
-      basicJigAbiNode
-    ]
-  }
   get typeIds(): TypeIdNode[] {
-    return this.abi.typeIds
+    return this.typeIds
   }
 
-  classByIndex(classIdx: number): ClassNodeWrapper {
-    const node = this.exports[classIdx]
-    if (node.kind === CodeKind.CLASS) {
-      return new ClassNodeWrapper(node.code as ClassNode, this)
-    } else {
-      throw new Error(`idx ${classIdx} does not belong to a class object.`)
-    }
+  exportedByName (exportName: string): Option<AbiExport> {
+    const exported = this.exports.find(e => e.name === exportName);
+    return Option.fromNullable(exported)
   }
 
-  nameFromRtid(rtid: number): string {
-    const node = this.typeIds.find((rtidNode: TypeIdNode) => rtidNode.id === rtid)
-    if (!node) {
-      throw new Error(`unknonw rtid: ${rtid}`)
-    }
-    return node.name
+  exportedByIdx (idx: number): Option<AbiExport> {
+    const exported = this._exports[idx];
+    return Option.fromNullable(exported)
   }
 
-  rtidFromTypeNode(type: TypeNode): number {
+  rtIdByName(name: string): Option<TypeIdNode> {
+    const maybe = this.rtids.find(rtid => rtid.name === name);
+    return Option.fromNullable(maybe)
+  }
+
+  rtIdById(id: number): Option<TypeIdNode> {
+    const maybe = this.rtids.find(rtid => rtid.id === id);
+    return Option.fromNullable(maybe)
+  }
+
+  rtidFromTypeNode(type: TypeNode): Option<TypeIdNode> {
     const normalized = normalizeTypeName(type)
-    const node = this.typeIds.find((rtid: TypeIdNode) => rtid.name === normalized)
-    if (!node) {
-      throw new Error(`unknown type: ${normalized}`)
-    }
-    return node.id
+    return this.rtIdByName(normalized)
   }
 
-  rtidExists (id: number): boolean {
-    return this.abi.typeIds.some(rtid => rtid.id === id)
+  importedByIndex(importedIndex: number): Option<AbiImport> {
+    return Option.fromNullable(this._imports[importedIndex])
   }
 
-  typeFromRtid(rtid: number): TypeNode {
-    const node = this.abi.typeIds.find((typeId: TypeIdNode) => typeId.id === rtid)
-    if (!node) {
-      throw new Error(`unknown rtid: ${rtid}`)
-    }
-    return emptyTn(node.name)
-  }
-
-  findImportedIndex(name: string) {
-    return this.abi.imports.findIndex((imported: ImportNode) => imported.name === name)
-  }
-
-  importedByIndex(importedIndex: number): ImportNode {
-    return this.abi.imports[importedIndex]
-  }
-
-  isSubclassByIndex(childClassIndex: number, parentClassIndex: number) {
-    let child = this.classByIndex(childClassIndex)
-    const parent = this.classByIndex(parentClassIndex)
-
-    // Need to travers inheritance chain until find parent or top class
-    while (child.name !== parent.name) {
-      if (child.extends === JIG_TOP_CLASS_NAME) {
-        return false
-      }
-      child = this.classByName(child.extends)
-    }
-
-    return true
-  }
-
-  functionByName(fnName: string): FunctionNode {
-    return findFunction(this.abi, fnName, `Function ${fnName} was not found.`)
-  }
-
-  classNameExists(typeName: string): boolean {
-    return this.exports.some(exp => exp.code.name === typeName && exp.kind === CodeKind.CLASS);
-  }
-
-  importClassNameExists(typeName: string): boolean {
-    const node = this.imports.find(imp => imp.name === typeName);
-    return !!node && (node.kind === CodeKind.CLASS);
-  }
-
-  exportedObjectNameExists(typeName: string): boolean {
-    return this.objects.some(obj => obj.name === typeName);
-  }
-
-  exportedInterfaceNameExists(typeName: string): boolean {
-    return this.exports.some(exp => exp.kind === CodeKind.INTERFACE && exp.code.name === typeName)
-  }
-
-  importedInterfaceExists(typeName: string): boolean {
-    return this.imports.some(imp => imp.kind === CodeKind.INTERFACE && imp.name === typeName)
-  }
-
-  importByName(typeName: any): ImportNode {
-    const node = this.imports.find(imp => imp.name === typeName)
-    if (!node) {
-      throw new Error(`Import not found: ${typeName}`)
-    }
-    return node
-  }
-
-  objectByName(typeName: any): ObjectNode {
-    const node = this.objects.find(obj => obj.name === typeName)
-    if (!node) {
-      throw new Error(`Unknown object: ${typeName}`)
-    }
-    return node
-  }
-
-  interfaceByName(typeName: any): InterfaceNode {
-    const node = this.exports.find(exp => exp.code.name === typeName && exp.kind === CodeKind.INTERFACE)
-    if (!node) {
-      throw new Error(`Unknown interface: ${typeName}`)
-    }
-    return node.code as InterfaceNode
-  }
-
-  functionByIdx(fnIdx: number): FunctionNode {
-    const exportNode = this.exports[fnIdx]
-    if (exportNode.kind !== CodeKind.FUNCTION) {
-      throw new ExecutionError('')
-    }
-    return exportNode.code as FunctionNode
+  importedByName(typeName: string): Option<AbiImport> {
+    const node = this._imports.find(i => i.name === typeName)
+    return Option.fromNullable(node)
   }
 }

@@ -1,5 +1,5 @@
 import {base16, Pointer} from "@aldea/core";
-import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, ObjectNode, TypeNode} from "@aldea/core/abi";
+import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, TypeNode} from "@aldea/core/abi";
 import {AbiTraveler} from "./abi-traveler.js";
 import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
 import {
@@ -16,6 +16,7 @@ import {JigRef} from "../jig-ref.js";
 import {emptyTn, outputAbiNode} from "./well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-access.js";
 import {isInstructionRef} from "../statement-result.js";
+import {AbiPlainObject} from "./abi-helpers/abi-plain-object.js";
 
 const STRING_RTID = 1;
 const BUFFER_RTID = 0;
@@ -52,14 +53,14 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     const lockPtr = this.lowerValue(val.lockObject(), emptyTn('Lock'))
 
     // this.lowerValue()
-    const objPtr = mod.__new(8, mod.abi.rtidFromTypeNode(type));
+    const objPtr = mod.__new(8, mod.abi.rtidFromTypeNode(type).get().id);
     const memU32 = new Uint32Array(mod.memory.buffer)
     memU32[objPtr >>> 2] = Number(outputPtr)
     memU32[(objPtr + 4) >>> 2] = Number(lockPtr)
     return objPtr
   }
 
-  visitExportedClass (classNode: ClassNode, type: TypeNode): WasmPointer {
+  visitExportedClass (_classNode: ClassNode, type: TypeNode): WasmPointer {
     if (this.value instanceof Internref) {
       let basicJig = this.instance.liftBasicJig(this.value);
       this.value = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(basicJig.$output.origin))
@@ -70,14 +71,16 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   visitArray(innerType: TypeNode): WasmPointer {
     const mod = this.instance
     const val = this.value as Array<any>
-    const rtid = mod.abi.rtidFromTypeNode({ name: 'Array', args: [innerType], nullable: false })
+    const rtid = mod.abi
+      .rtidFromTypeNode({ name: 'Array', args: [innerType], nullable: false })
+      .get()
     const elBytes = getTypeBytes(innerType)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
     const TypedArray = getTypedArrayForPtr(innerType)
 
     const length = val.length
     const buffer = mod.__pin(mod.__new((length << align), BUFFER_RTID))
-    const header = mod.__new(16, rtid)
+    const header = mod.__new(16, rtid.id)
     const memU32 = new Uint32Array(mod.memory.buffer)
     memU32[header >>> 2] = buffer;
     memU32[header + 4 >>> 2] = buffer;
@@ -97,14 +100,16 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     const mod = this.instance
     const val = this.value
 
-    const rtid = mod.abi.rtidFromTypeNode({name: 'StaticArray', args: [innerType], nullable: false})
+    const rtid = mod.abi
+      .rtidFromTypeNode({name: 'StaticArray', args: [innerType], nullable: false})
+      .get()
     const elBytes = getTypeBytes(innerType)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
     const TypedArray = getTypedArrayForPtr(innerType)
 
     const length = val.length
     const size = val.length << align;
-    const buffer = mod.__pin(mod.__new(size, rtid))
+    const buffer = mod.__pin(mod.__new(size, rtid.id))
 
     if (hasTypedArrayConstructor(innerType)) {
       new TypedArray(mod.memory.buffer, buffer, length).set(val)
@@ -179,7 +184,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     return ptr
   }
 
-  visitPlainObject(objNode: ObjectNode, typeNode: TypeNode): WasmPointer {
+  visitPlainObject(objNode: AbiPlainObject, typeNode: TypeNode): WasmPointer {
     let value = this.value
     const mod = this.instance
     if (!Array.isArray(value)) { value = Object.values(value) }
@@ -187,10 +192,10 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
       throw new Error(`invalid state for ${objNode.name}`)
     }
 
-    const rtid = mod.abi.rtidFromTypeNode(typeNode)
+    const rtid = mod.abi.rtidFromTypeNode(typeNode).get()
     const bytes = objNode.fields.reduce((sum: number, n: FieldNode) => sum + getTypeBytes(n.type), 0)
-    const ptr = mod.__new(bytes, rtid)
-    const offsets = getObjectMemLayout(objNode)
+    const ptr = mod.__new(bytes, rtid.id)
+    const offsets = getObjectMemLayout(objNode.fields)
 
     objNode.fields.forEach((n: FieldNode, i: number) => {
       const TypedArray = getTypedArrayForPtr(n.type)
@@ -238,13 +243,13 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     const val = this.value
     const type = emptyTn(typeName);
 
-    const rtid = mod.abi.rtidFromTypeNode(type)
+    const rtId = mod.abi.rtidFromTypeNode(type).get()
     const elBytes = getElementBytes(type)
     const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
 
     const length = val.length
     const buffer = mod.__pin(mod.__new((length << align), BUFFER_RTID))
-    const header = mod.__new(12, rtid)
+    const header = mod.__new(12, rtId.id)
     const memU32 = new Uint32Array(mod.memory.buffer)
     memU32[header >>> 2] = buffer
     memU32[header + 4 >>> 2] = buffer
@@ -265,11 +270,11 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
 
 
   private lowerEmptySetOrMap(mod: Module, type: TypeNode, entrySize: number): number {
-    const rtid = mod.abi.rtidFromTypeNode(type)
+    const rtId = mod.abi.rtidFromTypeNode(type).get()
     const initCapacity = 4
     const buckets = mod.__new(initCapacity * 4, BUFFER_RTID)
     const entries = mod.__new(initCapacity * entrySize, BUFFER_RTID)
-    const ptr = mod.__new(24, rtid)
+    const ptr = mod.__new(24, rtId.id)
 
     const memU32 = new Uint32Array(mod.memory.buffer)
     memU32[ptr >>> 2] = buckets
@@ -291,7 +296,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     if (jig.package === this.instance) {
       const className = jig.className();
       const concreteTypeNode = emptyTn(className);
-      const classNode = this.abi.classByName(className)
+      const classNode = this.abi.exportedByName(className).get().toAbiClass()
       return this.visitExportedClass(classNode, concreteTypeNode)
     } else {
       return this.visitImportedClass(typeNode, base16.encode(jig.package.id))

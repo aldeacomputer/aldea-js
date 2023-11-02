@@ -161,7 +161,7 @@ export class LiftValueVisitor extends AbiTraveler<any> {
     const className = jig.className()
     const clsTypeNode = emptyTn(className)
     if (jig.package === this.instance) {
-      const classNode = this.abi.classByName(className)
+      const classNode = this.abi.exportedClassByName(className)
       return this.visitExportedClass(classNode, clsTypeNode)
     } else {
       return this.visitImportedClass(clsTypeNode, base16.encode(jig.classPtr().idBuf))

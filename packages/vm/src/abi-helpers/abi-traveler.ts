@@ -6,6 +6,7 @@ import {
   TypeNode,
 } from "@aldea/core/abi";
 import {AbiAccess} from "./abi-access.js";
+import {AbiPlainObject} from "./abi-helpers/abi-plain-object.js";
 
 export abstract class AbiTraveler<T> {
   abi: AbiAccess
@@ -34,7 +35,7 @@ export abstract class AbiTraveler<T> {
   abstract visitVoid(): T;
 
   abstract visitExportedClass(classNode: ClassNode, type: TypeNode): T;
-  abstract visitPlainObject(objNode: ObjectNode, type: TypeNode): T;
+  abstract visitPlainObject(objNode: AbiPlainObject, type: TypeNode): T;
 
   abstract visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): T;
 
@@ -84,12 +85,14 @@ export abstract class AbiTraveler<T> {
       case 'void':
         return this.visitVoid()
       default:
-        if (this.abi.classNameExists(typeName)) {
-          const exportClassNode = this.abi.classByName(typeName)
+        const maybeExportedClass= this.abi.exportedByName(typeName).get().toAbiClass();
+        if (maybeExportedClass.isPresent()) {
+          const exportClassNode = maybeExportedClass.get()
           return this.visitExportedClass(exportClassNode, typeNode)
         }
+        const maybeImportedClass = this.abi.importedClassByName()
         if (this.abi.importClassNameExists(typeName)) {
-          const importClassNode = this.abi.importByName(typeName)
+          const importClassNode = this.abi.importedByName(typeName)
           const abiNode = importClassNode as ImportNode
           return this.visitImportedClass(typeNode, abiNode.pkg)
         }

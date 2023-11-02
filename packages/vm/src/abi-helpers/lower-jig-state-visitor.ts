@@ -20,7 +20,7 @@ export class LowerJigStateVisitor extends LowerValueVisitor {
     const jig = this.instance.currentExec.findJigByOrigin(this.value)
     const className = jig.className();
     if (jig.package === this.instance) {
-      const classNode = this.abi.classByName(className)
+      const classNode = this.abi.exportedClassByName(className)
       const concreteType = emptyTn(className);
       return this.visitExportedClass(classNode, concreteType)
     } else {

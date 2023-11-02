@@ -1,6 +1,6 @@
 import {WasmInstance as Module} from "./wasm-instance.js";
 import {Pointer} from "@aldea/core";
-import {TypeNode, ObjectNode} from "@aldea/core/abi";
+import {TypeNode, ObjectNode, FieldNode} from "@aldea/core/abi";
 
 export class Internref {
   ptr: number;
@@ -135,8 +135,8 @@ export function getTypeBytes(type: TypeNode): number {
   }
 }
 
-export function getObjectMemLayout(object: ObjectNode): MemoryLayout {
-  return object.fields.reduce((obj: any, field, i, fields) => {
+export function getObjectMemLayout(fields: FieldNode[]): MemoryLayout {
+  return fields.reduce((obj: any, field, i, fields) => {
     const thisBytes = getTypeBytes(field.type)
     let offset = 0
     let align = 0

@@ -1,4 +1,4 @@
-import {FieldKind, ImportNode, ObjectNode, TypeNode} from "@aldea/core/abi";
+import {CodeKind, FieldKind, ImportNode, ObjectNode, TypeNode} from "@aldea/core/abi";
 
 export const arrayBufferTypeNode: TypeNode = emptyTn('ArrayBuffer')
 
@@ -99,12 +99,10 @@ export const basicJigAbiNode: ObjectNode = {
   name: '__Jig',
   fields: [
     {
-      kind: FieldKind.PUBLIC,
       name: '$output',
       type: outputTypeNode
     },
     {
-      kind: FieldKind.PUBLIC,
       name: '$lock',
       type: lockTypeNode
     }

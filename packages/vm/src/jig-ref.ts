@@ -2,7 +2,6 @@ import {WasmInstance} from './wasm-instance.js';
 import {Lock} from "./locks/lock.js";
 import {Externref, getObjectMemLayout, getTypedArrayForPtr, Internref} from "./memory.js";
 import {Pointer} from "@aldea/core";
-import {ClassNodeWrapper} from "./abi-helpers/class-node-wrapper.js";
 
 export class JigRef  {
   ref: Internref;
@@ -62,7 +61,7 @@ export class JigRef  {
   }
 
   writeField(fieldName: string, propValue: any) {
-    const abiNode = this.package.abi.classByName(this.className())
+    const abiNode = this.package.abi.exportedClassByName(this.className())
     const fieldNode = abiNode.fieldByName(fieldName)
     const layout = getObjectMemLayout(abiNode)
     const TypedArray = getTypedArrayForPtr(fieldNode.type)
@@ -73,7 +72,7 @@ export class JigRef  {
   }
 
   classAbi(): ClassNodeWrapper {
-    return this.package.abi.classByName(this.className())
+    return this.package.abi.exportedClassByName(this.className())
   }
 
   static isJigRef(obj: Object): boolean {

@@ -125,7 +125,7 @@ class TxExecution {
       targetJig = this.findJigByOrigin(targetOrigin)
     }
 
-    const klassNode = targetJig.package.abi.classByIndex(targetJig.classIdx)
+    const klassNode = targetJig.package.abi.exportedClassByIdx(targetJig.classIdx)
     const method = klassNode.methodByName(methodName)
 
     const args = callerInstance.liftArguments(argBuff, method.args)
@@ -140,7 +140,7 @@ class TxExecution {
 
     const [className, methodName] = fnStr.split('_')
 
-    const obj = targetMod.abi.classByName(className)
+    const obj = targetMod.abi.exportedClassByName(className)
     const method = obj.methodByName(methodName)
 
     const argValues = srcModule.liftArguments(argBuffer, method.args)
@@ -321,7 +321,7 @@ class TxExecution {
   private hydrateJigState(state: JigState): JigRef {
     this.inputs.push(state.toOutput())
     const module = this.loadModule(state.packageId)
-    const ref = module.hidrate(state.classIdx, state)
+    const ref = module.hydrate(state.classIdx, state)
     const lock = this.hydrateLock(state.serializedLock)
     const jigRef = new JigRef(ref, state.classIdx, module, state.origin, state.currentLocation, lock)
     this.addNewJigRef(jigRef)
@@ -359,7 +359,7 @@ class TxExecution {
   }
 
   instantiate(wasm: WasmInstance, className: string, args: any[]): WasmValue {
-    const method =  wasm.abi.classByName(className).methodByName('constructor')
+    const method =  wasm.abi.exportedClassByName(className).methodByName('constructor')
     this.stack.push(this.createNextOrigin())
     const result = wasm.staticCall(method, args)
     this.stack.pop()
@@ -383,7 +383,7 @@ class TxExecution {
   instantiateByIndex(statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
     const statement = this.statements[statementIndex]
     const instance = statement.asInstance
-    const classNode = instance.abi.classByIndex(classIdx)
+    const classNode = instance.abi.exportedClassByIdx(classIdx)
     const bcs = new BCS(instance.abi.abi)
     const args = bcs.decode(`${classNode.name}_constructor`, argsBuf)
     const wasmValue = this.instantiate(instance, classNode.name, args)
@@ -434,7 +434,7 @@ class TxExecution {
   }
 
   execStaticMethod(wasm: WasmInstance, className: string, methodName: string, args: any[]): ValueStatementResult {
-    const method = wasm.abi.classByName(className).methodByName(methodName)
+    const method = wasm.abi.exportedClassByName(className).methodByName(methodName)
 
     let {node, value, mod} = wasm.staticCall(method, args)
     const ret = new ValueStatementResult(
@@ -458,7 +458,7 @@ class TxExecution {
 
   execExportedFnByIndex(moduleIndex: number, fnIdx: number, args: Uint8Array): StatementResult {
     const wasm = this.getStatementResult(moduleIndex).asInstance
-    const fnNode = wasm.abi.functionByIdx(fnIdx)
+    const fnNode = wasm.abi.exportedFnByIdx(fnIdx)
 
     const bcs = new BCS(wasm.abi.abi)
     let {node, value, mod} = wasm.functionCall(fnNode, bcs.decode(fnNode.name, args))
@@ -475,7 +475,7 @@ class TxExecution {
   }
 
   execExportedFnByName(wasm: WasmInstance, fnName: string, args: any[]): StatementResult {
-    const fnNode = wasm.abi.functionByName(fnName)
+    const fnNode = wasm.abi.exportedFnByName(fnName)
     let {node, value, mod} = wasm.functionCall(fnNode, args)
 
     const ret = new ValueStatementResult(
