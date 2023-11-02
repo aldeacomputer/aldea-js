@@ -1,7 +1,7 @@
 import {Storage, StubClock, VM} from '../src/index.js'
 import {expect} from 'chai'
 import {TxBuilder} from "./tx-builder.js";
-import {LockType} from "../src/wasm-instance.js";
+import {LockType} from "../src/wasm-container.js";
 import {JigState} from "../src/jig-state.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {PrivKey, ref, Tx} from "@aldea/core";

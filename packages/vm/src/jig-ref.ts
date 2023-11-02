@@ -1,4 +1,4 @@
-import {WasmInstance} from './wasm-instance.js';
+import {WasmContainer} from './wasm-container.js';
 import {Lock} from "./locks/lock.js";
 import {Externref, getObjectMemLayout, getTypedArrayForPtr, Internref} from "./memory.js";
 import {Pointer} from "@aldea/core";
@@ -6,12 +6,12 @@ import {Pointer} from "@aldea/core";
 export class JigRef  {
   ref: Internref;
   classIdx: number;
-  package: WasmInstance;
+  package: WasmContainer;
   origin: Pointer;
   latestLocation: Pointer;
   lock: Lock;
 
-  constructor (ref: Internref, classIdx: number, module: WasmInstance, origin: Pointer, latestLocation: Pointer, lock: Lock) {
+  constructor (ref: Internref, classIdx: number, module: WasmContainer, origin: Pointer, latestLocation: Pointer, lock: Lock) {
     this.ref = ref
     this.classIdx = classIdx
     this.package = module

@@ -1,7 +1,7 @@
 import {base16, Pointer} from "@aldea/core";
 import {ClassNode, FieldNode, InterfaceNode, normalizeTypeName, TypeNode} from "@aldea/core/abi";
 import {AbiTraveler} from "./abi-traveler.js";
-import {WasmInstance as Module, WasmInstance} from "../wasm-instance.js";
+import {WasmContainer as Module, WasmContainer} from "../wasm-container.js";
 import {
   getElementBytes,
   getObjectMemLayout,
@@ -30,10 +30,10 @@ function hasTypedArrayConstructor(type: TypeNode): boolean {
 }
 
 export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
-  instance: WasmInstance
+  instance: WasmContainer
   value: any
 
-  constructor(abi: AbiAccess,inst: WasmInstance, value: any) {
+  constructor(abi: AbiAccess, inst: WasmContainer, value: any) {
     super(abi)
     this.instance = inst
     this.value = value

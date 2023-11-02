@@ -4,7 +4,7 @@ import {ExecutionError, PermissionError} from "./errors.js"
 import {UserLock} from "./locks/user-lock.js"
 import {NoLock} from "./locks/no-lock.js"
 import {JigState} from "./jig-state.js"
-import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
+import {AuthCheck, LockType, Prop, WasmContainer, WasmValue} from "./wasm-container.js";
 import {Lock} from "./locks/lock.js";
 import {ClassNode, CodeKind} from '@aldea/core/abi'
 import {Address, base16, BCS, instructions, OpCode, Output, Pointer} from '@aldea/core';
@@ -24,7 +24,7 @@ const MIN_FUND_AMOUNT = 100
 class TxExecution {
   txContext: TxContext;
   private jigs: JigRef[];
-  private wasms: Map<string, WasmInstance>;
+  private wasms: Map<string, WasmContainer>;
   private readonly stack: Pointer[];
   deployments: PkgData[];
   statements: StatementResult[]
@@ -92,7 +92,7 @@ class TxExecution {
     return jig.package.extractState(jig.ref, jig.classIdx)
   }
 
-  loadModule(moduleId: Uint8Array): WasmInstance {
+  loadModule(moduleId: Uint8Array): WasmContainer {
     const existing = this.wasms.get(base16.encode(moduleId))
     if (existing) {
       return existing
@@ -103,7 +103,7 @@ class TxExecution {
     return wasmInstance
   }
 
-  getLoadedModule(pkgId: string): WasmInstance {
+  getLoadedModule(pkgId: string): WasmContainer {
     const wasm = this.wasms.get(pkgId)
     if (!wasm) {
       throw new Error(`Package with id ${pkgId} was expected to be loaded but it's not.`)
@@ -119,7 +119,7 @@ class TxExecution {
     return jigRef
   }
 
-  remoteCallHandler(callerInstance: WasmInstance, targetOrigin: Pointer, methodName: string, argBuff: Uint8Array): WasmValue {
+  remoteCallHandler(callerInstance: WasmContainer, targetOrigin: Pointer, methodName: string, argBuff: Uint8Array): WasmValue {
     let targetJig = this.jigs.find(j => j.origin.equals(targetOrigin))
     if (!targetJig) {
       targetJig = this.findJigByOrigin(targetOrigin)
@@ -135,7 +135,7 @@ class TxExecution {
     return result
   }
 
-  remoteStaticExecHandler(srcModule: WasmInstance, targetModId: Uint8Array, fnStr: string, argBuffer: Uint8Array): WasmValue {
+  remoteStaticExecHandler(srcModule: WasmContainer, targetModId: Uint8Array, fnStr: string, argBuffer: Uint8Array): WasmValue {
     const targetMod = this.loadModule(targetModId)
 
     const [className, methodName] = fnStr.split('_')
@@ -358,7 +358,7 @@ class TxExecution {
     }
   }
 
-  instantiate(wasm: WasmInstance, className: string, args: any[]): WasmValue {
+  instantiate(wasm: WasmContainer, className: string, args: any[]): WasmValue {
     const method =  wasm.abi.exportedClassByName(className).methodByName('constructor')
     this.stack.push(this.createNextOrigin())
     const result = wasm.staticCall(method, args)
@@ -393,7 +393,7 @@ class TxExecution {
     return ret
   }
 
-  instantiateByClassName(wasm: WasmInstance, className: string, args: any[]): StatementResult {
+  instantiateByClassName(wasm: WasmContainer, className: string, args: any[]): StatementResult {
     const knownWasm = this.wasms.get(base16.encode(wasm.id))
     if (wasm !== knownWasm) {
       throw new Error('wasm instance does not belong to current execution')
@@ -433,7 +433,7 @@ class TxExecution {
     return ret
   }
 
-  execStaticMethod(wasm: WasmInstance, className: string, methodName: string, args: any[]): ValueStatementResult {
+  execStaticMethod(wasm: WasmContainer, className: string, methodName: string, args: any[]): ValueStatementResult {
     const method = wasm.abi.exportedClassByName(className).methodByName(methodName)
 
     let {node, value, mod} = wasm.staticCall(method, args)
@@ -474,7 +474,7 @@ class TxExecution {
     return ret
   }
 
-  execExportedFnByName(wasm: WasmInstance, fnName: string, args: any[]): StatementResult {
+  execExportedFnByName(wasm: WasmContainer, fnName: string, args: any[]): StatementResult {
     const fnNode = wasm.abi.exportedFnByName(fnName)
     let {node, value, mod} = wasm.functionCall(fnNode, args)
 
@@ -542,7 +542,7 @@ class TxExecution {
   async deployPackage(entryPoint: string[], sources: Map<string, string>): Promise<StatementResult> {
     const pkgData = await this.txContext.compile(entryPoint, sources)
     this.deployments.push(pkgData)
-    const wasm = new WasmInstance(pkgData.mod, pkgData.abi, pkgData.id)
+    const wasm = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
     wasm.setExecution(this)
     this.wasms.set(base16.encode(wasm.id), wasm)
     const ret = new WasmStatementResult(this.statements.length, wasm)

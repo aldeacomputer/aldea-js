@@ -3,7 +3,7 @@ import {expect} from 'chai'
 import {TxExecution} from "../src/tx-execution.js";
 import {JigRef} from "../src/jig-ref.js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
-import {WasmInstance} from "../src/wasm-instance.js";
+import {WasmContainer} from "../src/wasm-container.js";
 import {StatementResult} from "../src/statement-result.js";
 import {PrivKey} from "@aldea/core";
 import { Abi } from '@aldea/core/abi';
@@ -28,8 +28,8 @@ describe('Jig Type', () => {
 
   const emptyTx = emptyExecFactoryFactory(() => storage, () => vm)
 
-  let jigBearerPkg: WasmInstance
-  let flockPkg: WasmInstance
+  let jigBearerPkg: WasmContainer
+  let flockPkg: WasmContainer
   let flockStmt: StatementResult
   let jig: JigRef
 

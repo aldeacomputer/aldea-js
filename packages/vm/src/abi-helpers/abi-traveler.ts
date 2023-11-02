@@ -1,12 +1,7 @@
-import {
-  ClassNode,
-  ImportNode,
-  InterfaceNode,
-  ObjectNode,
-  TypeNode,
-} from "@aldea/core/abi";
+import {ClassNode, TypeNode,} from "@aldea/core/abi";
 import {AbiAccess} from "./abi-access.js";
 import {AbiPlainObject} from "./abi-helpers/abi-plain-object.js";
+import {AbiInterface} from "./abi-helpers/abi-interface.js";
 
 export abstract class AbiTraveler<T> {
   abi: AbiAccess
@@ -37,7 +32,7 @@ export abstract class AbiTraveler<T> {
   abstract visitExportedClass(classNode: ClassNode, type: TypeNode): T;
   abstract visitPlainObject(objNode: AbiPlainObject, type: TypeNode): T;
 
-  abstract visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): T;
+  abstract visitInterface(anInterface: AbiInterface, typeNode: TypeNode): T;
 
   travelFromType(typeNode: TypeNode): T {
     const typeName = typeNode.name
@@ -85,26 +80,28 @@ export abstract class AbiTraveler<T> {
       case 'void':
         return this.visitVoid()
       default:
-        const maybeExportedClass= this.abi.exportedByName(typeName).get().toAbiClass();
+        const maybeExportedClass= this.abi.exportedByName(typeName).map(e => e.toAbiClass());
         if (maybeExportedClass.isPresent()) {
           const exportClassNode = maybeExportedClass.get()
           return this.visitExportedClass(exportClassNode, typeNode)
         }
-        const maybeImportedClass = this.abi.importedClassByName()
-        if (this.abi.importClassNameExists(typeName)) {
-          const importClassNode = this.abi.importedByName(typeName)
-          const abiNode = importClassNode as ImportNode
-          return this.visitImportedClass(typeNode, abiNode.pkg)
+        const maybeImportedClass = this.abi.importedByName(typeName).map(i => i.toImportedClass())
+        if (maybeImportedClass.isPresent()) {
+          const importClassNode = maybeImportedClass.get()
+          return this.visitImportedClass(typeNode, importClassNode.pkgId)
         }
-        if (this.abi.exportedObjectNameExists(typeName)) {
-          const plainObjectNode = this.abi.objectByName(typeName)
+        const maybeExportedObject = this.abi.exportedByName(typeName).map(e => e.toAbiObject())
+        if (maybeExportedObject.isPresent()) {
+          const plainObjectNode = maybeExportedObject.get()
           return this.visitPlainObject(plainObjectNode, typeNode)
         }
-        if (this.abi.exportedInterfaceNameExists(typeName)) {
-          const anInterface = this.abi.interfaceByName(typeName)
+        const maybeExportedInterface = this.abi.exportedByName(typeName).map(e => e.toAbiInterface())
+        if (maybeExportedInterface.isPresent()) {
+          const anInterface = maybeExportedInterface.get()
           return this.visitInterface(anInterface, typeNode)
         }
-        if (this.abi.importedInterfaceExists(typeName)) {
+        const maybeImportedInterface = this.abi.importedByName(typeName).map(e => e.toImportedInterface())
+        if (maybeImportedInterface.get()) {
           return this.visitInterface({} as any, typeNode)
         }
     }

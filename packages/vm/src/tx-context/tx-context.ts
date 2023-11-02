@@ -1,7 +1,7 @@
 import {Instruction, Pointer, Tx} from "@aldea/core";
 import {JigState} from "../jig-state.js";
 import moment from "moment";
-import {WasmInstance} from "../wasm-instance.js";
+import {WasmContainer} from "../wasm-container.js";
 import {PkgData} from "../storage.js";
 
 export interface TxContext {
@@ -13,7 +13,7 @@ export interface TxContext {
 
   stateByOrigin (origin: Pointer): JigState
 
-  wasmFromPkgId (pkgId: Uint8Array): WasmInstance
+  wasmFromPkgId (pkgId: Uint8Array): WasmContainer
 
   compile (entries: string[], sources: Map<string, string>): Promise<PkgData>
 

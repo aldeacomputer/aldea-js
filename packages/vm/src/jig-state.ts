@@ -1,6 +1,6 @@
 import {Address, Output, Pointer, blake3, Lock, BCS} from "@aldea/core";
 import {Abi, ClassNode, FieldNode} from "@aldea/core/abi";
-import {WasmInstance} from "./wasm-instance.js";
+import {WasmContainer} from "./wasm-container.js";
 import {Option} from "./support/option.js";
 import {SerializedLock} from "./locks/serialized-lock.js";
 
@@ -61,7 +61,7 @@ export class JigState {
     return this.output.classPtr
   }
 
-  objectState (module: WasmInstance): any {
+  objectState (module: WasmContainer): any {
     const fields = this.parsedState(module.abi.abi)
     const abiNode = module.abi.exports[this.classIdx].code as ClassNode
     if (!abiNode) { throw new Error('should exists') }

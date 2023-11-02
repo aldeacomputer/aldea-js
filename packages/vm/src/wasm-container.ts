@@ -33,13 +33,13 @@ export enum LockType {
 
 export type Prop = {
   node: TypeNode;
-  mod: WasmInstance;
+  mod: WasmContainer;
   value: any;
 }
 
 export type WasmValue = {
   node: TypeNode;
-  mod: WasmInstance;
+  mod: WasmContainer;
   value: any;
 }
 
@@ -52,7 +52,7 @@ export interface WasmExports extends WebAssembly.Exports {
   [key: string]: (...args: WasmPointer[]) => number | void;
 }
 
-export class WasmInstance {
+export class WasmContainer {
   id: Uint8Array;
   memory: WebAssembly.Memory;
   private _currentExec: TxExecution | null;

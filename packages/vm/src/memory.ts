@@ -1,4 +1,4 @@
-import {WasmInstance as Module} from "./wasm-instance.js";
+import {WasmContainer as Module} from "./wasm-container.js";
 import {Pointer} from "@aldea/core";
 import {TypeNode, ObjectNode, FieldNode} from "@aldea/core/abi";
 

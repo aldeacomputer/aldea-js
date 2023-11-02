@@ -1,6 +1,6 @@
 import {assert, expect} from 'chai'
 import { compile } from '@aldea/compiler'
-import { WasmInstance } from '../src/wasm-instance.js'
+import { WasmContainer } from '../src/wasm-container.js'
 import {TxExecution} from "../src/tx-execution.js";
 import {VM, Storage, MomentClock} from "../src/index.js";
 import {Tx, abiFromBin, BCS, base16} from "@aldea/core";
@@ -8,11 +8,11 @@ import {JigRef} from "../src/jig-ref.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import {hash} from "@aldea/core/support/blake3";
 
-async function compileToWasm(src: string, id: Uint8Array = new Uint8Array([0, 0, 0, 0])): Promise<WasmInstance> {
+async function compileToWasm(src: string, id: Uint8Array = new Uint8Array([0, 0, 0, 0])): Promise<WasmContainer> {
   try {
     const { output } = await compile(src)
     const module = new WebAssembly.Module(output.wasm)
-    return new WasmInstance(module, abiFromBin(output.abi), id)
+    return new WasmContainer(module, abiFromBin(output.abi), id)
   } catch (e: any) {
     if (e.stderr) { console.log(e.stderr.toString()) }
     throw e

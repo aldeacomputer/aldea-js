@@ -16,7 +16,7 @@ import {data as rawDocs} from './builtins/coin.docs.json.js'
 import {data as rawSource} from './builtins/coin.source.js'
 import {PkgRepository} from "./state-interfaces.js";
 import {SerializedLock} from "./locks/serialized-lock.js";
-import {LockType} from "./wasm-instance.js";
+import {LockType} from "./wasm-container.js";
 
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([

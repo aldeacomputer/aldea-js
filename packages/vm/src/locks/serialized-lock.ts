@@ -1,5 +1,5 @@
 import {Address, Lock as SdkLock, Pointer} from '@aldea/core'
-import {LockType} from "../wasm-instance.js";
+import {LockType} from "../wasm-container.js";
 import {Lock} from './lock.js'
 import {UserLock} from "./user-lock.js";
 import {JigLock} from "./jig-lock.js";

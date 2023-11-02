@@ -9,7 +9,7 @@ import {BCS, Pointer, PrivKey, ref, Tx, ed25519} from "@aldea/core";
 import {SignInstruction} from "@aldea/core/instructions";
 import { Abi } from '@aldea/core/abi';
 import {ExecutionError, PermissionError} from "../src/errors.js";
-import {LockType} from "../src/wasm-instance.js";
+import {LockType} from "../src/wasm-container.js";
 import {ExecutionResult} from "../src/execution-result.js";
 import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
 import {buildVm, emptyExecFactoryFactory} from "./util.js";

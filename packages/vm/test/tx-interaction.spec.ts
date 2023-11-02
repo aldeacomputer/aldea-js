@@ -3,7 +3,7 @@ import { Abi } from "@aldea/core/abi";
 import {Clock, Storage, VM} from "../src/index.js";
 import {expect} from "chai";
 import {ExecutionError, PermissionError} from "../src/errors.js";
-import {LockType} from "../src/wasm-instance.js";
+import {LockType} from "../src/wasm-container.js";
 import {TxBuilder} from "./tx-builder.js";
 import {buildVm} from "./util.js";
 

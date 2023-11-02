@@ -6,7 +6,7 @@ import {TxContext} from "./tx-context.js";
 import {JigState} from "../jig-state.js";
 import {PkgData} from "../storage.js";
 import {VM} from "../vm.js";
-import {WasmInstance} from "../wasm-instance.js";
+import {WasmContainer} from "../wasm-container.js";
 
 
 const cmpBuff = (buff1: Uint8Array, buff2: Uint8Array): number => {
@@ -80,7 +80,7 @@ export class ExTxExecContext implements TxContext {
     return this.exTx.tx.hash;
   }
 
-  wasmFromPkgId(pkgId: Uint8Array): WasmInstance {
+  wasmFromPkgId(pkgId: Uint8Array): WasmContainer {
     return this.pkgs.wasmForPackageId(pkgId);
   }
 }

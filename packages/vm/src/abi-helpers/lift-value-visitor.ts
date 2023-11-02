@@ -8,7 +8,7 @@ import {
   TypeNode,
 } from "@aldea/core/abi";
 import {AbiTraveler} from "./abi-traveler.js";
-import {WasmInstance} from "../wasm-instance.js";
+import {WasmContainer} from "../wasm-container.js";
 import {WasmPointer} from "../arg-reader.js";
 import {
   Externref,
@@ -23,10 +23,10 @@ import {AbiAccess} from "./abi-access.js";
 
 
 export class LiftValueVisitor extends AbiTraveler<any> {
-  instance: WasmInstance
+  instance: WasmContainer
   ptr: WasmPointer
 
-  constructor(abi: AbiAccess, inst: WasmInstance, ptr: WasmPointer) {
+  constructor(abi: AbiAccess, inst: WasmContainer, ptr: WasmPointer) {
     super(abi)
     this.instance = inst
     this.ptr = ptr

@@ -4,7 +4,7 @@ import {VM} from "../vm.js";
 import {Clock} from "../clock.js";
 import {JigState} from "../jig-state.js";
 import {ExecutionError} from "../errors.js";
-import {WasmInstance} from "../wasm-instance.js";
+import {WasmContainer} from "../wasm-container.js";
 import {PkgData, Storage} from "../storage.js";
 import moment from "moment/moment.js";
 import {TxContext} from "./tx-context.js";
@@ -43,7 +43,7 @@ export class StorageTxContext implements TxContext {
     return this.states.byOrigin(origin).orElse(() => { throw new ExecutionError(`unknown jig: ${origin.toString()}`)})
   }
 
-  wasmFromPkgId (pkgId: Uint8Array): WasmInstance {
+  wasmFromPkgId (pkgId: Uint8Array): WasmContainer {
     return this.pkgs.wasmForPackageId(pkgId)
   }
 

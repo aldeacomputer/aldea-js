@@ -5,7 +5,7 @@ import {TxExecution} from "../src/tx-execution.js";
 import {ExtendedTx} from "../src/index.js";
 import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
 import {expect} from "chai";
-import {WasmInstance} from "../src/wasm-instance.js";
+import {WasmContainer} from "../src/wasm-container.js";
 import {JigState} from "../src/jig-state.js";
 import { Abi } from "@aldea/core/abi";
 import {
@@ -91,7 +91,7 @@ describe('exec from inputs', () => {
 
     // now exec with no context other than the package code
     const justFlockAndCoinPkg = {
-      wasmForPackageId(moduleId: Uint8Array): WasmInstance {
+      wasmForPackageId(moduleId: Uint8Array): WasmContainer {
         if (Buffer.compare(moduleId, modIdFor('flock'))) {
           return storage.wasmForPackageId(moduleId)
         } else if ( Buffer.compare(moduleId, new Uint8Array(Buffer.alloc(32).fill(0))) ) {

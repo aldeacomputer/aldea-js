@@ -2,7 +2,7 @@ import {InstructionRef} from "@aldea/core";
 import {TypeNode} from "@aldea/core/abi";
 import {ExecutionError} from "./errors.js";
 import {JigRef} from "./jig-ref.js";
-import {WasmInstance} from "./wasm-instance.js";
+import {WasmContainer} from "./wasm-container.js";
 
 export function isInstructionRef(obj: Object): boolean {
   // This is a little hack to avoid having issues when 2 different builds are used at the same time.
@@ -19,7 +19,7 @@ export abstract class StatementResult {
 
   abstract get value(): any
 
-  abstract get asInstance(): WasmInstance
+  abstract get asInstance(): WasmContainer
 
   abstract asJig(): JigRef
 
@@ -29,9 +29,9 @@ export abstract class StatementResult {
 }
 
 export class WasmStatementResult extends StatementResult {
-  private readonly _instance: WasmInstance;
+  private readonly _instance: WasmContainer;
 
-  constructor(idx: number, instance: WasmInstance) {
+  constructor(idx: number, instance: WasmContainer) {
     super(idx)
     this._instance = instance
   }
@@ -48,7 +48,7 @@ export class WasmStatementResult extends StatementResult {
     throw new ExecutionError('statement is not a value');
   }
 
-  get asInstance(): WasmInstance {
+  get asInstance(): WasmContainer {
     return this._instance;
   }
 }
@@ -56,9 +56,9 @@ export class WasmStatementResult extends StatementResult {
 export class ValueStatementResult extends StatementResult {
   abiNode: TypeNode
   value: any
-  wasm: WasmInstance
+  wasm: WasmContainer
 
-  constructor(idx: number, node: TypeNode, value: any, wasm: WasmInstance) {
+  constructor(idx: number, node: TypeNode, value: any, wasm: WasmContainer) {
     super(idx)
     this.abiNode = node
     this.value = value
@@ -73,7 +73,7 @@ export class ValueStatementResult extends StatementResult {
     }
   }
 
-  get asInstance(): WasmInstance {
+  get asInstance(): WasmContainer {
     throw new ExecutionError('statement is not a wasm instance');
   }
 }
@@ -87,7 +87,7 @@ export class EmptyStatementResult extends StatementResult {
     throw new ExecutionError('wrong index')
   }
 
-  get asInstance(): WasmInstance {
+  get asInstance(): WasmContainer {
     throw new ExecutionError('wrong index')
   }
 

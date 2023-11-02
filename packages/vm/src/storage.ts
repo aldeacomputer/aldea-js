@@ -2,7 +2,7 @@ import {Address, base16, Pointer} from "@aldea/core";
 import {Abi} from "@aldea/core/abi";
 import {JigState} from './jig-state.js';
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
-import {LockType, WasmInstance} from "./wasm-instance.js";
+import {LockType, WasmContainer} from "./wasm-container.js";
 import {Option} from "./support/option.js";
 import {PkgRepository, StateProvider} from "./state-interfaces.js";
 
@@ -178,8 +178,8 @@ export class Storage implements StateProvider, PkgRepository {
     return this.getJigStateByOrigin(origin);
   }
 
-  wasmForPackageId(moduleId: Uint8Array): WasmInstance {
+  wasmForPackageId(moduleId: Uint8Array): WasmContainer {
     let mod = this.getModule(moduleId)
-    return new WasmInstance(mod.mod, mod.abi, mod.id);
+    return new WasmContainer(mod.mod, mod.abi, mod.id);
   }
 }
