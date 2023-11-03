@@ -114,14 +114,24 @@ declare module 'aldea/auth' {
 }
 declare module 'aldea/coin' {
 	import { __ProxyJig } from 'aldea/jig';
+	export interface Fungible {
+	    amount: u64;
+	    send(amount: u64): Fungible;
+	    combine(tokens: Fungible[]): Fungible;
+	}
+	export class __ProxyFungible extends __ProxyJig implements Jig, Fungible {
+	    get amount(): u64;
+	    send(amount: u64): Fungible;
+	    combine(tokens: Fungible[]): Fungible;
+	}
 	/**
 	 * Coin class
 	 *
 	 * Built in Jig that proxies calls to the VM for handling.
 	 */
-	export class Coin extends __ProxyJig {
+	export class Coin extends __ProxyJig implements Fungible {
 	    constructor();
-	    get motos(): u64;
+	    get amount(): u64;
 	    send(motos: u64): Coin;
 	    combine(coins: Coin[]): Coin;
 	}
@@ -322,10 +332,18 @@ declare class Jig {
   $output: import('aldea/output').Output;
 }
 
+/** Built in Fungible interface */
+declare interface Fungible {
+  amount: u64;
+  send(amount: u64): Fungible;
+  combine(coins: Fungible[]): Fungible;
+}
+
 /** Built in Coin remote jig */
-declare class Coin extends Jig {
-  get motos(): u64;
-  send(motos: u64): Coin;
+declare class Coin extends Jig implements Fungible {
+  amount: u64;
+  constructor(amount: u64);
+  send(amount: u64): Coin;
   combine(coins: Coin[]): Coin;
 }
 
@@ -333,6 +351,7 @@ declare class Coin extends Jig {
 declare const caller: typeof import('aldea/caller').caller;
 
 /** BigInt */
+type BigInt = import('vendor/big-int').BigInt
 declare const BigInt: typeof import('vendor/big-int').BigInt;
 
 declare namespace console {

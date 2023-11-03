@@ -170,6 +170,9 @@ export class TransformGraph {
 
       this.exposedTypes.forEach(whiteListType)
 
+      // Build blacklist
+      const blacklist = ['Jig', 'Fungible']
+
       // Build export list
       const exportList: string[] = []
       this.exports
@@ -191,7 +194,7 @@ export class TransformGraph {
         // whitelisted names go in as they are
         if (
           whitelist.includes(name) &&
-          name !== 'Jig' &&
+          !blacklist.includes(name) &&
           !exportList.includes(name) &&
           !interfaceList.includes(name)
         ) {
@@ -214,6 +217,10 @@ export class TransformGraph {
           if (exportList.includes(pname) || interfaceList.includes(pname)) {
             arr.push({ id, name: pname })
           }
+        }
+        // special rule to ensure the proxy fungible id is inserted if fungible is used
+        if (name === '__ProxyFungible' && this.exposedTypes.has('Fungible')) {
+          arr.push({ id, name: 'Fungible' })
         }
         return arr
       }, []).sort((a, b) => a.id - b.id)

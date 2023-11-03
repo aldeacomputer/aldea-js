@@ -7,7 +7,7 @@ export {
 } from './aldea/imports'
 
 export { Jig, JigInitParams, __LocalJig, __ProxyJig } from './aldea/jig'
-export { Coin } from './aldea/coin'
+export { Coin, Fungible, __ProxyFungible } from './aldea/coin'
 export { caller } from './aldea/caller'
 export { __ArgWriter } from './aldea/arg-writer'
 

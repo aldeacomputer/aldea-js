@@ -6,10 +6,18 @@ declare class Jig {
   $output: import('aldea/output').Output;
 }
 
+/** Built in Fungible interface */
+declare interface Fungible {
+  amount: u64;
+  send(amount: u64): Fungible;
+  combine(coins: Fungible[]): Fungible;
+}
+
 /** Built in Coin remote jig */
-declare class Coin extends Jig {
-  get motos(): u64;
-  send(motos: u64): Coin;
+declare class Coin extends Jig implements Fungible {
+  amount: u64;
+  constructor(amount: u64);
+  send(amount: u64): Coin;
   combine(coins: Coin[]): Coin;
 }
 
@@ -17,6 +25,7 @@ declare class Coin extends Jig {
 declare const caller: typeof import('aldea/caller').caller;
 
 /** BigInt */
+type BigInt = import('vendor/big-int').BigInt
 declare const BigInt: typeof import('vendor/big-int').BigInt;
 
 declare namespace console {

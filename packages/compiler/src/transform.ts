@@ -187,6 +187,8 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
         }
       })
     })
+
+    writeGlobalTypeIds($ctx)
   }
 
   /**
@@ -493,6 +495,17 @@ function complexTypeSetters(ctx: TransformGraph): void {
     )
     ctx.entries[0].source.statements.push(...src.statements)
   }
+}
+
+/**
+ * Ensures type IDs get compiled into the ABI
+ */
+function writeGlobalTypeIds(ctx: TransformGraph): void {
+  const code = `
+  idof<__ProxyFungible>()
+  `.trim()
+  const src = ctx.parse(code, ctx.entries[0].source.normalizedPath)
+  ctx.entries[0].source.statements.push(...src.statements)
 }
 
 /**
