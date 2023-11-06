@@ -6,7 +6,6 @@ import {
   FunctionDeclaration,
   IdentifierExpression,
   InstanceOfExpression,
-  MethodDeclaration,
   Module,
   NamedTypeNode,
   NewExpression,
@@ -30,7 +29,6 @@ import { createDocs } from './transform/docs.js'
 import { filterAST, isConstructor, isProtected, isPublic } from './transform/filters.js'
 
 import {
-  writeClass,
   writeJigInterface,
   writeJigLocalClass,
   writeJigRemoteClass,
@@ -83,7 +81,6 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
     $ctx.exports.forEach(ex => {
       switch (ex.code.abiCodeKind) {
         case CodeKind.CLASS:
-          ensureJigConstructor(ex.code as CodeNode<ClassDeclaration>)
           jigToInterface(ex.code as CodeNode<ClassDeclaration>)
           jigToLocalClass(ex.code as CodeNode<ClassDeclaration>)
           jigToRemoteClass(ex.code as CodeNode<ClassDeclaration>)
@@ -106,7 +103,6 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
     $ctx.imports.forEach(im => {
       switch (im.code.abiCodeKind) {
         case CodeKind.CLASS:
-          //ensureJigConstructor(im.code as CodeNode<ClassDeclaration>)
           importToRemoteClass(im.code as CodeNode<ClassDeclaration>, im.pkgId!)
           dropDeclaration(im.code)
           break
@@ -228,23 +224,6 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
 // --
 
 /**
- * Ensures a constructor exists (if not, it adds one to the code and the ABI).
- */
-function ensureJigConstructor(code: CodeNode<ClassDeclaration>): void {
-  const abiNode = code.abiNode as ClassNode
-  // ensure a constructor exists
-  if (!code.node.members.find(n => n.kind === NodeKind.MethodDeclaration && isConstructor(n.flags))) {
-    const source = code.node.range.source
-    const ts = writeClass(abiNode)
-    const src = code.src.ctx.parse(ts, source.normalizedPath)
-    const node = (src.statements[0] as ClassDeclaration).members[0] as MethodDeclaration
-    const idx = Math.max(0, source.statements.findIndex(n => n.kind === NodeKind.MethodDeclaration))
-    // insert compiled code and constructor into transform ctx
-    code.node.members.splice(idx, 0, node)
-  }
-}
-
-/**
  * Transforms the given jig class to an interface.
  */
 function jigToInterface(code: CodeNode<ClassDeclaration>): void {
@@ -256,7 +235,7 @@ function jigToInterface(code: CodeNode<ClassDeclaration>): void {
   const fields = abiNode.fields.filter(n => !parentFields.includes(n.name))
 
   const methods = abiNode.methods.filter(n => {
-    return n.kind >= MethodKind.PUBLIC && !parentMethods.includes(n.name)
+    return n.name !== 'constructor' && !parentMethods.includes(n.name)
   })
 
   const source = code.node.range.source

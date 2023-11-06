@@ -8,24 +8,6 @@ test.beforeEach(t => {
   t.context.transform = new Transform()
 })
 
-test('afterParse() adds constructor if not defined', async t => {
-  const mock = await mockProgram(`
-  export class Test extends Jig {
-  }`)
-
-  // Initially one memeber in class
-  t.is(mock.classes[0].members.length, 0)
-
-  t.context.transform.afterParse(mock.parser)
-  t.is(mock.classes[0].members.length, 1)
-  t.is(
-    ASTBuilder.build(mock.classes[0].members[0]),
-    'constructor() {\n'+
-    '  super();\n'+
-    '}'
-  )
-})
-
 test('afterParse() creates interface for each jig class', async t => {
   const mock = await mockProgram(`export class Test extends Jig {}`)
 
@@ -93,7 +75,7 @@ test('afterParse() local jig mirrors real jig, remote jig has implements public 
   }`)
 
   t.context.transform.afterParse(mock.parser)
-  t.is(mock.classes[0].members.length, 6)
+  t.is(mock.classes[0].members.length, 5)
   t.is(mock.classes[1].members.length, 5)
   t.regex(
     ASTBuilder.build(mock.classes[1].members[0]),
@@ -188,7 +170,7 @@ test('afterParse() replaces imported ambient class with concrete implementation'
   
   t.context.transform.afterParse(mock.parser)
   // after parse ambiant class is replaced with concrete implementation
-  t.is(mock.source.statements.length, 2)
+  t.is(mock.source.statements.length, 3)
   t.false(isAmbient(mock.classes[0].flags))
   t.regex(
     ASTBuilder.build(mock.classes[0]),

@@ -35,7 +35,7 @@
           }
         },
         {
-          "kind": 1,
+          "kind": 0,
           "name": "rename",
           "args": [
             {

@@ -145,15 +145,16 @@ function toClassNode(
     }
   })
 
-  const methods = node.members
-    .filter(n => {
-      return n.kind === NodeKind.MethodDeclaration && !isStatic(n.flags) && !isPrivate(n.flags)
-    })
+  const methodNodes = node.members.filter(n => n.kind === NodeKind.MethodDeclaration)
+  const hasConstructor = methodNodes.some(n => isConstructor(n.flags))
+
+  const methods = methodNodes
+    .filter(n => !isStatic(n.flags) && !isPrivate(n.flags))
     .map(n => toMethodNode(n as MethodDeclaration))
 
-  if (!methods.some(m => m.kind === MethodKind.CONSTRUCTOR)) {
+  if (!hasConstructor) {
     methods.unshift({
-      kind: MethodKind.CONSTRUCTOR,
+      kind: MethodKind.PUBLIC,
       name: 'constructor',
       args: [],
       rtype: null,
@@ -220,29 +221,11 @@ function toFieldNode(node: FieldDeclaration): FieldNode {
 }
 
 function toMethodNode(node: MethodDeclaration): MethodNode {
-  let kind: MethodKind;
-  switch (true) {
-    case isConstructor(node.flags):
-      kind = MethodKind.CONSTRUCTOR
-      break
-    case isProtected(node.flags):
-      kind = MethodKind.PROTECTED
-      break
-    case isInstance(node.flags):
-    default:
-      kind = MethodKind.PUBLIC
-  }
-
-  const rtype = kind === MethodKind.CONSTRUCTOR ?
-    null :
-    toTypeNode(node.signature.returnType as NamedTypeNode);
-
-  return {
-    kind,
-    name: node.name.text,
-    args: node.signature.parameters.map(n => toArgNode(n as ParameterNode)),
-    rtype,
-  }
+  const kind = isProtected(node.flags) ? MethodKind.PROTECTED : MethodKind.PUBLIC
+  const name = node.name.text
+  const args = node.signature.parameters.map(n => toArgNode(n as ParameterNode))
+  const rtype = name === 'constructor' ? null : toTypeNode(node.signature.returnType as NamedTypeNode)
+  return { kind, name, args, rtype }
 }
 
 function toArgNode(node: ParameterNode): ArgNode {

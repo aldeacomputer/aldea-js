@@ -786,8 +786,7 @@ function isAllowedLiteralOther(node: Expression | null): Boolean {
 // Returns true if node has flags for given method kind
 function nodeHasMethodFlags(node: MethodDeclaration, kind: MethodKind): boolean {
   switch (kind) {
-    case MethodKind.CONSTRUCTOR: return isConstructor(node.flags)
-    case MethodKind.PUBLIC: return isInstance(node.flags)
+    case MethodKind.PUBLIC: return isConstructor(node.flags) || isInstance(node.flags)
     case MethodKind.PROTECTED: return isProtected(node.flags)
     default: return false
   }

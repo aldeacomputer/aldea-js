@@ -1,5 +1,6 @@
 import test from 'ava'
 import { abiFromBin } from '@aldea/core'
+import { MethodKind } from '@aldea/core/abi'
 import { compile } from '../dist/compiler.js'
 
 test('compiles single source', async t => {
@@ -129,4 +130,49 @@ test('imported plain objects handled', async t => {
   t.is(abi.imports.map(i => abi.defs[i] )[0].name, 'A')
   t.is(abi.exports.length, 1)
   t.is(abi.exports.map(i => abi.defs[i] )[0].name, 'B')
+})
+
+test('protected constructors appear in ABI as protected', async t => {
+  const src = `
+  export class Foo extends Jig {
+    protected constructor(
+      public bar: string
+    ) {
+      super()
+    }
+
+    foo(): string {
+      return this.bar
+    }
+  }
+  `.trim()
+  
+  const res = await compile(src)
+  const abi = abiFromBin(res.output.abi)
+
+  t.is(abi.exports.map(i => abi.defs[i] )[0].methods.length, 2)
+  t.is(abi.exports.map(i => abi.defs[i] )[0].methods[0].name, 'constructor')
+  t.is(abi.exports.map(i => abi.defs[i] )[0].methods[0].kind, MethodKind.PROTECTED)
+})
+
+test('private constructors omitted from ABI', async t => {
+  const src = `
+  export class Foo extends Jig {
+    private constructor(
+      public bar: string
+    ) {
+      super()
+    }
+
+    foo(): string {
+      return this.bar
+    }
+  }
+  `.trim()
+  
+  const res = await compile(src)
+  const abi = abiFromBin(res.output.abi)
+
+  t.is(abi.exports.map(i => abi.defs[i] )[0].methods.length, 1)
+  t.not(abi.exports.map(i => abi.defs[i] )[0].methods[0].name, 'constructor')
 })

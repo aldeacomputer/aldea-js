@@ -37,7 +37,7 @@
           "rtype": null
         },
         {
-          "kind": 2,
+          "kind": 1,
           "name": "add",
           "args": [
             {
@@ -64,7 +64,7 @@
           }
         },
         {
-          "kind": 1,
+          "kind": 0,
           "name": "get",
           "args": [
             {

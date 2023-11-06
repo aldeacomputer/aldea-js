@@ -34,7 +34,7 @@
           "rtype": null
         },
         {
-          "kind": 1,
+          "kind": 0,
           "name": "m1",
           "args": [],
           "rtype": {
@@ -44,7 +44,7 @@
           }
         },
         {
-          "kind": 1,
+          "kind": 0,
           "name": "m2",
           "args": [],
           "rtype": {

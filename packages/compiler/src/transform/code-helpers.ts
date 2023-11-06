@@ -5,34 +5,11 @@ import {
   FieldNode,
   FunctionNode,
   InterfaceNode,
-  MethodKind,
   MethodNode,
   ObjectNode,
   TypeNode,
   normalizeTypeName
 } from '@aldea/core/abi'
-
-/**
- * Writes a plain class declaration around a empty constructor method.
- */
-export function writeClass(obj: ClassNode): string {
-  return `
-  class ${obj.name} {
-    ${ writeConstructor(obj) }
-  }
-  `.trim()
-}
-
-/**
- * Writes a plain constructor method.
- */
-export function writeConstructor(obj: ClassNode): string {
-  return `
-  constructor() {
-    super()
-  }
-  `.trim()
-}
 
 /**
  * Writes an interface for the given jig class.
@@ -119,7 +96,7 @@ export function writeJigBinding(
   method: MethodNode,
   obj: ClassNode,
 ): string {
-  const isConstructor = method.kind === MethodKind.CONSTRUCTOR
+  const isConstructor = method.name === 'constructor'
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
   const rtype = isConstructor ? `${obj.name}` : normalizeTypeName(method.rtype)
   const callable = isConstructor ? `new __Local${obj.name}` : `ctx.${method.name}`
@@ -292,7 +269,7 @@ export function writeRemoteGetter(field: FieldNode): string {
  * - For instance methods returns the result of `__vm_call_method`.
  */
 export function writeRemoteMethod(method: MethodNode, obj: ClassNode, pkg?: string): string {
-  const isConstructor = method.kind === MethodKind.CONSTRUCTOR
+  const isConstructor = method.name === 'constructor'
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
 
   if (isConstructor) {

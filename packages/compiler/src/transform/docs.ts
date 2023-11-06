@@ -81,8 +81,8 @@ export function createDocs(ctx: TransformGraph): Partial<Docs> {
 
     if ([CodeKind.CLASS, CodeKind.INTERFACE, CodeKind.OBJECT].includes(abiKind)) {
       abiNode.fields.forEach(n => {
-        const node = members.find(m => m.kind === NodeKind.FieldDeclaration && m.name.text === n.name)!
-        parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
+        const node = members.find(m => m.kind === NodeKind.FieldDeclaration && m.name.text === n.name)
+        if (node) parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
       })
     }
 
@@ -90,14 +90,14 @@ export function createDocs(ctx: TransformGraph): Partial<Docs> {
       abiNode.methods.forEach(n => {
         if (ex.code.node.kind === NodeKind.ClassDeclaration) {
           const isFlagged = (flags: number) => {
-            return (<MethodNode>n).kind === MethodKind.CONSTRUCTOR ? isConstructor(flags) : isInstance(flags)
+            return (<MethodNode>n).name === 'constructor' ? isConstructor(flags) : isInstance(flags)
           }
           
-          const node = members.find(m => m.kind === NodeKind.MethodDeclaration && isFlagged(m.flags) && m.name.text === n.name)!
-          parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
+          const node = members.find(m => m.kind === NodeKind.MethodDeclaration && isFlagged(m.flags) && m.name.text === n.name)
+          if (node) parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
         } else {
-          const node = members.find(m => m.kind === NodeKind.MethodDeclaration && m.name.text === n.name)!
-          parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
+          const node = members.find(m => m.kind === NodeKind.MethodDeclaration && m.name.text === n.name)
+          if (node) parseCommentBlock(node, normalizeNodeName(n, abiNode), true)
         }
       })
     }

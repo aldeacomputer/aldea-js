@@ -113,11 +113,8 @@ function writeField(f: FieldNode): string {
 
 // Writes a method statement for the given MethodNode
 function writeMethod(m: MethodNode | FunctionNode): string {
-  const rtype = !('kind' in m) || m.kind !== MethodKind.CONSTRUCTOR ?
-    `: ${normalizeTypeName(m.rtype)}` :
-    ''
-
   const args = m.args.map(writeArg)
+  const rtype = m.name === 'constructor' ? '' : `: ${normalizeTypeName(m.rtype)}`
   return `${m.name}(${args.join(', ')})${rtype};`
 }
 
