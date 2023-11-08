@@ -164,4 +164,50 @@ describe('NewMemoryLower', () => {
     expect(arrBufReader.readU8()).to.eql(4)
     expect(arrBufReader.readU8()).to.eql(5)
   })
+
+  it('can lower array of u16', () => {
+    const buf = new BufWriter()
+    buf.writeULEB(5)
+    buf.writeU16(1)
+    buf.writeU16(2)
+    buf.writeU16(3)
+    buf.writeU16(4)
+    buf.writeU16(5)
+
+    const ty = new AbiType({ name: 'Array', args: [AbiType.fromName('u16')], nullable: false })
+    let ptr = target.lower(buf.data, ty)
+
+    const arrMem = container.mem.read(ptr, 16);
+    const arrMemReader = new BufReader(arrMem)
+    const arrBufPtr = WasmWord.fromNumber(arrMemReader.readU32())
+    expect(arrMemReader.readU32()).to.eql(arrBufPtr.toNumber())
+    expect(arrMemReader.readU32()).to.eql(10)
+    expect(arrMemReader.readU32()).to.eql(5)
+
+    const arrBufMem = container.mem.read(arrBufPtr, 10);
+    const arrBufReader = new BufReader(arrBufMem)
+    expect(arrBufReader.readU16()).to.eql(1)
+    expect(arrBufReader.readU16()).to.eql(2)
+    expect(arrBufReader.readU16()).to.eql(3)
+    expect(arrBufReader.readU16()).to.eql(4)
+    expect(arrBufReader.readU16()).to.eql(5)
+  })
+
+  it('can lower static array of u16', () => {
+    const buf = new BufWriter()
+    buf.writeULEB(2)
+    buf.writeU16(1)
+    buf.writeU16(2)
+
+    const ty = new AbiType({ name: 'StaticArray', args: [AbiType.fromName('u16')], nullable: false })
+    let ptr = target.lower(buf.data, ty)
+
+    let rtid = container.abi.rtidFromTypeNode(ty).get()
+    let objBuf = container.mem.read(ptr.minus(8), 12)
+    let objBufRead = new BufReader(objBuf)
+    expect(objBufRead.readU32()).to.eql(rtid.id)
+    expect(objBufRead.readU32()).to.eql(4)
+    expect(objBufRead.readU16()).to.eql(1)
+    expect(objBufRead.readU16()).to.eql(2)
+  })
 });

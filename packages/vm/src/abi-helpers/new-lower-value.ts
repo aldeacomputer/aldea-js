@@ -42,6 +42,8 @@ export class NewLowerValue {
         return WasmWord.fromNumber(reader.readF64())
       case 'Array':
         return this.lowerArray(reader, ty)
+      case 'StaticArray':
+        return this.lowerStaticArray(reader, ty)
       default:
         throw new Error(`unknown type: ${ty.name}`)
     }
@@ -73,6 +75,25 @@ export class NewLowerValue {
     }
 
     return headerPtr
+  }
+  private lowerStaticArray(reader: BufReader, ty: AbiType): WasmWord {
+    const rtId = this.container.abi.rtidFromTypeNode(ty).get()
+    const length = reader.readULEB()
+    const elemType = ty.args[0]
+    const bufSize = length * elemType.ownSize
+
+    const arrPtr = this.container.malloc(bufSize, rtId.id)
+
+    let offset = arrPtr
+    for (let pos = 0; pos < length; pos++) {
+      const elemPtr = this.lowerFromReader(reader, elemType)
+      let elemBuf = this.serializeWord(elemPtr, elemType)
+      offset = offset.align(elemType.ownSize)
+      this.container.mem.write(offset, elemBuf)
+      offset = offset.plus(elemType.ownSize)
+    }
+
+    return arrPtr
   }
 
   private serializeWord(word: WasmWord, ty: AbiType): Uint8Array {
