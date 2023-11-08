@@ -259,7 +259,7 @@ describe('NewMemoryLower', () => {
       const bufContent = typedArray;
       buf.writeBytes(new Uint8Array(bufContent.buffer))
 
-      const ty = AbiType.fromName('Int8Array')
+      const ty = AbiType.fromName(name)
       const ptr = target.lower(buf.data, ty)
 
       const rtId = container.abi.rtidFromTypeNode(ty).get()
@@ -271,5 +271,21 @@ describe('NewMemoryLower', () => {
       const contentMem = container.mem.read(bufPtr, bufContent.buffer.byteLength)
       expect(contentMem.readFixedBytes(bufContent.buffer.byteLength)).to.eql(new Uint8Array(bufContent.buffer))
     }
+  })
+
+  it('can lower strings', () => {
+    const buf = new BufWriter()
+    const aString = "this is a string";
+    buf.writeBytes(new Uint8Array(Buffer.from(aString)))
+
+    const ty = AbiType.fromName('string')
+    let ptr = target.lower(buf.data, ty)
+
+    let header = container.mem.read(ptr.minus(8), 8)
+    expect(header.readU32()).to.eql(1)
+    const bufStrLength = header.readU32();
+    expect(bufStrLength).to.eql(aString.length * 2) // Saved as utf-16
+    const buffer = container.mem.extract(ptr, bufStrLength)
+    expect(Buffer.from(buffer).toString('utf16le')).to.eql(aString)
   })
 });

@@ -106,5 +106,6 @@ export function emptyTn(name: string): TypeNode {
 }
 
 export const BUF_RTID = 0
+export const STRING_RTID = 1
 export const ARR_HEADER_LENGTH = 16;
 export const TYPED_ARR_HEADER_LENGTH = 12;

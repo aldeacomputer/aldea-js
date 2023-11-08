@@ -2,7 +2,7 @@ import {WasmContainer} from "../wasm-container.js";
 import {WasmWord} from "../wasm-word.js";
 import {BufReader, BufWriter} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
-import {ARR_HEADER_LENGTH, BUF_RTID, TYPED_ARR_HEADER_LENGTH} from "./well-known-abi-nodes.js";
+import {ARR_HEADER_LENGTH, BUF_RTID, STRING_RTID, TYPED_ARR_HEADER_LENGTH} from "./well-known-abi-nodes.js";
 
 export class NewLowerValue {
   private container: WasmContainer;
@@ -47,8 +47,18 @@ export class NewLowerValue {
       case 'ArrayBuffer':
         return this.lowerArrayBuffer(reader)
       case 'Uint8Array':
+      case 'Uint16Array':
+      case 'Uint32Array':
+      case 'Uint64Array':
       case 'Int8Array':
+      case 'Int16Array':
+      case 'Int32Array':
+      case 'Int64Array':
+      case 'Float32Array':
+      case 'Float64Array':
         return this.lowerTypedArray(reader, ty)
+      case 'string':
+        return this.lowerString(reader)
       default:
         throw new Error(`unknown type: ${ty.name}`)
     }
@@ -123,6 +133,16 @@ export class NewLowerValue {
     this.container.mem.write(bufPtr, buf)
 
     return headerPtr
+  }
+
+  private lowerString(reader: BufReader): WasmWord {
+    const buf = reader.readBytes()
+    const string = Buffer.from(buf).toString('utf8')
+    const utf16Buf = Buffer.from(string, 'utf16le')
+
+    const ptr = this.container.malloc(utf16Buf.byteLength, STRING_RTID)
+    this.container.mem.write(ptr, utf16Buf)
+    return ptr
   }
 
   private serializeWord(word: WasmWord, ty: AbiType): Uint8Array {
