@@ -142,21 +142,21 @@ describe('NewMemoryLower', () => {
 
     const ty = new AbiType({ name: 'Array', args: [AbiType.fromName('u8')], nullable: false })
     let ptr = target.lower(buf.data, ty)
-    let objHeader = container.mem.read(ptr.minus(8), 8);
+    let objHeader = container.mem.extract(ptr.minus(8), 8);
 
     let rtid = container.abi.rtIdByName('Array<u8>')
     const objHeaderReader = new BufReader(objHeader)
     expect(objHeaderReader.readU32()).to.eql(rtid.get().id)
     expect(objHeaderReader.readU32()).to.eql(16)
 
-    const arrMem = container.mem.read(ptr, 16);
+    const arrMem = container.mem.extract(ptr, 16);
     const arrMemReader = new BufReader(arrMem)
     const arrBufPtr = WasmWord.fromNumber(arrMemReader.readU32())
     expect(arrMemReader.readU32()).to.eql(arrBufPtr.toNumber())
     expect(arrMemReader.readU32()).to.eql(5)
     expect(arrMemReader.readU32()).to.eql(5)
 
-    const arrBufMem = container.mem.read(arrBufPtr, 5);
+    const arrBufMem = container.mem.extract(arrBufPtr, 5);
     const arrBufReader = new BufReader(arrBufMem)
     expect(arrBufReader.readU8()).to.eql(1)
     expect(arrBufReader.readU8()).to.eql(2)
@@ -177,14 +177,14 @@ describe('NewMemoryLower', () => {
     const ty = new AbiType({ name: 'Array', args: [AbiType.fromName('u16')], nullable: false })
     let ptr = target.lower(buf.data, ty)
 
-    const arrMem = container.mem.read(ptr, 16);
+    const arrMem = container.mem.extract(ptr, 16);
     const arrMemReader = new BufReader(arrMem)
     const arrBufPtr = WasmWord.fromNumber(arrMemReader.readU32())
     expect(arrMemReader.readU32()).to.eql(arrBufPtr.toNumber())
     expect(arrMemReader.readU32()).to.eql(10)
     expect(arrMemReader.readU32()).to.eql(5)
 
-    const arrBufMem = container.mem.read(arrBufPtr, 10);
+    const arrBufMem = container.mem.extract(arrBufPtr, 10);
     const arrBufReader = new BufReader(arrBufMem)
     expect(arrBufReader.readU16()).to.eql(1)
     expect(arrBufReader.readU16()).to.eql(2)
@@ -203,11 +203,73 @@ describe('NewMemoryLower', () => {
     let ptr = target.lower(buf.data, ty)
 
     let rtid = container.abi.rtidFromTypeNode(ty).get()
-    let objBuf = container.mem.read(ptr.minus(8), 12)
+    let objBuf = container.mem.extract(ptr.minus(8), 12)
     let objBufRead = new BufReader(objBuf)
     expect(objBufRead.readU32()).to.eql(rtid.id)
     expect(objBufRead.readU32()).to.eql(4)
     expect(objBufRead.readU16()).to.eql(1)
     expect(objBufRead.readU16()).to.eql(2)
+  })
+
+  it('can lower ArrayBuffer', () => {
+    const buf = new BufWriter()
+    const bufContent = new Uint8Array([0,1,2,3,4,5,6,7,8,9]);
+    buf.writeBytes(bufContent)
+
+    const ty = AbiType.fromName('ArrayBuffer')
+    let ptr = target.lower(buf.data, ty)
+
+    let objBuf = container.mem.extract(ptr.minus(8), 18)
+    let objBufRead = new BufReader(objBuf)
+    expect(objBufRead.readU32()).to.eql(0)
+    expect(objBufRead.readU32()).to.eql(bufContent.byteLength)
+    expect(objBufRead.readFixedBytes(10)).to.eql(bufContent)
+  })
+
+
+  it('can lower typed arrays', () => {
+    type TypedArray = Uint8Array |
+      Uint16Array |
+      Uint32Array |
+      BigInt64Array |
+      Int8Array |
+      Int16Array |
+      Int32Array |
+      BigInt64Array |
+      Float32Array |
+      Float64Array
+
+    type TypedConstructorTuple = [TypedArray, string]
+
+    const typedArrays: TypedConstructorTuple[] = [
+      [new Uint8Array([1,2,3]), 'Uint8Array'],
+      [new Uint16Array([1,2,3]), 'Uint16Array'],
+      [new Uint32Array([1,2,3]), 'Uint32Array'],
+      [new BigInt64Array([1n,2n,3n]), 'Uint64Array'],
+      [new Int8Array([-1,-2,-3]), 'Int8Array'],
+      [new Int16Array([-1,-2,-3]), 'Int16Array'],
+      [new Int32Array([-1,-2,-3]), 'Int32Array'],
+      [new BigInt64Array([-1n, -2n, -3n]), 'Int64Array'],
+      [new Float32Array([1.1, 1.2, 1.3]), 'Float32Array'],
+      [new Float64Array([1.1, 1.2, 1.3]), 'Float64Array']
+    ]
+
+    for (const [typedArray, name] of typedArrays) {
+      const buf = new BufWriter()
+      const bufContent = typedArray;
+      buf.writeBytes(new Uint8Array(bufContent.buffer))
+
+      const ty = AbiType.fromName('Int8Array')
+      const ptr = target.lower(buf.data, ty)
+
+      const rtId = container.abi.rtidFromTypeNode(ty).get()
+      const objBuf = container.mem.read(ptr.minus(8), 12)
+      expect(objBuf.readU32()).to.eql(rtId.id)
+      expect(objBuf.readU32()).to.eql(12)
+
+      const bufPtr = WasmWord.fromNumber(objBuf.readU32())
+      const contentMem = container.mem.read(bufPtr, bufContent.buffer.byteLength)
+      expect(contentMem.readFixedBytes(bufContent.buffer.byteLength)).to.eql(new Uint8Array(bufContent.buffer))
+    }
   })
 });

@@ -1,4 +1,5 @@
 import {WasmWord} from "./wasm-word.js";
+import {BufReader} from "@aldea/core";
 
 export class NewMemory {
   _mem: WebAssembly.Memory
@@ -25,7 +26,7 @@ export class NewMemory {
     view.set(data)
   }
 
-  read(ptr: WasmWord, length: number): Uint8Array {
+  extract(ptr: WasmWord, length: number): Uint8Array {
     let start = ptr.toNumber()
     if (start < 0) {
       throw new Error('Memory ptr should never be less than 0')
@@ -38,5 +39,9 @@ export class NewMemory {
     let response = new Uint8Array(length)
     response.set(new Uint8Array(this._mem.buffer, start, length))
     return response
+  }
+
+  read(ptr: WasmWord, length: number): BufReader {
+    return new BufReader(this.extract(ptr, length))
   }
 }

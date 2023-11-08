@@ -2,7 +2,7 @@ import {WasmContainer} from "../wasm-container.js";
 import {WasmWord} from "../wasm-word.js";
 import {BufReader, BufWriter} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
-import {ARR_HEADER_LENGTH, BUF_RTID} from "./well-known-abi-nodes.js";
+import {ARR_HEADER_LENGTH, BUF_RTID, TYPED_ARR_HEADER_LENGTH} from "./well-known-abi-nodes.js";
 
 export class NewLowerValue {
   private container: WasmContainer;
@@ -44,6 +44,11 @@ export class NewLowerValue {
         return this.lowerArray(reader, ty)
       case 'StaticArray':
         return this.lowerStaticArray(reader, ty)
+      case 'ArrayBuffer':
+        return this.lowerArrayBuffer(reader)
+      case 'Uint8Array':
+      case 'Int8Array':
+        return this.lowerTypedArray(reader, ty)
       default:
         throw new Error(`unknown type: ${ty.name}`)
     }
@@ -94,6 +99,30 @@ export class NewLowerValue {
     }
 
     return arrPtr
+  }
+
+  private lowerArrayBuffer (reader: BufReader): WasmWord {
+    const buf = reader.readBytes()
+    const ptr = this.container.malloc(buf.byteLength, BUF_RTID)
+    this.container.mem.write(ptr, buf)
+    return ptr
+  }
+
+  private lowerTypedArray(reader: BufReader, ty: AbiType): WasmWord {
+    const buf = reader.readBytes()
+
+    const rtId = this.container.abi.rtidFromTypeNode(ty).get()
+    const headerPtr = this.container.malloc(TYPED_ARR_HEADER_LENGTH, rtId.id)
+    const bufPtr = this.container.malloc(buf.byteLength, BUF_RTID)
+
+    let header = new BufWriter({ size: TYPED_ARR_HEADER_LENGTH })
+    header.writeU32(bufPtr.toNumber())
+    header.writeU32(bufPtr.toNumber())
+    header.writeU32(buf.byteLength)
+    this.container.mem.write(headerPtr, header.data)
+    this.container.mem.write(bufPtr, buf)
+
+    return headerPtr
   }
 
   private serializeWord(word: WasmWord, ty: AbiType): Uint8Array {
