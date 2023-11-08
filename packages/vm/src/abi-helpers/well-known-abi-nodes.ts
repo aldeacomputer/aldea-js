@@ -104,3 +104,5 @@ export const basicJigAbiNode: ObjectNode = {
 export function emptyTn(name: string): TypeNode {
   return { name, args: [], nullable: false }
 }
+
+export const BUF_RTID = 0

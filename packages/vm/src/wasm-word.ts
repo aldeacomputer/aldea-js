@@ -18,6 +18,28 @@ export class WasmWord {
   }
 
   static fromBigInt (bigint: bigint): WasmWord {
-    return new this(bigint);
+    return new this(bigint)
+  }
+
+  toBool (): boolean {
+    return this.toNumber() !== 0
+  }
+
+  plus(n: number): WasmWord {
+    return new WasmWord(this.toNumber() + n)
+  }
+
+  minus(n: bigint): WasmWord {
+    return new WasmWord(this.toBigInt() - n)
+  }
+
+  align (toSize: number): WasmWord {
+    const self = this.toNumber()
+    const rem = self % toSize
+    if (rem === 0) {
+      return this
+    } else {
+      return new WasmWord(self + toSize - rem)
+    }
   }
 }

@@ -20,9 +20,10 @@ import {
 import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
 import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
-import {MethodNodeWrapper} from "./abi-helpers/method-node-wrapper.js";
 import {AbiFunction} from "./abi-helpers/abi-helpers/abi-function.js";
 import {AbiMethod} from "./abi-helpers/abi-helpers/abi-class.js";
+import {NewMemory} from "./new-memory.js";
+import {WasmWord} from "./wasm-word.js";
 
 export enum LockType {
   FROZEN = -1,
@@ -61,12 +62,14 @@ export class WasmContainer {
   private module: WebAssembly.Module;
   private instance: WebAssembly.Instance;
   abi: AbiAccess;
+  private newMemory: NewMemory;
 
   constructor (module: WebAssembly.Module, abi: Abi, id: Uint8Array) {
     this.id = id
     this.abi = new AbiAccess(abi)
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
     this._currentExec = null
+    this.newMemory = new NewMemory(wasmMemory)
 
     const imports: any = {
       env: {
@@ -309,6 +312,10 @@ export class WasmContainer {
     this.memory = wasmMemory
   }
 
+  get mem(): NewMemory {
+    return this.newMemory
+  }
+
   get currentExec (): TxExecution {
     if (this._currentExec === null) { throw new Error('tx execution is not present')}
     return this._currentExec
@@ -488,5 +495,14 @@ export class WasmContainer {
 
   liftBasicJig(value: Internref): any {
     return this.extractValue(value.ptr, emptyTn('__Jig')).value
+  }
+
+  malloc (size: number, rtid: number): WasmWord {
+    const __new = this.instance.exports.__new;
+    if (!(__new instanceof Function)) {
+      throw new Error('__new should be an exported function')
+    }
+    const ptrNumber = __new(size, rtid)
+    return new WasmWord(ptrNumber)
   }
 }
