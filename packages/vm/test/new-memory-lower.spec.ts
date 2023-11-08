@@ -141,10 +141,11 @@ describe('NewMemoryLower', () => {
 
     const ty = new AbiType({ name: 'Array', args: [AbiType.fromName('u8')], nullable: false })
     let ptr = target.lower(buf.data, ty)
-    let objHeader = container.mem.read(ptr.minus(8n), 8);
+    let objHeader = container.mem.read(ptr.minus(8), 8);
 
     let rtid = container.abi.rtIdByName('Array<u8>')
     const objHeaderReader = new BufReader(objHeader)
     expect(objHeaderReader.readU32()).to.eql(rtid.get().id)
+    expect(objHeaderReader.readU32()).to.eql(16)
   })
 });

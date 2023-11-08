@@ -29,8 +29,8 @@ export class WasmWord {
     return new WasmWord(this.toNumber() + n)
   }
 
-  minus(n: bigint): WasmWord {
-    return new WasmWord(this.toBigInt() - n)
+  minus(n: number): WasmWord {
+    return new WasmWord(this.toNumber() - n)
   }
 
   align (toSize: number): WasmWord {

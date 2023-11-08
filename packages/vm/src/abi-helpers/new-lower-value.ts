@@ -2,7 +2,7 @@ import {WasmContainer} from "../wasm-container.js";
 import {WasmWord} from "../wasm-word.js";
 import {BufReader, BufWriter} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
-import {BUF_RTID} from "./well-known-abi-nodes.js";
+import {ARR_HEADER_LENGTH, BUF_RTID} from "./well-known-abi-nodes.js";
 
 export class NewLowerValue {
   private container: WasmContainer;
@@ -53,7 +53,7 @@ export class NewLowerValue {
     const elemType = ty.args[0]
     const bufSize = length * elemType.ownSize
 
-    const headerPtr = this.container.malloc(16, rtId.id)
+    const headerPtr = this.container.malloc(ARR_HEADER_LENGTH, rtId.id)
     const bufPtr = this.container.malloc(bufSize, BUF_RTID)
 
     const headerWriter = new BufWriter()
