@@ -31,10 +31,10 @@ export class AbiAccess {
   private rtids: TypeIdNode[]
   constructor(abi: Abi) {
     this.abi = abi
-    this._exports = this.abi.exports.map(e =>
-      new AbiExport(this.abi, e)
+    this._exports = this.abi.exports.map((_e, index) =>
+      new AbiExport(this.abi, index)
     )
-    this._imports = this.abi.imports.map(i => new AbiImport(abi, i))
+    this._imports = this.abi.imports.map((_i, index) => new AbiImport(abi, index))
     this.rtids = this.abi.typeIds
   }
 

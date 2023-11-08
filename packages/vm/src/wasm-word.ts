@@ -1,9 +1,7 @@
-
-
 export class WasmWord {
-  value: number | BigInt;
+  value: number | bigint;
 
-  constructor (value: number | BigInt) {
+  constructor (value: number | bigint) {
     this.value = value
   }
 
@@ -13,5 +11,13 @@ export class WasmWord {
 
   toNumber (): number {
     return Number(this.value)
+  }
+
+  toBigInt (): bigint {
+    return BigInt(this.value)
+  }
+
+  static fromBigInt (bigint: bigint): WasmWord {
+    return new this(bigint);
   }
 }

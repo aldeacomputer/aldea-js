@@ -83,11 +83,7 @@ export class WasmContainer {
         }
       },
       vm: {
-        // vm_constructor_end: (jigPtr: number, classNamePtr: number): void => {
-        //   const className = this.liftString(classNamePtr)
-        //   this.currentExec.constructorHandler(this, jigPtr, className)
-        // },
-        vm_jig_init: (): WasmPointer => {
+        jig_init: (): WasmPointer => {
           const nextOrigin = this.currentExec.createNextOrigin()
 
           return this.insertValue({
@@ -98,7 +94,7 @@ export class WasmContainer {
             lockData: new ArrayBuffer(0),
           }, jigInitParamsTypeNode)
         },
-        vm_jig_link: (jigPtr: number, rtid: number): WasmPointer =>  {
+        jig_link: (jigPtr: number, rtid: number): WasmPointer =>  {
           const nextOrigin = this.currentExec.createNextOrigin()
           let rtIdNode = this.abi.rtIdById(rtid)
               .expect(new Error(`Runtime id "${rtid}" not found in ${base16.encode(this.id)}`))
@@ -116,18 +112,11 @@ export class WasmContainer {
 
           return this.insertValue(new Pointer(this.id, abiClass.idx).toBytes(), emptyTn('ArrayBuffer'))
         },
-        // vm_local_call_start: (jigPtr: number, fnNamePtr: number): void => {
-        //   const fnName = this.liftString(fnNamePtr)
-        //   this.currentExec.localCallStartHandler(this, jigPtr, fnName)
-        // },
-        vm_jig_authcheck: (callerOriginPtr: number, check: AuthCheck) => {
+        jig_authcheck: (callerOriginPtr: number, check: AuthCheck) => {
           const callerOrigin = this.liftBuffer(callerOriginPtr)
           return this.currentExec.remoteAuthCheckHandler(Pointer.fromBytes(callerOrigin), check)
         },
-        // vm_local_call_end: () => {
-        //   this.currentExec.localCallEndtHandler()
-        // },
-        vm_call_method: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
+        call_method: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
           const targetOriginArrBuf = this.liftBuffer(targetOriginPtr)
           const methodName = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
@@ -135,7 +124,7 @@ export class WasmContainer {
           const resultValue = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), methodName, argBuf)
           return this.insertValue(resultValue.value, resultValue.node)
         },
-        vm_call_static: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
+        call_static: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
           const moduleId = this.liftString(originPtr).split('_')[0]
           const fnStr = this.liftString(fnNamePtr)
           const argBuf = this.liftBuffer(argsPtr)
@@ -144,7 +133,7 @@ export class WasmContainer {
           return Number(this.insertValue(result.value, result.node))
         },
 
-        vm_call_function: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): WasmPointer => {
+        call_function: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): WasmPointer => {
           const pkgId = this.liftString(pkgIdStrPtr)
           const fnName = this.liftString(fnNamePtr)
           const argsBuf = this.liftBuffer(argsBufPtr)
@@ -155,13 +144,13 @@ export class WasmContainer {
           return this.insertValue(result.value, result.node)
         },
 
-        vm_get_prop: (targetOriginPtr: number, propNamePtr: number) => {
+        get_prop: (targetOriginPtr: number, propNamePtr: number) => {
           const targetOrigBuf = this.liftBuffer(targetOriginPtr)
           const propStr = this.liftString(propNamePtr)
           const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propStr)
           return this.insertValue(prop.value, prop.node)
         },
-        vm_remote_state: (originPtr: number): number => {
+        remote_state: (originPtr: number): number => {
           const originBuff = this.liftBuffer(originPtr)
           const jigRef = this.currentExec.findRemoteUtxoHandler(originBuff)
           const utxo = {
@@ -174,12 +163,12 @@ export class WasmContainer {
           }
           return Number(this.insertValue(utxo, outputTypeNode))
         },
-        vm_jig_lock: (originPtr: number, type: number, argsPtr: number) => {
+        jig_lock: (originPtr: number, type: number, argsPtr: number) => {
           const argBuf = this.liftBuffer(argsPtr)
           const originBuf = this.liftBuffer(originPtr)
           this.currentExec.remoteLockHandler(Pointer.fromBytes(originBuf), type, argBuf)
         },
-        vm_caller_typecheck: (rtIdToCheck: number, exact: boolean): boolean => {
+        caller_typecheck: (rtIdToCheck: number, exact: boolean): boolean => {
           const callerOrigin = this.currentExec.stackPreviousToTop()
 
           // If no caller then the caller is not of the given type.
@@ -228,12 +217,12 @@ export class WasmContainer {
               .idx
           return callerRef.classPtr().equals(new Pointer(imported.pkgId, externalExportedIndex))
         },
-        vm_caller_outputcheck: (): boolean => {
+        caller_outputcheck: (): boolean => {
           const callerOrigin = this.currentExec.stackPreviousToTop()
 
           return !!callerOrigin
         },
-        vm_caller_output: (): WasmPointer => {
+        caller_output: (): WasmPointer => {
           const callerOrigin = this.currentExec.stackPreviousToTop()
           if (!callerOrigin) {
             throw new ExecutionError('caller function executed from top level')
@@ -242,7 +231,7 @@ export class WasmContainer {
           const outputObject = callerJig.outputObject();
           return this.insertValue(outputObject, outputTypeNode)
         },
-        vm_caller_output_val: (keyPtr: number): WasmPointer => {
+        caller_output_val: (keyPtr: number): WasmPointer => {
           const callerOrigin = this.currentExec.stackPreviousToTop()
           if (!callerOrigin) {
             throw new ExecutionError('caller function executed from top level')
@@ -265,7 +254,7 @@ export class WasmContainer {
 
           return this.insertValue(buf, arrayBufferTypeNode)
         },
-        vm_constructor_local: (classNamePtr: number, argsPtr: number): WasmPointer => {
+        constructor_local: (classNamePtr: number, argsPtr: number): WasmPointer => {
           const className = this.liftString(classNamePtr)
           // const classIdx = this.abi.classIdxByName(className)
           const argsBuf = this.liftBuffer(argsPtr)
@@ -287,7 +276,7 @@ export class WasmContainer {
             lockData: jigRef.lock.data(),
           }, jigInitParamsTypeNode)
         },
-        vm_constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): WasmPointer => {
+        constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): WasmPointer => {
           const pkgIdStr = this.liftString(pkgIdStrPtr)
           const className = this.liftString(namePtr)
           const argBuf = this.liftBuffer(argBufPtr)
@@ -306,8 +295,8 @@ export class WasmContainer {
             lockData: jigRef.lock.data(),
           }, jigInitParamsTypeNode)
         },
-        vm_proxy_link: () => {},
-        vm_debug_str: (strPtr: number): void => {
+        proxy_link: () => {},
+        debug_str: (strPtr: number): void => {
           const msg = this.liftString(strPtr)
           console.log(`debug [pkg=${base16.encode(this.id).slice(0, 6)}...]: ${msg}`)
         }
