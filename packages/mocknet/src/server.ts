@@ -104,20 +104,6 @@ export async function buildApp (clock: Clock, argv: ParsedArgs = { _: [] }): Pro
     res.status(200).send(Buffer.from(exec.tx.toBytes()))
   })
 
-  app.get('/state/:outputId', (req, res) => {
-    const outputId = req.params.outputId
-    const state = storage.getHistoricalUtxo(
-      base16.decode(outputId),
-      () => { throw new HttpNotFound(`state not found: ${outputId}`, { outputId }) }
-    )
-    const wasm = storage.wasmForPackageId(state.packageId)
-    res.set('content-type', 'application/json')
-    res.send(JSON.stringify({
-      state: state.objectState(wasm)
-    }, (_key: string, value: any) => {
-      return typeof value === 'bigint' ? value.toString() : value
-    }))
-  })
   app.get('/output/:outputId', (req, res) => {
     const outputId = req.params.outputId
     const jigState = storage.getHistoricalUtxo(
