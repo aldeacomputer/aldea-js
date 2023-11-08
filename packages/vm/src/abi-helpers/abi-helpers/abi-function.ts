@@ -13,15 +13,15 @@ export class AbiFunction {
     this.node = query.getFunction()
   }
 
-  name (): string {
+  get name (): string {
     return this.node.name
   }
 
-  args (): ArgNode[] {
+  get args (): ArgNode[] {
     return this.node.args
   }
 
-  rtype (): TypeNode {
+  get rtype (): TypeNode {
     return this.node.rtype
   }
 }

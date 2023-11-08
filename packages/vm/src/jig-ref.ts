@@ -2,6 +2,7 @@ import {WasmContainer} from './wasm-container.js';
 import {Lock} from "./locks/lock.js";
 import {Externref, getObjectMemLayout, getTypedArrayForPtr, Internref} from "./memory.js";
 import {Pointer} from "@aldea/core";
+import {AbiClass} from "./abi-helpers/abi-helpers/abi-class.js";
 
 export class JigRef  {
   ref: Internref;
@@ -29,7 +30,7 @@ export class JigRef  {
   }
 
   className(): string {
-    return this.package.abi.exports[this.classIdx].code.name
+    return this.classAbi().name
   }
 
   asChildRef(): Uint8Array {
@@ -61,9 +62,9 @@ export class JigRef  {
   }
 
   writeField(fieldName: string, propValue: any) {
-    const abiNode = this.package.abi.exportedClassByName(this.className())
-    const fieldNode = abiNode.fieldByName(fieldName)
-    const layout = getObjectMemLayout(abiNode)
+    const abiNode = this.package.abi.exportedByIdx(this.classIdx).get().toAbiClass()
+    const fieldNode = abiNode.fieldByName(fieldName).get()
+    const layout = getObjectMemLayout(abiNode.fields)
     const TypedArray = getTypedArrayForPtr(fieldNode.type)
     const mem32 = new TypedArray(this.package.memory.buffer, this.ref.ptr)
     const { align, offset } = layout[fieldName]
@@ -71,8 +72,8 @@ export class JigRef  {
     mem32[offset >>> align] = this.package.insertValue(propValue, fieldNode.type)
   }
 
-  classAbi(): ClassNodeWrapper {
-    return this.package.abi.exportedClassByName(this.className())
+  classAbi(): AbiClass {
+    return this.package.abi.exportedByIdx(this.classIdx).get().toAbiClass()
   }
 
   static isJigRef(obj: Object): boolean {

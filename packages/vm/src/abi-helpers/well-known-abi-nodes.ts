@@ -1,22 +1,20 @@
-import {CodeKind, FieldKind, ImportNode, ObjectNode, TypeNode} from "@aldea/core/abi";
+import {CodeKind, ImportCode, ObjectNode, TypeNode} from "@aldea/core/abi";
 
 export const arrayBufferTypeNode: TypeNode = emptyTn('ArrayBuffer')
 
 export const outputAbiNode: ObjectNode = {
   name: 'Output',
+  kind: CodeKind.OBJECT,
   fields: [
     {
-      kind: FieldKind.PUBLIC,
       name: 'origin',
       type: arrayBufferTypeNode
     },
     {
-      kind: FieldKind.PUBLIC,
       name: 'location',
       type: arrayBufferTypeNode
     },
     {
-      kind: FieldKind.PUBLIC,
       name: 'classPtr',
       type: arrayBufferTypeNode
     }
@@ -27,29 +25,25 @@ export const jigInitParamsTypeNode = emptyTn('JigInitParams')
 
 export const jigInitParamsAbiNode: ObjectNode = {
   name: 'JigInitParams',
+  kind: CodeKind.OBJECT,
   fields: [
     {
-      kind: FieldKind.PUBLIC,
       name: 'origin',
       type: arrayBufferTypeNode
     },
     {
-      kind: FieldKind.PUBLIC,
       name: 'location',
       type: arrayBufferTypeNode
     },
     {
-      kind: FieldKind.PUBLIC,
       name: 'classPtr',
       type: arrayBufferTypeNode
     },
     {
-      kind: FieldKind.PUBLIC,
       name: 'lockType',
       type: emptyTn('u8')
     },
     {
-      kind: FieldKind.PUBLIC,
       name: 'lockData',
       type: arrayBufferTypeNode
     },
@@ -58,19 +52,17 @@ export const jigInitParamsAbiNode: ObjectNode = {
 
 export const lockAbiNode: ObjectNode = {
   name: 'Lock',
+  kind: CodeKind.OBJECT,
   fields: [
     {
-      kind: FieldKind.PUBLIC,
       name: 'origin',
       type: arrayBufferTypeNode
     },
     {
-      kind: FieldKind.PUBLIC,
       name: 'type',
       type: emptyTn('usize')
     },
     {
-      kind: FieldKind.PUBLIC,
       name: 'data',
       type: arrayBufferTypeNode
     }
@@ -79,24 +71,24 @@ export const lockAbiNode: ObjectNode = {
 
 export const voidNode = emptyTn('_void')
 
-export const coinNode: ImportNode = {
+export const coinNode: ImportCode = {
   name: 'Coin',
   pkg: new Array(32).fill('0').join(''),
-  kind: 0
+  kind: CodeKind.PROXY_CLASS
 }
 
-export const jigNode: ImportNode = {
+export const jigNode: ImportCode = {
   name: 'Jig',
   pkg: new Array(32).fill('1').join(''),
-  kind: 0
+  kind: CodeKind.PROXY_CLASS
 }
 
 export const outputTypeNode: TypeNode = emptyTn('Output')
 export const lockTypeNode: TypeNode = emptyTn('Lock')
-export const JIG_TOP_CLASS_NAME = 'Jig'
 
 export const basicJigAbiNode: ObjectNode = {
   name: '__Jig',
+  kind: CodeKind.OBJECT,
   fields: [
     {
       name: '$output',

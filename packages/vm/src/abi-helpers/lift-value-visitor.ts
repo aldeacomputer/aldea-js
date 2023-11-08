@@ -1,10 +1,7 @@
 import {base16, Pointer} from "@aldea/core";
 import {
-  ClassNode,
   FieldNode,
-  InterfaceNode,
   normalizeTypeName,
-  ObjectNode,
   TypeNode,
 } from "@aldea/core/abi";
 import {AbiTraveler} from "./abi-traveler.js";
@@ -20,6 +17,8 @@ import {
 } from "../memory.js";
 import {basicJigAbiNode, emptyTn, outputTypeNode} from "./well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-access.js";
+import {AbiInterface} from "./abi-helpers/abi-interface.js";
+import {AbiClass} from "./abi-helpers/abi-class.js";
 
 
 export class LiftValueVisitor extends AbiTraveler<any> {
@@ -87,7 +86,7 @@ export class LiftValueVisitor extends AbiTraveler<any> {
     return !!this.ptr
   }
 
-  visitImportedClass(node: TypeNode, pkgId: string): any {
+  visitImportedClass(node: TypeNode, _pkgId: string): any {
     const mod = this.instance;
     const ptr = Number(this.ptr)
     const outputPtr = new Uint32Array(mod.memory.buffer)[ptr >>> 2]
@@ -139,11 +138,11 @@ export class LiftValueVisitor extends AbiTraveler<any> {
     return map
   }
 
-  visitPlainObject(objNode: ObjectNode, _typeNode: TypeNode): any {
+  visitPlainObject(fields: FieldNode[], _typeNode: TypeNode): any {
     const mod = this.instance
     const ptr = Number(this.ptr)
-    const offsets = getObjectMemLayout(objNode)
-    return objNode.fields.reduce((obj: any, n: FieldNode, _i) => {
+    const offsets = getObjectMemLayout(fields)
+    return fields.reduce((obj: any, n: FieldNode, _i) => {
       const TypedArray = getTypedArrayForPtr(n.type)
       const { align, offset } = offsets[n.name]
       const nextPtr = new TypedArray(mod.memory.buffer)[ptr + offset >>> align]
@@ -152,16 +151,16 @@ export class LiftValueVisitor extends AbiTraveler<any> {
     }, {})
   }
 
-  visitInterface(anInterface: InterfaceNode, _typeNode: TypeNode): any {
+  visitInterface(anInterface: AbiInterface, _typeNode: TypeNode): any {
     const visitor = new LiftValueVisitor(this.abi, this.instance, Number(this.ptr) + 1)
-    const basicJig = visitor.visitPlainObject(basicJigAbiNode, _typeNode)
+    const basicJig = visitor.visitPlainObject(basicJigAbiNode.fields, _typeNode)
 
     const jig = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(basicJig.$output.origin))
 
     const className = jig.className()
     const clsTypeNode = emptyTn(className)
     if (jig.package === this.instance) {
-      const classNode = this.abi.exportedClassByName(className)
+      const classNode = this.abi.exportedByName(className).map(e => e.toAbiClass()).get()
       return this.visitExportedClass(classNode, clsTypeNode)
     } else {
       return this.visitImportedClass(clsTypeNode, base16.encode(jig.classPtr().idBuf))
@@ -237,7 +236,7 @@ export class LiftValueVisitor extends AbiTraveler<any> {
     return undefined
   }
 
-  visitExportedClass(classNode: ClassNode, _type: TypeNode): any {
+  visitExportedClass(classNode: AbiClass, _type: TypeNode): any {
     return new Internref(classNode.name, Number(this.ptr))
   }
 }

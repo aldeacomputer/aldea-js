@@ -1,12 +1,11 @@
 import {Address, Output, Pointer, blake3, Lock, BCS} from "@aldea/core";
-import {Abi, ClassNode, FieldNode} from "@aldea/core/abi";
-import {WasmContainer} from "./wasm-container.js";
+import {Abi} from "@aldea/core/abi";
 import {Option} from "./support/option.js";
 import {SerializedLock} from "./locks/serialized-lock.js";
+import {AbiAccess} from "./abi-helpers/abi-access.js";
 
 export class JigState {
   private output: Output
-  createdAt: number;
 
   constructor (
     origin: Pointer,
@@ -15,7 +14,6 @@ export class JigState {
     stateBuf: Uint8Array,
     moduleId: Uint8Array,
     lock: SerializedLock,
-    createdAt: number
   ) {
     this.output = new Output(
       origin,
@@ -24,7 +22,6 @@ export class JigState {
       new Lock(Number(lock.type), lock.data),
       stateBuf
     )
-    this.createdAt = createdAt
   }
 
   get serializedLock (): SerializedLock {
@@ -52,23 +49,14 @@ export class JigState {
   }
 
   parsedState(abi: Abi): any[] {
-    const abiNode = abi.exports[this.classIdx].code as ClassNode
+    const abiAccess = new AbiAccess(abi)
+    const abiNode = abiAccess.exportedByIdx(this.classIdx).get().toAbiClass()
     const bcs = new BCS(abi)
     return bcs.decode(abiNode.name, this.output.stateBuf)
   }
 
   classPtr (): Pointer {
     return this.output.classPtr
-  }
-
-  objectState (module: WasmContainer): any {
-    const fields = this.parsedState(module.abi.abi)
-    const abiNode = module.abi.exports[this.classIdx].code as ClassNode
-    if (!abiNode) { throw new Error('should exists') }
-    return abiNode.fields.reduce((acumulated: any, current: FieldNode, index: number) => {
-      acumulated[current.name] = fields[index]
-      return acumulated
-    }, {})
   }
 
   serialize (): Uint8Array {
@@ -119,8 +107,7 @@ export class JigState {
       output.classPtr.idx,
       output.stateBuf,
       output.classPtr.idBuf,
-      SerializedLock.fromSdkLock(output.lock),
-      10
+      SerializedLock.fromSdkLock(output.lock)
     )
   }
 

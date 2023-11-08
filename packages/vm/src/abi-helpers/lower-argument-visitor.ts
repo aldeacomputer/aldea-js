@@ -3,7 +3,7 @@ import {ClassNode, InterfaceNode, TypeNode} from "@aldea/core/abi";
 import {WasmPointer} from "../arg-reader.js";
 import {base16} from "@aldea/core";
 import {JigRef} from "../jig-ref.js";
-import {isInstructionRef} from "../statement-result.js";
+import {AbiInterface} from "./abi-helpers/abi-interface.js";
 
 export class LowerArgumentVisitor extends LowerValueVisitor {
 
@@ -12,7 +12,7 @@ export class LowerArgumentVisitor extends LowerValueVisitor {
     return childVisitor.travelFromType(type)
   }
 
-  visitInterface(_anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
+  visitInterface(_anInterface: AbiInterface, typeNode: TypeNode): WasmPointer {
     const jigRef = this.value as JigRef
     if (this.instance === jigRef.package) {
       const classNode = jigRef.package.abi

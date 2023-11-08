@@ -17,6 +17,8 @@ import {emptyTn, outputAbiNode} from "./well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-access.js";
 import {isInstructionRef} from "../statement-result.js";
 import {AbiPlainObject} from "./abi-helpers/abi-plain-object.js";
+import {AbiInterface} from "./abi-helpers/abi-interface.js";
+import {AbiClass} from "./abi-helpers/abi-class.js";
 
 const STRING_RTID = 1;
 const BUFFER_RTID = 0;
@@ -60,7 +62,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     return objPtr
   }
 
-  visitExportedClass (_classNode: ClassNode, type: TypeNode): WasmPointer {
+  visitExportedClass (_classNode: AbiClass, type: TypeNode): WasmPointer {
     if (this.value instanceof Internref) {
       let basicJig = this.instance.liftBasicJig(this.value);
       this.value = this.instance.currentExec.findJigByOrigin(Pointer.fromBytes(basicJig.$output.origin))
@@ -184,20 +186,20 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     return ptr
   }
 
-  visitPlainObject(objNode: AbiPlainObject, typeNode: TypeNode): WasmPointer {
+  visitPlainObject(fields: FieldNode[], typeNode: TypeNode): WasmPointer {
     let value = this.value
     const mod = this.instance
     if (!Array.isArray(value)) { value = Object.values(value) }
-    if (!Array.isArray(value) || objNode.fields.length !== value.length) {
-      throw new Error(`invalid state for ${objNode.name}`)
+    if (!Array.isArray(value) || fields.length !== value.length) {
+      throw new Error(`invalid state for object`)
     }
 
     const rtid = mod.abi.rtidFromTypeNode(typeNode).get()
-    const bytes = objNode.fields.reduce((sum: number, n: FieldNode) => sum + getTypeBytes(n.type), 0)
+    const bytes = fields.reduce((sum: number, n: FieldNode) => sum + getTypeBytes(n.type), 0)
     const ptr = mod.__new(bytes, rtid.id)
-    const offsets = getObjectMemLayout(objNode.fields)
+    const offsets = getObjectMemLayout(fields)
 
-    objNode.fields.forEach((n: FieldNode, i: number) => {
+    fields.forEach((n: FieldNode, i: number) => {
       const TypedArray = getTypedArrayForPtr(n.type)
       const mem = new TypedArray(mod.memory.buffer, ptr, bytes)
       const { align, offset } = offsets[n.name]
@@ -291,7 +293,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
     return 0
   }
 
-  visitInterface(anInterface: InterfaceNode, typeNode: TypeNode): WasmPointer {
+  visitInterface(_anInterface: AbiInterface, typeNode: TypeNode): WasmPointer {
     const jig = this.value as JigRef
     if (jig.package === this.instance) {
       const className = jig.className();

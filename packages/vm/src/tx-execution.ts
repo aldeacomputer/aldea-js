@@ -6,7 +6,6 @@ import {NoLock} from "./locks/no-lock.js"
 import {JigState} from "./jig-state.js"
 import {AuthCheck, LockType, Prop, WasmContainer, WasmValue} from "./wasm-container.js";
 import {Lock} from "./locks/lock.js";
-import {ClassNode, CodeKind} from '@aldea/core/abi'
 import {Address, base16, BCS, instructions, OpCode, Output, Pointer} from '@aldea/core';
 import {PublicLock} from "./locks/public-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
@@ -15,7 +14,6 @@ import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {TxContext} from "./tx-context/tx-context.js";
 import {PkgData} from "./storage.js";
-import {ExecFuncInstruction} from "@aldea/core/instructions";
 
 const COIN_CLASS_PTR = Pointer.fromBytes(new Uint8Array(34))
 
@@ -65,8 +63,7 @@ class TxExecution {
         jigRef.classIdx,
         serialized,
         jigRef.package.id,
-        jigRef.lock.serialize(),
-        this.txContext.now().unix()
+        jigRef.lock.serialize()
       )
       result.addOutput(jigState)
     })
@@ -125,8 +122,8 @@ class TxExecution {
       targetJig = this.findJigByOrigin(targetOrigin)
     }
 
-    const klassNode = targetJig.package.abi.exportedClassByIdx(targetJig.classIdx)
-    const method = klassNode.methodByName(methodName)
+    const klassNode = targetJig.package.abi.exportedByIdx(targetJig.classIdx).get().toAbiClass()
+    const method = klassNode.methodByName(methodName).get()
 
     const args = callerInstance.liftArguments(argBuff, method.args)
     this.localCallStartHandler(targetJig, method.name)
@@ -140,8 +137,8 @@ class TxExecution {
 
     const [className, methodName] = fnStr.split('_')
 
-    const obj = targetMod.abi.exportedClassByName(className)
-    const method = obj.methodByName(methodName)
+    const obj = targetMod.abi.exportedByName(className).get().toAbiClass()
+    const method = obj.methodByName(methodName).get()
 
     const argValues = srcModule.liftArguments(argBuffer, method.args)
 
@@ -243,16 +240,6 @@ class TxExecution {
         this.callInstanceMethodByIndex(inst.idx, inst.methodIdx, inst.argsBuf)
       } else if (baseInst.opcode === OpCode.EXEC) {
         const inst = baseInst as instructions.ExecInstruction
-        const wasm = this.getStatementResult(inst.idx).asInstance
-        const exportNode = wasm.abi.exports[inst.exportIdx]
-        if (exportNode.kind !== CodeKind.CLASS) {
-          throw new Error('not a class')
-        }
-        const klassNode = exportNode.code as ClassNode
-        const methodNode = klassNode.methods[inst.methodIdx]
-        this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, inst.argsBuf)
-      } else if (baseInst.opcode === OpCode.EXECFUNC) {
-        const inst = baseInst as ExecFuncInstruction
         this.execExportedFnByIndex(inst.idx, inst.exportIdx, inst.argsBuf)
       } else if (baseInst.opcode === OpCode.LOCK) {
         const inst = baseInst as instructions.LockInstruction
@@ -359,7 +346,7 @@ class TxExecution {
   }
 
   instantiate(wasm: WasmContainer, className: string, args: any[]): WasmValue {
-    const method =  wasm.abi.exportedClassByName(className).methodByName('constructor')
+    const method =  wasm.abi.exportedByName(className).get().toAbiClass().methodByName('constructor').get()
     this.stack.push(this.createNextOrigin())
     const result = wasm.staticCall(method, args)
     this.stack.pop()
@@ -383,7 +370,7 @@ class TxExecution {
   instantiateByIndex(statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
     const statement = this.statements[statementIndex]
     const instance = statement.asInstance
-    const classNode = instance.abi.exportedClassByIdx(classIdx)
+    const classNode = instance.abi.exportedByIdx(classIdx).get().toAbiClass()
     const bcs = new BCS(instance.abi.abi)
     const args = bcs.decode(`${classNode.name}_constructor`, argsBuf)
     const wasmValue = this.instantiate(instance, classNode.name, args)
@@ -410,7 +397,7 @@ class TxExecution {
     if (!this.jigs.includes(jig)) {
       throw new ExecutionError(`the jig does not belong to the current tx`)
     }
-    const method = jig.classAbi().methodByName(methodName)
+    const method = jig.classAbi().methodByName(methodName).get()
 
     this.localCallStartHandler(jig, methodName)
     const methodResult = jig.package.instanceCall(jig, method, args);
@@ -422,7 +409,7 @@ class TxExecution {
 
   callInstanceMethodByIndex(jigIndex: number, methodIdx: number, argsBuf: Uint8Array): StatementResult {
     const jigRef = this.getStatementResult(jigIndex).asJig()
-    const method = jigRef.classAbi().methodByIdx(methodIdx)
+    const method = jigRef.classAbi().methodByIdx(methodIdx).get()
     const bcs = new BCS(jigRef.package.abi.abi)
     const args = bcs.decode(`${jigRef.className()}$${method.name}`, argsBuf)
     this.localCallStartHandler(jigRef, method.name)
@@ -434,7 +421,7 @@ class TxExecution {
   }
 
   execStaticMethod(wasm: WasmContainer, className: string, methodName: string, args: any[]): ValueStatementResult {
-    const method = wasm.abi.exportedClassByName(className).methodByName(methodName)
+    const method = wasm.abi.exportedByName(className).get().toAbiClass().methodByName(methodName).get()
 
     let {node, value, mod} = wasm.staticCall(method, args)
     const ret = new ValueStatementResult(
@@ -458,7 +445,7 @@ class TxExecution {
 
   execExportedFnByIndex(moduleIndex: number, fnIdx: number, args: Uint8Array): StatementResult {
     const wasm = this.getStatementResult(moduleIndex).asInstance
-    const fnNode = wasm.abi.exportedFnByIdx(fnIdx)
+    const fnNode = wasm.abi.exportedByIdx(fnIdx).get().toAbiFunction()
 
     const bcs = new BCS(wasm.abi.abi)
     let {node, value, mod} = wasm.functionCall(fnNode, bcs.decode(fnNode.name, args))
@@ -475,7 +462,7 @@ class TxExecution {
   }
 
   execExportedFnByName(wasm: WasmContainer, fnName: string, args: any[]): StatementResult {
-    const fnNode = wasm.abi.exportedFnByName(fnName)
+    const fnNode = wasm.abi.exportedByName(fnName).get().toAbiFunction()
     let {node, value, mod} = wasm.functionCall(fnNode, args)
 
     const ret = new ValueStatementResult(

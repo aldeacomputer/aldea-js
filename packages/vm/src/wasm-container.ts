@@ -1,5 +1,5 @@
 import {base16, BCS, Pointer} from "@aldea/core";
-import {Abi, ArgNode, ClassNode, FieldNode, findField, FunctionNode, TypeNode} from "@aldea/core/abi";
+import {Abi, ArgNode, FieldNode, TypeNode} from "@aldea/core/abi";
 import {JigRef} from "./jig-ref.js"
 import {TxExecution} from "./tx-execution.js";
 import {ExecutionError} from "./errors.js";
@@ -15,13 +15,14 @@ import {
   arrayBufferTypeNode,
   emptyTn,
   jigInitParamsTypeNode,
-  outputTypeNode,
-  voidNode,
+  outputTypeNode
 } from "./abi-helpers/well-known-abi-nodes.js";
 import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
 import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
 import {MethodNodeWrapper} from "./abi-helpers/method-node-wrapper.js";
+import {AbiFunction} from "./abi-helpers/abi-helpers/abi-function.js";
+import {AbiMethod} from "./abi-helpers/abi-helpers/abi-class.js";
 
 export enum LockType {
   FROZEN = -1,
@@ -101,19 +102,19 @@ export class WasmContainer {
           const nextOrigin = this.currentExec.createNextOrigin()
           let rtIdNode = this.abi.rtIdById(rtid)
               .expect(new Error(`Runtime id "${rtid}" not found in ${base16.encode(this.id)}`))
-          const classIdx = this.abi.exportedClassIdxByName(rtIdNode.name)
+          const abiClass = this.abi.exportedByName(rtIdNode.name).map(e => e.toAbiClass())
               .expect(new Error(`Class named "${rtIdNode.name}" not found in ${base16.encode(this.id)}`))
 
           this.currentExec.linkJig(new JigRef(
             new Internref(rtIdNode.name, jigPtr),
-            classIdx,
+            abiClass.idx,
             this,
             nextOrigin,
             nextOrigin,
             new NoLock()
           ))
 
-          return this.insertValue(new Pointer(this.id, classIdx).toBytes(), emptyTn('ArrayBuffer'))
+          return this.insertValue(new Pointer(this.id, abiClass.idx).toBytes(), emptyTn('ArrayBuffer'))
         },
         // vm_local_call_start: (jigPtr: number, fnNamePtr: number): void => {
         //   const fnName = this.liftString(fnNamePtr)
@@ -148,7 +149,7 @@ export class WasmContainer {
           const fnName = this.liftString(fnNamePtr)
           const argsBuf = this.liftBuffer(argsBufPtr)
           const targetPkg = this.currentExec.loadModule(base16.decode(pkgId))
-          const functionNode = targetPkg.abi.exportedFnByName(fnName)
+          const functionNode = targetPkg.abi.exportedByName(fnName).map(e => e.toAbiFunction()).get()
           const result = targetPkg.functionCall(functionNode, this.liftArguments(argsBuf, functionNode.args))
 
           return this.insertValue(result.value, result.node)
@@ -337,8 +338,8 @@ export class WasmContainer {
     return this.instance.exports as WasmExports
   }
 
-  staticCall (method: MethodNodeWrapper, args: any[]): WasmValue {
-    const fnName = `${method.className()}_${method.name}`
+  staticCall (method: AbiMethod, args: any[]): WasmValue {
+    const fnName = `${method.className}_${method.name}`
 
     const ptrs = method.args.map((argNode: ArgNode, i: number) => {
       const visitor = new LowerArgumentVisitor(this.abi, this, args[i])
@@ -349,8 +350,8 @@ export class WasmContainer {
     const retPtr = fn(...ptrs)
     if (method.name === 'constructor') {
       return {
-        node: method.rtype ? method.rtype : voidNode,
-        value: new Internref(method.className(), retPtr),
+        node: emptyTn(method.className),
+        value: new Internref(method.className, retPtr),
         mod: this
       }
     } else {
@@ -359,23 +360,24 @@ export class WasmContainer {
   }
 
   hydrate (classIdx: number, jigState: JigState): Internref {
-    const objectNode = this.abi.exportedByIdx(classIdx).get().toAbiClass()
+    const jigClassNode = this.abi.exportedByIdx(classIdx).get().toAbiClass()
     const bcs = new BCS(this.abi.abi)
 
     const frozenState = jigState.stateBuf
     const rawState = [
       jigState.outputObject(),
       jigState.lockObject(),
-      ...bcs.decode(objectNode.name, frozenState)
+      ...bcs.decode(jigClassNode.name, frozenState)
     ]
 
     const visitor = new LowerJigStateVisitor(this.abi, this, rawState)
-    const pointer = visitor.visitPlainObject(objectNode, emptyTn(`$${objectNode.name}`))
-    return new Internref(objectNode.name, Number(pointer))
+    // TODO: totally broken
+    const pointer = visitor.visitExportedClass(jigClassNode, emptyTn(`$${jigClassNode.name}`))
+    return new Internref(jigClassNode.name, Number(pointer))
   }
 
-  instanceCall(ref: JigRef, method: MethodNodeWrapper, args: any[] = []): WasmValue {
-    const fnName = `${method.className()}$${method.name}`
+  instanceCall(ref: JigRef, method: AbiMethod, args: any[] = []): WasmValue {
+    const fnName = `${method.className}$${method.name}`
 
     const ptrs = [
       ref.ref.ptr,
@@ -392,11 +394,10 @@ export class WasmContainer {
   }
 
   getPropValue (ref: Internref, classIdx: number, fieldName: string): Prop {
-    const objNode = this.abi.exportedClassByIdx(classIdx)
-    const classNode = objNode as ClassNode
-    const field = findField(classNode, fieldName, `unknown field: ${fieldName}`)
+    const classNode = this.abi.exportedByIdx(classIdx).map(e => e.toAbiClass()).get()
+    const field = classNode.fieldByName(fieldName).expect(new ExecutionError(`unknown field: ${fieldName}`))
 
-    const offsets = getObjectMemLayout(classNode)
+    const offsets = getObjectMemLayout(classNode.fields)
     const { offset, align } = offsets[field.name]
     const TypedArray = getTypedArrayForPtr(field.type)
     const ptr = new TypedArray(this.memory.buffer)[ref.ptr + offset >>> align]
@@ -404,11 +405,10 @@ export class WasmContainer {
   }
 
   /**
-   * TODO - Miguel to check
    * The abi now exports plain functions - check this method is OK
    * The static call above should probably look like this too, no?
    */
-  functionCall (fnNode: FunctionNode, args: any[] = []): WasmValue {
+  functionCall (fnNode: AbiFunction, args: any[] = []): WasmValue {
     const ptrs = fnNode.args.map((argNode: ArgNode, i: number) => {
       const visitor = new LowerArgumentVisitor(this.abi, this, args[i])
       return visitor.travelFromType(argNode.type)
@@ -435,9 +435,9 @@ export class WasmContainer {
   }
 
   extractState(ref: Internref, classIdx: number): Uint8Array {
-    const abiObj =  this.abi.exportedClassByIdx(classIdx)
+    const abiObj =  this.abi.exportedByIdx(classIdx).map(e => e.toAbiClass()).get()
     const visitor = new LiftJigStateVisitor(this.abi, this, ref.ptr)
-    const lifted = visitor.visitPlainObject(
+    const lifted = visitor.visitExportedClass(
       abiObj,
       emptyTn(abiObj.name)
     )

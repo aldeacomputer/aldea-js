@@ -119,8 +119,7 @@ export class VM {
       0,
       bcs.encode('u64', amount),
       COIN_PKG_ID,
-      new SerializedLock(LockType.PUBKEY, address.hash),
-      this.clock.now().unix()
+      new SerializedLock(LockType.PUBKEY, address.hash)
     )
     this.storage.addUtxo(minted)
     return minted
