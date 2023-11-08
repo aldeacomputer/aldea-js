@@ -4,6 +4,7 @@ import {buildVm} from "./util.js";
 import {BufReader, BufWriter} from "@aldea/core";
 import {expect} from "chai";
 import {AbiType} from "../src/abi-helpers/abi-helpers/abi-type.js";
+import {WasmWord} from "../src/wasm-word.js";
 
 const FLOAT_ERROR: number = 0.00001
 
@@ -147,5 +148,20 @@ describe('NewMemoryLower', () => {
     const objHeaderReader = new BufReader(objHeader)
     expect(objHeaderReader.readU32()).to.eql(rtid.get().id)
     expect(objHeaderReader.readU32()).to.eql(16)
+
+    const arrMem = container.mem.read(ptr, 16);
+    const arrMemReader = new BufReader(arrMem)
+    const arrBufPtr = WasmWord.fromNumber(arrMemReader.readU32())
+    expect(arrMemReader.readU32()).to.eql(arrBufPtr.toNumber())
+    expect(arrMemReader.readU32()).to.eql(5)
+    expect(arrMemReader.readU32()).to.eql(5)
+
+    const arrBufMem = container.mem.read(arrBufPtr, 5);
+    const arrBufReader = new BufReader(arrBufMem)
+    expect(arrBufReader.readU8()).to.eql(1)
+    expect(arrBufReader.readU8()).to.eql(2)
+    expect(arrBufReader.readU8()).to.eql(3)
+    expect(arrBufReader.readU8()).to.eql(4)
+    expect(arrBufReader.readU8()).to.eql(5)
   })
 });
