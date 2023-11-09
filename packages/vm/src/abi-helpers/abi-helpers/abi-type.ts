@@ -36,4 +36,8 @@ export class AbiType {
   static fromName(name: string): AbiType {
     return new this(emptyTn(name))
   }
+
+  static buffer(): AbiType {
+    return this.fromName('ArrayBuffer')
+  }
 }

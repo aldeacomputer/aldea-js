@@ -1,10 +1,11 @@
-import {NewLowerValue, Storage} from "../src/index.js";
+import {JigData, NewLowerValue, Storage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
-import {BCS, BufReader, BufWriter} from "@aldea/core";
+import {BCS, BufReader, BufWriter, Pointer} from "@aldea/core";
 import {expect} from "chai";
 import {AbiType} from "../src/abi-helpers/abi-helpers/abi-type.js";
 import {WasmWord} from "../src/wasm-word.js";
+import {Option} from "../src/support/option.js";
 
 const FLOAT_ERROR: number = 0.00001
 
@@ -12,11 +13,13 @@ describe('NewMemoryLower', () => {
   let modIdFor: (key: string) => Uint8Array
   let storage: Storage;
   let container: WasmContainer;
+  let jigData: Map<string, JigData>
 
   let target: NewLowerValue
   beforeEach(() => {
     const data = buildVm([
-      'test-types'
+      'test-types',
+      'test-types-export'
     ])
 
     modIdFor = data.modIdFor
@@ -25,7 +28,8 @@ describe('NewMemoryLower', () => {
     let pkgData = storage.getModule(modIdFor('test-types'))
 
     container = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
-    target = new NewLowerValue(container)
+    jigData = new Map<string, JigData>()
+    target = new NewLowerValue(container, (ptr) => Option.fromNullable(jigData.get(ptr.toString())))
   })
 
   it('can lower an u8', () => {
@@ -330,5 +334,22 @@ describe('NewMemoryLower', () => {
     const innerStrRead = container.mem.read(innerStrPtr, obj.obj.intraName.length * 2)
     const innerStrBytes = innerStrRead.readFixedBytes(obj.obj.intraName.length * 2)
     expect(Buffer.from(innerStrBytes).toString('utf16le')).to.eql(obj.obj.intraName)
+  })
+
+  it('can lower imported jig', () => {
+    const buf = new BufWriter()
+    const data = [1,2,3,4,5,6,7,8]
+    const someTxId = new Uint8Array([...data, ...data, ...data, ...data])
+    const externalJigOrigin = new Pointer(someTxId, 9)
+    buf.writeFixedBytes(externalJigOrigin.toBytes())
+
+    const ty = AbiType.fromName('Imported')
+
+    const objPtr = target.lower(buf.data, ty)
+
+
+    const objReader = container.mem.read(objPtr.minus(8), 16)
+    const objRtId = container.abi.rtIdByName(ty.name).get()
+    expect(objReader.readU32()).to.eql(objRtId.id)
   })
 });

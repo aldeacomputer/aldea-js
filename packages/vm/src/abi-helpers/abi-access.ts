@@ -23,6 +23,7 @@ import {AbiImport} from "./abi-helpers/abi-import.js";
 import {AbiClass} from "./abi-helpers/abi-class.js";
 import {AbiFunction} from "./abi-helpers/abi-function.js";
 import {AbiProxyDef} from "./abi-helpers/abi-proxy-def.js";
+import {ExecutionError} from "../errors.js";
 
 export class AbiAccess {
   readonly abi: Abi;
@@ -77,6 +78,18 @@ export class AbiAccess {
   rtidFromTypeNode(type: TypeNode): Option<TypeIdNode> {
     const normalized = normalizeTypeName(type)
     return this.rtIdByName(normalized)
+  }
+
+  outputRtid(): TypeIdNode {
+    return Option.fromNullable(
+      this.rtids.find(rtid => rtid.name == 'Output')
+    ).expect(new ExecutionError('Output rtid not found'))
+  }
+
+  lockRtid(): TypeIdNode {
+    return Option.fromNullable(
+      this.rtids.find(rtid => rtid.name == 'Lock')
+    ).expect(new ExecutionError('Lock rtid not found'))
   }
 
   importedByIndex(importedIndex: number): Option<AbiImport> {

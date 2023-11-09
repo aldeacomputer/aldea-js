@@ -1,14 +1,33 @@
 import {WasmContainer} from "../wasm-container.js";
 import {WasmWord} from "../wasm-word.js";
-import {BufReader, BufWriter} from "@aldea/core";
+import {BufReader, BufWriter, Pointer} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
-import {ARR_HEADER_LENGTH, BUF_RTID, STRING_RTID, TYPED_ARR_HEADER_LENGTH} from "./well-known-abi-nodes.js";
+import {
+  ARR_HEADER_LENGTH,
+  BUF_RTID,
+  PROXY_OBJ_LENGTH,
+  STRING_RTID,
+  TYPED_ARR_HEADER_LENGTH
+} from "./well-known-abi-nodes.js";
+import {CodeKind} from "@aldea/core/abi";
+import {Option} from "../support/option.js";
+
+export type JigData = {
+  origin: Pointer,
+  location: Pointer,
+  outputHash: Uint8Array
+  lock: Lock
+}
+
+type GetJigData = (p: Pointer) => Option<JigData>;
 
 export class NewLowerValue {
   private container: WasmContainer;
+  private getJigData: GetJigData
 
-  constructor (container: WasmContainer) {
+  constructor (container: WasmContainer, getJigData: GetJigData) {
     this.container = container
+    this.getJigData = getJigData
   }
 
   lower(encoded: Uint8Array, ty: AbiType): WasmWord {
@@ -173,6 +192,29 @@ export class NewLowerValue {
   }
 
   private lowerImported(reader: BufReader, ty: AbiType): WasmWord {
+    const imported = this.container.abi.importedByName(ty.name).get()
+
+    if (imported.kind === CodeKind.OBJECT) {
+      throw new Error('not implemented yer')
+    }
+
+    const origin = reader.readFixedBytes(34)
+
+    const objRtid = this.container.abi.rtidFromTypeNode(ty).get()
+    const outoputRtid = this.container.abi.outputRtid()
+    const lockRtid = this.container.abi.lockRtid()
+
+
+    const objPtr = this.container.malloc(PROXY_OBJ_LENGTH, objRtid.id)
+    const outputPtr = this.container.malloc(PROXY_OBJ_LENGTH, outoputRtid.id)
+    const lockPtr = this.container.malloc(PROXY_OBJ_LENGTH, lockRtid.id)
+
+    const originPtr = this.lowerFromReader(new BufReader(origin), AbiType.buffer())
+
+
+
+
+
     return WasmWord.fromNumber(0)
   }
 

@@ -13,6 +13,7 @@ export class TestTypes extends Jig{
   f32Array: Float32Array;
   f64Array: Float64Array;
   attr: SomeExportedClass;
+  imported: Imported;
 
   constructor () {
     super()
@@ -37,6 +38,7 @@ export class TestTypes extends Jig{
       },
       value: 10
     }
+    this.imported = new Imported("imported", 1)
     // this.staticArrU16[0] = 2
     // this.uint8Array[0] = 3
     // this.uint16Array
@@ -54,4 +56,14 @@ export declare class SomeExportedClass {
 export declare class SomeExportedIntraClass {
   intraName: string;
   age: i32;
+}
+
+
+// @ts-ignore
+@imported("2f6e2ec8cc1b53b358048cb4c881e312ccf9c1e0717a4d49030f276a1c620966")
+declare class Imported {
+  exported1: string;
+  exported2: u32;
+
+  constructor (aString: string, aNumber: u32);
 }
