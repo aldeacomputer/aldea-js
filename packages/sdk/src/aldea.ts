@@ -6,7 +6,7 @@ import {
   Output,
   Pointer,
   Tx,
-  ref,
+  ref, abiFromBin,
 } from '@aldea/core'
 import { Abi } from '@aldea/core/abi'
 import { TxBuilder, TxBuilderOpts } from './tx-builder.js'
@@ -125,7 +125,8 @@ export class Aldea {
    * Gets a package by its ID and responds with the ABI in JSON format.
    */
   async getPackageAbi(pkgId: string): Promise<Abi> {
-    return this.api.get(`package/${pkgId}/abi.json`).json()
+    const buf = await this.api.get(`package/${pkgId}/abi.bin`).arrayBuffer();
+    return abiFromBin(new Uint8Array(buf))
   }
 
   /**
