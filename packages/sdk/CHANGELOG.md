@@ -1,5 +1,11 @@
 # @aldea/sdk
 
+## 0.6.1
+
+### Patch Changes
+
+- ec8aeca: Using binary version of abi http api.
+
 ## 0.6.0
 
 ### Minor Changes
