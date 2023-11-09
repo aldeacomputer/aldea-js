@@ -1,7 +1,7 @@
 import {NewLowerValue, Storage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
-import {BufReader, BufWriter} from "@aldea/core";
+import {BCS, BufReader, BufWriter} from "@aldea/core";
 import {expect} from "chai";
 import {AbiType} from "../src/abi-helpers/abi-helpers/abi-type.js";
 import {WasmWord} from "../src/wasm-word.js";
@@ -287,5 +287,48 @@ describe('NewMemoryLower', () => {
     expect(bufStrLength).to.eql(aString.length * 2) // Saved as utf-16
     const buffer = container.mem.extract(ptr, bufStrLength)
     expect(Buffer.from(buffer).toString('utf16le')).to.eql(aString)
+  })
+
+  it('can lower a plain object', () => {
+    const bcs = new BCS(container.abi.abi)
+    const obj = {
+      name: 'outer',
+      obj: {
+        age: 15,
+        intraName: 'intra'
+      },
+      value: 10
+    }
+    const buf = bcs.encode('SomeExportedClass', obj)
+
+    const ty = AbiType.fromName('SomeExportedClass')
+    let ptr = target.lower(buf, ty)
+
+    let rtId1 = container.abi.rtidFromTypeNode(ty).get()
+
+    const obj1Read = container.mem.read(ptr.minus(8), 20); // 8 + 4 * 3
+    expect(obj1Read.readU32()).to.eql(rtId1.id)
+    expect(obj1Read.readU32()).to.eql(12)
+    const strPtr = WasmWord.fromNumber(obj1Read.readU32())
+    const innerObjPtr = WasmWord.fromNumber(obj1Read.readU32())
+    expect(obj1Read.readU32()).to.eql(10)
+
+    const strReader = container.mem.read(strPtr.minus(8), obj.name.length * 2 + 8); // 8 + 4 * 3
+    expect(strReader.readU32()).to.eql(1)
+    expect(strReader.readU32()).to.eql(obj.name.length * 2)
+    const val = strReader.readFixedBytes(obj.name.length * 2);
+    expect(Buffer.from(val).toString('utf16le'), obj.name)
+
+    const innerObjReader = container.mem.read(innerObjPtr.minus(8), 8 + 8) // header + data
+    const innerObjRtid = container.abi.rtIdByName('SomeExportedIntraClass').get()
+
+    expect(innerObjReader.readU32()).to.eql(innerObjRtid.id)
+    expect(innerObjReader.readU32()).to.eql(8)
+    const innerStrPtr = WasmWord.fromNumber(innerObjReader.readU32())
+    expect(innerObjReader.readU32()).to.eql(15)
+
+    const innerStrRead = container.mem.read(innerStrPtr, obj.obj.intraName.length * 2)
+    const innerStrBytes = innerStrRead.readFixedBytes(obj.obj.intraName.length * 2)
+    expect(Buffer.from(innerStrBytes).toString('utf16le')).to.eql(obj.obj.intraName)
   })
 });

@@ -12,6 +12,7 @@ export class TestTypes extends Jig{
   int64Array: Int64Array;
   f32Array: Float32Array;
   f64Array: Float64Array;
+  attr: SomeExportedClass;
 
   constructor () {
     super()
@@ -28,9 +29,29 @@ export class TestTypes extends Jig{
     this.int64Array = new Int64Array(1);
     this.f32Array = new Float32Array(1);
     this.f64Array = new Float64Array(1);
+    this.attr = {
+      name: 'outer',
+      obj: {
+        age: 15,
+        intraName: 'intra'
+      },
+      value: 10
+    }
     // this.staticArrU16[0] = 2
     // this.uint8Array[0] = 3
     // this.uint16Array
     // this.int8Array[0] = -4
   }
+}
+
+
+export declare class SomeExportedClass {
+  name: string;
+  obj: SomeExportedIntraClass;
+  value: u32;
+}
+
+export declare class SomeExportedIntraClass {
+  intraName: string;
+  age: i32;
 }

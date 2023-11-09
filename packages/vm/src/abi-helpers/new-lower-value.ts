@@ -60,7 +60,7 @@ export class NewLowerValue {
       case 'string':
         return this.lowerString(reader)
       default:
-        throw new Error(`unknown type: ${ty.name}`)
+        return this.lowerCompoundType(reader, ty)
     }
   }
 
@@ -68,7 +68,7 @@ export class NewLowerValue {
     const rtId = this.container.abi.rtidFromTypeNode(ty).get()
     const length = reader.readULEB()
     const elemType = ty.args[0]
-    const bufSize = length * elemType.ownSize
+    const bufSize = length * elemType.ownSize()
 
     const headerPtr = this.container.malloc(ARR_HEADER_LENGTH, rtId.id)
     const bufPtr = this.container.malloc(bufSize, BUF_RTID)
@@ -84,9 +84,9 @@ export class NewLowerValue {
     for (let time = 0; time < length; time++) {
       const elemPtr = this.lowerFromReader(reader, elemType)
       let elemBuf = this.serializeWord(elemPtr, elemType)
-      offset = offset.align(elemType.ownSize)
+      offset = offset.align(elemType.ownSize())
       this.container.mem.write(offset, elemBuf)
-      offset = offset.plus(elemType.ownSize)
+      offset = offset.plus(elemType.ownSize())
     }
 
     return headerPtr
@@ -95,7 +95,7 @@ export class NewLowerValue {
     const rtId = this.container.abi.rtidFromTypeNode(ty).get()
     const length = reader.readULEB()
     const elemType = ty.args[0]
-    const bufSize = length * elemType.ownSize
+    const bufSize = length * elemType.ownSize()
 
     const arrPtr = this.container.malloc(bufSize, rtId.id)
 
@@ -103,9 +103,9 @@ export class NewLowerValue {
     for (let pos = 0; pos < length; pos++) {
       const elemPtr = this.lowerFromReader(reader, elemType)
       let elemBuf = this.serializeWord(elemPtr, elemType)
-      offset = offset.align(elemType.ownSize)
+      offset = offset.align(elemType.ownSize())
       this.container.mem.write(offset, elemBuf)
-      offset = offset.plus(elemType.ownSize)
+      offset = offset.plus(elemType.ownSize())
     }
 
     return arrPtr
@@ -145,8 +145,39 @@ export class NewLowerValue {
     return ptr
   }
 
+  private lowerCompoundType(reader: BufReader, ty: AbiType): WasmWord {
+    const exported = this.container.abi.exportedByName(ty.name)
+    const imported = this.container.abi.importedByName(ty.name)
+    return exported
+      .map(_e => this.lowerExported(reader, ty))
+      .or(imported.map(_i => this.lowerImported(reader, ty) ))
+      .orElse(() => { throw new Error(`unknown type: ${ty.name}`)})
+  }
+
+  private lowerExported(reader: BufReader, ty: AbiType): WasmWord {
+    const exported =  this.container.abi.exportedByName(ty.name).get()
+    const plainObj = exported.toAbiObject()
+
+    const rtId = this.container.abi.rtidFromTypeNode(ty).get()
+
+    const objPtr = this.container.malloc(plainObj.ownSize(), rtId.id)
+
+    for (const field of plainObj.fields) {
+      const offset = objPtr.plus(field.offset)
+      const lowered = this.lowerFromReader(reader, field.type)
+      const data = this.serializeWord(lowered, field.type)
+      this.container.mem.write(offset, data)
+    }
+
+    return objPtr
+  }
+
+  private lowerImported(reader: BufReader, ty: AbiType): WasmWord {
+    return WasmWord.fromNumber(0)
+  }
+
   private serializeWord(word: WasmWord, ty: AbiType): Uint8Array {
-    const size = ty.ownSize;
+    const size = ty.ownSize();
     const buf = new BufWriter({ size })
     switch (size) {
       case 1:

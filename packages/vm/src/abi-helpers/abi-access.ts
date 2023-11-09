@@ -43,7 +43,7 @@ export class AbiAccess {
   }
 
   get exports(): AbiExport[] {
-    return this.exports
+    return this._exports
   }
 
   get imports(): AbiImport[] {
@@ -55,7 +55,7 @@ export class AbiAccess {
   }
 
   exportedByName (exportName: string): Option<AbiExport> {
-    const exported = this.exports.find(e => e.name === exportName);
+    const exported = this._exports.find(e => e.name === exportName);
     return Option.fromNullable(exported)
   }
 

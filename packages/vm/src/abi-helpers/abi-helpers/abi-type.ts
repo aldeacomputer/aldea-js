@@ -7,7 +7,7 @@ export class AbiType {
     this.ty = ty
   }
 
-  get ownSize(): number {
+  ownSize(): number {
     switch (this.ty.name) {
       case 'bool': return 1
       case 'u8': return 1
