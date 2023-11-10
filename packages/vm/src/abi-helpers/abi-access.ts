@@ -24,14 +24,29 @@ import {AbiClass} from "./abi-helpers/abi-class.js";
 import {AbiFunction} from "./abi-helpers/abi-function.js";
 import {AbiProxyDef} from "./abi-helpers/abi-proxy-def.js";
 import {ExecutionError} from "../errors.js";
+import {
+  basicJigAbiNode,
+  jigInitParamsAbiNode,
+  jigInitParamsTypeNode,
+  lockAbiNode,
+  outputAbiNode
+} from "./well-known-abi-nodes.js";
 
 export class AbiAccess {
   readonly abi: Abi;
+  // readonly abi: Abi;
   private _exports: AbiExport[]
   private _imports: AbiImport[]
   private rtids: TypeIdNode[]
   constructor(abi: Abi) {
-    this.abi = abi
+    this.abi = structuredClone(abi);
+
+    [outputAbiNode, jigInitParamsAbiNode, lockAbiNode, basicJigAbiNode].forEach(objNode => {
+      this.abi.exports.push(
+        this.abi.defs.push(objNode) - 1
+      )
+    })
+
     this._exports = this.abi.exports.map((_e, index) =>
       new AbiExport(this.abi, index)
     )
@@ -56,7 +71,8 @@ export class AbiAccess {
   }
 
   exportedByName (exportName: string): Option<AbiExport> {
-    const exported = this._exports.find(e => e.name === exportName);
+    const name = exportName.replace('*', '')
+    const exported = this._exports.find(e => e.name === name);
     return Option.fromNullable(exported)
   }
 

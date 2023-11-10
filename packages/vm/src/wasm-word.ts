@@ -1,3 +1,6 @@
+import {AbiType} from "./abi-helpers/abi-helpers/abi-type.js";
+import {BufWriter} from "@aldea/core";
+
 export class WasmWord {
   value: number | bigint;
 
@@ -40,6 +43,40 @@ export class WasmWord {
       return this
     } else {
       return new WasmWord(self + toSize - rem)
+    }
+  }
+
+  serialize(ty: AbiType): Uint8Array {
+    let writer: BufWriter
+    switch (ty.name) {
+      case 'bool':
+      case 'u8':
+      case 'i8':
+        writer = new BufWriter({size: 1})
+        writer.writeU8(this.toNumber())
+        return writer.data
+      case 'u16':
+      case 'i16':
+        writer = new BufWriter({size: 2})
+        writer.writeU16(this.toNumber())
+        return writer.data
+      case 'u64':
+      case 'i64':
+        writer = new BufWriter({size: 8})
+        writer.writeU64(this.toBigInt())
+        return writer.data
+      case 'f32':
+        writer = new BufWriter({size: 4})
+        writer.writeF32(this.toNumber())
+        return writer.data
+      case 'f64':
+        writer = new BufWriter({size: 8})
+        writer.writeF64(this.toNumber())
+        return writer.data
+      default:
+        writer = new BufWriter({size: 4})
+        writer.writeU32(this.toNumber())
+        return writer.data
     }
   }
 }

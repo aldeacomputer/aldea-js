@@ -4,7 +4,9 @@ import {BufReader, BufWriter, Pointer} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
 import {
   ARR_HEADER_LENGTH,
-  BUF_RTID, LOCK_OBJ_LENGTH, OUTPUT_OBJ_LENGTH,
+  BUF_RTID,
+  LOCK_OBJ_LENGTH,
+  OUTPUT_OBJ_LENGTH,
   PROXY_OBJ_LENGTH,
   STRING_RTID,
   TYPED_ARR_HEADER_LENGTH
@@ -13,6 +15,10 @@ import {CodeKind} from "@aldea/core/abi";
 import {Option} from "../support/option.js";
 import {ExecutionError} from "../errors.js";
 import {Lock} from '../locks/lock.js'
+import {AbiPlainObject} from "./abi-helpers/abi-plain-object.js";
+import {AbiClass} from "./abi-helpers/abi-class.js";
+import {AbiImport} from "./abi-helpers/abi-import.js";
+import {AbiProxyDef} from "./abi-helpers/abi-proxy-def.js";
 
 export type JigData = {
   origin: Pointer,
@@ -46,6 +52,7 @@ export class NewLowerValue {
         return WasmWord.fromNumber(reader.readU8())
       case 'u16':
         return WasmWord.fromNumber(reader.readU16())
+      case 'usize':
       case 'u32':
         return WasmWord.fromNumber(reader.readU32())
       case 'u64':
@@ -54,6 +61,7 @@ export class NewLowerValue {
         return WasmWord.fromNumber(reader.readI8())
       case 'i16':
         return WasmWord.fromNumber(reader.readI16())
+      case 'isize':
       case 'i32':
         return WasmWord.fromNumber(reader.readI32())
       case 'i64':
@@ -176,13 +184,39 @@ export class NewLowerValue {
 
   private lowerExported(reader: BufReader, ty: AbiType): WasmWord {
     const exported =  this.container.abi.exportedByName(ty.name).get()
-    const plainObj = exported.toAbiObject()
+    if (exported.kind === CodeKind.OBJECT) {
+      const plainObj = exported.toAbiObject()
+      return this.lowerPlainObject(reader, plainObj)
+    } else
+    if (ty.name.startsWith('*')) {
+      return this.lowerJig(reader, exported.toAbiClass())
+    } else {
+      throw new Error('not implemented')
+    }
+  }
 
-    const rtId = this.container.abi.rtidFromTypeNode(ty).get()
+  private lowerJig(reader: BufReader, cls: AbiClass): WasmWord {
+    const rtId = this.container.abi.rtIdByName(cls.typeName).get()
+    const jigPtr = this.container.malloc(cls.ownSize(), rtId.id)
 
-    const objPtr = this.container.malloc(plainObj.ownSize(), rtId.id)
+    cls.fields.forEach(field => {
+      const fieldPtr = this.lowerFromReader(reader, field.type)
+      this.container.mem.write(jigPtr.plus(field.offset), fieldPtr.serialize(field.type))
+    })
 
-    for (const field of plainObj.fields) {
+    if (reader.remaining !== 0) {
+      throw new Error('Lower a jig should consume entire buffer')
+    }
+
+    return jigPtr
+  }
+
+  private lowerPlainObject(reader: BufReader, objDef: AbiPlainObject): WasmWord {
+    const rtId = this.container.abi.rtIdByName(objDef.name).get()
+
+    const objPtr = this.container.malloc(objDef.ownSize(), rtId.id)
+
+    for (const field of objDef.fields) {
       const offset = objPtr.plus(field.offset)
       const lowered = this.lowerFromReader(reader, field.type)
       const data = this.serializeWord(lowered, field.type)
@@ -196,44 +230,84 @@ export class NewLowerValue {
     const imported = this.container.abi.importedByName(ty.name).get()
 
     if (imported.kind === CodeKind.OBJECT) {
-      throw new Error('not implemented yer')
+      const plainObj = imported.toAbiObject()
+      return this.lowerPlainObject(reader, plainObj)
+    } else {
+      return this.lowerProxy(reader, imported.toAbiProxy())
     }
 
+    // const origin = Pointer.fromBytes(reader.readFixedBytes(34))
+    // const data = this.getJigData(origin).expect(new ExecutionError(`Missing referenced output: ${origin.toString()}`))
+    //
+    // const objRtid = this.container.abi.rtidFromTypeNode(ty).get()
+    // const outoputRtid = this.container.abi.outputRtid()
+    // const lockRtid = this.container.abi.lockRtid()
+    //
+    //
+    // const objPtr = this.container.malloc(PROXY_OBJ_LENGTH, objRtid.id)
+    // const outputPtr = this.container.malloc(OUTPUT_OBJ_LENGTH, outoputRtid.id)
+    // const lockPtr = this.container.malloc(LOCK_OBJ_LENGTH, lockRtid.id)
+    //
+    // const originPtr = this.lowerBuffer(data.origin.toBytes())
+    // const locationPtr = this.lowerBuffer(data.location.toBytes())
+    // const classPtr = this.lowerBuffer(data.classPtr.toBytes())
+    // const lockDataPtr = this.lowerBuffer(data.lock.data())
+    //
+    // const outputContent = new BufWriter({size: 12})
+    // outputContent.writeU32(originPtr.toNumber())
+    // outputContent.writeU32(locationPtr.toNumber())
+    // outputContent.writeU32(classPtr.toNumber())
+    // this.container.mem.write(outputPtr, outputContent.data)
+    //
+    // const lockContent = new BufWriter({size: 12})
+    // lockContent.writeU32(originPtr.toNumber())
+    // lockContent.writeU32(data.lock.typeNumber())
+    // lockContent.writeI32(lockDataPtr.toNumber())
+    // this.container.mem.write(lockPtr, lockContent.data)
+    //
+    // const objData = new BufWriter({ size: 8 })
+    // objData.writeU32(outputPtr.toNumber())
+    // objData.writeU32(lockPtr.toNumber())
+    // this.container.mem.write(objPtr, objData.data)
+
+    // return
+  }
+
+  private lowerProxy(reader: BufReader, proxyDef: AbiProxyDef): WasmWord {
     const origin = Pointer.fromBytes(reader.readFixedBytes(34))
-    const data = this.getJigData(origin).expect(new ExecutionError(`Missing referenced output: ${origin.toString()}`))
 
-    const objRtid = this.container.abi.rtidFromTypeNode(ty).get()
-    const outoputRtid = this.container.abi.outputRtid()
-    const lockRtid = this.container.abi.lockRtid()
+    const jigData = this.getJigData(origin)
+      .expect(new ExecutionError(`Missing referenced output: ${origin.toString()}`))
 
+    const dataBuf = this.serializeJigData(jigData)
+    const dataReader = new BufReader(dataBuf)
 
-    const objPtr = this.container.malloc(PROXY_OBJ_LENGTH, objRtid.id)
-    const outputPtr = this.container.malloc(OUTPUT_OBJ_LENGTH, outoputRtid.id)
-    const lockPtr = this.container.malloc(LOCK_OBJ_LENGTH, lockRtid.id)
+    const rtId = this.container
+      .abi.rtIdByName(proxyDef.name).get()
 
-    const originPtr = this.lowerBuffer(data.origin.toBytes())
-    const locationPtr = this.lowerBuffer(data.location.toBytes())
-    const classPtr = this.lowerBuffer(data.classPtr.toBytes())
-    const lockDataPtr = this.lowerBuffer(data.lock.data())
+    const proxyPtr = this.container.malloc(proxyDef.ownSize(), rtId.id)
 
-    const outputContent = new BufWriter({size: 12})
-    outputContent.writeU32(originPtr.toNumber())
-    outputContent.writeU32(locationPtr.toNumber())
-    outputContent.writeU32(classPtr.toNumber())
-    this.container.mem.write(outputPtr, outputContent.data)
+    for (const field of proxyDef.fields) {
+      const fieldPtr = this.lowerFromReader(dataReader, field.type)
+      this.container.mem.write(proxyPtr.plus(field.offset), fieldPtr.serialize(field.type))
+    }
 
-    const lockContent = new BufWriter({size: 12})
-    lockContent.writeU32(originPtr.toNumber())
-    lockContent.writeU32(data.lock.typeNumber())
-    lockContent.writeI32(lockDataPtr.toNumber())
-    this.container.mem.write(lockPtr, lockContent.data)
+    return proxyPtr
+  }
 
-    const objData = new BufWriter({ size: 8 })
-    objData.writeU32(outputPtr.toNumber())
-    objData.writeU32(lockPtr.toNumber())
-    this.container.mem.write(objPtr, objData.data)
+  private serializeJigData (jigData: JigData): Uint8Array {
+    const buf = new BufWriter()
+    // Write output
+    buf.writeBytes(jigData.origin.toBytes())
+    buf.writeBytes(jigData.location.toBytes())
+    buf.writeBytes(jigData.classPtr.toBytes())
 
-    return objPtr
+    // Write lock
+    buf.writeBytes(jigData.origin.toBytes())
+    buf.writeU32(jigData.lock.typeNumber())
+    buf.writeBytes(jigData.lock.data())
+
+    return buf.data
   }
 
   private lowerBuffer (buf: Uint8Array) {
@@ -243,25 +317,7 @@ export class NewLowerValue {
   }
 
   private serializeWord(word: WasmWord, ty: AbiType): Uint8Array {
-    const size = ty.ownSize();
-    const buf = new BufWriter({ size })
-    switch (size) {
-      case 1:
-        buf.writeU8(word.toNumber())
-        break
-      case 2:
-        buf.writeU16(word.toNumber())
-        break
-      case 4:
-        buf.writeU32(word.toNumber())
-        break
-      case 8:
-        buf.writeU64(word.toBigInt())
-        break
-      default: throw new Error(`Invalid type length: ${size}`)
-    }
-
-    return buf.data
+    return word.serialize(ty)
   }
 
 }

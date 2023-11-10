@@ -1,4 +1,6 @@
 import {Abi, AbiQuery, assertProxy, CodeKind, ProxyNode} from "@aldea/core/abi";
+import {AbiField} from "./abi-plain-object.js";
+import {basicJigAbiNode} from "../well-known-abi-nodes.js";
 
 export class AbiProxyDef {
   private abi: Abi;
@@ -17,8 +19,14 @@ export class AbiProxyDef {
     this.node = code
   }
 
+  get fields (): AbiField[] {
+    return basicJigAbiNode
+      .fields
+      .map((fieldNode, i) => new AbiField(fieldNode, i * 4))
+  }
+
   get name () {
-    return this.node
+    return this.node.name
   }
 
   get pkgId (): string {
@@ -27,5 +35,9 @@ export class AbiProxyDef {
 
   get kind (): CodeKind {
     return this.node.kind
+  }
+
+  ownSize () {
+    return 8;
   }
 }

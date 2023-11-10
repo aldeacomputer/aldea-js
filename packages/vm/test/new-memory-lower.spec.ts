@@ -1,14 +1,13 @@
 import {JigData, NewLowerValue, Storage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
-import {BCS, BufReader, BufWriter, Pointer} from "@aldea/core";
+import {BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
 import {expect} from "chai";
 import {AbiType} from "../src/abi-helpers/abi-helpers/abi-type.js";
 import {WasmWord} from "../src/wasm-word.js";
 import {Option} from "../src/support/option.js";
-import {Lock} from "../src/locks/lock.js";
 import {PublicLock} from "../src/locks/public-lock.js";
-import {FrozenLock} from "../src/locks/frozen-lock.js";
+import {serializeOutput} from "../src/abi-helpers/abi-helpers/serialize-output.js";
 
 const FLOAT_ERROR: number = 0.00001
 
@@ -360,7 +359,7 @@ describe('NewMemoryLower', () => {
 
     buf.writeFixedBytes(externalJigOrigin.toBytes())
 
-    const ty = AbiType.fromName('Imported')
+    const ty = AbiType.fromName('ImportedClass')
 
     const objPtr = target.lower(buf.data, ty)
 
@@ -391,5 +390,67 @@ describe('NewMemoryLower', () => {
     expect(lockReader.readI32()).to.eql(3)
 
     expect(container.mem.extract(lockOriginPtr, 34)).to.eql(extOrigin)
+  })
+
+
+  it('can lower imported object', () => {
+    const buf = new BufWriter()
+    buf.writeI32(1)
+    buf.writeF64(1.5)
+    const prop3 = "prop3";
+    buf.writeBytes(Buffer.from(prop3))
+
+    const ty = AbiType.fromName('ImportedObj')
+    const impObjPtr = target.lower(buf.data, ty)
+
+
+    const impObjRead = container.mem.read(impObjPtr.minus(8), 28)
+    const impObjRtId = container.abi.rtidFromTypeNode(ty).get()
+    expect(impObjRead.readU32()).to.eql(impObjRtId.id)
+    expect(impObjRead.readU32()).to.eql(20)
+    expect(impObjRead.readU32()).to.eql(1)
+    impObjRead.readU32() // Empty space for alligment
+    expect(impObjRead.readF64()).to.eql(1.5)
+    const strPtr = WasmWord.fromNumber(impObjRead.readU32())
+
+    const strRead = container.mem.read(strPtr, prop3.length * 2)
+    const strBuf = Buffer.from(strRead.readFixedBytes(prop3.length * 2))
+    expect(strBuf.toString('utf16le')).to.eql(prop3)
+  })
+
+  it('can lower real jig', () => {
+    const stateBuf = new BufWriter()
+    const aNumber = 10
+    const prop1 = -5;
+    const prop2 = 1.5;
+    const prop3 = 'prop3';
+
+    stateBuf.writeU32(aNumber)
+    stateBuf.writeULEB(1)
+    stateBuf.writeI32(prop1)
+    stateBuf.writeF64(prop2)
+    stateBuf.writeBytes(Buffer.from(prop3))
+
+    const jigOutput = new Output(
+      new Pointer(new Uint8Array(32).fill(1), 1),
+      new Pointer(new Uint8Array(32).fill(2), 2),
+      new Pointer(modIdFor('test-types'), 1),
+      new Lock(LockType.ADDRESS, new Uint8Array(20).fill(3)),
+      stateBuf.data,
+    )
+
+    const outputBuf = serializeOutput(jigOutput)
+
+    const ty = AbiType.fromName('*SmallJig')
+
+    const jigPtr = target.lower(outputBuf, ty)
+
+    const jigRead = container.mem.read(jigPtr.minus(8), 24)
+    const rtId = container.abi.rtidFromTypeNode(ty).get()
+    expect(jigRead.readU32()).to.eql(rtId.id)
+    expect(jigRead.readU32()).to.eql(16)
+    jigRead.readU32()
+    jigRead.readU32()
+    expect(jigRead.readU32()).to.eql(aNumber)
   })
 });

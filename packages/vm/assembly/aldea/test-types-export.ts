@@ -8,3 +8,10 @@ export class Imported extends Jig {
     this.exported2 = aNumber
   }
 }
+
+
+export declare class ImportedObj {
+  prop1: i32
+  prop2: f64
+  prop3: string
+}

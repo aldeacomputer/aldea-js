@@ -13,7 +13,8 @@ export class TestTypes extends Jig{
   f32Array: Float32Array;
   f64Array: Float64Array;
   attr: SomeExportedClass;
-  imported: Imported;
+  importedClass: ImportedClass;
+  importedObj: ImportedObj;
 
   constructor () {
     super()
@@ -38,11 +39,23 @@ export class TestTypes extends Jig{
       },
       value: 10
     }
-    this.imported = new Imported("imported", 1)
-    // this.staticArrU16[0] = 2
-    // this.uint8Array[0] = 3
-    // this.uint16Array
-    // this.int8Array[0] = -4
+    this.importedClass = new ImportedClass("imported", 1)
+    this.importedObj = {
+      prop1: 1,
+      prop2: 1.2,
+      prop3: "prop3"
+    }
+  }
+}
+
+export class SmallJig extends Jig {
+  aNumber: u32
+  aList: ImportedObj[]
+
+  constructor (aNumber: u32, aList: ImportedObj[]) {
+    super();
+    this.aNumber = aNumber
+    this.aList = aList
   }
 }
 
@@ -60,10 +73,18 @@ export declare class SomeExportedIntraClass {
 
 
 // @ts-ignore
-@imported("2f6e2ec8cc1b53b358048cb4c881e312ccf9c1e0717a4d49030f276a1c620966")
-declare class Imported {
+@imported("cb7c6fcf7907bf207e3030a2b53fa267cfab6b412ec203b9697490b1a3a16bf9")
+declare class ImportedClass {
   exported1: string;
   exported2: u32;
 
   constructor (aString: string, aNumber: u32);
+}
+
+// @ts-ignore
+@imported("cb7c6fcf7907bf207e3030a2b53fa267cfab6b412ec203b9697490b1a3a16bf9")
+declare class ImportedObj {
+  prop1: i32
+  prop2: f64
+  prop3: string
 }

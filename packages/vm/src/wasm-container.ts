@@ -21,9 +21,9 @@ import {AbiAccess} from "./abi-helpers/abi-access.js";
 import {JigState} from "./jig-state.js";
 import {LiftArgumentVisitor} from "./abi-helpers/lift-argument-visitor.js";
 import {AbiFunction} from "./abi-helpers/abi-helpers/abi-function.js";
-import {AbiMethod} from "./abi-helpers/abi-helpers/abi-class.js";
 import {NewMemory} from "./new-memory.js";
 import {WasmWord} from "./wasm-word.js";
+import {AbiMethod} from "./abi-helpers/abi-helpers/abi-method.js";
 
 export enum LockType {
   FROZEN = -1,
