@@ -11,10 +11,13 @@ import {
 } from "./well-known-abi-nodes.js";
 import {CodeKind} from "@aldea/core/abi";
 import {Option} from "../support/option.js";
+import {ExecutionError} from "../errors.js";
+import {Lock} from '../locks/lock.js'
 
 export type JigData = {
   origin: Pointer,
   location: Pointer,
+  classPtr: Pointer,
   outputHash: Uint8Array
   lock: Lock
 }
@@ -132,9 +135,7 @@ export class NewLowerValue {
 
   private lowerArrayBuffer (reader: BufReader): WasmWord {
     const buf = reader.readBytes()
-    const ptr = this.container.malloc(buf.byteLength, BUF_RTID)
-    this.container.mem.write(ptr, buf)
-    return ptr
+    return this.lowerBuffer(buf)
   }
 
   private lowerTypedArray(reader: BufReader, ty: AbiType): WasmWord {
@@ -198,7 +199,8 @@ export class NewLowerValue {
       throw new Error('not implemented yer')
     }
 
-    const origin = reader.readFixedBytes(34)
+    const origin = Pointer.fromBytes(reader.readFixedBytes(34))
+    const data = this.getJigData(origin).expect(new ExecutionError(`Missing referenced output: ${origin.toString()}`))
 
     const objRtid = this.container.abi.rtidFromTypeNode(ty).get()
     const outoputRtid = this.container.abi.outputRtid()
@@ -209,13 +211,35 @@ export class NewLowerValue {
     const outputPtr = this.container.malloc(PROXY_OBJ_LENGTH, outoputRtid.id)
     const lockPtr = this.container.malloc(PROXY_OBJ_LENGTH, lockRtid.id)
 
-    const originPtr = this.lowerFromReader(new BufReader(origin), AbiType.buffer())
+    const originPtr = this.lowerBuffer(data.origin.toBytes())
+    const locationPtr = this.lowerBuffer(data.location.toBytes())
+    const classPtr = this.lowerBuffer(data.classPtr.toBytes())
+    const lockDataPtr = this.lowerBuffer(data.lock.data())
 
+    const outputContent = new BufWriter({size: 12})
+    outputContent.writeU32(originPtr.toNumber())
+    outputContent.writeU32(locationPtr.toNumber())
+    outputContent.writeU32(classPtr.toNumber())
+    this.container.mem.write(outputPtr, outputContent.data)
 
+    const lockContent = new BufWriter({size: 12})
+    lockContent.writeU32(originPtr.toNumber())
+    lockContent.writeU32(data.lock.typeNumber())
+    lockContent.writeU32(lockDataPtr.toNumber())
+    this.container.mem.write(lockPtr, lockContent.data)
 
+    const objData = new BufWriter({ size: 8 })
+    objData.writeU32(outputPtr.toNumber())
+    objData.writeU32(lockPtr.toNumber())
+    this.container.mem.write(objPtr, objData.data)
 
+    return objPtr
+  }
 
-    return WasmWord.fromNumber(0)
+  private lowerBuffer (buf: Uint8Array) {
+    const ptr = this.container.malloc(buf.byteLength, BUF_RTID)
+    this.container.mem.write(ptr, buf)
+    return ptr
   }
 
   private serializeWord(word: WasmWord, ty: AbiType): Uint8Array {

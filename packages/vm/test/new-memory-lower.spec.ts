@@ -6,6 +6,8 @@ import {expect} from "chai";
 import {AbiType} from "../src/abi-helpers/abi-helpers/abi-type.js";
 import {WasmWord} from "../src/wasm-word.js";
 import {Option} from "../src/support/option.js";
+import {Lock} from "../src/locks/lock.js";
+import {PublicLock} from "../src/locks/public-lock.js";
 
 const FLOAT_ERROR: number = 0.00001
 
@@ -341,12 +343,19 @@ describe('NewMemoryLower', () => {
     const data = [1,2,3,4,5,6,7,8]
     const someTxId = new Uint8Array([...data, ...data, ...data, ...data])
     const externalJigOrigin = new Pointer(someTxId, 9)
+    jigData.set(externalJigOrigin.toString(), {
+      origin: Pointer.fromBytes(new Uint8Array(34)),
+      location: Pointer.fromBytes(new Uint8Array(34)),
+      classPtr: Pointer.fromBytes(new Uint8Array(34)),
+      outputHash: new Uint8Array(32),
+      lock: new PublicLock()
+    })
+
     buf.writeFixedBytes(externalJigOrigin.toBytes())
 
     const ty = AbiType.fromName('Imported')
 
     const objPtr = target.lower(buf.data, ty)
-
 
     const objReader = container.mem.read(objPtr.minus(8), 16)
     const objRtId = container.abi.rtIdByName(ty.name).get()

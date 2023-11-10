@@ -40,4 +40,8 @@ export class AbiType {
   static buffer(): AbiType {
     return this.fromName('ArrayBuffer')
   }
+
+  static u32(): AbiType {
+    return this.fromName('u32')
+  }
 }
