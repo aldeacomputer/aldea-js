@@ -4,7 +4,7 @@ import {BufReader, BufWriter, Pointer} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
 import {
   ARR_HEADER_LENGTH,
-  BUF_RTID,
+  BUF_RTID, LOCK_OBJ_LENGTH, OUTPUT_OBJ_LENGTH,
   PROXY_OBJ_LENGTH,
   STRING_RTID,
   TYPED_ARR_HEADER_LENGTH
@@ -208,8 +208,8 @@ export class NewLowerValue {
 
 
     const objPtr = this.container.malloc(PROXY_OBJ_LENGTH, objRtid.id)
-    const outputPtr = this.container.malloc(PROXY_OBJ_LENGTH, outoputRtid.id)
-    const lockPtr = this.container.malloc(PROXY_OBJ_LENGTH, lockRtid.id)
+    const outputPtr = this.container.malloc(OUTPUT_OBJ_LENGTH, outoputRtid.id)
+    const lockPtr = this.container.malloc(LOCK_OBJ_LENGTH, lockRtid.id)
 
     const originPtr = this.lowerBuffer(data.origin.toBytes())
     const locationPtr = this.lowerBuffer(data.location.toBytes())
@@ -225,7 +225,7 @@ export class NewLowerValue {
     const lockContent = new BufWriter({size: 12})
     lockContent.writeU32(originPtr.toNumber())
     lockContent.writeU32(data.lock.typeNumber())
-    lockContent.writeU32(lockDataPtr.toNumber())
+    lockContent.writeI32(lockDataPtr.toNumber())
     this.container.mem.write(lockPtr, lockContent.data)
 
     const objData = new BufWriter({ size: 8 })

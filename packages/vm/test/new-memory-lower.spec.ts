@@ -8,6 +8,7 @@ import {WasmWord} from "../src/wasm-word.js";
 import {Option} from "../src/support/option.js";
 import {Lock} from "../src/locks/lock.js";
 import {PublicLock} from "../src/locks/public-lock.js";
+import {FrozenLock} from "../src/locks/frozen-lock.js";
 
 const FLOAT_ERROR: number = 0.00001
 
@@ -343,11 +344,17 @@ describe('NewMemoryLower', () => {
     const data = [1,2,3,4,5,6,7,8]
     const someTxId = new Uint8Array([...data, ...data, ...data, ...data])
     const externalJigOrigin = new Pointer(someTxId, 9)
+
+    const extOrigin = new Uint8Array(34).fill(1)
+    const extLocation = new Uint8Array(34).fill(2)
+    const extClassPtr = new Uint8Array(34).fill(3)
+    const extOutputHash = new Uint8Array(32).fill(4)
+
     jigData.set(externalJigOrigin.toString(), {
-      origin: Pointer.fromBytes(new Uint8Array(34)),
-      location: Pointer.fromBytes(new Uint8Array(34)),
-      classPtr: Pointer.fromBytes(new Uint8Array(34)),
-      outputHash: new Uint8Array(32),
+      origin: Pointer.fromBytes(extOrigin),
+      location: Pointer.fromBytes(extLocation),
+      classPtr: Pointer.fromBytes(extClassPtr),
+      outputHash: extOutputHash,
       lock: new PublicLock()
     })
 
@@ -360,5 +367,29 @@ describe('NewMemoryLower', () => {
     const objReader = container.mem.read(objPtr.minus(8), 16)
     const objRtId = container.abi.rtIdByName(ty.name).get()
     expect(objReader.readU32()).to.eql(objRtId.id)
+    expect(objReader.readU32()).to.eql(8) // Size of a proxy
+    const outputPtr = WasmWord.fromNumber(objReader.readU32());
+    const lockPtr = WasmWord.fromNumber(objReader.readU32());
+
+    const outputReader = container.mem.read(outputPtr.minus(8), 20)
+    const outputRtid = container.abi.rtIdByName('Output').get()
+    expect(outputReader.readU32()).to.eql(outputRtid.id)
+    expect(outputReader.readU32()).to.eql(12)
+    const originPtr = WasmWord.fromNumber(outputReader.readU32())
+    const locationPtr = WasmWord.fromNumber(outputReader.readU32())
+    const classPtrPtr = WasmWord.fromNumber(outputReader.readU32())
+
+    expect(container.mem.extract(originPtr, 34)).to.eql(extOrigin)
+    expect(container.mem.extract(locationPtr, 34)).to.eql(extLocation)
+    expect(container.mem.extract(classPtrPtr, 34)).to.eql(extClassPtr)
+
+    const lockReader = container.mem.read(lockPtr.minus(8), 20)
+    const lockRtid = container.abi.rtIdByName('Lock').get()
+    expect(lockReader.readU32()).to.eql(lockRtid.id)
+    expect(lockReader.readU32()).to.eql(12)
+    const lockOriginPtr = WasmWord.fromNumber(lockReader.readU32());
+    expect(lockReader.readI32()).to.eql(3)
+
+    expect(container.mem.extract(lockOriginPtr, 34)).to.eql(extOrigin)
   })
 });

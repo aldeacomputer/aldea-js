@@ -110,3 +110,5 @@ export const STRING_RTID = 1
 export const ARR_HEADER_LENGTH = 16;
 export const TYPED_ARR_HEADER_LENGTH = 12;
 export const PROXY_OBJ_LENGTH = 8;
+export const OUTPUT_OBJ_LENGTH = 12;
+export const LOCK_OBJ_LENGTH = 12;
