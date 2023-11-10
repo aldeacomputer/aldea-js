@@ -5,6 +5,8 @@ import {AbiField} from "./abi-plain-object.js";
 import {WasmWord} from "../../wasm-word.js";
 import {AbiMethod} from "./abi-method.js";
 import {lockTypeNode, outputTypeNode} from "../well-known-abi-nodes.js";
+import {AbiImportedProxy} from "./abi-imported-proxy.js";
+import {ProxyDef} from "./proxy-def.js";
 
 const BASE_FIELDS = [{
     name: '$output',
@@ -107,5 +109,9 @@ export class AbiClass {
   fieldByName(name: string): Option<FieldNode> {
     const maybeField = this.fields.find(f => f.name === name)
     return Option.fromNullable(maybeField)
+  }
+
+  toProxyDef () {
+    return new ProxyDef(this.name)
   }
 }

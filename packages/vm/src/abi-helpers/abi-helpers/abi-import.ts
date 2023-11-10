@@ -1,6 +1,6 @@
 import {Abi, AbiQuery, CodeKind} from "@aldea/core/abi";
 import {AbiPlainObject} from "./abi-plain-object.js";
-import {AbiProxyDef} from "./abi-proxy-def.js";
+import {AbiImportedProxy} from "./abi-imported-proxy.js";
 
 export class AbiImport {
   private abi: Abi;
@@ -16,8 +16,8 @@ export class AbiImport {
     this.kind = imported.kind
   }
 
-  toAbiProxy (): AbiProxyDef {
-    return new AbiProxyDef(this.abi, this.idx)
+  toAbiProxy (): AbiImportedProxy {
+    return new AbiImportedProxy(this.abi, this.idx)
   }
 
   toAbiObject (): AbiPlainObject {
@@ -28,21 +28,21 @@ export class AbiImport {
     return new AbiPlainObject(this.abi, this.idx, node)
   }
 
-  toImportedFunction (): AbiProxyDef {
+  toImportedFunction (): AbiImportedProxy {
     if (this.kind !== CodeKind.PROXY_FUNCTION) {
       throw new Error(`Imported element at ${this.idx} was treated as a function but it's not.`)
     }
     return this.toAbiProxy()
   }
 
-  toImportedClass (): AbiProxyDef {
+  toImportedClass (): AbiImportedProxy {
     if (this.kind !== CodeKind.PROXY_CLASS) {
       throw new Error(`Imported element at ${this.idx} was treated as a class but it's not.`)
     }
     return this.toAbiProxy()
   }
 
-  toImportedInterface (): AbiProxyDef {
+  toImportedInterface (): AbiImportedProxy {
     if (this.kind !== CodeKind.PROXY_INTERFACE) {
       throw new Error(`Imported element at ${this.idx} was treated as an interface but it's not.`)
     }

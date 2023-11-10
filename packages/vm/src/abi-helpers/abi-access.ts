@@ -22,7 +22,7 @@ import {AbiExport} from "./abi-helpers/abi-export.js";
 import {AbiImport} from "./abi-helpers/abi-import.js";
 import {AbiClass} from "./abi-helpers/abi-class.js";
 import {AbiFunction} from "./abi-helpers/abi-function.js";
-import {AbiProxyDef} from "./abi-helpers/abi-proxy-def.js";
+import {AbiImportedProxy} from "./abi-helpers/abi-imported-proxy.js";
 import {ExecutionError} from "../errors.js";
 import {
   basicJigAbiNode,

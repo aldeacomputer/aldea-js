@@ -59,6 +59,15 @@ export class SmallJig extends Jig {
   }
 }
 
+export class JigWithJig extends Jig {
+  contained: SmallJig
+
+  constructor (contained: SmallJig) {
+    super();
+    this.contained = contained
+  }
+}
+
 
 export declare class SomeExportedClass {
   name: string;

@@ -1,15 +1,42 @@
 import {JigData, NewLowerValue, Storage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
-import {BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
+import {Address, BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
 import {expect} from "chai";
 import {AbiType} from "../src/abi-helpers/abi-helpers/abi-type.js";
 import {WasmWord} from "../src/wasm-word.js";
 import {Option} from "../src/support/option.js";
 import {PublicLock} from "../src/locks/public-lock.js";
 import {serializeOutput} from "../src/abi-helpers/abi-helpers/serialize-output.js";
+import {UserLock} from "../src/locks/user-lock.js";
 
 const FLOAT_ERROR: number = 0.00001
+
+function checkOutput (container: WasmContainer, outputPtr: WasmWord, extOrigin: Uint8Array, extLocation: Uint8Array, extClassPtr: Uint8Array) {
+  const outputReader = container.mem.read(outputPtr.minus(8), 20)
+  const outputRtid = container.abi.rtIdByName('Output').get()
+  expect(outputReader.readU32()).to.eql(outputRtid.id)
+  expect(outputReader.readU32()).to.eql(12)
+  const originPtr = WasmWord.fromNumber(outputReader.readU32())
+  const locationPtr = WasmWord.fromNumber(outputReader.readU32())
+  const classPtrPtr = WasmWord.fromNumber(outputReader.readU32())
+
+  expect(container.mem.extract(originPtr, 34)).to.eql(extOrigin)
+  expect(container.mem.extract(locationPtr, 34)).to.eql(extLocation)
+  expect(container.mem.extract(classPtrPtr, 34)).to.eql(extClassPtr)
+}
+
+function checkLock (container: WasmContainer, lockPtr: WasmWord, extOrigin: Uint8Array, lockType: LockType, lockData: Uint8Array) {
+  const lockReader = container.mem.read(lockPtr.minus(8), 20)
+  const lockRtid = container.abi.rtIdByName('Lock').get()
+  expect(lockReader.readU32()).to.eql(lockRtid.id)
+  expect(lockReader.readU32()).to.eql(12)
+  const lockOriginPtr = WasmWord.fromNumber(lockReader.readU32());
+  expect(lockReader.readI32()).to.eql(lockType)
+  const lockDataPtr = WasmWord.fromNumber(lockReader.readU32())
+  expect(container.mem.extract(lockOriginPtr, 34)).to.eql(extOrigin)
+  expect(container.mem.extract(lockDataPtr, lockData.byteLength)).to.eql(lockData)
+}
 
 describe('NewMemoryLower', () => {
   let modIdFor: (key: string) => Uint8Array
@@ -33,6 +60,8 @@ describe('NewMemoryLower', () => {
     jigData = new Map<string, JigData>()
     target = new NewLowerValue(container, (ptr) => Option.fromNullable(jigData.get(ptr.toString())))
   })
+
+
 
   it('can lower an u8', () => {
     const inputBuf = new BufWriter()
@@ -370,26 +399,8 @@ describe('NewMemoryLower', () => {
     const outputPtr = WasmWord.fromNumber(objReader.readU32());
     const lockPtr = WasmWord.fromNumber(objReader.readU32());
 
-    const outputReader = container.mem.read(outputPtr.minus(8), 20)
-    const outputRtid = container.abi.rtIdByName('Output').get()
-    expect(outputReader.readU32()).to.eql(outputRtid.id)
-    expect(outputReader.readU32()).to.eql(12)
-    const originPtr = WasmWord.fromNumber(outputReader.readU32())
-    const locationPtr = WasmWord.fromNumber(outputReader.readU32())
-    const classPtrPtr = WasmWord.fromNumber(outputReader.readU32())
-
-    expect(container.mem.extract(originPtr, 34)).to.eql(extOrigin)
-    expect(container.mem.extract(locationPtr, 34)).to.eql(extLocation)
-    expect(container.mem.extract(classPtrPtr, 34)).to.eql(extClassPtr)
-
-    const lockReader = container.mem.read(lockPtr.minus(8), 20)
-    const lockRtid = container.abi.rtIdByName('Lock').get()
-    expect(lockReader.readU32()).to.eql(lockRtid.id)
-    expect(lockReader.readU32()).to.eql(12)
-    const lockOriginPtr = WasmWord.fromNumber(lockReader.readU32());
-    expect(lockReader.readI32()).to.eql(3)
-
-    expect(container.mem.extract(lockOriginPtr, 34)).to.eql(extOrigin)
+    checkOutput(container, outputPtr, extOrigin, extLocation, extClassPtr);
+    checkLock(container, lockPtr, extOrigin, LockType.PUBLIC, new Uint8Array());
   })
 
 
@@ -452,5 +463,38 @@ describe('NewMemoryLower', () => {
     jigRead.readU32()
     jigRead.readU32()
     expect(jigRead.readU32()).to.eql(aNumber)
+  })
+
+  it('can lower an exported jig proxy', () => {
+    const buf = new BufWriter()
+    const data = [1,2,3,4,5,6,7,8]
+    const someTxId = new Uint8Array([...data, ...data, ...data, ...data])
+    const externalJigOrigin = new Pointer(someTxId, 9)
+
+    const extLocation = new Uint8Array(34).fill(2)
+    const extClassPtr = new Uint8Array(34).fill(3)
+    const extOutputHash = new Uint8Array(32).fill(4)
+    const addrBuf = new Uint8Array(20).fill(5)
+
+    jigData.set(externalJigOrigin.toString(), {
+      origin: Pointer.fromBytes(externalJigOrigin.toBytes()),
+      location: Pointer.fromBytes(extLocation),
+      classPtr: Pointer.fromBytes(extClassPtr),
+      outputHash: extOutputHash,
+      lock: new UserLock(new Address(addrBuf))
+    })
+
+    const ty = AbiType.fromName('SmallJig')
+
+    const proxyPtr = target.lower(externalJigOrigin.toBytes(), ty)
+    const proxyRtId = container.abi.rtidFromTypeNode(ty).get()
+    const proxyRead = container.mem.read(proxyPtr.minus(8), 16)
+    expect(proxyRead.readU32()).to.eql(proxyRtId.id)
+    expect(proxyRead.readU32()).to.eql(8)
+    const outputPtr =  WasmWord.fromNumber(proxyRead.readU32())
+    const lockPtr = WasmWord.fromNumber(proxyRead.readU32())
+
+    checkOutput(container, outputPtr, externalJigOrigin.toBytes(), extLocation, extClassPtr)
+    checkLock(container, lockPtr, externalJigOrigin.toBytes(), LockType.ADDRESS, addrBuf);
   })
 });

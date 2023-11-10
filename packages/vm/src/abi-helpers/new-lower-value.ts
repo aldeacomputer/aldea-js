@@ -2,23 +2,14 @@ import {WasmContainer} from "../wasm-container.js";
 import {WasmWord} from "../wasm-word.js";
 import {BufReader, BufWriter, Pointer} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
-import {
-  ARR_HEADER_LENGTH,
-  BUF_RTID,
-  LOCK_OBJ_LENGTH,
-  OUTPUT_OBJ_LENGTH,
-  PROXY_OBJ_LENGTH,
-  STRING_RTID,
-  TYPED_ARR_HEADER_LENGTH
-} from "./well-known-abi-nodes.js";
+import {ARR_HEADER_LENGTH, BUF_RTID, STRING_RTID, TYPED_ARR_HEADER_LENGTH} from "./well-known-abi-nodes.js";
 import {CodeKind} from "@aldea/core/abi";
 import {Option} from "../support/option.js";
 import {ExecutionError} from "../errors.js";
 import {Lock} from '../locks/lock.js'
 import {AbiPlainObject} from "./abi-helpers/abi-plain-object.js";
 import {AbiClass} from "./abi-helpers/abi-class.js";
-import {AbiImport} from "./abi-helpers/abi-import.js";
-import {AbiProxyDef} from "./abi-helpers/abi-proxy-def.js";
+import {ProxyDef} from "./abi-helpers/proxy-def.js";
 
 export type JigData = {
   origin: Pointer,
@@ -190,8 +181,11 @@ export class NewLowerValue {
     } else
     if (ty.name.startsWith('*')) {
       return this.lowerJig(reader, exported.toAbiClass())
+    } else
+    if (exported.kind === CodeKind.CLASS) {
+      return this.lowerProxy(reader, exported.toAbiClass().toProxyDef())
     } else {
-      throw new Error('not implemented')
+      throw this.lowerProxy(reader, exported.toAbiClass().toProxyDef())
     }
   }
 
@@ -233,47 +227,11 @@ export class NewLowerValue {
       const plainObj = imported.toAbiObject()
       return this.lowerPlainObject(reader, plainObj)
     } else {
-      return this.lowerProxy(reader, imported.toAbiProxy())
+      return this.lowerProxy(reader, imported.toAbiProxy().toProxyDef())
     }
-
-    // const origin = Pointer.fromBytes(reader.readFixedBytes(34))
-    // const data = this.getJigData(origin).expect(new ExecutionError(`Missing referenced output: ${origin.toString()}`))
-    //
-    // const objRtid = this.container.abi.rtidFromTypeNode(ty).get()
-    // const outoputRtid = this.container.abi.outputRtid()
-    // const lockRtid = this.container.abi.lockRtid()
-    //
-    //
-    // const objPtr = this.container.malloc(PROXY_OBJ_LENGTH, objRtid.id)
-    // const outputPtr = this.container.malloc(OUTPUT_OBJ_LENGTH, outoputRtid.id)
-    // const lockPtr = this.container.malloc(LOCK_OBJ_LENGTH, lockRtid.id)
-    //
-    // const originPtr = this.lowerBuffer(data.origin.toBytes())
-    // const locationPtr = this.lowerBuffer(data.location.toBytes())
-    // const classPtr = this.lowerBuffer(data.classPtr.toBytes())
-    // const lockDataPtr = this.lowerBuffer(data.lock.data())
-    //
-    // const outputContent = new BufWriter({size: 12})
-    // outputContent.writeU32(originPtr.toNumber())
-    // outputContent.writeU32(locationPtr.toNumber())
-    // outputContent.writeU32(classPtr.toNumber())
-    // this.container.mem.write(outputPtr, outputContent.data)
-    //
-    // const lockContent = new BufWriter({size: 12})
-    // lockContent.writeU32(originPtr.toNumber())
-    // lockContent.writeU32(data.lock.typeNumber())
-    // lockContent.writeI32(lockDataPtr.toNumber())
-    // this.container.mem.write(lockPtr, lockContent.data)
-    //
-    // const objData = new BufWriter({ size: 8 })
-    // objData.writeU32(outputPtr.toNumber())
-    // objData.writeU32(lockPtr.toNumber())
-    // this.container.mem.write(objPtr, objData.data)
-
-    // return
   }
 
-  private lowerProxy(reader: BufReader, proxyDef: AbiProxyDef): WasmWord {
+  private lowerProxy(reader: BufReader, proxyDef: ProxyDef): WasmWord {
     const origin = Pointer.fromBytes(reader.readFixedBytes(34))
 
     const jigData = this.getJigData(origin)
