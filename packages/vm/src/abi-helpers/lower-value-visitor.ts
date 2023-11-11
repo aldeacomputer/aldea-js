@@ -46,20 +46,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   }
 
   private lowerJigProxy (type: TypeNode) {
-    const val = this.value as JigRef
-    const mod = this.instance
-    // const buf = Buffer.from(val.originBuf);
-    // const bufferPtr = lowerBuffer(mod, buf)
-
-    const outputPtr = this.lowerValue(val.outputObject(), emptyTn(outputAbiNode.name))
-    const lockPtr = this.lowerValue(val.lockObject(), emptyTn('Lock'))
-
-    // this.lowerValue()
-    const objPtr = mod.__new(8, mod.abi.rtidFromTypeNode(type).get().id);
-    const memU32 = new Uint32Array(mod.memory.buffer)
-    memU32[objPtr >>> 2] = Number(outputPtr)
-    memU32[(objPtr + 4) >>> 2] = Number(lockPtr)
-    return objPtr
+    return 0
   }
 
   visitExportedClass (_classNode: AbiClass, type: TypeNode): WasmPointer {
@@ -71,59 +58,11 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   }
 
   visitArray(innerType: TypeNode): WasmPointer {
-    const mod = this.instance
-    const val = this.value as Array<any>
-    const rtid = mod.abi
-      .rtidFromTypeNode({ name: 'Array', args: [innerType], nullable: false })
-      .get()
-    const elBytes = getTypeBytes(innerType)
-    const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
-    const TypedArray = getTypedArrayForPtr(innerType)
-
-    const length = val.length
-    const buffer = mod.__pin(mod.__new((length << align), BUFFER_RTID))
-    const header = mod.__new(16, rtid.id)
-    const memU32 = new Uint32Array(mod.memory.buffer)
-    memU32[header >>> 2] = buffer;
-    memU32[header + 4 >>> 2] = buffer;
-    memU32[header + 8 >>> 2] = length << align;
-    memU32[header + 12 >>> 2] = length;
-
-    for (let i = 0; i < length; ++i) {
-      const nextPos = buffer + ((i << align))
-      new TypedArray(mod.memory.buffer)[nextPos >>> align] = this.lowerValue(val[i], innerType)
-    }
-    mod.__unpin(buffer)
-    mod.__unpin(header)
-    return header
+    return 0
   }
 
   visitStaticArray(innerType: TypeNode): WasmPointer {
-    const mod = this.instance
-    const val = this.value
-
-    const rtid = mod.abi
-      .rtidFromTypeNode({name: 'StaticArray', args: [innerType], nullable: false})
-      .get()
-    const elBytes = getTypeBytes(innerType)
-    const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
-    const TypedArray = getTypedArrayForPtr(innerType)
-
-    const length = val.length
-    const size = val.length << align;
-    const buffer = mod.__pin(mod.__new(size, rtid.id))
-
-    if (hasTypedArrayConstructor(innerType)) {
-      new TypedArray(mod.memory.buffer, buffer, length).set(val)
-    } else {
-      for (let i = 0; i < length; i++) {
-        const nextPos = buffer + ((i << align) >>> 0)
-        new TypedArray(mod.memory.buffer)[nextPos >>> align] = this.lowerValue(val[i], innerType)
-      }
-    }
-
-    mod.__unpin(buffer);
-    return buffer;
+    return 0
   }
 
   lowerValue (value: any, type: TypeNode): WasmPointer {
@@ -187,25 +126,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   }
 
   visitPlainObject(fields: FieldNode[], typeNode: TypeNode): WasmPointer {
-    let value = this.value
-    const mod = this.instance
-    if (!Array.isArray(value)) { value = Object.values(value) }
-    if (!Array.isArray(value) || fields.length !== value.length) {
-      throw new Error(`invalid state for object`)
-    }
-
-    const rtid = mod.abi.rtidFromTypeNode(typeNode).get()
-    const bytes = fields.reduce((sum: number, n: FieldNode) => sum + getTypeBytes(n.type), 0)
-    const ptr = mod.__new(bytes, rtid.id)
-    const offsets = getObjectMemLayout(fields)
-
-    fields.forEach((n: FieldNode, i: number) => {
-      const TypedArray = getTypedArrayForPtr(n.type)
-      const mem = new TypedArray(mod.memory.buffer, ptr, bytes)
-      const { align, offset } = offsets[n.name]
-      mem[offset >>> align] = this.lowerValue(value[i], n.type)
-    })
-    return ptr
+    return 0
   }
 
   visitSet(innerType: TypeNode): WasmPointer {
@@ -241,25 +162,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
   }
 
   visitTypedArray(typeName: string): WasmPointer {
-    const mod = this.instance
-    const val = this.value
-    const type = emptyTn(typeName);
-
-    const rtId = mod.abi.rtidFromTypeNode(type).get()
-    const elBytes = getElementBytes(type)
-    const align = elBytes > 1 ? Math.ceil(elBytes / 3) : 0
-
-    const length = val.length
-    const buffer = mod.__pin(mod.__new((length << align), BUFFER_RTID))
-    const header = mod.__new(12, rtId.id)
-    const memU32 = new Uint32Array(mod.memory.buffer)
-    memU32[header >>> 2] = buffer
-    memU32[header + 4 >>> 2] = buffer
-    memU32[header + 8 >>> 2] = length << align
-    const TypedArray = getTypedArrayConstructor(type)
-    new TypedArray(mod.memory.buffer, buffer, length).set(val)
-    mod.__unpin(buffer)
-    return header;
+    return 0
   }
 
   visitArrayBuffer(): WasmPointer {
@@ -272,21 +175,7 @@ export class LowerValueVisitor extends AbiTraveler<WasmPointer> {
 
 
   private lowerEmptySetOrMap(mod: Module, type: TypeNode, entrySize: number): number {
-    const rtId = mod.abi.rtidFromTypeNode(type).get()
-    const initCapacity = 4
-    const buckets = mod.__new(initCapacity * 4, BUFFER_RTID)
-    const entries = mod.__new(initCapacity * entrySize, BUFFER_RTID)
-    const ptr = mod.__new(24, rtId.id)
-
-    const memU32 = new Uint32Array(mod.memory.buffer)
-    memU32[ptr >>> 2] = buckets
-    memU32[ptr + 1 >>> 2] = initCapacity - 1
-    memU32[ptr + 2 >>> 2] = entries
-    memU32[ptr + 3 >>> 2] = initCapacity
-    memU32[ptr + 4 >>> 2] = 0
-    memU32[ptr + 5 >>> 2] = 0
-
-    return ptr
+    return 0
   }
 
   visitVoid(): WasmPointer {

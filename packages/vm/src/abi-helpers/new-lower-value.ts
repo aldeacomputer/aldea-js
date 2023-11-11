@@ -3,13 +3,15 @@ import {WasmWord} from "../wasm-word.js";
 import {BufReader, BufWriter, Pointer} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
 import {ARR_HEADER_LENGTH, BUF_RTID, STRING_RTID, TYPED_ARR_HEADER_LENGTH} from "./well-known-abi-nodes.js";
-import {CodeKind} from "@aldea/core/abi";
+import {CodeKind, normalizeTypeName} from "@aldea/core/abi";
 import {Option} from "../support/option.js";
 import {ExecutionError} from "../errors.js";
 import {Lock} from '../locks/lock.js'
 import {AbiPlainObject} from "./abi-helpers/abi-plain-object.js";
 import {AbiClass} from "./abi-helpers/abi-class.js";
 import {ProxyDef} from "./abi-helpers/proxy-def.js";
+import {blake3} from "@noble/hashes/blake3";
+import {bytesToHex as toHex} from "@noble/hashes/utils";
 
 export type JigData = {
   origin: Pointer,
@@ -80,6 +82,8 @@ export class NewLowerValue {
         return this.lowerTypedArray(reader, ty)
       case 'string':
         return this.lowerString(reader)
+      case 'Map':
+        return this.lowerMap(reader, ty)
       default:
         return this.lowerCompoundType(reader, ty)
     }
@@ -278,4 +282,44 @@ export class NewLowerValue {
     return word.serialize(ty)
   }
 
+  private lowerMap (reader: BufReader, ty: AbiType): WasmWord {
+    const keyType = ty.args[0]
+    const valueType = ty.args[1]
+
+    const rtid = this.container.abi.rtidFromTypeNode(ty).get()
+
+    const mapPtr = this.container.malloc(24, rtid.id)
+
+    const mapBody = new BufWriter({size: 24})
+    const initialCapacity = 4;
+    const usizeSize = 4;
+
+    const entrySize = WasmWord.fromNumber(0)
+      .align(keyType.ownSize()).plus(keyType.ownSize())
+      .align(valueType.ownSize()).plus(valueType.ownSize())
+      .align(4).plus(4).toNumber()
+
+    const bucketsPtr = this.lowerBuffer(new Uint8Array(initialCapacity * usizeSize))
+    const entriesPtr = this.lowerBuffer(new Uint8Array(initialCapacity * Number(entrySize)))
+
+    mapBody.writeU32(bucketsPtr.toNumber())
+    mapBody.writeU32(initialCapacity - 1)
+    mapBody.writeU32(entriesPtr.toNumber())
+    mapBody.writeU32(initialCapacity)
+    mapBody.writeU32(0)
+    mapBody.writeU32(0)
+    this.container.mem.write(mapPtr, mapBody.data)
+
+
+    const size = reader.readULEB()
+    const typeHash = blake3(ty.normalizedName(), { dkLen: 4 })
+    const fnName = `__put_map_entry_${ toHex(typeHash) }`
+    for (let i = 0; i < size; i++) {
+      const keyPtr = this.lowerFromReader(reader, keyType)
+      const valuePtr = this.lowerFromReader(reader, valueType)
+      this.container.callFn(fnName, [mapPtr, keyPtr, valuePtr], [ty, keyType, valueType])
+    }
+
+    return mapPtr;
+  }
 }

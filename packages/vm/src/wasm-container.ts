@@ -24,6 +24,8 @@ import {AbiFunction} from "./abi-helpers/abi-helpers/abi-function.js";
 import {NewMemory} from "./new-memory.js";
 import {WasmWord} from "./wasm-word.js";
 import {AbiMethod} from "./abi-helpers/abi-helpers/abi-method.js";
+import {AbiType} from "./abi-helpers/abi-helpers/abi-type.js";
+import {Option} from "./support/option.js";
 
 export enum LockType {
   FROZEN = -1,
@@ -504,5 +506,15 @@ export class WasmContainer {
     }
     const ptrNumber = __new(size, rtid)
     return new WasmWord(ptrNumber)
+  }
+
+  callFn (fnName: string, wasmWords: WasmWord[], abiTypes: AbiType[]): Option<WasmWord> {
+    const fn = this.instance.exports[fnName];
+    if (!(fn instanceof Function)) {
+      throw new Error(`exported function "${fnName}" not found`)
+    }
+    const args = wasmWords.map((w, i) => w.toWasmArg(abiTypes[i]))
+    const ret = fn(...args)
+    return Option.fromNullable(ret).map(r => new WasmWord(r))
   }
 }

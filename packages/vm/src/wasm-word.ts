@@ -1,6 +1,8 @@
 import {AbiType} from "./abi-helpers/abi-helpers/abi-type.js";
 import {BufWriter} from "@aldea/core";
 
+type WasmArg = number | bigint
+
 export class WasmWord {
   value: number | bigint;
 
@@ -78,5 +80,10 @@ export class WasmWord {
         writer.writeU32(this.toNumber())
         return writer.data
     }
+  }
+
+  toWasmArg (abiType: AbiType): WasmArg {
+    if (['u64', 'i64'].includes(abiType.name)) return this.toBigInt()
+    return this.toNumber()
   }
 }

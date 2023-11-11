@@ -1,12 +1,4 @@
-import {
-  Abi,
-  CodeKind,
-  InterfaceNode,
-  normalizeTypeName,
-  ObjectNode,
-  TypeIdNode,
-  TypeNode
-} from "@aldea/core/abi";
+import {Abi, TypeIdNode} from "@aldea/core/abi";
 // import {
 //   basicJigAbiNode,
 //   coinNode,
@@ -20,17 +12,9 @@ import {
 import {Option} from "../support/option.js";
 import {AbiExport} from "./abi-helpers/abi-export.js";
 import {AbiImport} from "./abi-helpers/abi-import.js";
-import {AbiClass} from "./abi-helpers/abi-class.js";
-import {AbiFunction} from "./abi-helpers/abi-function.js";
-import {AbiImportedProxy} from "./abi-helpers/abi-imported-proxy.js";
 import {ExecutionError} from "../errors.js";
-import {
-  basicJigAbiNode,
-  jigInitParamsAbiNode,
-  jigInitParamsTypeNode,
-  lockAbiNode,
-  outputAbiNode
-} from "./well-known-abi-nodes.js";
+import {basicJigAbiNode, jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "./well-known-abi-nodes.js";
+import {AbiType} from "./abi-helpers/abi-type.js";
 
 export class AbiAccess {
   readonly abi: Abi;
@@ -91,9 +75,8 @@ export class AbiAccess {
     return Option.fromNullable(maybe)
   }
 
-  rtidFromTypeNode(type: TypeNode): Option<TypeIdNode> {
-    const normalized = normalizeTypeName(type)
-    return this.rtIdByName(normalized)
+  rtidFromTypeNode(type: AbiType): Option<TypeIdNode> {
+    return this.rtIdByName(type.normalizedName())
   }
 
   outputRtid(): TypeIdNode {

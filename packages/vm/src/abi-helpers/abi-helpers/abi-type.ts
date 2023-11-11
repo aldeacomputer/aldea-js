@@ -1,4 +1,4 @@
-import {TypeNode} from "@aldea/core/abi";
+import {normalizeTypeName, TypeNode} from "@aldea/core/abi";
 import {emptyTn} from "../well-known-abi-nodes.js";
 
 export class AbiType {
@@ -43,5 +43,9 @@ export class AbiType {
 
   static u32(): AbiType {
     return this.fromName('u32')
+  }
+
+  normalizedName () {
+    return normalizeTypeName(this.ty);
   }
 }

@@ -9,6 +9,8 @@ import {Option} from "../src/support/option.js";
 import {PublicLock} from "../src/locks/public-lock.js";
 import {serializeOutput} from "../src/abi-helpers/abi-helpers/serialize-output.js";
 import {UserLock} from "../src/locks/user-lock.js";
+import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
+
 
 const FLOAT_ERROR: number = 0.00001
 
@@ -496,5 +498,26 @@ describe('NewMemoryLower', () => {
 
     checkOutput(container, outputPtr, externalJigOrigin.toBytes(), extLocation, extClassPtr)
     checkLock(container, lockPtr, externalJigOrigin.toBytes(), LockType.ADDRESS, addrBuf);
+  })
+
+  it('can lower a map', () => {
+    const buf = new BufWriter()
+    buf.writeULEB(10)
+    new Array(10).fill(0).forEach((_, i) => {
+      buf.writeBytes(Buffer.from(`key ${i}`))
+      buf.writeBytes(Buffer.from(`value ${i}`))
+    })
+
+
+    const ty = new AbiType({ name: 'Map', nullable: false, args: [emptyTn('string'), emptyTn('string')] });
+    const mapPtr = target.lower(buf.data, ty)
+    const mapRtId = container.abi.rtidFromTypeNode(ty).get()
+
+    const mapRead = container.mem.read(mapPtr.minus(8), 32)
+    expect(mapRead.readU32()).to.eql(mapRtId.id)
+    expect(mapRead.readU32()).to.eql(24)
+
+    const res = container.callFn('checkMap', [mapPtr, WasmWord.fromNumber(10)], [ty, AbiType.fromName('u32')])
+    expect(res.get().toNumber()).to.eql(1) // truthy value
   })
 });
