@@ -110,7 +110,7 @@ export class NewLowerValue {
     let offset = bufPtr
     for (let time = 0; time < length; time++) {
       const elemPtr = this.lowerFromReader(reader, elemType)
-      let elemBuf = this.serializeWord(elemPtr, elemType)
+      let elemBuf = elemPtr.serialize(elemType)
       offset = offset.align(elemType.ownSize())
       this.container.mem.write(offset, elemBuf)
       offset = offset.plus(elemType.ownSize())
@@ -129,7 +129,7 @@ export class NewLowerValue {
     let offset = arrPtr
     for (let pos = 0; pos < length; pos++) {
       const elemPtr = this.lowerFromReader(reader, elemType)
-      let elemBuf = this.serializeWord(elemPtr, elemType)
+      let elemBuf = elemPtr.serialize(elemType)
       offset = offset.align(elemType.ownSize())
       this.container.mem.write(offset, elemBuf)
       offset = offset.plus(elemType.ownSize())
@@ -219,7 +219,7 @@ export class NewLowerValue {
     for (const field of objDef.fields) {
       const offset = objPtr.plus(field.offset)
       const lowered = this.lowerFromReader(reader, field.type)
-      const data = this.serializeWord(lowered, field.type)
+      const data = lowered.serialize(field.type)
       this.container.mem.write(offset, data)
     }
 
@@ -279,11 +279,6 @@ export class NewLowerValue {
     this.container.mem.write(ptr, buf)
     return ptr
   }
-
-  private serializeWord(word: WasmWord, ty: AbiType): Uint8Array {
-    return word.serialize(ty)
-  }
-
   private lowerMap (reader: BufReader, ty: AbiType): WasmWord {
     const keyType = ty.args[0]
     const valueType = ty.args[1]
