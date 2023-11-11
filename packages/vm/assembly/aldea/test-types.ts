@@ -16,6 +16,7 @@ export class TestTypes extends Jig{
   importedClass: ImportedClass;
   importedObj: ImportedObj;
   mapStringToString: Map<string, string>;
+  setOfStrings: Set<string>
 
   constructor () {
     super()
@@ -47,6 +48,7 @@ export class TestTypes extends Jig{
       prop3: "prop3"
     }
     this.mapStringToString = new Map<string, string>()
+    this.setOfStrings = new Set<string>()
   }
 }
 
@@ -67,6 +69,22 @@ export function checkMap(map: Map<string, string>, expectedLength: u32): u8 {
   }
 
   return 1;
+}
+
+export function checkSet(set: Set<string>, size: u32): u8 {
+  if (set.size !== size) {
+    return 0
+  }
+
+  let values = set.values()
+  values = values.sort()
+  for (let i =0; i < values.length; i++) {
+    if (values[i] !== `value ${i}`) {
+      return 0
+    }
+  }
+
+  return 1
 }
 
 export class SmallJig extends Jig {

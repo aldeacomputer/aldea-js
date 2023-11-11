@@ -84,6 +84,8 @@ export class NewLowerValue {
         return this.lowerString(reader)
       case 'Map':
         return this.lowerMap(reader, ty)
+      case 'Set':
+        return this.lowerSet(reader, ty)
       default:
         return this.lowerCompoundType(reader, ty)
     }
@@ -321,5 +323,42 @@ export class NewLowerValue {
     }
 
     return mapPtr;
+  }
+
+  private lowerSet(reader: BufReader, ty: AbiType): WasmWord {
+    const rtId = this.container.abi.rtidFromTypeNode(ty).get()
+    const innerType = ty.args[0]
+
+    const setPtr = this.container.malloc(24, rtId.id)
+
+    const setHeader = new BufWriter({size: 24})
+
+    const initialCapacity = 4;
+    const usizeSize = 4;
+
+    const entrySize = WasmWord.fromNumber(0)
+      .align(innerType.ownSize()).plus(innerType.ownSize())
+      .align(4).plus(4).toNumber()
+
+    const bucketsPtr = this.lowerBuffer(new Uint8Array(initialCapacity * usizeSize))
+    const entriesPtr = this.lowerBuffer(new Uint8Array(initialCapacity * Number(entrySize)))
+
+    setHeader.writeU32(bucketsPtr.toNumber())
+    setHeader.writeU32(initialCapacity - 1)
+    setHeader.writeU32(entriesPtr.toNumber())
+    setHeader.writeU32(initialCapacity)
+    setHeader.writeU32(0)
+    setHeader.writeU32(0)
+    this.container.mem.write(setPtr, setHeader.data)
+
+    const size = reader.readULEB()
+    const typeHash = blake3(normalizeTypeName(ty), { dkLen: 4 })
+    const fnName = `__put_set_entry_${ toHex(typeHash) }`
+    for (let i = 0; i < size; i++) {
+      const elemPtr = this.lowerFromReader(reader, innerType)
+      this.container.callFn(fnName, [setPtr, elemPtr], [ty, innerType])
+    }
+
+    return setPtr
   }
 }
