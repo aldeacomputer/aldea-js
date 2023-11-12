@@ -1,5 +1,6 @@
 import {AbiType} from "./abi-helpers/abi-helpers/abi-type.js";
-import {BufWriter} from "@aldea/core";
+import {BufReader, BufWriter} from "@aldea/core";
+import {NewMemory} from "./new-memory.js";
 
 type WasmArg = number | bigint
 
@@ -12,6 +13,25 @@ export class WasmWord {
 
   static fromNumber (number: number): WasmWord {
     return new this(number);
+  }
+
+  // static fromMem (mem: NewMemory, ptr: WasmWord): WasmWord {
+  //   return new WasmWord(mem.read(ptr, 4).readU32())
+  // }
+
+  static fromReader (read: BufReader, ty: AbiType = AbiType.fromName('u32')): WasmWord {
+    switch (ty.ownSize()) {
+      case 1:
+        return WasmWord.fromNumber(read.readU8())
+      case 2:
+        return WasmWord.fromNumber(read.readU16())
+      case 4:
+        return WasmWord.fromNumber(read.readU32())
+      case 8:
+        return WasmWord.fromNumber(read.readU32())
+      default:
+        throw new Error(`unknown size: ${ty.ownSize()}`)
+    }
   }
 
   toNumber (): number {

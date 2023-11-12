@@ -9,15 +9,19 @@ export class AbiType {
 
   ownSize(): number {
     switch (this.ty.name) {
-      case 'bool': return 1
-      case 'u8': return 1
-      case 'i8': return 1
-      case 'u16': return 2
-      case 'i16': return 2
-      case 'u64': return 8
-      case 'i64': return 8
-      case 'f64': return 8
-      default: return 4
+      case 'bool':
+      case 'u8':
+      case 'i8':
+        return 1
+      case 'u16':
+      case 'i16':
+        return 2
+      case 'u64':
+      case 'i64':
+      case 'f64':
+        return 8
+      default:
+        return 4
     }
   }
 
