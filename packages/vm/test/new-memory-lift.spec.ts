@@ -71,4 +71,22 @@ describe('NewMemoryLower', () => {
     const lifted = target.lift(ptr, ty)
     expect(lifted).to.eql(data)
   })
+
+  it('can lift Map<string, string>', () => {
+    const buf = new BufWriter()
+    buf.writeULEB(5)
+    for (const i of [1, 2, 3, 4, 5]) {
+      buf.writeBytes(Buffer.from(`aaa ${i}`))
+      buf.writeBytes(Buffer.from(`sss ${i}`))
+    }
+
+    let data = buf.data
+
+    const ty = new AbiType({ name: 'Map', nullable: false, args: [emptyTn('string'), emptyTn('string')] })
+
+    const ptr = lower.lower(data, ty)
+
+    const lifted = target.lift(ptr, ty)
+    expect(lifted).to.eql(data)
+  })
 });

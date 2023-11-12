@@ -64,6 +64,8 @@ export class NewLiftValue {
         this.liftStaticArray(ptr, ty, writer)
         break
       case 'ArrayBuffer':
+        this.liftArrayBuffer(ptr, writer)
+        break
       case 'Uint8Array':
       case 'Uint16Array':
       case 'Uint32Array':
@@ -74,8 +76,14 @@ export class NewLiftValue {
       case 'Int64Array':
       case 'Float32Array':
       case 'Float64Array':
+        this.liftTypedArray(ptr, ty, writer)
+        break
       case 'string':
+        this.liftString(ptr, writer)
+        break
       case 'Map':
+        this.liftMap(ptr, ty, writer)
+        break
       case 'Set':
       default:
         throw new Error(`not implemented ${ty.name}`)
@@ -115,16 +123,28 @@ export class NewLiftValue {
     }
   }
 
-  private liftArrayBuffer (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
-    throw new Error('not implemented')
+  private liftArrayBuffer (ptr: WasmWord, writer: BufWriter) {
+    const buf = this.liftBuffer(ptr)
+    writer.writeBytes(buf)
   }
 
   private liftTypedArray(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
-    throw new Error('not implemented')
+    const header = this.container.mem.read(ptr, 12)
+    const bufPtr = WasmWord.fromNumber(header.readU32())
+    header.readU32()
+    const bufLength = header.readU32()
+
+    const buf = this.container.mem.extract(bufPtr, bufLength)
+    writer.writeBytes(buf)
   }
 
-  private liftString(writer: BufWriter) {
-    throw new Error('not implemented')
+  private liftString (ptr: WasmWord, writer: BufWriter) {
+    const strLength = this.container.mem.read(ptr.minus(4), 4).readU32()
+    const buf = Buffer.from(this.container.mem.extract(ptr, strLength))
+    const string = buf.toString('utf16le')
+    console.log('string', string)
+    const stringBuf = Buffer.from(string)
+    writer.writeBytes(stringBuf)
   }
 
   private liftCompoundType(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
@@ -152,7 +172,35 @@ export class NewLiftValue {
   }
 
   private liftMap (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
-    throw new Error('not implemented')
+    const headerReader = this.container.mem.read(ptr.plus(8), 16);
+    const entriesNum = headerReader.readU32()
+    headerReader.readU32()
+    headerReader.readU32()
+    const entriesCount = headerReader.readU32();
+    const entriesPtr = WasmWord.fromNumber(entriesNum)
+
+    const keyTy = ty.args[0]
+    const valueTy = ty.args[1]
+
+    writer.writeULEB(entriesCount);
+
+    let offset = entriesPtr
+    for (let i = 0; i < entriesCount ; i++) {
+      offset = offset.align(keyTy.ownSize())
+      const keyPtr = this.liftPtr(offset, ty)
+      this.liftInto(keyPtr, keyTy, writer)
+      offset = offset.plus(keyTy.ownSize()).align(valueTy.ownSize())
+      const valuePtr = this.liftPtr(offset, valueTy)
+      offset = offset.plus(valueTy.ownSize())
+      this.liftInto(valuePtr, valueTy, writer)
+      offset = offset.align(4).plus(4)
+    }
+
+  }
+
+  private liftPtr(ptr: WasmWord, ty: AbiType): WasmWord {
+    const reader = this.container.mem.read(ptr, ty.ownSize())
+    return WasmWord.fromReader(reader, ty)
   }
 
   private liftSet(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
