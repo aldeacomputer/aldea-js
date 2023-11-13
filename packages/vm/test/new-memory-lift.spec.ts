@@ -108,7 +108,7 @@ describe('NewMemoryLower', () => {
     expect(lifted).to.eql(data)
   })
 
-  it('can real Jig', () => {
+  it('can lift a real Jig', () => {
     const stateBuf = new BufWriter()
     const aNumber = 10
     const prop1 = -5;

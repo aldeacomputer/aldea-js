@@ -57,7 +57,7 @@ export class NewLiftValue {
         writer.writeF32(ptr.toInt())
         break
       case 'f64':
-        writer.writeF64(ptr.toInt())
+        writer.writeF64(ptr.toFloat())
         break
       case 'Array':
         this.liftArray(ptr, ty, writer)
