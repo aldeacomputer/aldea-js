@@ -1,109 +1,125 @@
 import {AbiType} from "./abi-helpers/abi-helpers/abi-type.js";
 import {BufReader, BufWriter} from "@aldea/core";
-import {NewMemory} from "./new-memory.js";
+import {WasmValue} from "./wasm-container.js";
 
 type WasmArg = number | bigint
 
 export class WasmWord {
-  value: number | bigint;
+  value: ArrayBuffer;
 
-  constructor (value: number | bigint) {
-    this.value = value
+  constructor (bytes: ArrayBuffer) {
+    if (bytes.byteLength > 8) {
+      throw new Error('wrong number of bytes')
+    }
+    this.value = new ArrayBuffer(8)
+    Buffer.from(this.value).set(Buffer.from(bytes))
   }
 
   static fromNumber (number: number): WasmWord {
-    return new this(number);
-  }
-
-  // static fromMem (mem: NewMemory, ptr: WasmWord): WasmWord {
-  //   return new WasmWord(mem.read(ptr, 4).readU32())
-  // }
-
-  static fromReader (read: BufReader, ty: AbiType = AbiType.fromName('u32')): WasmWord {
-    switch (ty.ownSize()) {
-      case 1:
-        return WasmWord.fromNumber(read.readU8())
-      case 2:
-        return WasmWord.fromNumber(read.readU16())
-      case 4:
-        return WasmWord.fromNumber(read.readU32())
-      case 8:
-        return WasmWord.fromNumber(read.readU32())
-      default:
-        throw new Error(`unknown size: ${ty.ownSize()}`)
+    const w = new BufWriter({ size: 8 })
+    if (Number.isInteger(number)) {
+      w.writeU64(number)
+    } else {
+      w.writeF64(number)
     }
-  }
-
-  toNumber (): number {
-    return Number(this.value)
-  }
-
-  toBigInt (): bigint {
-    return BigInt(this.value)
+    return new this(w.data)
   }
 
   static fromBigInt (bigint: bigint): WasmWord {
-    return new this(bigint)
+    const w = new BufWriter({size: 8})
+    w.writeU64(bigint)
+    return new this(w.data)
+  }
+
+  static fromNumeric (value: WasmArg): WasmWord {
+    if (typeof value === 'bigint') {
+      return this.fromBigInt(value)
+    } else {
+      return this.fromNumber(Number(value))
+    }
+  }
+
+  static fromReader (read: BufReader, ty: AbiType = AbiType.fromName('u32')): WasmWord {
+    return new WasmWord(read.readFixedBytes(ty.ownSize()))
+  }
+
+  toInt (): number {
+    return Buffer.from(this.value).readInt32LE()
+  }
+
+  toUInt (): number {
+    return Buffer.from(this.value).readUInt32LE()
+  }
+
+  toFloat (): number {
+    return new BufReader(new Uint8Array(this.value)).readF64()
+  }
+
+  toBigInt (): bigint {
+    return Buffer.from(this.value).readBigInt64LE()
   }
 
   toBool (): boolean {
-    return this.toNumber() !== 0
+    return this.toInt() !== 0
   }
 
   plus(n: number): WasmWord {
-    return new WasmWord(this.toNumber() + n)
+    let num = Buffer.from(this.value).readUInt32LE()
+    return WasmWord.fromNumber(num + n)
   }
 
   minus(n: number): WasmWord {
-    return new WasmWord(this.toNumber() - n)
+    let num = this.toInt()
+    return WasmWord.fromNumber(num - n)
   }
 
   align (toSize: number): WasmWord {
-    const self = this.toNumber()
+    const self = this.toInt()
     const rem = self % toSize
     if (rem === 0) {
       return this
     } else {
-      return new WasmWord(self + toSize - rem)
+      return WasmWord.fromNumber(self + toSize - rem)
     }
   }
 
   serialize(ty: AbiType): Uint8Array {
-    let writer: BufWriter
-    switch (ty.name) {
-      case 'bool':
-      case 'u8':
-      case 'i8':
-        writer = new BufWriter({size: 1})
-        writer.writeU8(this.toNumber())
-        return writer.data
-      case 'u16':
-      case 'i16':
-        writer = new BufWriter({size: 2})
-        writer.writeU16(this.toNumber())
-        return writer.data
-      case 'u64':
-      case 'i64':
-        writer = new BufWriter({size: 8})
-        writer.writeU64(this.toBigInt())
-        return writer.data
-      case 'f32':
-        writer = new BufWriter({size: 4})
-        writer.writeF32(this.toNumber())
-        return writer.data
-      case 'f64':
-        writer = new BufWriter({size: 8})
-        writer.writeF64(this.toNumber())
-        return writer.data
-      default:
-        writer = new BufWriter({size: 4})
-        writer.writeU32(this.toNumber())
-        return writer.data
-    }
+    // let writer: BufWriter
+    // switch (ty.name) {
+    //   case 'bool':
+    //   case 'u8':
+    //   case 'i8':
+    //     writer = new BufWriter({size: 1})
+    //     writer.writeU8(this.toNumber())
+    //     return writer.data
+    //   case 'u16':
+    //   case 'i16':
+    //     writer = new BufWriter({size: 2})
+    //     writer.writeU16(this.toNumber())
+    //     return writer.data
+    //   case 'u64':
+    //   case 'i64':
+    //     writer = new BufWriter({size: 8})
+    //     writer.writeU64(this.toBigInt())
+    //     return writer.data
+    //   case 'f32':
+    //     writer = new BufWriter({size: 4})
+    //     writer.writeF32(this.toNumber())
+    //     return writer.data
+    //   case 'f64':
+    //     writer = new BufWriter({size: 8})
+    //     writer.writeF64(this.toNumber())
+    //     return writer.data
+    //   default:
+    //     writer = new BufWriter({size: 4})
+    //     writer.writeU32(this.toNumber())
+    //     return writer.data
+    // }
+    return new Uint8Array(this.value)
   }
 
   toWasmArg (abiType: AbiType): WasmArg {
     if (['u64', 'i64'].includes(abiType.name)) return this.toBigInt()
-    return this.toNumber()
+    return this.toInt()
   }
 }

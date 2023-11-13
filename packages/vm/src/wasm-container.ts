@@ -505,7 +505,7 @@ export class WasmContainer {
       throw new Error('__new should be an exported function')
     }
     const ptrNumber = __new(size, rtid)
-    return new WasmWord(ptrNumber)
+    return WasmWord.fromNumber(ptrNumber)
   }
 
   callFn (fnName: string, wasmWords: WasmWord[], abiTypes: AbiType[]): Option<WasmWord> {
@@ -515,6 +515,6 @@ export class WasmContainer {
     }
     const args = wasmWords.map((w, i) => w.toWasmArg(abiTypes[i]))
     const ret = fn(...args)
-    return Option.fromNullable(ret).map(r => new WasmWord(r))
+    return Option.fromNullable(ret).map(r => WasmWord.fromNumeric(r))
   }
 }

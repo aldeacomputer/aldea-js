@@ -38,7 +38,7 @@ export class AbiClass {
     this._fields = fields.map(node => {
       const ty = new AbiType(node.type)
       offset = offset.align(ty.ownSize())
-      const field = new AbiField(node, offset.toNumber())
+      const field = new AbiField(node, offset.toInt())
       offset = offset.plus(ty.ownSize())
       return field
     })
@@ -58,6 +58,10 @@ export class AbiClass {
 
   get fields (): AbiField[] {
     return this._fields
+  }
+
+  ownFields (): AbiField[] {
+    return this._fields.slice(2)
   }
 
   // allNativeFields (): FieldNode[] {

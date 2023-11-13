@@ -1,7 +1,7 @@
 import {JigData, NewLowerValue, Storage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
-import {Address, BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
+import {Address, base16, BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
 import {expect} from "chai";
 import {AbiType} from "../src/abi-helpers/abi-helpers/abi-type.js";
 import {WasmWord} from "../src/wasm-word.js";
@@ -106,5 +106,36 @@ describe('NewMemoryLower', () => {
 
     const lifted = target.lift(ptr, ty)
     expect(lifted).to.eql(data)
+  })
+
+  it('can real Jig', () => {
+    const stateBuf = new BufWriter()
+    const aNumber = 10
+    const prop1 = -5;
+    const prop2 = 1.5;
+    const prop3 = 'prop3';
+
+    stateBuf.writeU32(aNumber)
+    stateBuf.writeULEB(1)
+    stateBuf.writeI32(prop1)
+    stateBuf.writeF64(prop2)
+    stateBuf.writeBytes(Buffer.from(prop3))
+
+    const jigOutput = new Output(
+      new Pointer(new Uint8Array(32).fill(1), 1),
+      new Pointer(new Uint8Array(32).fill(2), 2),
+      new Pointer(modIdFor('test-types'), 1),
+      new Lock(LockType.ADDRESS, new Uint8Array(20).fill(3)),
+      stateBuf.data,
+    )
+
+    const outputBuf = serializeOutput(jigOutput)
+
+    const ty = AbiType.fromName('*SmallJig')
+
+    const ptr = lower.lower(outputBuf, ty)
+    const lifted = target.lift(ptr, ty)
+
+    expect(base16.encode(lifted) ).to.eql(base16.encode(jigOutput.stateBuf))
   })
 });

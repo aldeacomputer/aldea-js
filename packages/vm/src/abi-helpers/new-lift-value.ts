@@ -6,6 +6,8 @@ import {AbiPlainObject} from "./abi-helpers/abi-plain-object.js";
 import {AbiClass} from "./abi-helpers/abi-class.js";
 import {ProxyDef} from "./abi-helpers/proxy-def.js";
 import {BUF_RTID} from "./well-known-abi-nodes.js";
+import {ExecutionError} from "../errors.js";
+import {CodeKind} from "@aldea/core/abi";
 
 export class NewLiftValue {
   private container: WasmContainer;
@@ -14,48 +16,48 @@ export class NewLiftValue {
     this.container = container
   }
 
-  lift(ptr: WasmWord, ty: AbiType): Uint8Array {
+  lift (ptr: WasmWord, ty: AbiType): Uint8Array {
     const writer = new BufWriter()
     this.liftInto(ptr, ty, writer);
     return writer.data
   }
 
-  private liftInto(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
+  private liftInto (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
     switch (ty.name) {
       case 'bool':
-        writer.writeU8(ptr.toNumber() === 0 ? 0 : 1)
+        writer.writeU8(ptr.toInt() === 0 ? 0 : 1)
         break
       case 'u8':
-        writer.writeU8(ptr.toNumber())
+        writer.writeU8(ptr.toInt())
         break
       case 'u16':
-        writer.writeU16(ptr.toNumber())
+        writer.writeU16(ptr.toInt())
         break
       case 'u32':
       case 'usize':
-        writer.writeU32(ptr.toNumber())
+        writer.writeU32(ptr.toInt())
         break
       case 'u64':
         writer.writeU64(ptr.toBigInt())
         break
       case 'i8':
-        writer.writeI8(ptr.toNumber())
+        writer.writeI8(ptr.toInt())
         break
       case 'i16':
-        writer.writeI16(ptr.toNumber())
+        writer.writeI16(ptr.toInt())
         break
       case 'i32':
       case 'isize':
-        writer.writeI32(ptr.toNumber())
+        writer.writeI32(ptr.toInt())
         break
       case 'i64':
         writer.writeI64(ptr.toBigInt())
         break
       case 'f32':
-        writer.writeF32(ptr.toNumber())
+        writer.writeF32(ptr.toInt())
         break
       case 'f64':
-        writer.writeF64(ptr.toNumber())
+        writer.writeF64(ptr.toInt())
         break
       case 'Array':
         this.liftArray(ptr, ty, writer)
@@ -88,7 +90,8 @@ export class NewLiftValue {
         this.liftSet(ptr, ty, writer)
         break
       default:
-        throw new Error(`not implemented ${ty.name}`)
+        this.liftCompoundType(ptr, ty, writer)
+        break
     }
   }
 
@@ -107,10 +110,11 @@ export class NewLiftValue {
     const reader = new BufReader(this.liftBuffer(dataPtr))
     for (let i = 0; i < arrLength; i++) {
       const elemPtr = WasmWord.fromReader(reader, innerType)
-      this.liftInto(elemPtr, innerType ,writer)
+      this.liftInto(elemPtr, innerType, writer)
     }
   }
-  private liftStaticArray(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
+
+  private liftStaticArray (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
     const byteLength = this.container.mem.read(ptr.minus(4), 4).readU32()
     const bufReader = this.container.mem.read(ptr, byteLength)
     const innerType = ty.args[0]
@@ -121,7 +125,7 @@ export class NewLiftValue {
     // let offset = dataPtr
     for (let i = 0; i < arrayLength; i++) {
       const elemPtr = WasmWord.fromReader(bufReader, innerType)
-      this.liftInto(elemPtr, innerType ,writer)
+      this.liftInto(elemPtr, innerType, writer)
     }
   }
 
@@ -130,7 +134,7 @@ export class NewLiftValue {
     writer.writeBytes(buf)
   }
 
-  private liftTypedArray(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
+  private liftTypedArray (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
     const header = this.container.mem.read(ptr, 12)
     const bufPtr = WasmWord.fromNumber(header.readU32())
     header.readU32()
@@ -148,28 +152,63 @@ export class NewLiftValue {
     writer.writeBytes(stringBuf)
   }
 
-  private liftCompoundType(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
-    throw new Error('not implemented')
+  private liftCompoundType (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
+    const maybeExported = this.container.abi.exportedByName(ty.name)
+      .map(_ => this.liftExported(ptr, ty, writer))
+    const maybeImported = this.container.abi.importedByName(ty.name)
+      .map((_) => this.liftImported(ptr, ty, writer))
+
+    maybeExported
+      .or(maybeImported)
+      .orElse(() => {
+        throw new ExecutionError(`Unknown type: ${ty.name}`)
+      })
   }
 
-  private liftExported(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
-    throw new Error('not implemented')
+  private liftExported (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
+    const exported = this.container.abi.exportedByName(ty.name).get()
+
+    if (ty.name.startsWith('*')) {
+      this.liftJig(ptr, writer, exported.toAbiClass())
+    } else if (exported.kind === CodeKind.OBJECT) {
+      this.liftPlainObject(ptr, exported.toAbiObject(), writer)
+    } else if (exported.kind === CodeKind.INTERFACE) {
+      throw new Error('not implemented yet')
+    } else if (exported.kind === CodeKind.FUNCTION) {
+      throw new Error('Function cannot be lowered or lifted')
+    }
   }
 
-  private liftJig(ptr: WasmWord, writer: BufWriter, cls: AbiClass) {
-    throw new Error('not implemented')
+  private liftJig (ptr: WasmWord, writer: BufWriter, cls: AbiClass) {
+    cls.ownFields().forEach(field => {
+      const fieldPtr = this.liftPtr(ptr.plus(field.offset), field.type)
+      this.liftInto(fieldPtr, field.type, writer)
+    })
   }
 
-  private liftPlainObject(ptr: WasmWord, objDef: AbiPlainObject, writer: BufWriter) {
-    throw new Error('not implemented')
+  private liftPlainObject (ptr: WasmWord, objDef: AbiPlainObject, writer: BufWriter) {
+    objDef.fields.forEach(field => {
+      const fieldPtr = this.liftPtr(ptr.plus(field.offset), field.type)
+      this.liftInto(fieldPtr, field.type, writer)
+    })
   }
 
-  private liftImported(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
-    throw new Error('not implemented')
+  private liftImported (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
+    const imported = this.container.abi.importedByName(ty.name).get()
+    if (imported.kind === CodeKind.OBJECT) {
+      this.liftPlainObject(ptr, imported.toAbiObject(), writer)
+    } else if (imported.kind === CodeKind.PROXY_FUNCTION) {
+      throw new Error('functions cannot be lowered or lifted')
+    } else if ([CodeKind.PROXY_INTERFACE, CodeKind.PROXY_CLASS]) {
+      this.liftProxy(ptr, writer)
+    }
   }
 
-  private liftProxy(writer: BufWriter, proxyDef: ProxyDef) {
-    throw new Error('not implemented')
+  private liftProxy (ptr: WasmWord, writer: BufWriter) {
+    const ptrOutput = this.liftPtr(ptr, AbiType.fromName('u32'))
+    const originOutput = this.liftPtr(ptrOutput, AbiType.fromName('u32'))
+    const buf = this.liftBuffer(originOutput)
+    writer.writeFixedBytes(buf)
   }
 
   private liftMap (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
@@ -186,7 +225,7 @@ export class NewLiftValue {
     writer.writeULEB(entriesCount);
 
     let offset = entriesPtr
-    for (let i = 0; i < entriesCount ; i++) {
+    for (let i = 0; i < entriesCount; i++) {
       offset = offset.align(keyTy.ownSize())
       const keyPtr = this.liftPtr(offset, ty)
       this.liftInto(keyPtr, keyTy, writer)
@@ -198,12 +237,12 @@ export class NewLiftValue {
     }
   }
 
-  private liftPtr(ptr: WasmWord, ty: AbiType): WasmWord {
+  private liftPtr (ptr: WasmWord, ty: AbiType): WasmWord {
     const reader = this.container.mem.read(ptr, ty.ownSize())
     return WasmWord.fromReader(reader, ty)
   }
 
-  private liftSet(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
+  private liftSet (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
     const headerReader = this.container.mem.read(ptr.plus(8), 16);
     const entriesNum = headerReader.readU32()
     headerReader.readU32()
@@ -216,7 +255,7 @@ export class NewLiftValue {
     writer.writeULEB(entriesCount);
 
     let offset = entriesPtr
-    for (let i = 0; i < entriesCount ; i++) {
+    for (let i = 0; i < entriesCount; i++) {
       offset = offset.align(elemTy.ownSize())
       const valuePtr = this.liftPtr(offset, elemTy)
       offset = offset.plus(elemTy.ownSize())

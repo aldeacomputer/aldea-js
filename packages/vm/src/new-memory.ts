@@ -9,7 +9,7 @@ export class NewMemory {
   }
 
   write(ptr: WasmWord, data: Uint8Array) {
-    let start = ptr.toNumber()
+    let start = ptr.toInt()
     if (start < 0) {
       throw new Error('Memory ptr should never be less than 0')
     }
@@ -20,14 +20,14 @@ export class NewMemory {
 
     const view = new Uint8Array(
       this._mem.buffer,
-      ptr.toNumber(),
+      ptr.toInt(),
       data.byteLength
     )
     view.set(data)
   }
 
   extract(ptr: WasmWord, length: number): Uint8Array {
-    let start = ptr.toNumber()
+    let start = ptr.toInt()
     if (start < 0) {
       throw new Error('Memory ptr should never be less than 0')
     }
@@ -43,5 +43,20 @@ export class NewMemory {
 
   read(ptr: WasmWord, length: number): BufReader {
     return new BufReader(this.extract(ptr, length))
+  }
+
+  at(n: number, size: number = 1): number {
+    const view = Buffer.from(new Uint8Array(this._mem.buffer, n, size));
+    if (size === 1) {
+      return view.readUint8()
+    } else
+    if (size === 2) {
+      return view.readUInt16LE()
+    } else
+    if (size === 4) {
+      return view.readUInt32LE()
+    } else {
+      throw new Error('wrong number size')
+    }
   }
 }

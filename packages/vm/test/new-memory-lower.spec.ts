@@ -71,7 +71,7 @@ describe('NewMemoryLower', () => {
     const ty = AbiType.fromName('u8')
     let ptr = target.lower(inputBuf.data, ty)
 
-    expect(ptr.toNumber()).to.eql(10)
+    expect(ptr.toInt()).to.eql(10)
   })
 
   it('can lower u16', () => {
@@ -80,7 +80,7 @@ describe('NewMemoryLower', () => {
     const ty = AbiType.fromName('u16')
 
     let ptr = target.lower(buf.data, ty)
-    expect(ptr.toNumber()).to.eql(10)
+    expect(ptr.toInt()).to.eql(10)
   })
 
   it('can lower u32', () => {
@@ -89,7 +89,7 @@ describe('NewMemoryLower', () => {
     const ty = AbiType.fromName('u32')
 
     let ptr = target.lower(buf.data, ty)
-    expect(ptr.toNumber()).to.eql(10)
+    expect(ptr.toInt()).to.eql(10)
   })
 
   it('can lower u64', () => {
@@ -107,7 +107,7 @@ describe('NewMemoryLower', () => {
     const ty = AbiType.fromName('i8')
     let ptr = target.lower(buf.data, ty)
 
-    expect(ptr.toNumber()).to.eql(-1)
+    expect(ptr.toInt()).to.eql(-1)
   })
 
   it('can lower an i16', () => {
@@ -116,7 +116,7 @@ describe('NewMemoryLower', () => {
     const ty = AbiType.fromName('i16')
     let ptr = target.lower(buf.data, ty)
 
-    expect(ptr.toNumber()).to.eql(-1)
+    expect(ptr.toInt()).to.eql(-1)
   })
 
   it('can lower an i32', () => {
@@ -125,7 +125,7 @@ describe('NewMemoryLower', () => {
     const ty = AbiType.fromName('i32')
     let ptr = target.lower(buf.data, ty)
 
-    expect(ptr.toNumber()).to.eql(-1)
+    expect(ptr.toInt()).to.eql(-1)
   })
 
   it('can lower an i64', () => {
@@ -143,7 +143,7 @@ describe('NewMemoryLower', () => {
     const ty = AbiType.fromName('f32')
     let ptr = target.lower(buf.data, ty)
 
-    expect(ptr.toNumber()).to.be.approximately(-1.2, FLOAT_ERROR)
+    expect(ptr.toFloat()).to.be.approximately(-1.2, FLOAT_ERROR)
   })
 
   it('can lower an f64', () => {
@@ -152,7 +152,7 @@ describe('NewMemoryLower', () => {
     const ty = AbiType.fromName('f64')
     let ptr = target.lower(buf.data, ty)
 
-    expect(ptr.toNumber()).to.eql(-1.2)
+    expect(ptr.toFloat()).to.eql(-1.2)
   })
 
   it('can lower bool', () => {
@@ -189,7 +189,7 @@ describe('NewMemoryLower', () => {
     const arrMem = container.mem.extract(ptr, 16);
     const arrMemReader = new BufReader(arrMem)
     const arrBufPtr = WasmWord.fromNumber(arrMemReader.readU32())
-    expect(arrMemReader.readU32()).to.eql(arrBufPtr.toNumber())
+    expect(arrMemReader.readU32()).to.eql(arrBufPtr.toInt())
     expect(arrMemReader.readU32()).to.eql(5)
     expect(arrMemReader.readU32()).to.eql(5)
 
@@ -217,7 +217,7 @@ describe('NewMemoryLower', () => {
     const arrMem = container.mem.extract(ptr, 16);
     const arrMemReader = new BufReader(arrMem)
     const arrBufPtr = WasmWord.fromNumber(arrMemReader.readU32())
-    expect(arrMemReader.readU32()).to.eql(arrBufPtr.toNumber())
+    expect(arrMemReader.readU32()).to.eql(arrBufPtr.toInt())
     expect(arrMemReader.readU32()).to.eql(10)
     expect(arrMemReader.readU32()).to.eql(5)
 
@@ -517,7 +517,7 @@ describe('NewMemoryLower', () => {
     expect(mapRead.readU32()).to.eql(mapRtId.id)
 
     const res = container.callFn('checkMap', [mapPtr, WasmWord.fromNumber(10)], [ty, AbiType.fromName('u32')])
-    expect(res.get().toNumber()).to.eql(1) // truthy value
+    expect(res.get().toInt()).to.eql(1) // truthy value
   })
 
   it('can lower a set', () => {
@@ -536,6 +536,6 @@ describe('NewMemoryLower', () => {
     expect(setReader.readU32()).to.eql(setRtid.id)
 
     const res = container.callFn('checkSet', [setPtr, WasmWord.fromNumber(10)], [ty, AbiType.fromName('u32')])
-    expect(res.get().toNumber()).to.eql(1) // truthy value
+    expect(res.get().toInt()).to.eql(1) // truthy value
   })
 });

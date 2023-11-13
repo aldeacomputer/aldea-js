@@ -101,8 +101,8 @@ export class NewLowerValue {
     const bufPtr = this.container.malloc(bufSize, BUF_RTID)
 
     const headerWriter = new BufWriter()
-    headerWriter.writeU32(bufPtr.toNumber())
-    headerWriter.writeU32(bufPtr.toNumber())
+    headerWriter.writeU32(bufPtr.toInt())
+    headerWriter.writeU32(bufPtr.toInt())
     headerWriter.writeU32(bufSize)
     headerWriter.writeU32(length)
     this.container.mem.write(headerPtr, headerWriter.data)
@@ -151,8 +151,8 @@ export class NewLowerValue {
     const bufPtr = this.container.malloc(buf.byteLength, BUF_RTID)
 
     let header = new BufWriter({ size: TYPED_ARR_HEADER_LENGTH })
-    header.writeU32(bufPtr.toNumber())
-    header.writeU32(bufPtr.toNumber())
+    header.writeU32(bufPtr.toInt())
+    header.writeU32(bufPtr.toInt())
     header.writeU32(buf.byteLength)
     this.container.mem.write(headerPtr, header.data)
     this.container.mem.write(bufPtr, buf)
@@ -294,14 +294,14 @@ export class NewLowerValue {
     const entrySize = WasmWord.fromNumber(0)
       .align(keyType.ownSize()).plus(keyType.ownSize())
       .align(valueType.ownSize()).plus(valueType.ownSize())
-      .align(4).plus(4).toNumber()
+      .align(4).plus(4).toInt()
 
     const bucketsPtr = this.lowerBuffer(new Uint8Array(initialCapacity * usizeSize))
     const entriesPtr = this.lowerBuffer(new Uint8Array(initialCapacity * Number(entrySize)))
 
-    mapBody.writeU32(bucketsPtr.toNumber())
+    mapBody.writeU32(bucketsPtr.toInt())
     mapBody.writeU32(initialCapacity - 1)
-    mapBody.writeU32(entriesPtr.toNumber())
+    mapBody.writeU32(entriesPtr.toInt())
     mapBody.writeU32(initialCapacity)
     mapBody.writeU32(0)
     mapBody.writeU32(0)
@@ -333,14 +333,14 @@ export class NewLowerValue {
 
     const entrySize = WasmWord.fromNumber(0)
       .align(innerType.ownSize()).plus(innerType.ownSize())
-      .align(4).plus(4).toNumber()
+      .align(4).plus(4).toInt()
 
     const bucketsPtr = this.lowerBuffer(new Uint8Array(initialCapacity * usizeSize))
     const entriesPtr = this.lowerBuffer(new Uint8Array(initialCapacity * Number(entrySize)))
 
-    setHeader.writeU32(bucketsPtr.toNumber())
+    setHeader.writeU32(bucketsPtr.toInt())
     setHeader.writeU32(initialCapacity - 1)
-    setHeader.writeU32(entriesPtr.toNumber())
+    setHeader.writeU32(entriesPtr.toInt())
     setHeader.writeU32(initialCapacity)
     setHeader.writeU32(0)
     setHeader.writeU32(0)
