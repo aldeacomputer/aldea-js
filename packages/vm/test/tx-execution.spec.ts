@@ -4,7 +4,7 @@ import {
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
-import {base16, PrivKey} from "@aldea/core";
+import {base16, LockType, PrivKey} from "@aldea/core";
 import { Abi } from '@aldea/core/abi';
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
@@ -61,10 +61,12 @@ describe('execute txs', () => {
     const instanceIndex = exec.instantiateByIndex(mod.idx, 0,  new Uint8Array([0]))
     exec.lockJigToUserByIndex(instanceIndex.idx, userAddr)
     const result = exec.finalize()
-    expect(result.outputs).to.have.length(1)
-    const output = result.outputs[0]
+    expect(result.outputs).to.have.length(2) // Implicit fund output
+    const output = result.outputs[1]
     expect(output.origin.idBuf).to.eql(txHash)
-    expect(output.origin.idx).to.eql(0)
+    expect(output.origin.idx).to.eql(1)
+    expect(output.lock.type).to.eql(LockType.ADDRESS)
+    expect(output.lock.data).to.eql(userAddr.hash)
   })
   //
   // it('creates instances from imported modules', () => {

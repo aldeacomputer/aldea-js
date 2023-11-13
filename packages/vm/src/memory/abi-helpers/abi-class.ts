@@ -110,8 +110,8 @@ export class AbiClass {
     return hierarchy.some(ancestor => ancestor.name === parentNode.name)
   }
 
-  fieldByName(name: string): Option<FieldNode> {
-    const maybeField = this.fields.find(f => f.name === name)
+  fieldByName(name: string): Option<AbiField> {
+    const maybeField = this._fields.find(f => f.name === name)
     return Option.fromNullable(maybeField)
   }
 

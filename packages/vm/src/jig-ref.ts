@@ -4,6 +4,7 @@ import {Pointer} from "@aldea/core";
 import {AbiClass} from "./memory/abi-helpers/abi-class.js";
 import {WasmWord} from "./wasm-word.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
+import {lockAbiNode} from "./memory/well-known-abi-nodes.js";
 
 export class ContainerRef {
   ptr: WasmWord
@@ -42,6 +43,10 @@ export class JigRef {
   }
 
   changeLock (newLock: Lock) {
+    const container = this.ref.container
+    const lockTy = AbiType.fromName('Lock');
+    const ptr = container.low.lower(newLock.serialize(this.origin.toBytes()), lockTy)
+    container.mem.write(this.ref.ptr.plus(4), ptr.serialize(lockTy))
     this.lock = newLock
   }
 
@@ -61,16 +66,6 @@ export class JigRef {
     return new Pointer(this.ref.container.hash, this.classIdx)
   }
 
-  // writeField (fieldName: string, propValue: any) {
-  //   const abiNode = this.ref.container.abi.exportedByIdx(this.classIdx).get().toAbiClass()
-  //   const fieldNode = abiNode.fieldByName(fieldName).get()
-  //   const layout = getObjectMemLayout(abiNode.fields)
-  //   const TypedArray = getTypedArrayForPtr(fieldNode.type)
-  //   const mem32 = new TypedArray(this.ref.container.memory.buffer, this.ref.ptr)
-  //   const {align, offset} = layout[fieldName]
-  //
-  //   mem32[offset >>> align] = this.ref.container.insertValue(propValue, fieldNode.type)
-  // }
 
   get package (): WasmContainer {
     return this.ref.container
@@ -88,5 +83,13 @@ export class JigRef {
   extractProps (): Uint8Array {
     const wasm = this.ref.container
     return wasm.lifter.lift(this.ref.ptr, this.ref.ty)
+  }
+
+  getPropValue (propName: string): WasmWord {
+    const container = this.ref.container
+    const abiClass = container.abi.exportedByIdx(this.classIdx).get().toAbiClass()
+    const field = abiClass.fieldByName(propName).get()
+    const buf = container.mem.extract(this.ref.ptr.plus(field.offset), field.type.ownSize())
+    return new WasmWord(buf)
   }
 }

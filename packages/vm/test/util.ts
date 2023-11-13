@@ -23,7 +23,8 @@ export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () =
   const exec = new TxExecution(context)
   const output = vm.mint(pubKeys[0].toAddress(), 100, new Uint8Array(34).fill(1))
 
-  exec.loadJigByOutputId(output.hash)
+  const stmt =  exec.loadJigByOutputId(output.hash)
+  exec.fund(stmt.idx)
   return { exec, txHash }
 }
 

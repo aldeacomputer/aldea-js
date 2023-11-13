@@ -115,7 +115,7 @@ export class WasmWord {
     //     writer.writeU32(this.toNumber())
     //     return writer.data
     // }
-    return new Uint8Array(this.value)
+    return new Uint8Array(this.value, 0, ty.ownSize())
   }
 
   toWasmArg (abiType: AbiType): WasmArg {

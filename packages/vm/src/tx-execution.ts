@@ -3,7 +3,7 @@ import {ExecutionError} from "./errors.js"
 import {OpenLock} from "./locks/open-lock.js"
 import {WasmContainer} from "./wasm-container.js";
 import {Address, base16, BufReader, BufWriter, LockType, Output, Pointer} from '@aldea/core';
-import {jigInitParamsTypeNode} from "./memory/well-known-abi-nodes.js";
+import {COIN_CLS_PTR, jigInitParamsTypeNode} from "./memory/well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {ExecContext} from "./tx-context/exec-context.js";
@@ -14,7 +14,8 @@ import {WasmWord} from "./wasm-word.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {serializeOutput} from "./memory/abi-helpers/serialize-output.js";
 import {fromCoreLock} from "./locks/from-core-lock.js";
-import {Lock} from "./locks/lock.js";
+import {AddressLock} from "./locks/address-lock.js";
+import {FrozenLock} from "./locks/frozen-lock.js";
 
 // const COIN_CLASS_PTR = Pointer.fromBytes(new Uint8Array(34))
 
@@ -269,22 +270,22 @@ class TxExecution {
   //   return this.finalize()
   // }
 
-  // fundByIndex(coinIdx: number): StatementResult {
-  //   const coinJig = this.getStatementResult(coinIdx).asJig()
-  //   if (!coinJig.lock.canBeChangedBy(this)) {
-  //     throw new PermissionError(`no permission to remove lock from jig ${coinJig.origin}`)
-  //   }
-  //   if (!coinJig.classPtr().equals(COIN_CLASS_PTR) ) {
-  //     throw new ExecutionError(`Not a coin: ${coinJig.origin}`)
-  //   }
-  //   const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'motos').value
-  //   this.fundAmount += Number(amount)
-  //   coinJig.changeLock(new FrozenLock())
-  //   const stmt = new EmptyStatementResult(this.statements.length)
-  //   this.statements.push(stmt)
-  //   this.marKJigAsAffected(coinJig)
-  //   return stmt
-  // }
+  fund(coinIdx: number): StatementResult {
+    const coinJig = this.jigAt(coinIdx)
+    if (!coinJig.classPtr().equals(COIN_CLS_PTR) ) {
+      throw new ExecutionError(`Not a coin: ${coinJig.origin}`)
+    }
+
+    coinJig.lock.assertOpen(this)
+
+    const amount = coinJig.getPropValue('amount')
+    this.fundAmount += amount.toUInt()
+    coinJig.changeLock(new FrozenLock())
+    const stmt = new EmptyStatementResult(this.statements.length)
+    this.statements.push(stmt)
+    this.marKJigAsAffected(coinJig)
+    return stmt
+  }
 
   // findJigByOutputId(outputId: Uint8Array): JigRef {
   //   const jigState = this.txContext.stateByOutputId(outputId)
@@ -523,14 +524,10 @@ class TxExecution {
     return result
   }
 
-  lockJigToUser (jigRef: JigRef, address: Address): StatementResult {
-    // if (!jigRef.lock.canBeChangedBy(this)) {
-    //   throw new PermissionError(`no permission to remove lock from jig ${jigRef.origin}`)
-    // }
-    // jigRef.changeLock(new UserLock(address))
-    // jigRef.writeField('$lock', {origin: jigRef.origin.toBytes(), ...jigRef.lock.serialize()})
-    // this.marKJigAsAffected(jigRef)
-
+  private lockJigToUser (jigRef: JigRef, address: Address): StatementResult {
+    jigRef.lock.assertOpen(this)
+    this.marKJigAsAffected(jigRef)
+    jigRef.changeLock(new AddressLock(address))
     const ret = new EmptyStatementResult(this.statements.length);
     this.statements.push(ret)
     return ret
@@ -578,8 +575,8 @@ class TxExecution {
   }
 
   signedBy (addr: Address): boolean {
-    // return this.execContext.tx.isSignedBy(addr, this.execLength())
-    return false
+    return this.execContext.signers()
+        .some(s => s.toAddress().equals(addr))
   }
 
   private execLength () {
