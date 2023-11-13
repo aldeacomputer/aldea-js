@@ -1,4 +1,5 @@
 import {CodeKind, ImportCode, ObjectNode, TypeNode} from "@aldea/core/abi";
+import {Pointer} from "@aldea/core";
 
 export const arrayBufferTypeNode: TypeNode = emptyTn('ArrayBuffer')
 
@@ -109,6 +110,8 @@ export const BUF_RTID = 0
 export const STRING_RTID = 1
 export const ARR_HEADER_LENGTH = 16;
 export const TYPED_ARR_HEADER_LENGTH = 12;
-export const PROXY_OBJ_LENGTH = 8;
-export const OUTPUT_OBJ_LENGTH = 12;
-export const LOCK_OBJ_LENGTH = 12;
+// export const PROXY_OBJ_LENGTH = 8;
+// export const OUTPUT_OBJ_LENGTH = 12;
+// export const LOCK_OBJ_LENGTH = 12;
+
+export const COIN_CLS_PTR = new Pointer(new Uint8Array(32), 0)

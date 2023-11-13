@@ -1,7 +1,7 @@
 import {CoreLock, Lock} from "./lock.js";
 import {LockType} from "@aldea/core";
 
-export class NoLock implements Lock {
+export class OpenLock implements Lock {
   constructor () {}
 
   coreLock (): CoreLock {

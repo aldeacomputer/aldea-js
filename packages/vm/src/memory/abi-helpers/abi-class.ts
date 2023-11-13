@@ -118,4 +118,8 @@ export class AbiClass {
   toProxyDef () {
     return new ProxyDef(this.name)
   }
+
+  ownTy (): AbiType {
+    return AbiType.fromName(`*${this.name}`)
+  }
 }

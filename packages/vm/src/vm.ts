@@ -1,6 +1,6 @@
 import {PkgData, Storage} from "./storage.js";
 import {CompilerResult, PackageParser, writeDependency} from '@aldea/compiler'
-import {Address, BCS, Pointer, abiFromBin, base16, util, Output} from "@aldea/core";
+import {Address, BCS, Pointer, abiFromBin, util, Output} from "@aldea/core";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {Buffer} from "buffer";
 import {Clock} from "./clock.js";
@@ -8,7 +8,7 @@ import {data as wasm} from './builtins/coin.wasm.js'
 import {data as rawAbi} from './builtins/coin.abi.bin.js'
 import {data as rawDocs} from './builtins/coin.docs.json.js'
 import {data as rawSource} from './builtins/coin.source.js'
-import {UserLock} from "./locks/user-lock.js";
+import {AddressLock} from "./locks/address-lock.js";
 
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([
@@ -54,7 +54,7 @@ export class VM {
     const pkg = await PackageParser.create(entries, {
       getSrc: (src) => sources.get(src),
       getDep: (pkgId) => {
-        const { abi } = this.storage.getModule(base16.decode(pkgId))
+        const { abi } = this.storage.getModule(pkgId)
         return writeDependency(abi)
       }, 
     })
@@ -107,7 +107,7 @@ export class VM {
       location,
       location,
       new Pointer(COIN_PKG_ID, 0),
-      new UserLock(address).coreLock(),
+      new AddressLock(address).coreLock(),
       bcs.encode('u64', amount)
     )
     this.storage.addUtxo(minted)

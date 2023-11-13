@@ -17,7 +17,6 @@ export type JigData = {
   origin: Pointer,
   location: Pointer,
   classPtr: Pointer,
-  outputHash: Uint8Array
   lock: Lock
 }
 

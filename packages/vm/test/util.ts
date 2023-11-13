@@ -6,6 +6,7 @@ import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import fs from "fs";
 import {fileURLToPath} from "url";
 import {compile} from "@aldea/compiler";
+import {randomBytes} from "@aldea/core/support/util";
 
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 
@@ -13,17 +14,17 @@ const __dir = fileURLToPath(new URL('.', import.meta.url));
 export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () => VM) => (privKeys: PrivKey[] = []) => {
   const storage = lazyStorage()
   const vm = lazyVm()
-  const tx = new Tx()
-  for (let i = 0; i < privKeys.length; i++) {
-    tx.push(new SignInstruction(new Uint8Array(), privKeys[i].toPubKey().toBytes()))
-  }
-  for (let i = 0; i < privKeys.length; i++) {
-    (<SignInstruction>tx.instructions[i]).sig = ed25519.sign(tx.sighash(), privKeys[i])
-  }
-  const context = new StorageTxContext(tx, storage, vm, vm.clock)
+  const txHash = randomBytes(32)
+
+  const coinPriv = PrivKey.fromRandom()
+  const pubKeys = [coinPriv, ...privKeys].map(p => p.toPubKey())
+
+  const context = new StorageTxContext(txHash, pubKeys, storage, vm, vm.clock)
   const exec = new TxExecution(context)
-    exec.markAsFunded()
-  return exec
+  const output = vm.mint(pubKeys[0].toAddress(), 100, new Uint8Array(34).fill(1))
+
+  exec.loadJigByOutputId(output.hash)
+  return { exec, txHash }
 }
 
 export function addPreCompiled (vm: VM, src: string ): Uint8Array {

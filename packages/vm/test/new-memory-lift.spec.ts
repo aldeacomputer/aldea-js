@@ -8,7 +8,7 @@ import {WasmWord} from "../src/wasm-word.js";
 import {Option} from "../src/support/option.js";
 import {PublicLock} from "../src/locks/public-lock.js";
 import {serializeOutput} from "../src/memory/abi-helpers/serialize-output.js";
-import {UserLock} from "../src/locks/user-lock.js";
+import {AddressLock} from "../src/locks/address-lock.js";
 import {emptyTn} from "../src/memory/well-known-abi-nodes.js";
 import {NewLiftValue} from "../src/memory/new-lift-value.js";
 

@@ -17,7 +17,7 @@ export class ContainerRef {
   }
 
   equals (ref: ContainerRef) {
-    return this.container.id === ref.container.id &&
+    return this.container.hash === ref.container.hash &&
         this.ptr.equals(ref.ptr)
   }
 }
@@ -58,7 +58,7 @@ export class JigRef {
   }
 
   classPtr (): Pointer {
-    return new Pointer(this.ref.container.id, this.classIdx)
+    return new Pointer(this.ref.container.hash, this.classIdx)
   }
 
   // writeField (fieldName: string, propValue: any) {

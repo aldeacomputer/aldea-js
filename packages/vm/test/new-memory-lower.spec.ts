@@ -1,14 +1,14 @@
 import {JigData, NewLowerValue, Storage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
-import {Address, BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
+import {Address, base16, BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
 import {expect} from "chai";
 import {AbiType} from "../src/memory/abi-helpers/abi-type.js";
 import {WasmWord} from "../src/wasm-word.js";
 import {Option} from "../src/support/option.js";
 import {PublicLock} from "../src/locks/public-lock.js";
 import {serializeOutput} from "../src/memory/abi-helpers/serialize-output.js";
-import {UserLock} from "../src/locks/user-lock.js";
+import {AddressLock} from "../src/locks/address-lock.js";
 import {emptyTn} from "../src/memory/well-known-abi-nodes.js";
 
 
@@ -56,7 +56,7 @@ describe('NewMemoryLower', () => {
     modIdFor = data.modIdFor
     storage = data.storage
 
-    let pkgData = storage.getModule(modIdFor('test-types'))
+    let pkgData = storage.getModule(base16.encode(modIdFor('test-types')))
 
     container = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
     jigData = new Map<string, JigData>()
@@ -384,7 +384,6 @@ describe('NewMemoryLower', () => {
       origin: Pointer.fromBytes(extOrigin),
       location: Pointer.fromBytes(extLocation),
       classPtr: Pointer.fromBytes(extClassPtr),
-      outputHash: extOutputHash,
       lock: new PublicLock()
     })
 
@@ -482,8 +481,7 @@ describe('NewMemoryLower', () => {
       origin: Pointer.fromBytes(externalJigOrigin.toBytes()),
       location: Pointer.fromBytes(extLocation),
       classPtr: Pointer.fromBytes(extClassPtr),
-      outputHash: extOutputHash,
-      lock: new UserLock(new Address(addrBuf))
+      lock: new AddressLock(new Address(addrBuf))
     })
 
     const ty = AbiType.fromName('SmallJig')

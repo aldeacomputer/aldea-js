@@ -4,10 +4,10 @@ import {
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
-import {TxExecution} from "../src/tx-execution.js";
-import {PrivKey} from "@aldea/core";
+import {base16, PrivKey} from "@aldea/core";
 import { Abi } from '@aldea/core/abi';
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
+import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -43,25 +43,28 @@ describe('execute txs', () => {
 
     storage = data.storage
     vm = data.vm
-    abiFor = (key: string) => storage.getModule(modIdFor(key)).abi
-    abiForCoin = () => storage.getModule(Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')).abi
+    abiFor = (key: string) => storage.getModule(base16.encode(modIdFor(key))).abi
+    abiForCoin = () => storage.getModule(COIN_CLS_PTR.id).abi
     modIdFor = data.modIdFor
     clock = data.clock
   })
 
   const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
 
-  let exec: TxExecution
   beforeEach(() => {
-    exec = emptyExec()
+
   })
 
-  it('returns an executed at prop', () => {
+  it('when a jig was created it returns an output', () => {
+    const { exec, txHash} = emptyExec()
     const mod = exec.importModule(modIdFor('flock'))
     const instanceIndex = exec.instantiateByIndex(mod.idx, 0,  new Uint8Array([0]))
     exec.lockJigToUserByIndex(instanceIndex.idx, userAddr)
     const result = exec.finalize()
     expect(result.outputs).to.have.length(1)
+    const output = result.outputs[0]
+    expect(output.origin.idBuf).to.eql(txHash)
+    expect(output.origin.idx).to.eql(0)
   })
   //
   // it('creates instances from imported modules', () => {

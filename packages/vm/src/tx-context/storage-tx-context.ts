@@ -1,32 +1,27 @@
-import {base16, Instruction, Output, Pointer, Tx} from "@aldea/core";
+import {base16, Output, Pointer, PubKey} from "@aldea/core";
 import {VM} from "../vm.js";
 import {Clock} from "../clock.js";
 import {ExecutionError} from "../errors.js";
 import {WasmContainer} from "../wasm-container.js";
 import {PkgData, Storage} from "../storage.js";
-import moment from "moment/moment.js";
 import {ExecContext} from "./exec-context.js";
 
 export class StorageTxContext implements ExecContext {
-  private _tx: Tx
+  private _txHash: Uint8Array
   private storage: Storage
+  private _signers: PubKey[]
   vm: VM
   clock: Clock
-  constructor(tx: Tx, storage: Storage, vm: VM, clock: Clock) {
-    this._tx = tx
+  constructor(txHash: Uint8Array, signers: PubKey[], storage: Storage, vm: VM, clock: Clock) {
+    this._txHash = txHash
     this.storage = storage
     this.vm = vm
     this.clock = clock
+    this._signers = signers
   }
 
-  async forEachInstruction (fn: (i: Instruction) => Promise<void>): Promise<void> {
-    for (const inst of this._tx.instructions) {
-      await fn(inst)
-    }
-  }
-
-  txHash () {
-    return this._tx.hash
+  txHash (): Uint8Array {
+    return this._txHash
   }
 
   stateByOutputId (id: Uint8Array): Output {
@@ -39,7 +34,7 @@ export class StorageTxContext implements ExecContext {
     return this.storage.byOrigin(origin).orElse(() => { throw new ExecutionError(`unknown jig: ${origin.toString()}`)})
   }
 
-  wasmFromPkgId (pkgId: Uint8Array): WasmContainer {
+  wasmFromPkgId (pkgId: string): WasmContainer {
     return this.storage.wasmForPackageId(pkgId)
   }
 
@@ -48,6 +43,10 @@ export class StorageTxContext implements ExecContext {
   }
 
   txId (): string {
-    return this._tx.id
+    return base16.encode(this._txHash)
+  }
+
+  signers (): PubKey[] {
+    return this._signers
   }
 }

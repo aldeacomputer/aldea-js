@@ -1,7 +1,7 @@
 import {Address, LockType} from '@aldea/core';
 import {CoreLock, Lock} from './lock.js'
 
-export class UserLock implements Lock {
+export class AddressLock implements Lock {
   private addr: Address;
 
   constructor (pubkey: Address) {

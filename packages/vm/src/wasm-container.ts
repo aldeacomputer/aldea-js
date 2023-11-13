@@ -8,6 +8,7 @@ import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {Option} from "./support/option.js";
 import {NewLiftValue} from "./memory/new-lift-value.js";
 import {NewLowerValue} from "./memory/new-lower-value.js";
+import {base16} from "@aldea/core";
 
 export type Prop = {
   node: TypeNode;
@@ -31,7 +32,7 @@ export interface WasmExports extends WebAssembly.Exports {
 }
 
 export class WasmContainer {
-  id: Uint8Array;
+  hash: Uint8Array;
   memory: WebAssembly.Memory;
   private _currentExec: Option<TxExecution>;
 
@@ -43,7 +44,7 @@ export class WasmContainer {
   low: NewLowerValue
 
   constructor (module: WebAssembly.Module, abi: Abi, id: Uint8Array) {
-    this.id = id
+    this.hash = id
     this.abi = new AbiAccess(abi)
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
     this._currentExec = Option.none()
@@ -281,6 +282,10 @@ export class WasmContainer {
     const start = this.instance.exports._start as Function;
     start()
     this.memory = wasmMemory
+  }
+
+  get id (): string {
+    return base16.encode(this.hash)
   }
 
   get mem (): NewMemory {

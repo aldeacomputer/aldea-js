@@ -1,6 +1,6 @@
 import {ContainerRef, JigRef} from "./jig-ref.js"
 import {ExecutionError} from "./errors.js"
-import {NoLock} from "./locks/no-lock.js"
+import {OpenLock} from "./locks/open-lock.js"
 import {WasmContainer} from "./wasm-container.js";
 import {Address, base16, BufReader, BufWriter, LockType, Output, Pointer} from '@aldea/core';
 import {jigInitParamsTypeNode} from "./memory/well-known-abi-nodes.js";
@@ -12,6 +12,9 @@ import {JigData} from "./memory/new-lower-value.js";
 import {Option} from "./support/option.js";
 import {WasmWord} from "./wasm-word.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
+import {serializeOutput} from "./memory/abi-helpers/serialize-output.js";
+import {fromCoreLock} from "./locks/from-core-lock.js";
+import {Lock} from "./locks/lock.js";
 
 // const COIN_CLASS_PTR = Pointer.fromBytes(new Uint8Array(34))
 
@@ -311,13 +314,39 @@ class TxExecution {
   //   return jigRef
   // }
 
-  // loadJigByOutputId(outputId: Uint8Array): StatementResult {
-  //   const jigRef = this.findJigByOutputId(outputId)
-  //   const typeNode = emptyTn(jigRef.className())
-  //   const ret = new ValueStatementResult(this.statements.length, typeNode, jigRef, jigRef.package);
-  //   this.statements.push(ret)
-  //   return ret
-  // }
+  private hydrate(output: Output): JigRef {
+    const existing = this.jigs.find(j => j.origin.equals(output.origin))
+    if (existing) return existing
+
+    const container = this.assertContainer(output.classPtr.id)
+    const classAbi = container.abi.exportedByIdx(output.classPtr.idx).get().toAbiClass()
+
+    const ptr = container.low.lower(serializeOutput(output), classAbi.ownTy())
+
+    const newJigRef = new JigRef(
+        new ContainerRef(
+            ptr,
+            classAbi.ownTy(),
+            container
+        ),
+        output.classPtr.idx,
+        output.origin,
+        output.location,
+        fromCoreLock(output.lock)
+    )
+
+    this.jigs.push(newJigRef)
+    return newJigRef
+  }
+
+  loadJigByOutputId(outputId: Uint8Array): StatementResult {
+    const output = this.execContext.stateByOutputId(outputId)
+    const jigRef = this.hydrate(output)
+
+    const ret = new ValueStatementResult(this.statements.length, jigRef.ref.ty, jigRef.ref.ptr, jigRef.ref.container);
+    this.statements.push(ret)
+    return ret
+  }
 
   // loadJigByOrigin(origin: Pointer): StatementResult {
   //   const jigRef = this.findJigByOrigin(origin)
@@ -518,9 +547,20 @@ class TxExecution {
     return this.lockJigToUser(jigRef, address)
   }
 
+  private assertContainer(modId: string): WasmContainer {
+    const existing = this.wasms.get(modId)
+    if (existing) {
+      return existing
+    }
+
+    const container = this.execContext.wasmFromPkgId(modId)
+    container.setExecution(this)
+    this.wasms.set(container.id, container)
+    return container
+  }
+
   importModule (modId: Uint8Array): StatementResult {
-    const instance = this.execContext.wasmFromPkgId(modId)
-    instance.setExecution(this)
+    const instance = this.assertContainer(base16.encode(modId))
     const ret = new WasmStatementResult(this.statements.length, instance);
     this.statements.push(ret)
     return ret
@@ -531,14 +571,10 @@ class TxExecution {
     this.deployments.push(pkgData)
     const wasm = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
     wasm.setExecution(this)
-    this.wasms.set(base16.encode(wasm.id), wasm)
+    this.wasms.set(base16.encode(wasm.hash), wasm)
     const ret = new WasmStatementResult(this.statements.length, wasm)
     this.statements.push(ret)
     return ret
-  }
-
-  markAsFunded () {
-    this.fundAmount += MIN_FUND_AMOUNT
   }
 
   signedBy (addr: Address): boolean {
@@ -558,10 +594,25 @@ class TxExecution {
   }
 
   getJigData (p: Pointer): Option<JigData> {
-    // return {
-    //   classPtr: p, location: p, lock: new FrozenLock(), origin: p, outputHash: new Uint32Array(32)
-    // };
-    return Option.none()
+    const existing = this.jigs.find(j => j.origin.equals(p))
+    if (existing) {
+      return Option.some({
+        origin: existing.origin,
+        location: existing.latestLocation,
+        classPtr: existing.classPtr(),
+        lock: existing.lock
+      })
+    }
+
+
+    const output = this.execContext.stateByOrigin(p)
+
+    return Option.some({
+      origin: output.origin,
+      location: output.location,
+      classPtr: output.classPtr,
+      lock: fromCoreLock(output.lock)
+    })
   }
 
 
@@ -585,9 +636,9 @@ class TxExecution {
   vmJigLink (from: WasmContainer, jigPtr: WasmWord, rtId: number): WasmWord {
     const nextOrigin = this.nextOrigin.get()
     let rtIdNode = from.abi.rtIdById(rtId)
-        .expect(new Error(`Runtime id "${rtId}" not found in ${base16.encode(from.id)}`))
+        .expect(new Error(`Runtime id "${rtId}" not found in ${base16.encode(from.hash)}`))
     const abiClass = from.abi.exportedByName(rtIdNode.name).map(e => e.toAbiClass())
-        .expect(new Error(`Class named "${rtIdNode.name}" not found in ${base16.encode(from.id)}`))
+        .expect(new Error(`Class named "${rtIdNode.name}" not found in ${base16.encode(from.hash)}`))
 
     const newJigRef = new JigRef(
         new ContainerRef(
@@ -598,7 +649,7 @@ class TxExecution {
         abiClass.idx,
         nextOrigin,
         nextOrigin,
-        new NoLock()
+        new OpenLock()
     )
 
     this.jigs.push(newJigRef)
@@ -607,7 +658,7 @@ class TxExecution {
     return from
         .low
         .lower(
-            new Pointer(from.id, abiClass.idx).toBytes(),
+            new Pointer(from.hash, abiClass.idx).toBytes(),
             AbiType.fromName('ArrayBuffer')
         )
   }

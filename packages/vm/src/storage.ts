@@ -154,11 +154,10 @@ export class Storage {
     this.packages.set(base16.encode(id), pkgData)
   }
 
-  getModule (id: Uint8Array, onNotFound: OnNotFound = throwNotFound): PkgData {
-    const idHex = base16.encode(id)
-    const module =  this.packages.get(idHex)
+  getModule (id: string, onNotFound: OnNotFound = throwNotFound): PkgData {
+    const module =  this.packages.get(id)
     if (!module) {
-      return onNotFound(idHex)
+      return onNotFound(id)
     }
     return module
   }
@@ -185,7 +184,7 @@ export class Storage {
     return this.getJigStateByOrigin(origin);
   }
 
-  wasmForPackageId(moduleId: Uint8Array): WasmContainer {
+  wasmForPackageId(moduleId: string): WasmContainer {
     let mod = this.getModule(moduleId)
     return new WasmContainer(mod.mod, mod.abi, mod.id);
   }
