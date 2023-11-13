@@ -85,6 +85,8 @@ export class NewLiftValue {
         this.liftMap(ptr, ty, writer)
         break
       case 'Set':
+        this.liftSet(ptr, ty, writer)
+        break
       default:
         throw new Error(`not implemented ${ty.name}`)
     }
@@ -142,7 +144,6 @@ export class NewLiftValue {
     const strLength = this.container.mem.read(ptr.minus(4), 4).readU32()
     const buf = Buffer.from(this.container.mem.extract(ptr, strLength))
     const string = buf.toString('utf16le')
-    console.log('string', string)
     const stringBuf = Buffer.from(string)
     writer.writeBytes(stringBuf)
   }
@@ -195,7 +196,6 @@ export class NewLiftValue {
       this.liftInto(valuePtr, valueTy, writer)
       offset = offset.align(4).plus(4)
     }
-
   }
 
   private liftPtr(ptr: WasmWord, ty: AbiType): WasmWord {
@@ -204,7 +204,25 @@ export class NewLiftValue {
   }
 
   private liftSet(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
-    throw new Error('not implemented')
+    const headerReader = this.container.mem.read(ptr.plus(8), 16);
+    const entriesNum = headerReader.readU32()
+    headerReader.readU32()
+    headerReader.readU32()
+    const entriesCount = headerReader.readU32();
+    const entriesPtr = WasmWord.fromNumber(entriesNum)
+
+    const elemTy = ty.args[0]
+
+    writer.writeULEB(entriesCount);
+
+    let offset = entriesPtr
+    for (let i = 0; i < entriesCount ; i++) {
+      offset = offset.align(elemTy.ownSize())
+      const valuePtr = this.liftPtr(offset, elemTy)
+      offset = offset.plus(elemTy.ownSize())
+      this.liftInto(valuePtr, elemTy, writer)
+      offset = offset.align(4).plus(4)
+    }
   }
 
   private liftBuffer (ptr: WasmWord): Uint8Array {

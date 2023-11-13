@@ -89,4 +89,22 @@ describe('NewMemoryLower', () => {
     const lifted = target.lift(ptr, ty)
     expect(lifted).to.eql(data)
   })
+
+
+  it('can lift Set<string>', () => {
+    const buf = new BufWriter()
+    buf.writeULEB(5)
+    for (const i of [1, 2, 3, 4, 5]) {
+      buf.writeBytes(Buffer.from(`entry ${i}`))
+    }
+
+    let data = buf.data
+
+    const ty = new AbiType({ name: 'Set', nullable: false, args: [emptyTn('string')] })
+
+    const ptr = lower.lower(data, ty)
+
+    const lifted = target.lift(ptr, ty)
+    expect(lifted).to.eql(data)
+  })
 });
