@@ -1,21 +1,37 @@
 import {WasmContainer} from './wasm-container.js';
 import {Lock} from "./locks/lock.js";
-import {Externref, getObjectMemLayout, getTypedArrayForPtr, Internref} from "./memory.js";
 import {Pointer} from "@aldea/core";
-import {AbiClass} from "./abi-helpers/abi-helpers/abi-class.js";
+import {AbiClass} from "./memory/abi-helpers/abi-class.js";
+import {WasmWord} from "./wasm-word.js";
+import {AbiType} from "./memory/abi-helpers/abi-type.js";
 
-export class JigRef  {
-  ref: Internref;
+export class ContainerRef {
+  ptr: WasmWord
+  ty: AbiType
+  container: WasmContainer
+
+  constructor (ptr: WasmWord, ty: AbiType, container: WasmContainer) {
+    this.ptr = ptr
+    this.ty = ty
+    this.container = container
+  }
+
+  equals (ref: ContainerRef) {
+    return this.container.id === ref.container.id &&
+        this.ptr.equals(ref.ptr)
+  }
+}
+
+export class JigRef {
+  ref: ContainerRef
   classIdx: number;
-  package: WasmContainer;
   origin: Pointer;
   latestLocation: Pointer;
   lock: Lock;
 
-  constructor (ref: Internref, classIdx: number, module: WasmContainer, origin: Pointer, latestLocation: Pointer, lock: Lock) {
+  constructor (ref: ContainerRef, classIdx: number, origin: Pointer, latestLocation: Pointer, lock: Lock) {
     this.ref = ref
     this.classIdx = classIdx
-    this.package = module
     this.origin = origin
     this.latestLocation = latestLocation
     this.lock = lock
@@ -29,19 +45,11 @@ export class JigRef  {
     this.lock = newLock
   }
 
-  className(): string {
+  className (): string {
     return this.classAbi().name
   }
 
-  asChildRef(): Uint8Array {
-    return this.origin.toBytes()
-  }
-
-  asExtRef() {
-    return new Externref(this.className(), this.origin.toBytes());
-  }
-
-  outputObject(): any {
+  outputObject (): any {
     return {
       origin: this.origin.toBytes(),
       location: this.latestLocation.toBytes(),
@@ -49,35 +57,36 @@ export class JigRef  {
     }
   }
 
-  classPtr(): Pointer {
-    return new Pointer(this.package.id, this.classIdx)
+  classPtr (): Pointer {
+    return new Pointer(this.ref.container.id, this.classIdx)
   }
 
-  lockObject() {
-    return {
-      origin: this.origin.toBytes(),
-      type: this.lock.typeNumber(),
-      data: this.lock.data()
-    }
+  // writeField (fieldName: string, propValue: any) {
+  //   const abiNode = this.ref.container.abi.exportedByIdx(this.classIdx).get().toAbiClass()
+  //   const fieldNode = abiNode.fieldByName(fieldName).get()
+  //   const layout = getObjectMemLayout(abiNode.fields)
+  //   const TypedArray = getTypedArrayForPtr(fieldNode.type)
+  //   const mem32 = new TypedArray(this.ref.container.memory.buffer, this.ref.ptr)
+  //   const {align, offset} = layout[fieldName]
+  //
+  //   mem32[offset >>> align] = this.ref.container.insertValue(propValue, fieldNode.type)
+  // }
+
+  get package (): WasmContainer {
+    return this.ref.container
   }
 
-  writeField(fieldName: string, propValue: any) {
-    const abiNode = this.package.abi.exportedByIdx(this.classIdx).get().toAbiClass()
-    const fieldNode = abiNode.fieldByName(fieldName).get()
-    const layout = getObjectMemLayout(abiNode.fields)
-    const TypedArray = getTypedArrayForPtr(fieldNode.type)
-    const mem32 = new TypedArray(this.package.memory.buffer, this.ref.ptr)
-    const { align, offset } = layout[fieldName]
-
-    mem32[offset >>> align] = this.package.insertValue(propValue, fieldNode.type)
+  classAbi (): AbiClass {
+    return this.ref.container.abi.exportedByIdx(this.classIdx).get().toAbiClass()
   }
 
-  classAbi(): AbiClass {
-    return this.package.abi.exportedByIdx(this.classIdx).get().toAbiClass()
-  }
-
-  static isJigRef(obj: Object): boolean {
+  static isJigRef (obj: Object): boolean {
     // This is a little hack to avoid having issues when 2 different builds are used at the same time.
     return obj instanceof JigRef || obj.constructor.name === 'JigRef'
+  }
+
+  extractProps (): Uint8Array {
+    const wasm = this.ref.container
+    return wasm.lifter.lift(this.ref.ptr, this.ref.ty)
   }
 }

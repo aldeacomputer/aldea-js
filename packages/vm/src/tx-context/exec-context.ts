@@ -1,24 +1,20 @@
-import {Instruction, Pointer, Tx} from "@aldea/core";
-import {JigState} from "../jig-state.js";
-import moment from "moment";
+import {Instruction, Output, Pointer, Tx} from "@aldea/core";
 import {WasmContainer} from "../wasm-container.js";
 import {PkgData} from "../storage.js";
 
-export interface TxContext {
+export interface ExecContext {
   forEachInstruction (fn: (i: Instruction) => Promise<void>): Promise<void>
 
   txHash (): Uint8Array
 
-  stateByOutputId (id: Uint8Array): JigState
+  stateByOutputId (id: Uint8Array): Output
 
-  stateByOrigin (origin: Pointer): JigState
+  stateByOrigin (origin: Pointer): Output
 
   wasmFromPkgId (pkgId: Uint8Array): WasmContainer
 
   compile (entries: string[], sources: Map<string, string>): Promise<PkgData>
 
-  get tx (): Tx
-
-  now (): moment.Moment
+  txId (): string
 }
 

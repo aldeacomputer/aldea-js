@@ -1,7 +1,6 @@
 import moment from "moment";
 import {Output, Tx} from "@aldea/core";
 import {Abi} from "@aldea/core/abi";
-import {JigState} from "./jig-state.js";
 import {ExecutionError} from "./errors.js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {Option} from "./support/option.js";
@@ -38,28 +37,23 @@ export class PackageDeploy {
 }
 
 export class ExecutionResult {
-  outputs: JigState[]
+  outputs: Output[]
   inputs: Output[]
   deploys: PackageDeploy[]
   private finished: boolean
-  private _tx: Tx
+  txId: string
   private _executedAt: Option<moment.Moment>
 
-  constructor(tx: Tx) {
+  constructor(txId: string) {
     this.outputs = []
     this.deploys = []
     this.inputs = []
     this.finished = false
-    this._tx = tx
+    this.txId = txId
     this._executedAt = Option.none()
   }
 
-
-  get tx (): Tx {
-    return this._tx
-  }
-
-  addOutput(output: JigState) {
+  addOutput(output: Output) {
     if (this.finished) {
       throw new ExecutionError('Execution already finished')
     }
@@ -75,12 +69,6 @@ export class ExecutionResult {
       throw new ExecutionError('Execution already finished')
     }
     this.deploys.push(deploy)
-  }
-
-  get executedAt(): number {
-    return this._executedAt
-      .map(aMoment => aMoment.unix())
-      .orElse(() => { throw new Error('todo mal') })
   }
 
   finish(time: moment.Moment) {

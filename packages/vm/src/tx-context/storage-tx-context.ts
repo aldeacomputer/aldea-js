@@ -1,24 +1,20 @@
-import {base16, Instruction, Pointer, Tx} from "@aldea/core";
-import {PkgRepository, StateProvider} from "../state-interfaces.js";
+import {base16, Instruction, Output, Pointer, Tx} from "@aldea/core";
 import {VM} from "../vm.js";
 import {Clock} from "../clock.js";
-import {JigState} from "../jig-state.js";
 import {ExecutionError} from "../errors.js";
 import {WasmContainer} from "../wasm-container.js";
 import {PkgData, Storage} from "../storage.js";
 import moment from "moment/moment.js";
-import {TxContext} from "./tx-context.js";
+import {ExecContext} from "./exec-context.js";
 
-export class StorageTxContext implements TxContext {
+export class StorageTxContext implements ExecContext {
   private _tx: Tx
-  private pkgs: PkgRepository
-  states: StateProvider
+  private storage: Storage
   vm: VM
   clock: Clock
   constructor(tx: Tx, storage: Storage, vm: VM, clock: Clock) {
     this._tx = tx
-    this.states = storage
-    this.pkgs = storage
+    this.storage = storage
     this.vm = vm
     this.clock = clock
   }
@@ -30,36 +26,28 @@ export class StorageTxContext implements TxContext {
   }
 
   txHash () {
-    return this.tx.hash
+    return this._tx.hash
   }
 
-  stateByOutputId (id: Uint8Array): JigState {
-    return this.states.byOutputId(id).orElse(() => {
+  stateByOutputId (id: Uint8Array): Output {
+    return this.storage.byOutputId(id).orElse(() => {
       throw new ExecutionError(`output not present in utxo set: ${base16.encode(id)}`)
     })
   }
 
-  stateByOrigin (origin: Pointer): JigState {
-    return this.states.byOrigin(origin).orElse(() => { throw new ExecutionError(`unknown jig: ${origin.toString()}`)})
+  stateByOrigin (origin: Pointer): Output {
+    return this.storage.byOrigin(origin).orElse(() => { throw new ExecutionError(`unknown jig: ${origin.toString()}`)})
   }
 
   wasmFromPkgId (pkgId: Uint8Array): WasmContainer {
-    return this.pkgs.wasmForPackageId(pkgId)
+    return this.storage.wasmForPackageId(pkgId)
   }
 
   compile (entries: string[], sources: Map<string, string>): Promise<PkgData> {
     return this.vm.compileSources(entries, sources)
   }
 
-  get tx (): Tx {
-    return this._tx
-  }
-
-  hash (): Uint8Array {
-    return this._tx.hash
-  }
-
-  now (): moment.Moment {
-    return this.clock.now()
+  txId (): string {
+    return this._tx.id
   }
 }

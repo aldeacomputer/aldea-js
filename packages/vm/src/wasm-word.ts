@@ -1,11 +1,11 @@
-import {AbiType} from "./abi-helpers/abi-helpers/abi-type.js";
+import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {BufReader, BufWriter} from "@aldea/core";
 import {WasmValue} from "./wasm-container.js";
 
 type WasmArg = number | bigint
 
 export class WasmWord {
-  value: ArrayBuffer;
+  private value: ArrayBuffer;
 
   constructor (bytes: ArrayBuffer) {
     if (bytes.byteLength > 8) {
@@ -121,5 +121,9 @@ export class WasmWord {
   toWasmArg (abiType: AbiType): WasmArg {
     if (['u64', 'i64'].includes(abiType.name)) return this.toBigInt()
     return this.toInt()
+  }
+
+  equals (another: WasmWord) {
+    return Buffer.from(this.value).equals(Buffer.from(another.value));
   }
 }

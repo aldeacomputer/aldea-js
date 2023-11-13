@@ -1,10 +1,8 @@
-import {Address, base16, Pointer} from "@aldea/core";
+import {Address, base16, LockType, Output, Pointer} from "@aldea/core";
 import {Abi} from "@aldea/core/abi";
-import {JigState} from './jig-state.js';
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
-import {LockType, WasmContainer} from "./wasm-container.js";
+import {WasmContainer} from "./wasm-container.js";
 import {Option} from "./support/option.js";
-import {PkgRepository, StateProvider} from "./state-interfaces.js";
 
 export class PkgData {
   abi: Abi
@@ -50,14 +48,14 @@ type OnNotFound = (pkgId: string) => PkgData
 
 const throwNotFound = (idHex: string) => { throw new Error(`unknown module: ${idHex}`) }
 
-export class Storage implements StateProvider, PkgRepository {
-  private utxosByOid: Map<string, JigState> // output_id -> state. Only utxos
-  private utxosByAddress: Map<string, JigState[]> // address -> state. Only utxos
+export class Storage {
+  private utxosByOid: Map<string, Output> // output_id -> state. Only utxos
+  private utxosByAddress: Map<string, Output[]> // address -> state. Only utxos
   private tips: Map<string, string> // origin -> latest output_id
   private origins: Map<string, string> // utxo -> origin. Only utxos
   private transactions: Map<string, ExecutionResult> // txid -> transaction execution.
   private packages: Map<string, PkgData> // pkg_id -> pkg data
-  private historicalUtxos: Map<string, JigState>
+  private historicalUtxos: Map<string, Output>
 
   constructor() {
     this.utxosByOid = new Map()
@@ -71,59 +69,69 @@ export class Storage implements StateProvider, PkgRepository {
 
   persist(txExecution: ExecutionResult) {
     this.addTransaction(txExecution)
-    txExecution.outputs.forEach((state: JigState) => this.addUtxo(state))
+    txExecution.outputs.forEach((state) => this.addUtxo(state))
     txExecution.deploys.forEach(pkgDeploy => this.addPackage(pkgDeploy.hash, PkgData.fromPackageDeploy(pkgDeploy)))
   }
 
-  addUtxo(jigState: JigState) {
-    const currentLocation = base16.encode(jigState.id());
-    const originStr = jigState.origin.toString();
+  private isNew(o: Output): boolean {
+    return o.origin.equals(o.location)
+  }
 
-    if (!jigState.isNew()) {
+  private addressFor(o: Output): Option<Address> {
+    return Option.some(o)
+        .filter(o => o.lock.type === LockType.ADDRESS)
+        .map(o => new Address(o.lock.data))
+  }
+
+  addUtxo(output: Output) {
+    const currentLocation = output.id;
+    const originStr = output.origin.toString();
+
+    if (!this.isNew(output)) {
       const prevLocation = this.tips.get(originStr)
 
       // if it's not new but there is not prev location that means that is a local client. It's fine.
       if (prevLocation) {
-        const oldState = this.utxosByOid.get(prevLocation)
+        const oldOutput = this.utxosByOid.get(prevLocation)
         this.utxosByOid.delete(prevLocation)
         this.tips.delete(originStr)
         this.origins.delete(originStr)
-        if (oldState) {
-          oldState.address().ifPresent((addr) => {
+        if (oldOutput) {
+          this.addressFor(oldOutput).ifPresent((addr) => {
             const list = this.utxosByAddress.get(addr.toString())
             if (!list) {
               throw new Error('error')
             }
-            const filtered = list.filter(s => !s.origin.equals(oldState.origin))
+            const filtered = list.filter(s => !s.origin.equals(oldOutput.origin))
             this.utxosByAddress.set(addr.toString(), filtered)
           })
         }
       }
     }
 
-    this.utxosByOid.set(currentLocation, jigState)
-    this.historicalUtxos.set(currentLocation, jigState)
+    this.utxosByOid.set(currentLocation, output)
+    this.historicalUtxos.set(currentLocation, output)
     this.tips.set(originStr, currentLocation)
     this.origins.set(currentLocation, originStr)
-    if (jigState.lockType() === LockType.PUBKEY) {
-      const address = jigState.address().map(a => a.toString()).get();
+    if (output.lock.type === LockType.ADDRESS) {
+      const address = this.addressFor(output).map(a => a.toString()).get();
       const previous = this.utxosByAddress.get(address)
       if (previous) {
-        previous.push(jigState)
+        previous.push(output)
       } else {
-        this.utxosByAddress.set(address, [jigState])
+        this.utxosByAddress.set(address, [output])
       }
     }
   }
 
-  getJigStateByOrigin(origin: Pointer): Option<JigState> {
+  getJigStateByOrigin(origin: Pointer): Option<Output> {
     const latestLocation = this.tips.get(origin.toString())
     if (!latestLocation) return Option.none()
     const ret = this.utxosByOid.get(latestLocation)
     return Option.fromNullable(ret)
   }
 
-  getJigStateByOutputId (outputId: Uint8Array): Option<JigState> {
+  getJigStateByOutputId (outputId: Uint8Array): Option<Output> {
     const state = this.utxosByOid.get(base16.encode(outputId))
     return Option.fromNullable(state)
   }
@@ -135,7 +143,7 @@ export class Storage implements StateProvider, PkgRepository {
   }
 
   addTransaction(exec: ExecutionResult): void {
-    this.transactions.set(exec.tx.id, exec)
+    this.transactions.set(exec.txId, exec)
   }
 
   getTransaction(txid: string): ExecutionResult | undefined {
@@ -159,22 +167,21 @@ export class Storage implements StateProvider, PkgRepository {
     return this.packages.has(base16.encode(id));
   }
 
-  getHistoricalUtxo (outputId: Uint8Array, onNotFound: () => JigState): JigState {
+  getHistoricalUtxo (outputId: Uint8Array): Option<Output> {
     const state = this.historicalUtxos.get(base16.encode(outputId))
-    if (!state) return onNotFound()
-    return state
+    return Option.fromNullable(state)
   }
 
-  utxosForAddress(userAddr: Address): JigState[] {
+  utxosForAddress(userAddr: Address): Output[] {
     return Option.fromNullable(this.utxosByAddress.get(userAddr.toString()))
       .orDefault([])
   }
 
-  byOutputId(id: Uint8Array): Option<JigState> {
+  byOutputId(id: Uint8Array): Option<Output> {
     return this.getJigStateByOutputId(id);
   }
 
-  byOrigin(origin: Pointer): Option<JigState> {
+  byOrigin(origin: Pointer): Option<Output> {
     return this.getJigStateByOrigin(origin);
   }
 

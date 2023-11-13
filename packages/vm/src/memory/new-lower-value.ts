@@ -37,7 +37,7 @@ export class NewLowerValue {
     return this.lowerFromReader(reader, ty)
   }
 
-  private lowerFromReader(reader: BufReader, ty: AbiType) {
+  lowerFromReader(reader: BufReader, ty: AbiType) {
     switch (ty.name) {
       case 'bool':
         return WasmWord.fromNumber(reader.readU8())
@@ -268,8 +268,9 @@ export class NewLowerValue {
 
     // Write lock
     buf.writeBytes(jigData.origin.toBytes())
-    buf.writeU32(jigData.lock.typeNumber())
-    buf.writeBytes(jigData.lock.data())
+    const coreLock = jigData.lock.coreLock();
+    buf.writeU32(coreLock.type)
+    buf.writeBytes(coreLock.data)
 
     return buf.data
   }

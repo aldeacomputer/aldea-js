@@ -37,8 +37,8 @@ describe('Jig Type', () => {
   beforeEach(() => {
     exec = emptyTx()
     exec.markAsFunded()
-    jigBearerPkg = exec.importModule(modIdFor('jig-type-bearer')).asInstance // index 0
-    flockPkg = exec.importModule(modIdFor('flock')).asInstance
+    jigBearerPkg = exec.importModule(modIdFor('jig-type-bearer')).asContainer // index 0
+    flockPkg = exec.importModule(modIdFor('flock')).asContainer
     flockStmt = exec.instantiateByClassName(flockPkg, 'Flock', [])
     jig = flockStmt.asJig()
   })

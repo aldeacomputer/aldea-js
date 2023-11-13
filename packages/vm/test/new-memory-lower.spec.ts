@@ -3,13 +3,13 @@ import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
 import {Address, BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
 import {expect} from "chai";
-import {AbiType} from "../src/abi-helpers/abi-helpers/abi-type.js";
+import {AbiType} from "../src/memory/abi-helpers/abi-type.js";
 import {WasmWord} from "../src/wasm-word.js";
 import {Option} from "../src/support/option.js";
 import {PublicLock} from "../src/locks/public-lock.js";
-import {serializeOutput} from "../src/abi-helpers/abi-helpers/serialize-output.js";
+import {serializeOutput} from "../src/memory/abi-helpers/serialize-output.js";
 import {UserLock} from "../src/locks/user-lock.js";
-import {emptyTn} from "../src/abi-helpers/well-known-abi-nodes.js";
+import {emptyTn} from "../src/memory/well-known-abi-nodes.js";
 
 
 const FLOAT_ERROR: number = 0.00001

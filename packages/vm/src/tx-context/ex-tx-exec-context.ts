@@ -2,7 +2,7 @@ import {base16, Instruction, Pointer, Tx} from "@aldea/core";
 import {ExtendedTx} from "./extended-tx.js";
 import {Clock} from "../clock.js";
 import {PkgRepository} from "../state-interfaces.js";
-import {TxContext} from "./tx-context.js";
+import {ExecContext} from "./exec-context.js";
 import {JigState} from "../jig-state.js";
 import {PkgData} from "../storage.js";
 import {VM} from "../vm.js";
@@ -29,7 +29,7 @@ const cmpBuff = (buff1: Uint8Array, buff2: Uint8Array): number => {
   }
 }
 
-export class ExTxExecContext implements TxContext {
+export class ExTxExecContext implements ExecContext {
   private exTx: ExtendedTx
   private clock: Clock;
   private pkgs: PkgRepository

@@ -9,12 +9,12 @@ import {Abi, TypeIdNode} from "@aldea/core/abi";
 //   lockAbiNode,
 //   outputAbiNode
 // } from "./well-known-abi-nodes.js";
-import {Option} from "../support/option.js";
-import {AbiExport} from "./abi-helpers/abi-export.js";
-import {AbiImport} from "./abi-helpers/abi-import.js";
-import {ExecutionError} from "../errors.js";
-import {basicJigAbiNode, jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "./well-known-abi-nodes.js";
-import {AbiType} from "./abi-helpers/abi-type.js";
+import {Option} from "../../support/option.js";
+import {AbiExport} from "./abi-export.js";
+import {AbiImport} from "./abi-import.js";
+import {ExecutionError} from "../../errors.js";
+import {basicJigAbiNode, jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "../well-known-abi-nodes.js";
+import {AbiType} from "./abi-type.js";
 
 export class AbiAccess {
   readonly abi: Abi;
