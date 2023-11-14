@@ -17,7 +17,7 @@ export class AddressLock extends Lock {
 
   assertOpen (exec: TxExecution): void {
     if (!exec.signedBy(this.addr)) {
-      throw new PermissionError(`Missing signature for ${this.addr.toString()}`)
+      throw new PermissionError(`[line=${exec.instrucCtr}] Missing signature for ${this.addr.toString()}`)
     }
   }
 }

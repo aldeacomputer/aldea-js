@@ -1,7 +1,7 @@
 import {Lock as CoreLock, LockType, Pointer} from "@aldea/core";
 import {Lock} from "./lock.js";
 import {TxExecution} from "../tx-execution.js";
-import {NotImplementedError} from "../errors.js";
+import {NotImplementedError, PermissionError} from "../errors.js";
 
 export class JigLock extends Lock {
   private origin: Pointer;
@@ -15,7 +15,14 @@ export class JigLock extends Lock {
     return new CoreLock(LockType.JIG, this.origin.toBytes());
   }
 
-  assertOpen (_param: TxExecution): void {
-    throw new NotImplementedError()
+  assertOpen (exec: TxExecution): void {
+    const caller = exec.stackFromTop(1) // Get Caller Origin
+    caller.map(caller => {
+      if (!caller.equals(this.origin)) {
+        throw new PermissionError(`[line=${exec.instrucCtr}] ${caller.toString()} has no permission to exec over jig locked to ${this.origin.toString()}`)
+      }
+    }).orElse(() => {
+      throw new PermissionError(`[line=${exec.instrucCtr}] no permission to unlock jig.`)
+    })
   }
 }

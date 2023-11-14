@@ -1,9 +1,10 @@
 import {Storage, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {base16, BCS, LockType, Output, PrivKey, ref} from "@aldea/core";
+import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, ref} from "@aldea/core";
 import {Abi, AbiQuery} from '@aldea/core/abi';
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
+import {PermissionError} from "../src/errors.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -168,39 +169,52 @@ describe('execute txs', () => {
     expect(flockOutput.lock.type).to.eql(LockType.JIG)
     expect(flockOutput.lock.data).to.eql(shepherdOutput.origin.toBytes())
   })
-  //
-  // it('accessing class ptr works', () => {
-  //   const exec = emptyExec([userPriv])
-  //   const flockWasm = exec.importModule(modIdFor('flock'))
-  //   const counterWasm = exec.importModule(modIdFor('sheep-counter'))
-  //   const flock = exec.instantiateByClassName(flockWasm.asInstance, 'Flock', [])
-  //   const shepherd = exec.instantiateByClassName(counterWasm.asInstance, 'Shepherd', [flock.asJig()])
-  //   exec.lockJigToUser(shepherd.asJig(), userAddr)
-  //   const result = exec.finalize()
-  //   storage.persist(result)
-  //
-  //   const exec2 = emptyExec([userPriv, userPriv])
-  //   const loaded = exec2.loadJigByOutputId(result.outputs[1].id())
-  //   const classPtrStmt = exec2.callInstanceMethod(loaded.asJig(), 'myClassPtr', [])
-  //   const flockClassPtrStmt = exec2.callInstanceMethod(loaded.asJig(), 'flockClassPtr', [])
-  //
-  //   expect(classPtrStmt.value).to.eql(new Pointer(modIdFor('sheep-counter'), 1).toBytes())
-  //   expect(flockClassPtrStmt.value).to.eql(new Pointer(modIdFor('flock'), 0).toBytes())
-  // })
-  //
-  // it('fails if the tx is trying to lock an already locked jig', () => {
-  //   const flockWasm = exec.importModule(modIdFor('flock'))
-  //   const counterWasm = exec.importModule(modIdFor('sheep-counter'))
-  //   const flock = exec.instantiateByClassName(flockWasm.asInstance, 'Flock', [])
-  //
-  //   // this locks the flock successfully
-  //   const shepherdIndex = exec.instantiateByClassName(counterWasm.asInstance, 'Shepherd', [flock.asJig()])
-  //   exec.lockJigToUser(shepherdIndex.asJig(), userAddr)
-  //   const flockOutputIndex = 0
-  //   // this tries to lock it again
-  //   expect(() => {exec.lockJigToUser(flock.asJig(), userAddr)}).to.throw(PermissionError,
-  //     `no permission to remove lock from jig ${new Pointer(exec.txContext.tx.hash, flockOutputIndex).toString()}`)
-  // })
+
+  it('accessing class ptr works', () => {
+    const {exec} = emptyExec([userPriv])
+    const flockWasm = exec.import(modIdFor('flock'))
+    const counterWasm = exec.import(modIdFor('sheep-counter'))
+    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
+    const shepherd = exec.instantiate(counterWasm.idx, ...constructorArgs('sheep-counter', 'Shepherd', [ref(flock.idx)]))
+    exec.lockJig(shepherd.idx, userAddr)
+    const result = exec.finalize()
+    storage.persist(result)
+
+    const { exec: exec2 } = emptyExec([userPriv])
+    const loaded = exec2.loadJigByOutputId(result.outputs[2].hash)
+    const classPtrStmt = exec2.call(loaded.idx, ...argsFor('sheep-counter', 'Shepherd', 'myClassPtr', []))
+    const flockClassPtrStmt = exec2.call(loaded.idx, ...argsFor('sheep-counter', 'Shepherd', 'flockClassPtr', []))
+
+
+    const r1 = new BufReader(classPtrStmt.asValue().lift())
+    expect(r1.readBytes()).to.eql(new Pointer(modIdFor('sheep-counter'), 1).toBytes())
+    const r2 = new BufReader(flockClassPtrStmt.asValue().lift())
+    expect(r2.readBytes()).to.eql(new Pointer(modIdFor('flock'), 0).toBytes())
+  })
+
+  it('fails if the tx is trying to lock an already locked jig', () => {
+    const { exec } = emptyExec()
+    const flockWasm = exec.import(modIdFor('flock'))
+    const counterWasm = exec.import(modIdFor('sheep-counter'))
+
+    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
+
+    // this locks the flock successfully
+    const shepherd = exec.instantiate(counterWasm.idx, ...constructorArgs('sheep-counter','Shepherd', [ref(flock.idx)]))
+    exec.lockJig(shepherd.idx, userAddr)
+
+    expect(() => {
+      exec.lockJig(flock.idx, userAddr)}).to.throw(
+        PermissionError,
+      /no permission to unlock jig/
+    )
+
+    expect(() => {
+      exec.lockJig(shepherd.idx, userAddr)}).to.throw(
+      PermissionError,
+      /Missing signature for/
+    )
+  })
   //
   // it('fails when a jig tries to lock a locked jig', () => {
   //   const flockWasm = exec.importModule(modIdFor('flock')).asInstance
