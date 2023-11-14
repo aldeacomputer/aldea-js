@@ -1,11 +1,13 @@
 export class Ant extends Jig {
   children: Ant[]
   friends: Ant[]
+  ownForce: u32
 
   constructor() {
     super()
     this.children = []
     this.friends = []
+    this.ownForce = 1
   }
 
   addChild (ant: Ant): void {
@@ -23,8 +25,12 @@ export class Ant extends Jig {
       .reduce((total, current) => total + current, 0)
   }
 
+  doExercise(): void {
+    this.ownForce += 1;
+  }
+
   workCapacity (): u32 {
-    return 1 +
+    return this.ownForce +
       this.friends.length +
       this.childrenCapacity()
   }

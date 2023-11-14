@@ -183,7 +183,7 @@ describe('execute txs', () => {
     storage.persist(result)
 
     const {exec: exec2} = emptyExec([userPriv])
-    const loaded = exec2.loadJigByOutputId(result.outputs[2].hash)
+    const loaded = exec2.load(result.outputs[2].hash)
     const classPtrStmt = exec2.call(loaded.idx, ...argsFor('sheep-counter', 'Shepherd', 'myClassPtr', []))
     const flockClassPtrStmt = exec2.call(loaded.idx, ...argsFor('sheep-counter', 'Shepherd', 'flockClassPtr', []))
 
@@ -287,7 +287,7 @@ describe('execute txs', () => {
 
     it('cannot be called methods', () => {
       const {exec} = emptyExec()
-      const jig = exec.loadJigByOutputId(frozenOutput.hash)
+      const jig = exec.load(frozenOutput.hash)
       expect(() => exec.call(jig.idx, ...argsFor('flock', 'Flock', 'grow', []))).to
         .throw(PermissionError,
           /jig is frozen/)
@@ -295,12 +295,28 @@ describe('execute txs', () => {
 
     it('cannot be locked', () => {
       const {exec} = emptyExec()
-      const jig = exec.loadJigByOutputId(frozenOutput.hash)
+      const jig = exec.load(frozenOutput.hash)
       expect(() => exec.lockJig(jig.idx, userAddr)).to
         .throw(PermissionError,
           /jig is frozen/)
     })
   });
+
+  it('can load an existing jig', () => {
+    const { exec: exec1 } = antExec()
+    const res1 = exec1.finalize();
+    storage.persist(res1)
+
+    const { exec: exec2 } = emptyExec([userPriv])
+
+    const loaded = exec2.load(res1.outputs[1].hash)
+    exec2.call(loaded.idx, ...argsFor('ant', 'Ant', 'doExercise', []))
+    const result = exec2.finalize()
+
+    const antProps = parseOutput(result.outputs[1])
+
+    expect(antProps['ownForce']).to.eql(2)
+  })
 
   // describe('when a jig already exists', () => {
   //   beforeEach(() => {

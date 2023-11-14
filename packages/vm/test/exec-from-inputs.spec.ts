@@ -61,7 +61,7 @@ describe('exec from inputs', () => {
     const context = new ExTxExecContext(extx, clock, storage, vm)
     const exec = new TxExecution(context)
 
-    const jigRef = exec.loadJigByOutputId(coin.id()).asJig()
+    const jigRef = exec.load(coin.id()).asJig()
     const newCoinStmt = exec.callInstanceMethod(jigRef, 'send', [200])
     exec.fundByIndex(newCoinStmt.idx)
     const result = exec.finalize()

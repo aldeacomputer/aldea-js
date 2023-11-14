@@ -128,7 +128,7 @@ class TxExecution {
     return stmt
   }
 
-  loadJigByOutputId(outputId: Uint8Array): StatementResult {
+  load(outputId: Uint8Array): StatementResult {
     const output = this.execContext.stateByOutputId(outputId)
     const jigRef = this.hydrate(output)
 
