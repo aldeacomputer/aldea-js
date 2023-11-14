@@ -8,6 +8,7 @@ import {ExecutionError, PermissionError} from "../src/errors.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {StatementResult} from "../src/statement-result.js";
 import {ExecutionResult} from "../src/execution-result.js";
+import {AbiAccess} from "../src/memory/abi-helpers/abi-access.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -63,24 +64,26 @@ describe('execute txs', () => {
 
   function argsFor (pkgName: string, className: string, methodName: string, args: any[]): CallData {
     const abi = abiFor(pkgName)
-    const query = new AbiQuery(abi)
-    const cls = query.fromExports().byName(className).getClass()
+    const abiAccess = new AbiAccess(abi)
+
+    const cls = abiAccess.exportedByName(className).get().toAbiClass()
+    const method = cls.methodByName(methodName).get()
     const bcs = new BCS(abi)
     return [
-      cls.methods.findIndex(m => m.name === methodName),
+      method.idx,
       bcs.encode(`${className}_${methodName}`, args)
     ]
   }
 
   function constructorArgs (pkgName: string, className: string, args: any[]): CallData {
     const abi = abiFor(pkgName)
-    const query = new AbiQuery(abi)
-    const exports = query.fromExports().allCode()
+    const abiAccess = new AbiAccess(abi)
+    const abiClass = abiAccess.exportedByName(className).get().toAbiClass()
 
     const bcs = new BCS(abi)
 
     return [
-      exports.findIndex(e => e.name === className),
+      abiClass.idx,
       bcs.encode(`${className}_constructor`, args)
     ]
   }
@@ -442,32 +445,38 @@ describe('execute txs', () => {
     const parsed = parseOutput(res.outputs[1])
     expect(parsed.size).to.eql(1)
   })
-  //
-  // it('saves entire state for jigs using inheritance', () => {
-  //   const wasm = exec.importModule(modIdFor('sheep')).asInstance
-  //   const sheep = exec.instantiateByClassName(wasm, 'MutantSheep', ['Wolverine', 'black'])
-  //   exec.lockJigToUser(sheep.asJig(), userAddr)
-  //   const ret = exec.finalize()
-  //
-  //   expect(ret.outputs[0].parsedState(abiFor('sheep'))).to.have.length(4) // 3 base class + 1 concrete class
-  // })
-  //
-  // it('can call base class and concrete class methods', () => {
-  //   const wasm = exec.importModule(modIdFor('sheep')).asInstance
-  //   const sheep = exec.instantiateByClassName(wasm, 'MutantSheep', ['Wolverine', 'black']).asJig() // 7 legs
-  //   exec.callInstanceMethod(sheep, 'chopOneLeg', []) // -1 leg
-  //   exec.callInstanceMethod(sheep, 'chopOneLeg', []) // -1 leg
-  //   exec.callInstanceMethod(sheep, 'regenerateLeg', []) // +1 leg
-  //   exec.lockJigToUser(sheep, userAddr)
-  //   const ret = exec.finalize()
-  //
-  //   const state = ret.outputs[0].parsedState(abiFor('sheep'));
-  //   expect(state).to.have.length(4) // 3 base class + 1 concrete class
-  //   expect(state[0]).to.eql('Wolverine') // name
-  //   expect(state[1]).to.eql('black') // color
-  //   expect(state[2]).to.eql(6) // legs. starts wth seven - 1 -1 + 1
-  //   expect(state[3]).to.eql(10) // 3 base class + 1 concrete class
-  // })
+
+  it('saves entire state for jigs using inheritance', () => {
+    const {exec} = emptyExec()
+    const wasm = exec.import(modIdFor('sheep'))
+    const sheep = exec.instantiate(wasm.idx, ...constructorArgs('sheep', 'MutantSheep', ['Wolverine', 'black']))
+    exec.lockJig(sheep.idx, userAddr)
+    const res = exec.finalize()
+
+    const reader = new BufReader(res.outputs[1].stateBuf)
+    expect(Buffer.from(reader.readBytes()).toString()).to.eql('Wolverine')
+    expect(Buffer.from(reader.readBytes()).toString()).to.eql('black')
+    expect(reader.readU8()).to.eql(7)
+    expect(reader.readU32()).to.eql(0)
+  })
+
+  it('can call base class and concrete class methods', () => {
+    const {exec} = emptyExec()
+    const wasm = exec.import(modIdFor('sheep'))
+    const sheep = exec.instantiate(wasm.idx, ...constructorArgs('sheep', 'MutantSheep', ['Wolverine', 'black']))
+    exec.call(sheep.idx, ...argsFor('sheep', 'Sheep', 'chopOneLeg', []))
+    exec.call(sheep.idx, ...argsFor('sheep', 'Sheep', 'chopOneLeg', []))
+    exec.call(sheep.idx, ...argsFor('sheep', 'MutantSheep', 'regenerateLeg', []))
+
+    exec.lockJig(sheep.idx, userAddr)
+    const res = exec.finalize()
+
+    const reader = new BufReader(res.outputs[1].stateBuf)
+    expect(Buffer.from(reader.readBytes()).toString()).to.eql('Wolverine')
+    expect(Buffer.from(reader.readBytes()).toString()).to.eql('black')
+    expect(reader.readU8()).to.eql(6)
+    expect(reader.readU32()).to.eql(10)
+  })
   //
   // it('can create, freeze and reload a jig that uses inheritance', () => {
   //   const wasm = exec.importModule(modIdFor('sheep')).asInstance

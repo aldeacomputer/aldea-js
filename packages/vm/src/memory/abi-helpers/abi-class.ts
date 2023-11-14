@@ -1,4 +1,4 @@
-import {Abi, AbiQuery, ClassNode, CodeKind, FieldNode} from "@aldea/core/abi";
+import {Abi, AbiQuery, ClassNode, CodeKind, FieldNode, MethodNode} from "@aldea/core/abi";
 import {Option} from "../../support/option.js";
 import {AbiType} from "./abi-type.js";
 import {AbiField} from "./abi-plain-object.js";
@@ -18,12 +18,21 @@ const BASE_FIELDS = [{
   }
 ]
 
+function createAbiMethods (cls: ClassNode[]) {
+  return cls
+    .map<Array<[MethodNode, string]>>(cls => cls.methods.map(m => [m, cls.name]))
+    .flat()
+    .filter(([m, _]) => m.name !== 'constructor')
+    .map(([m, className], i) =>  new AbiMethod(i, className, m))
+}
+
 export class AbiClass {
   private abi: Abi;
   idx: number;
   private node: ClassNode;
   private readonly _methods: AbiMethod[];
   private readonly _fields: AbiField[];
+  private _constructor: AbiMethod
 
   constructor (abi: Abi, idx: number) {
     this.abi = abi
@@ -31,10 +40,17 @@ export class AbiClass {
     const query = new AbiQuery(this.abi)
     query.fromExports().byIndex(this.idx)
     this.node = query.getClass()
-    this._methods = this.node.methods.map((_m, i) => new AbiMethod(this.abi, this.idx, i))
+    const parents =  query.getClassParents()
+    const constructorNode = this.node.methods.find(m => m.name === 'constructor')
+    if (!constructorNode) {
+      throw new Error('malformed abi, missing constructor for class')
+    }
+    this._constructor = new AbiMethod(0, this.node.name, constructorNode)
+
+    this._methods = createAbiMethods([...parents, this.node])
 
     let offset = WasmWord.fromNumber(0)
-    const fields = [...BASE_FIELDS, ...this.node.fields]
+    const fields = [...BASE_FIELDS, ...parents.map(p => p.fields).flat(), ...this.node.fields]
     this._fields = fields.map(node => {
       const ty = new AbiType(node.type)
       offset = offset.align(ty.ownSize())
@@ -58,6 +74,10 @@ export class AbiClass {
 
   get fields (): AbiField[] {
     return this._fields
+  }
+
+  constructorDef(): AbiMethod {
+    return this._constructor
   }
 
   ownFields (): AbiField[] {

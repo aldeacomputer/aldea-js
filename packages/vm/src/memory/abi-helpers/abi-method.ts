@@ -21,18 +21,14 @@ export class AbiArg {
 }
 
 export class AbiMethod {
-  private readonly abi: Abi;
   idx: number;
   node: MethodNode;
   private readonly _className;
 
-  constructor (abi: Abi, classIdx: number, methodIdx: number) {
-    this.abi = abi;
-    this.idx = methodIdx
-    const query = new AbiQuery(this.abi)
-    const classNode = query.fromExports().byIndex(classIdx).getClass()
-    this.node = classNode.methods[methodIdx]
-    this._className = classNode.name
+  constructor (idx: number, className: string, methodNode: MethodNode) {
+    this.idx = idx
+    this.node = methodNode
+    this._className = className
   }
 
   get name (): string {
@@ -45,13 +41,9 @@ export class AbiMethod {
 
   get rtype (): AbiType {
     return Option.fromNullable(this.node.rtype)
-        .or(Option.some(emptyTn(this.className)))
+        .or(Option.some(emptyTn(this._className)))
         .map(node => new AbiType(node))
         .get()
-  }
-
-  get className (): string {
-    return this._className
   }
 
   callName (): string {

@@ -155,7 +155,7 @@ class TxExecution {
     // const args = bcs.decode(`${classNode.name}_constructor`, argsBuf)
 
 
-    const method = wasm.abi.exportedByName(classNode.name).get().toAbiClass().methodByName('constructor').get()
+    const method = wasm.abi.exportedByName(classNode.name).get().toAbiClass().constructorDef()
     const callArgs = this.lowerArgs(wasm, method.args, argsBuf)
 
     const nextOrigin = this.createNextOrigin()
@@ -732,8 +732,7 @@ class TxExecution {
 
     const method = from.abi.exportedByName(clsName).get()
       .toAbiClass()
-      .methodByName('constructor')
-      .get()
+      .constructorDef()
     // Move args
     const argBuf = this.liftArgs(from, argsPtr, method.args)
     const argsReader = new BufReader(argBuf)
