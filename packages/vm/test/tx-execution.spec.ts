@@ -132,7 +132,7 @@ describe('execute txs', () => {
     const {exec} = emptyExec()
     const pkg = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(pkg.idx, 0, new Uint8Array([0]))
-    exec.call(flock.idx, 3, new Uint8Array([0, 7, 0, 0, 0]))
+    exec.call(flock.idx, 2, new Uint8Array([0, 7, 0, 0, 0]))
     exec.lockJig(flock.idx, userAddr)
     const result = exec.finalize()
 
