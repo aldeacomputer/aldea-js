@@ -131,7 +131,7 @@ export class WasmContainer {
           // const argBuf = this.liftBuffer(argsPtr)
           // const originBuf = this.liftBuffer(originPtr)
           // this.currentExec.remoteLockHandler(Pointer.fromBytes(originBuf), type, argBuf)
-          return 0
+          this._currentExec.get().vmJigLock(this, WasmWord.fromNumber(originPtr), type, WasmWord.fromNumber(argsPtr))
         },
         caller_typecheck: (rtIdToCheck: number, exact: boolean): boolean => {
           // const callerOrigin = this.currentExec.stackPreviousToTop()

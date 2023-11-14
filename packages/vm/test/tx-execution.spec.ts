@@ -83,7 +83,7 @@ describe('execute txs', () => {
   it('instantiate creates the right output', () => {
     const { exec, txHash} = emptyExec()
     const mod = exec.import(modIdFor('flock'))
-    const instanceIndex = exec.instantiateByIndex(mod.idx, 0,  new Uint8Array([0]))
+    const instanceIndex = exec.instantiate(mod.idx, 0,  new Uint8Array([0]))
     exec.lockJig(instanceIndex.idx, userAddr)
     const result = exec.finalize()
     expect(result.outputs).to.have.length(2) // Implicit fund output
@@ -99,7 +99,7 @@ describe('execute txs', () => {
     const module = exec.import(modIdFor('weapon')) // index 0
     const bcs = new BCS(abiFor('weapon'));
     const argBuf = bcs.encode('Weapon_constructor', ['Sable Corvo de San Martín', 100000])
-    const weapon = exec.instantiateByIndex(module.idx, 1, argBuf) // index 1
+    const weapon = exec.instantiate(module.idx, 1, argBuf) // index 1
     exec.lockJig(weapon.idx, userAddr)
     const result = exec.finalize()
 
@@ -111,7 +111,7 @@ describe('execute txs', () => {
   it('can call methods on jigs', () => {
     const { exec } = emptyExec()
     const importIndex = exec.import(modIdFor('flock'))
-    const flock = exec.instantiateByIndex(importIndex.idx, 0, new Uint8Array([0]))
+    const flock = exec.instantiate(importIndex.idx, 0, new Uint8Array([0]))
     exec.call(flock.idx, 1, new Uint8Array([0]))
     exec.lockJig(flock.idx, userAddr)
     const result = exec.finalize()
@@ -123,7 +123,7 @@ describe('execute txs', () => {
   it('can make calls on jigs sending basic parameters', () => {
     const { exec } = emptyExec()
     const pkg = exec.import(modIdFor('flock'))
-    const flock = exec.instantiateByIndex(pkg.idx, 0, new Uint8Array([0]))
+    const flock = exec.instantiate(pkg.idx, 0, new Uint8Array([0]))
     exec.call(flock.idx, 3, new Uint8Array([0, 7, 0, 0, 0]))
     exec.lockJig(flock.idx, userAddr)
     const result = exec.finalize()
@@ -138,8 +138,8 @@ describe('execute txs', () => {
     const { exec } = emptyExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
-    const flock = exec.instantiateByIndex(flockWasm.idx, ...constructorArgs('flock','Flock', []))
-    const counter = exec.instantiateByIndex(counterWasm.idx, ...constructorArgs('sheep-counter', 'SheepCounter', []))
+    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock','Flock', []))
+    const counter = exec.instantiate(counterWasm.idx, ...constructorArgs('sheep-counter', 'SheepCounter', []))
     exec.call(flock.idx, ...argsFor('flock', 'Flock', 'grow', []))
     exec.call(flock.idx, ...argsFor('flock', 'Flock', 'grow', []))
     exec.call(counter.idx, ...argsFor('sheep-counter', 'SheepCounter', 'countFlock', [ref(flock.idx)]))
@@ -152,24 +152,22 @@ describe('execute txs', () => {
     expect(o['sheepCount']).to.eql(2)
     expect(o['legCount']).to.eql(8)
   })
-  //
-  // it('after locking a jig in the code the state gets updated properly', () => {
-  //   const flockWasm = exec.importModule(modIdFor('flock'))
-  //   const counterWasm = exec.importModule(modIdFor('sheep-counter'))
-  //   const flock = exec.instantiateByClassName(flockWasm.asInstance, 'Flock', [])
-  //   const shepherd = exec.instantiateByClassName(counterWasm.asInstance, 'Shepherd', [flock.asJig()])
-  //   exec.lockJigToUser(shepherd.asJig(), userAddr)
-  //   const result = exec.finalize()
-  //
-  //   const flockOutputIndex = 0
-  //   const shepherdOutputIndex = 1
-  //   const parsed = result.outputs[flockOutputIndex]
-  //   expect(parsed.classIdx).to.eql(0)
-  //   expect(parsed.serializedLock).to.eql({
-  //     type: LockType.CALLER,
-  //     data: new Pointer(exec.txContext.tx.hash, shepherdOutputIndex).toBytes()
-  //   })
-  // })
+
+  it('after locking a jig in the code the state gets updated properly', () => {
+    const { exec } = emptyExec()
+    const flockMod = exec.import(modIdFor('flock'))
+    const counterMod = exec.import(modIdFor('sheep-counter'))
+    const flock = exec.instantiate(flockMod.idx, ...constructorArgs('flock', 'Flock', []))
+    const shepherd = exec.instantiate(counterMod.idx, ...constructorArgs('sheep-counter', 'Shepherd', [ref(flock.idx)]))
+    exec.lockJig(shepherd.idx, userAddr)
+    const result = exec.finalize()
+
+    const flockOutput = result.outputs[1]
+    const shepherdOutput = result.outputs[2]
+
+    expect(flockOutput.lock.type).to.eql(LockType.JIG)
+    expect(flockOutput.lock.data).to.eql(shepherdOutput.origin.toBytes())
+  })
   //
   // it('accessing class ptr works', () => {
   //   const exec = emptyExec([userPriv])

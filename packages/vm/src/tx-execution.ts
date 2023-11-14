@@ -2,7 +2,7 @@ import {ContainerRef, JigRef} from "./jig-ref.js"
 import {ExecutionError} from "./errors.js"
 import {OpenLock} from "./locks/open-lock.js"
 import {WasmContainer} from "./wasm-container.js";
-import {Address, base16, BufReader, BufWriter, LockType, Output, Pointer} from '@aldea/core';
+import {Address, base16, BufReader, BufWriter, LockType, Output, Pointer, Lock as CoreLock} from '@aldea/core';
 import {COIN_CLS_PTR, jigInitParamsTypeNode} from "./memory/well-known-abi-nodes.js";
 import {ExecutionResult} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
@@ -17,7 +17,6 @@ import {fromCoreLock} from "./locks/from-core-lock.js";
 import {AddressLock} from "./locks/address-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {AbiArg, AbiMethod} from "./memory/abi-helpers/abi-method.js";
-import {ArgReader} from "./arg-reader.js";
 
 // const COIN_CLASS_PTR = Pointer.fromBytes(new Uint8Array(34))
 
@@ -393,7 +392,7 @@ class TxExecution {
     })
   }
 
-  instantiateByIndex (statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
+  instantiate (statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
     const statement = this.statements[statementIndex]
     const wasm = statement.asContainer()
 
@@ -689,6 +688,10 @@ class TxExecution {
     return w.data
   }
 
+  private stackFromTop(n: number): Option<Pointer> {
+    return Option.fromNullable(this.stack[this.stack.length - n])
+  }
+
 
   /*
    * Callbacks
@@ -768,6 +771,26 @@ class TxExecution {
     const propTarget = jig.getPropValue(propName)
     const lifted = propTarget.lift()
     return from.low.lower(lifted, propTarget.ty)
+  }
+
+  vmJigLock (from: WasmContainer, targetOriginPtr: WasmWord, lockType: LockType, argsPtr: WasmWord): void {
+    const origin = Pointer.fromBytes(from.liftBuf(targetOriginPtr))
+
+    const jig = this.assertJig(origin)
+    jig.lock.assertOpen(this)
+
+    let lockData: Uint8Array
+    if (lockType === LockType.ADDRESS) {
+      lockData = from.liftBuf(argsPtr)
+    } else if (lockType === LockType.JIG) {
+      lockData = this.stackFromTop(1).get().toBytes()
+    } else {
+      lockData = new Uint8Array(0)
+    }
+    const lock = fromCoreLock(new CoreLock(lockType, lockData))
+
+    jig.changeLock(lock)
+    this.marKJigAsAffected(jig)
   }
 }
 
