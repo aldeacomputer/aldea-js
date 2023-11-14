@@ -137,6 +137,15 @@ class TxExecution {
     return ret
   }
 
+  loadByOrigin(originBytes: Uint8Array): StatementResult {
+    const origin = Pointer.fromBytes(originBytes)
+    const output = this.execContext.inputByOrigin(origin)
+    const jigRef = this.hydrate(output)
+    const stmt = new ValueStatementResult(this.statements.length, jigRef.ref.ty, jigRef.ref.ptr, jigRef.ref.container)
+    this.statements.push(stmt)
+    return stmt
+  }
+
   instantiate (statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
     const statement = this.statements[statementIndex]
     const wasm = statement.asContainer()

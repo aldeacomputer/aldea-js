@@ -318,6 +318,22 @@ describe('execute txs', () => {
     expect(antProps['ownForce']).to.eql(2)
   })
 
+  it('can load an existing jig by origin', () => {
+    const { exec: exec1 } = antExec()
+    const res1 = exec1.finalize();
+    storage.persist(res1)
+
+    const { exec: exec2 } = emptyExec([userPriv])
+
+    const loaded = exec2.loadByOrigin(res1.outputs[1].origin.toBytes())
+    exec2.call(loaded.idx, ...argsFor('ant', 'Ant', 'doExercise', []))
+    const result = exec2.finalize()
+
+    const antProps = parseOutput(result.outputs[1])
+
+    expect(antProps['ownForce']).to.eql(2)
+  })
+
   // describe('when a jig already exists', () => {
   //   beforeEach(() => {
   //     const pkg = exec.importModule(modIdFor('flock')).asInstance
