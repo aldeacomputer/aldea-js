@@ -16,7 +16,8 @@ import {serializeOutput, serializePointer} from "./memory/abi-helpers/serialize-
 import {fromCoreLock} from "./locks/from-core-lock.js";
 import {AddressLock} from "./locks/address-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
-import {AbiArg} from "./memory/abi-helpers/abi-method.js";
+import {AbiArg, AbiMethod} from "./memory/abi-helpers/abi-method.js";
+import {ArgReader} from "./arg-reader.js";
 
 // const COIN_CLASS_PTR = Pointer.fromBytes(new Uint8Array(34))
 
@@ -280,7 +281,7 @@ class TxExecution {
 
     coinJig.lock.assertOpen(this)
 
-    const amount = coinJig.getPropValue('amount')
+    const amount = coinJig.getPropValue('amount').ptr
     this.fundAmount += amount.toUInt()
     coinJig.changeLock(new FrozenLock())
     const stmt = new EmptyStatementResult(this.statements.length)
@@ -376,13 +377,20 @@ class TxExecution {
 
   private lowerArgs(wasm: WasmContainer, args: AbiArg[], argsBuf: Uint8Array): WasmWord[] {
     const reader= new BufReader(argsBuf)
-    const _indexes = reader.readBytes()
+    const indexes = reader.readSeq(r => r.readU8())
 
-    return args.map((arg) => {
-      return wasm.low.lowerFromReader(reader, arg.type)
+    return args.map((arg, i) => {
+      const importedOrExported = wasm.abi.exportedByName(arg.type.name).map(e => e.idx)
+        .or(wasm.abi.importedByName(arg.type.name).map(e => e.idx))
+      if (importedOrExported || indexes.includes(i)) {
+        const idx = reader.readU8()
+        const ref = this.statements[idx].asValue()
+        const lifted = ref.container.lifter.lift(ref.ptr, ref.ty)
+        return wasm.low.lower(lifted, arg.type)
+      } else {
+        return wasm.low.lowerFromReader(reader, arg.type)
+      }
     })
-
-
   }
 
   instantiateByIndex (statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
@@ -435,20 +443,31 @@ class TxExecution {
     const wasm = jig.ref.container;
     const args = this.lowerArgs(wasm, method.args, argsBuf);
 
-    this.stack.push(jig.origin)
-    const res = wasm.callFn(
-        method.callName(),
-        [jig.ref.ptr, ...args],
-        [abiClass.ownTy(), ...method.args.map(a => a.type)]
-    )
-    this.stack.pop()
+    const res = this.performMethodCall(jig, method, args)
 
     this.marKJigAsAffected(jig)
-    let stmt: StatementResult = res.map<StatementResult>(ptr => {
-      return new ValueStatementResult(this.statements.length, method.rtype, ptr, wasm)
+
+    let stmt: StatementResult = res.map<StatementResult>(ref => {
+      return new ValueStatementResult(this.statements.length, ref.ty, ref.ptr, ref.container)
     }).orElse(() => new EmptyStatementResult(this.statements.length))
+
     this.statements.push(stmt)
     return stmt
+  }
+
+  private performMethodCall(jig: JigRef, method: AbiMethod, loweredArgs: WasmWord[]): Option<ContainerRef> {
+    const wasm = jig.ref.container
+    const abiClass = jig.classAbi()
+    this.stack.push(jig.origin)
+    const res = wasm.callFn(
+      method.callName(),
+      [jig.ref.ptr, ...loweredArgs],
+      [abiClass.ownTy(), ...method.args.map(a => a.type)]
+    )
+    this.stack.pop()
+    return res.map((ptr) => {
+      return new ContainerRef(ptr, method.rtype, wasm)
+    })
   }
 
   // callInstanceMethod(jig: JigRef, methodName: string, args: any[]): StatementResult {
@@ -574,7 +593,7 @@ class TxExecution {
         .orElse(() => { throw new Error(`index ${jigIndex} is not a jig`)})
   }
 
-  lockJigToUserByIndex (jigIndex: number, address: Address): StatementResult {
+  lockJig (jigIndex: number, address: Address): StatementResult {
     const jigRef = this.jigAt(jigIndex)
     return this.lockJigToUser(jigRef, address)
   }
@@ -591,7 +610,7 @@ class TxExecution {
     return container
   }
 
-  importModule (modId: Uint8Array): StatementResult {
+  import (modId: Uint8Array): StatementResult {
     const instance = this.assertContainer(base16.encode(modId))
     const ret = new WasmStatementResult(this.statements.length, instance);
     this.statements.push(ret)
@@ -637,7 +656,7 @@ class TxExecution {
     }
 
 
-    const output = this.execContext.stateByOrigin(p)
+    const output = this.execContext.inputByOrigin(p)
 
     return Option.some({
       origin: output.origin,
@@ -645,6 +664,29 @@ class TxExecution {
       classPtr: output.classPtr,
       lock: fromCoreLock(output.lock)
     })
+  }
+
+  private assertJig(origin: Pointer) {
+    return Option.fromNullable(
+      this.jigs.find(j => j.origin.equals(origin))
+    ).orElse(() => {
+      const output = this.execContext.inputByOrigin(origin)
+      return this.hydrate(output)
+    })
+  }
+
+  private liftArgs(from: WasmContainer, ptr: WasmWord, argDef: AbiArg[]): Uint8Array {
+    const w = new BufWriter()
+    w.writeU8(0)
+
+    const argsBuf = new BufReader(base16.decode(from.liftString(ptr)))
+
+    for (const arg of argDef) {
+      const lifted = argsBuf.readFixedBytes(arg.type.ownSize());
+      w.writeFixedBytes(lifted)
+    }
+
+    return w.data
   }
 
 
@@ -693,6 +735,39 @@ class TxExecution {
             serializePointer(new Pointer(from.hash, abiClass.idx)),
             AbiType.fromName('ArrayBuffer')
         )
+  }
+
+  vmCallMethod (from: WasmContainer, targetPtr: WasmWord, methodNamePtr: WasmWord, argsPtr: WasmWord): WasmWord {
+    const targetOrigin = Pointer.fromBytes(from.liftBuf(targetPtr))
+    const methodName = from.liftString(methodNamePtr)
+
+    const jig = this.assertJig(targetOrigin)
+
+    const method = jig.classAbi().methodByName(methodName).get()
+
+    // Move args
+    const argBuf = this.liftArgs(from, argsPtr, method.args)
+    const argsReader = new BufReader(argBuf)
+    const loweredArgs = method.args.map(arg => {
+      return jig.ref.container.low.lowerFromReader(argsReader, arg.type)
+    })
+
+    const methodRes = this.performMethodCall(jig, method, loweredArgs)
+
+    return methodRes.map(value => {
+      const lifted = value.lift()
+      return from.low.lower(lifted, method.rtype)
+    }).orElse(() => WasmWord.fromNumber(0))
+  }
+
+  vmGetProp (from: WasmContainer, originPtr: WasmWord, propNamePtr: WasmWord) {
+    const targetOrigin = Pointer.fromBytes(from.liftBuf(originPtr));
+    const propName = from.liftString(propNamePtr)
+    const jig = this.assertJig(targetOrigin)
+
+    const propTarget = jig.getPropValue(propName)
+    const lifted = propTarget.lift()
+    return from.low.lower(lifted, propTarget.ty)
   }
 }
 

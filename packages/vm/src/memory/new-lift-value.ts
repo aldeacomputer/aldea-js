@@ -1,10 +1,9 @@
 import {WasmContainer} from "../wasm-container.js";
 import {WasmWord} from "../wasm-word.js";
-import {BufReader, BufWriter} from "@aldea/core";
+import {BufWriter} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
 import {AbiPlainObject} from "./abi-helpers/abi-plain-object.js";
 import {AbiClass} from "./abi-helpers/abi-class.js";
-import {ProxyDef} from "./abi-helpers/proxy-def.js";
 import {BUF_RTID} from "./well-known-abi-nodes.js";
 import {ExecutionError} from "../errors.js";
 import {CodeKind} from "@aldea/core/abi";
@@ -22,7 +21,7 @@ export class NewLiftValue {
     return writer.data
   }
 
-  private liftInto (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
+  liftInto (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
     switch (ty.name) {
       case 'bool':
         writer.writeU8(ptr.toInt() === 0 ? 0 : 1)
@@ -172,12 +171,16 @@ export class NewLiftValue {
 
     if (ty.name.startsWith('*')) {
       this.liftJig(ptr, writer, exported.toAbiClass())
+    } else if (exported.kind === CodeKind.CLASS) {
+      this.liftProxy(ptr, writer)
     } else if (exported.kind === CodeKind.OBJECT) {
       this.liftPlainObject(ptr, exported.toAbiObject(), writer)
     } else if (exported.kind === CodeKind.INTERFACE) {
       throw new Error('not implemented yet')
     } else if (exported.kind === CodeKind.FUNCTION) {
       throw new Error('Function cannot be lowered or lifted')
+    } else {
+      throw new Error(`Unknown export type: ${exported.kind}`)
     }
   }
 

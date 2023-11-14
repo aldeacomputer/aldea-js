@@ -30,7 +30,7 @@ export class StorageTxContext implements ExecContext {
     })
   }
 
-  stateByOrigin (origin: Pointer): Output {
+  inputByOrigin (origin: Pointer): Output {
     return this.storage.byOrigin(origin).orElse(() => { throw new ExecutionError(`unknown jig: ${origin.toString()}`)})
   }
 

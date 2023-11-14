@@ -17,6 +17,10 @@ export class ContainerRef {
     this.container = container
   }
 
+  lift (): Uint8Array {
+    return this.container.lifter.lift(this.ptr, this.ty)
+  }
+
   equals (ref: ContainerRef) {
     return this.container.hash === ref.container.hash &&
         this.ptr.equals(ref.ptr)
@@ -85,11 +89,11 @@ export class JigRef {
     return wasm.lifter.lift(this.ref.ptr, this.ref.ty)
   }
 
-  getPropValue (propName: string): WasmWord {
+  getPropValue (propName: string): ContainerRef {
     const container = this.ref.container
     const abiClass = container.abi.exportedByIdx(this.classIdx).get().toAbiClass()
     const field = abiClass.fieldByName(propName).get()
     const buf = container.mem.extract(this.ref.ptr.plus(field.offset), field.type.ownSize())
-    return new WasmWord(buf)
+    return new ContainerRef(new WasmWord(buf), field.type, container)
   }
 }

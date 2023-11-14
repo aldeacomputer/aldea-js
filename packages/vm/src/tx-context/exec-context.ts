@@ -7,7 +7,7 @@ export interface ExecContext {
 
   stateByOutputId (id: Uint8Array): Output
 
-  stateByOrigin (origin: Pointer): Output
+  inputByOrigin (origin: Pointer): Output
 
   wasmFromPkgId (pkgId: string): WasmContainer
 

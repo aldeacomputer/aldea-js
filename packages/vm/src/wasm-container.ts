@@ -79,13 +79,14 @@ export class WasmContainer {
           // const callerOrigin = this.liftBuffer(callerOriginPtr)
           // return this.currentExec.remoteAuthCheckHandler(Pointer.fromBytes(callerOrigin), check)
         },
-        call_method: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number) => {
-          // const targetOriginArrBuf = this.liftBuffer(targetOriginPtr)
-          // const methodName = this.liftString(fnNamePtr)
-          // const argBuf = this.liftBuffer(argsPtr)
-          //
-          // const resultValue = this.currentExec.remoteCallHandler(this, Pointer.fromBytes(targetOriginArrBuf), methodName, argBuf)
-          // return this.insertValue(resultValue.value, resultValue.node)
+        call_method: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number): number => {
+          return this._currentExec.get()
+            .vmCallMethod(
+              this,
+              WasmWord.fromNumber(targetOriginPtr),
+              WasmWord.fromNumber(fnNamePtr),
+              WasmWord.fromNumber(argsPtr)
+            ).toUInt();
         },
         call_static: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
           // const moduleId = this.liftString(originPtr).split('_')[0]
@@ -109,12 +110,8 @@ export class WasmContainer {
           return 0
         },
 
-        get_prop: (targetOriginPtr: number, propNamePtr: number) => {
-          // const targetOrigBuf = this.liftBuffer(targetOriginPtr)
-          // const propStr = this.liftString(propNamePtr)
-          // const prop = this.currentExec.getPropHandler(Pointer.fromBytes(targetOrigBuf), propStr)
-          // return this.insertValue(prop.value, prop.node)
-          return 0
+        get_prop: (targetOriginPtr: number, propNamePtr: number): number => {
+          return this._currentExec.get().vmGetProp(this, WasmWord.fromNumber(targetOriginPtr), WasmWord.fromNumber(propNamePtr)).toUInt()
         },
         remote_state: (originPtr: number): number => {
           // const originBuff = this.liftBuffer(originPtr)
@@ -301,71 +298,17 @@ export class WasmContainer {
     this._currentExec = Option.some(tx)
   }
 
-  /**
-   * TODO - Miguel to check
-   * Expose the exports as need to access externall from memory functions
-   * (for putting vals into stes/maps)
-   */
-  get exports (): WasmExports {
-    return this.instance.exports as WasmExports
+  liftString(ptr: WasmWord): string {
+    const buf = this.lifter.lift(ptr, AbiType.fromName('string'))
+    return Buffer.from(new BufReader(buf).readBytes()).toString()
   }
 
-  // staticCall (method: AbiMethod, args: any[]): WasmValue {
-  //   const fnName = `${method.className}_${method.name}`
-  //
-  //   const ptrs = method.args.map((argNode: ArgNode, i: number) => {
-  //     const visitor = new LowerArgumentVisitor(this.abi, this, args[i])
-  //     return visitor.travelFromType(argNode.type)
-  //   })
-  //
-  //   const fn = this.instance.exports[fnName] as Function;
-  //   const retPtr = fn(...ptrs)
-  //   if (method.name === 'constructor') {
-  //     return {
-  //       node: emptyTn(method.className),
-  //       value: new Internref(method.className, retPtr),
-  //       mod: this
-  //     }
-  //   } else {
-  //     return this.extractCallResult(retPtr, method.rtype)
-  //   }
-  // }
+  liftBuf(ptr: WasmWord): Uint8Array {
+    const buf = this.lifter.lift(ptr, AbiType.fromName('ArrayBuffer'))
+    return new BufReader(buf).readBytes()
+  }
 
-  // hydrate (classIdx: number, jigState: JigState): Internref {
-  //   const jigClassNode = this.abi.exportedByIdx(classIdx).get().toAbiClass()
-  //   const bcs = new BCS(this.abi.abi)
-  //
-  //   const frozenState = jigState.stateBuf
-  //   const rawState = [
-  //     jigState.outputObject(),
-  //     jigState.lockObject(),
-  //     ...bcs.decode(jigClassNode.name, frozenState)
-  //   ]
-  //
-  //   const visitor = new LowerJigStateVisitor(this.abi, this, rawState)
-  //   // TODO: totally broken
-  //   const pointer = visitor.visitExportedClass(jigClassNode, emptyTn(`$${jigClassNode.name}`))
-  //   return new Internref(jigClassNode.name, Number(pointer))
-  // }
-
-  // instanceCall (ref: JigRef, method: AbiMethod, args: any[] = []): WasmValue {
-  //   const fnName = `${method.className}$${method.name}`
-  //
-  //   const ptrs = [
-  //     ref.ref.ptr,
-  //     ...method.args.map((argNode: ArgNode, i: number) => {
-  //       const visitor = new LowerArgumentVisitor(this.abi, this, args[i])
-  //       return visitor.travelFromType(argNode.type)
-  //     })
-  //   ]
-  //
-  //   const fn = this.instance.exports[fnName] as Function;
-  //   const ptr = fn(...ptrs)
-  //   // this.memMgr.liftValue(this, method.rtype, ptr)
-  //   return this.extractCallResult(ptr, method.rtype)
-  // }
-
-  // getPropValue (ref: Internref, classIdx: number, fieldName: string): Prop {
+    // getPropValue (ref: Internref, classIdx: number, fieldName: string): Prop {
   //   const classNode = this.abi.exportedByIdx(classIdx).map(e => e.toAbiClass()).get()
   //   const field = classNode.fieldByName(fieldName).expect(new ExecutionError(`unknown field: ${fieldName}`))
   //

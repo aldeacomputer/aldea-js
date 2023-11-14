@@ -17,7 +17,9 @@ export class SheepCounter extends Jig {
   }
 
   countFlock(flock: Flock): u32 {
-    this.sheepCount += flock.size;
+    const aaaa = flock.size;
+    this.sheepCount += aaaa;
+    debug(`aaaa: ${aaaa}`)
     this.legCount += flock.legCount();
     return this.sheepCount;
   }
