@@ -85,5 +85,5 @@ export function flockWithSize(size: u32): Flock {
 }
 
 // @ts-ignore
-@imported('df61ae40a3fb30adf1804b118e88d53112b88b527e1be33cc122e4170ae62f76')
+@imported('09a5863f97d825fdd9d46389b1ce22c77ff10dd16eee12a98fdfdca7bdb91849')
 declare function fAddOne (n: u32): u32;

@@ -7,6 +7,7 @@ import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {StatementResult} from "../src/statement-result.js";
+import {ExecutionResult} from "../src/execution-result.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -385,143 +386,62 @@ describe('execute txs', () => {
     return [idx, bcs.encode(fnName, args)]
   }
 
-  it('can send static method result as parameter', () => {
+  function flockBagExec (): ExecutionResult {
     const { exec } = emptyExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const flock = exec.exec(flockWasm.idx, ...execArgs('flock', 'flockWithSize', [3]))
     const bag = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'FlockBag', []))
-
     exec.call(bag.idx, ...argsFor('flock','FlockBag', 'addFlock', [ref(flock.idx)]))
     exec.lockJig(bag.idx, userAddr)
+    return exec.finalize()
+  }
 
-    const result = exec.finalize()
+  it('can send static method result as parameter', () => {
+    const result = flockBagExec()
 
+    const flockState = parseOutput(result.outputs[1])
+    expect(flockState.size).to.eql(3)
     const bagState = parseOutput(result.outputs[2])
     expect(bagState.flocks).to.eql([result.outputs[1].origin])
   })
-  //
-  // it('can hidrate jig with extern ref', () => {
-  //   const flockWasm = exec.importModule(modIdFor('flock')).asInstance
-  //   const counterWasm = exec.importModule(modIdFor('sheep-counter')).asInstance
-  //   const flock = exec.instantiateByClassName(flockWasm, 'Flock', []).asJig()
-  //   const sheperd = exec.instantiateByClassName(counterWasm, 'Shepherd', [flock]).asJig()
-  //   exec.lockJigToUser(sheperd, userAddr)
-  //   exec.markAsFunded()
-  //   const ret1 = exec.finalize()
-  //
-  //   storage.persist(ret1)
-  //
-  //   const exec2 = emptyExec([userPriv])
-  //   const loadedJig = exec2.loadJigByOutputId(ret1.outputs[1].id()).asJig()
-  //   exec2.lockJigToUser(loadedJig, userAddr)
-  //   exec2.markAsFunded()
-  //   const ret2 = exec2.finalize()
-  //
-  //   expect(ret2.outputs).to.have.length(1) // The internal jig is not loaded because we lazy load.
-  //   const parsedState = ret2.outputs[0].parsedState(abiFor('sheep-counter')); // the first one is the loaded jig
-  //   expect(parsedState).to.have.length(1)
-  //   expect(parsedState[0]).to.eql(ret1.outputs[0].origin)
-  // })
-  //
-  // it('does not require re lock for address locked jigs.', () => {
-  //   const flockWasm = exec.importModule(modIdFor('flock')).asInstance
-  //   const flock = exec.instantiateByClassName(flockWasm, 'Flock', []).asJig()
-  //   exec.lockJigToUser(flock, userAddr)
-  //   exec.markAsFunded()
-  //   const ret1 = exec.finalize()
-  //
-  //   storage.persist(ret1)
-  //
-  //   const exec2 = emptyExec([userPriv])
-  //   const loadedJig = exec2.loadJigByOutputId(ret1.outputs[0].id()).asJig()
-  //   exec2.callInstanceMethod(loadedJig, 'grow', [])
-  //   exec2.markAsFunded()
-  //   const ret2 = exec2.finalize()
-  //
-  //   expect(ret2.outputs).to.have.length(1)
-  //   expect(ret2.outputs[0].serializedLock.type).to.eql(1)
-  //   expect(ret2.outputs[0].serializedLock.data).to.eql(userAddr.hash)
-  // })
-  //
-  // it('can send instance method result as parameter', () => {
-  //   const flockPkg = exec.importModule(modIdFor('flock')).asInstance
-  //   const flock = exec.instantiateByClassName(flockPkg, 'Flock', []).asJig()
-  //   const bag = exec.instantiateByClassName(flockPkg, 'FlockBag', []).asJig()
-  //   const callResult = exec.callInstanceMethod(flock, 'returnSelf', []).asJig()
-  //   // const flockJig = exec.getStatementResult(callResult).asJig()
-  //   exec.callInstanceMethod(bag, 'addFlock', [callResult])
-  //   exec.lockJigToUser(bag, userAddr)
-  //   exec.markAsFunded()
-  //   const ret = exec.finalize()
-  //
-  //   const bagState = ret.outputs[1].parsedState(abiFor('flock'))
-  //   expect(bagState[0]).to.eql([ret.outputs[0].origin])
-  // })
-  //
-  // it('can send complex nested parameters with jigs', () => {
-  //   const sheepWasmn = exec.importModule(modIdFor('sheep')).asInstance
-  //   const flock = exec.instantiateByClassName(sheepWasmn, 'Flock', []).asJig()
-  //   const sheep1 = exec.instantiateByClassName(sheepWasmn, 'Sheep', ['sheep1', 'black'])
-  //   const sheep2 = exec.instantiateByClassName(sheepWasmn, 'Sheep', ['sheep2', 'black'])
-  //   exec.callInstanceMethod(flock, 'addSheepsNested', [[[ref(sheep1.idx)], [ref(sheep2.idx)]]])
-  //   exec.lockJigToUser(flock, userAddr)
-  //   exec.markAsFunded()
-  //   exec.finalize()
-  // })
-  //
-  // it('can return types with nested jigs', () => {
-  //   const sheepPkg = exec.importModule(modIdFor('sheep')).asInstance
-  //   const flock = exec.instantiateByClassName(sheepPkg, 'Flock', [])
-  //   const sheep1 = exec.instantiateByClassName(sheepPkg, 'Sheep', ['sheep1', 'black'])
-  //   const sheep2 = exec.instantiateByClassName(sheepPkg, 'Sheep', ['sheep2', 'white'])
-  //   exec.callInstanceMethod(flock.asJig(), 'add', [ref(sheep1.idx)])
-  //   exec.callInstanceMethod(flock.asJig(), 'add', [ref(sheep2.idx)])
-  //   const retIndex = exec.callInstanceMethod(flock.asJig(), 'orderedByLegs', [ref(sheep2.idx)]).idx
-  //   const ret = exec.getStatementResult(retIndex).value
-  //
-  //   expect(Array.from(ret.keys())).to.eql([4])
-  //   expect(Array.from(ret.values())).to.have.length(1)
-  //   expect(Array.from(ret.get(4))).to.have.length(2)
-  // })
-  //
-  // it('does not add the extra items into the abi', () => {
-  //   const importIndex = exec.importModule(modIdFor('flock')).asInstance
-  //   const instanceIndex = exec.instantiateByClassName(importIndex, 'Flock', [0]).asJig()
-  //   exec.lockJigToUser(instanceIndex, userAddr)
-  //   const ret = exec.finalize()
-  //
-  //   storage.persist(ret)
-  //
-  //   const mod = storage.getModule(modIdFor('flock'))
-  //
-  //   const utxoNode = mod.abi.exports.find(e => e.code.name === 'UtxoState')
-  //   const lockNode = mod.abi.exports.find(e => e.code.name === 'LockState')
-  //   const coinNode = mod.abi.imports.find(e => e.name === 'Coin')
-  //   const jigNode = mod.abi.imports.find(e => e.name === 'Jig')
-  //   expect(utxoNode).to.eql(undefined)
-  //   expect(coinNode).to.eql(undefined)
-  //   expect(jigNode).to.eql(undefined)
-  //   expect(lockNode).to.eql(undefined)
-  // })
-  //
-  // it('can call top level functions', () => {
-  //   const imported = exec.importModule(modIdFor('sheep')).asInstance
-  //   const fnResult = exec.execExportedFnByName(imported, 'buildFlockWithNSheeps', [3])
-  //   exec.lockJigToUser(fnResult.asJig(), userAddr)
-  //   const ret = exec.finalize()
-  //
-  //   expect(ret.outputs).to.have.length(4)
-  // })
-  //
-  // it('can call exported functions from inside jigs', () => {
-  //   const flockWasm = exec.importModule(modIdFor('flock')).asInstance
-  //   const flock = exec.instantiateByClassName(flockWasm, 'Flock', []).asJig()
-  //   exec.callInstanceMethod(flock, 'groWithExternalFunction', [])
-  //   exec.lockJigToUser(flock, userAddr)
-  //   const ret = exec.finalize()
-  //
-  //   expect(ret.outputs[0].parsedState(abiFor('flock'))[0]).eql(1)
-  // })
+
+  it('when a child jig is not used it does not appear in the outputs', () => {
+    const res1 = flockBagExec()
+    storage.persist(res1)
+
+    const anotherKey = PrivKey.fromRandom()
+
+    const {exec} = emptyExec([userPriv])
+    const loadedJig = exec.load(res1.outputs[2].hash)
+    exec.lockJig(loadedJig.idx, anotherKey.toPubKey().toAddress())
+
+    const ret2 = exec.finalize()
+
+
+    expect(ret2.outputs).to.have.length(2) // The internal jig is not loaded because we lazy load.
+    expect(ret2.outputs[0].classPtr).to.eql(COIN_CLS_PTR)
+    expect(ret2.outputs[1].origin).to.eql(res1.outputs[2].origin)
+  })
+
+  it('does not require re lock for address locked jigs.')
+
+  it('can send instance method result as parameter')
+
+  it('understand references in the middle of other structures')
+
+  it('can return types with nested jigs')
+
+  it('can call exported functions from inside jigs', () => {
+    const { exec } = emptyExec()
+    const flockWasm = exec.import(modIdFor('flock'))
+    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
+    exec.call(flock.idx, ...argsFor('flock', 'Flock', 'groWithExternalFunction', []))
+    exec.lockJig(flock.idx, userAddr)
+    const res = exec.finalize()
+
+    const parsed = parseOutput(res.outputs[1])
+    expect(parsed.size).to.eql(1)
+  })
   //
   // it('saves entire state for jigs using inheritance', () => {
   //   const wasm = exec.importModule(modIdFor('sheep')).asInstance

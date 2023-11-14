@@ -99,15 +99,12 @@ export class WasmContainer {
         },
 
         call_function: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): WasmPointer => {
-          // const pkgId = this.liftString(pkgIdStrPtr)
-          // const fnName = this.liftString(fnNamePtr)
-          // const argsBuf = this.liftBuffer(argsBufPtr)
-          // const targetPkg = this.currentExec.loadModule(base16.decode(pkgId))
-          // const functionNode = targetPkg.abi.exportedByName(fnName).map(e => e.toAbiFunction()).get()
-          // const result = targetPkg.functionCall(functionNode, this.liftArguments(argsBuf, functionNode.args))
-          //
-          // return this.insertValue(result.value, result.node)
-          return 0
+          return this._currentExec.get().vmCallFunction(
+            this,
+            WasmWord.fromNumber(pkgIdStrPtr),
+            WasmWord.fromNumber(fnNamePtr),
+            WasmWord.fromNumber(argsBufPtr)
+          ).toUInt()
         },
 
         get_prop: (targetOriginPtr: number, propNamePtr: number): number => {
@@ -128,9 +125,6 @@ export class WasmContainer {
           return 0
         },
         jig_lock: (originPtr: number, type: number, argsPtr: number) => {
-          // const argBuf = this.liftBuffer(argsPtr)
-          // const originBuf = this.liftBuffer(originPtr)
-          // this.currentExec.remoteLockHandler(Pointer.fromBytes(originBuf), type, argBuf)
           this._currentExec.get().vmJigLock(this, WasmWord.fromNumber(originPtr), type, WasmWord.fromNumber(argsPtr))
         },
         caller_typecheck: (rtIdToCheck: number, exact: boolean): boolean => {

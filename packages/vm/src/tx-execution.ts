@@ -611,7 +611,8 @@ class TxExecution {
     const w = new BufWriter()
     w.writeU8(0)
 
-    const argsBuf = new BufReader(base16.decode(from.liftString(ptr)))
+
+    const argsBuf = new BufReader(from.liftBuf(ptr))
 
     for (const arg of argDef) {
       const lifted = argsBuf.readFixedBytes(arg.type.ownSize());
@@ -759,6 +760,23 @@ class TxExecution {
     )
 
     return initParams.lowerInto(from)
+  }
+
+  vmCallFunction (from: WasmContainer, pkgIdPtr: WasmWord, fnNamePtr: WasmWord, argsBufPtr: WasmWord): WasmWord {
+    const pkgId = from.liftString(pkgIdPtr)
+    const fnName = from.liftString(fnNamePtr)
+    const wasm = this.assertContainer(pkgId)
+    const fn = wasm.abi.exportedByName(fnName).get().toAbiFunction()
+    const argsBuf = this.liftArgs(from, argsBufPtr, fn.args)
+
+    const argsRead = new BufReader(argsBuf)
+    const args = fn.args.map(arg => {
+      return wasm.low.lowerFromReader(argsRead, arg.type)
+    })
+
+    const res = wasm.callFn(fnName, args, fn.args.map(arg => arg.type))
+
+    return res.orDefault(WasmWord.null());
   }
 }
 

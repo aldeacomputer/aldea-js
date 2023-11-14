@@ -126,4 +126,8 @@ export class WasmWord {
   equals (another: WasmWord) {
     return Buffer.from(this.value).equals(Buffer.from(another.value));
   }
+
+  static null () {
+    return this.fromNumber(0)
+  }
 }

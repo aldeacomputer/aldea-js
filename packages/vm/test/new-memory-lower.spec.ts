@@ -9,7 +9,7 @@ import {Option} from "../src/support/option.js";
 import {PublicLock} from "../src/locks/public-lock.js";
 import {serializeOutput} from "../src/memory/abi-helpers/serialize-output.js";
 import {AddressLock} from "../src/locks/address-lock.js";
-import {emptyTn} from "../src/memory/well-known-abi-nodes.js";
+import {BUF_RTID, emptyTn, STRING_RTID} from "../src/memory/well-known-abi-nodes.js";
 
 
 const FLOAT_ERROR: number = 0.00001
@@ -256,7 +256,7 @@ describe('NewMemoryLower', () => {
 
     let objBuf = container.mem.extract(ptr.minus(8), 18)
     let objBufRead = new BufReader(objBuf)
-    expect(objBufRead.readU32()).to.eql(0)
+    expect(objBufRead.readU32()).to.eql(BUF_RTID)
     expect(objBufRead.readU32()).to.eql(bufContent.byteLength)
     expect(objBufRead.readFixedBytes(10)).to.eql(bufContent)
   })
@@ -317,7 +317,7 @@ describe('NewMemoryLower', () => {
     let ptr = target.lower(buf.data, ty)
 
     let header = container.mem.read(ptr.minus(8), 8)
-    expect(header.readU32()).to.eql(1)
+    expect(header.readU32()).to.eql(STRING_RTID)
     const bufStrLength = header.readU32();
     expect(bufStrLength).to.eql(aString.length * 2) // Saved as utf-16
     const buffer = container.mem.extract(ptr, bufStrLength)
@@ -349,7 +349,7 @@ describe('NewMemoryLower', () => {
     expect(obj1Read.readU32()).to.eql(10)
 
     const strReader = container.mem.read(strPtr.minus(8), obj.name.length * 2 + 8); // 8 + 4 * 3
-    expect(strReader.readU32()).to.eql(1)
+    expect(strReader.readU32()).to.eql(STRING_RTID)
     expect(strReader.readU32()).to.eql(obj.name.length * 2)
     const val = strReader.readFixedBytes(obj.name.length * 2);
     expect(Buffer.from(val).toString('utf16le'), obj.name)
