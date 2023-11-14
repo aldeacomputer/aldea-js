@@ -1,10 +1,12 @@
 import {Storage, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, ref} from "@aldea/core";
+import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, ref, Tx} from "@aldea/core";
 import {Abi, AbiQuery} from '@aldea/core/abi';
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
 import {PermissionError} from "../src/errors.js";
+import {TxExecution} from "../src/tx-execution.js";
+import {StatementResult} from "../src/statement-result.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -17,7 +19,7 @@ describe('execute txs', () => {
   let abiForCoin: () => Abi
   let modIdFor: (key: string) => Uint8Array
 
-  function parseOutput(o: Output): { [key: string]: any } {
+  function parseOutput (o: Output): { [key: string]: any } {
     const props = o.props
     if (!props) {
       expect.fail('no output')
@@ -57,6 +59,7 @@ describe('execute txs', () => {
     number,
     Uint8Array
   ]
+
   function argsFor (pkgName: string, className: string, methodName: string, args: any[]): callData {
     const abi = abiFor(pkgName)
     const query = new AbiQuery(abi)
@@ -82,9 +85,9 @@ describe('execute txs', () => {
   }
 
   it('instantiate creates the right output', () => {
-    const { exec, txHash} = emptyExec()
+    const {exec, txHash} = emptyExec()
     const mod = exec.import(modIdFor('flock'))
-    const instanceIndex = exec.instantiate(mod.idx, 0,  new Uint8Array([0]))
+    const instanceIndex = exec.instantiate(mod.idx, 0, new Uint8Array([0]))
     exec.lockJig(instanceIndex.idx, userAddr)
     const result = exec.finalize()
     expect(result.outputs).to.have.length(2) // Implicit fund output
@@ -96,7 +99,7 @@ describe('execute txs', () => {
   })
 
   it('sends arguments to constructor properly.', () => {
-    const { exec } = emptyExec()
+    const {exec} = emptyExec()
     const module = exec.import(modIdFor('weapon')) // index 0
     const bcs = new BCS(abiFor('weapon'));
     const argBuf = bcs.encode('Weapon_constructor', ['Sable Corvo de San Martín', 100000])
@@ -110,7 +113,7 @@ describe('execute txs', () => {
   })
 
   it('can call methods on jigs', () => {
-    const { exec } = emptyExec()
+    const {exec} = emptyExec()
     const importIndex = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(importIndex.idx, 0, new Uint8Array([0]))
     exec.call(flock.idx, 1, new Uint8Array([0]))
@@ -122,7 +125,7 @@ describe('execute txs', () => {
   })
 
   it('can make calls on jigs sending basic parameters', () => {
-    const { exec } = emptyExec()
+    const {exec} = emptyExec()
     const pkg = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(pkg.idx, 0, new Uint8Array([0]))
     exec.call(flock.idx, 3, new Uint8Array([0, 7, 0, 0, 0]))
@@ -134,12 +137,11 @@ describe('execute txs', () => {
   })
 
 
-
   it('can make calls on jigs sending jigs as parameters', () => {
-    const { exec } = emptyExec()
+    const {exec} = emptyExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
-    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock','Flock', []))
+    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
     const counter = exec.instantiate(counterWasm.idx, ...constructorArgs('sheep-counter', 'SheepCounter', []))
     exec.call(flock.idx, ...argsFor('flock', 'Flock', 'grow', []))
     exec.call(flock.idx, ...argsFor('flock', 'Flock', 'grow', []))
@@ -155,7 +157,7 @@ describe('execute txs', () => {
   })
 
   it('after locking a jig in the code the state gets updated properly', () => {
-    const { exec } = emptyExec()
+    const {exec} = emptyExec()
     const flockMod = exec.import(modIdFor('flock'))
     const counterMod = exec.import(modIdFor('sheep-counter'))
     const flock = exec.instantiate(flockMod.idx, ...constructorArgs('flock', 'Flock', []))
@@ -180,7 +182,7 @@ describe('execute txs', () => {
     const result = exec.finalize()
     storage.persist(result)
 
-    const { exec: exec2 } = emptyExec([userPriv])
+    const {exec: exec2} = emptyExec([userPriv])
     const loaded = exec2.loadJigByOutputId(result.outputs[2].hash)
     const classPtrStmt = exec2.call(loaded.idx, ...argsFor('sheep-counter', 'Shepherd', 'myClassPtr', []))
     const flockClassPtrStmt = exec2.call(loaded.idx, ...argsFor('sheep-counter', 'Shepherd', 'flockClassPtr', []))
@@ -193,31 +195,33 @@ describe('execute txs', () => {
   })
 
   it('fails if the tx is trying to lock an already locked jig', () => {
-    const { exec } = emptyExec()
+    const {exec} = emptyExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
 
     const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
 
     // this locks the flock successfully
-    const shepherd = exec.instantiate(counterWasm.idx, ...constructorArgs('sheep-counter','Shepherd', [ref(flock.idx)]))
+    const shepherd = exec.instantiate(counterWasm.idx, ...constructorArgs('sheep-counter', 'Shepherd', [ref(flock.idx)]))
     exec.lockJig(shepherd.idx, userAddr)
 
     expect(() => {
-      exec.lockJig(flock.idx, userAddr)}).to.throw(
-        PermissionError,
+      exec.lockJig(flock.idx, userAddr)
+    }).to.throw(
+      PermissionError,
       /no permission to unlock jig/
     )
 
     expect(() => {
-      exec.lockJig(shepherd.idx, userAddr)}).to.throw(
+      exec.lockJig(shepherd.idx, userAddr)
+    }).to.throw(
       PermissionError,
       /Missing signature for/
     )
   })
 
   it('fails when a jig tries to lock a locked jig', () => {
-    const { exec } = emptyExec()
+    const {exec} = emptyExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
     const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
@@ -230,35 +234,74 @@ describe('execute txs', () => {
       /Missing signature for/)
   })
 
-  it('fails when a jig tries to call a method on a jig of the same class with no permissions', () => {
-    const { exec } = emptyExec()
+
+  type AntExec = {
+    exec: TxExecution,
+    ant1: StatementResult,
+    ant2: StatementResult,
+    ant3: StatementResult
+  }
+
+  function antExec (): AntExec {
+    const {exec} = emptyExec()
     const antWasm = exec.import(modIdFor('ant'))
     const ant1 = exec.instantiate(antWasm.idx, ...constructorArgs('ant', 'Ant', []))
     const ant2 = exec.instantiate(antWasm.idx, ...constructorArgs('ant', 'Ant', []))
+    const ant3 = exec.instantiate(antWasm.idx, ...constructorArgs('ant', 'Ant', []))
 
-    exec.call(ant1.idx, ...argsFor('ant', 'Ant', 'addFriend',  [ref(ant2.idx)])) // does not lock to caller
+    exec.call(ant1.idx, ...argsFor('ant', 'Ant', 'addFriend', [ref(ant2.idx)])) // does not lock to caller
+    exec.call(ant1.idx, ...argsFor('ant', 'Ant', 'addChild', [ref(ant3.idx)])) // locks to caller
     exec.lockJig(ant1.idx, userAddr)
     exec.lockJig(ant2.idx, userAddr)
+    return {exec, ant1, ant2, ant3}
+  }
+
+  it('fails when a jig tries to call a method on a jig of the same class with no permissions', () => {
+    const {exec, ant1} = antExec()
 
     expect(() =>
       exec.call(ant1.idx, ...argsFor('ant', 'Ant', 'forceAFriendToWork', [])) // calls public method on not owned jig
     ).to.throw(PermissionError)
   })
-  //
-  // it('fails when a jig tries to call a private method on another jig of the same module that does not own', () => {
-  //   const antWasm = exec.importModule(modIdFor('ant')).asInstance
-  //   const ant1 = exec.instantiateByClassName(antWasm, 'Ant', []).asJig()
-  //   const ant2 = exec.instantiateByClassName(antWasm, 'Ant', []).asJig()
-  //
-  //   exec.callInstanceMethod(ant1, 'addFriend', [ant2]) // does not lock to caller
-  //   exec.lockJigToUser(ant1, userAddr)
-  //   exec.lockJigToUser(ant2, userAddr)
-  //
-  //   expect(() =>
-  //     exec.callInstanceMethod(ant1, 'forceFriendsFamilyToWork', []) // calls private method on not owned jig
-  //   ).to.throw(PermissionError)
-  // })
-  //
+
+  it('fails when a jig tries to call a protected method on another jig of the same module that does not own', () => {
+    const {exec, ant1} = antExec()
+
+    expect(() =>
+      exec.call(ant1.idx, ...argsFor('ant', 'Ant', 'forceFriendsFamilyToWork', [])) // calls private method on not owned jig
+    ).to.throw(PermissionError)
+  })
+
+  describe('when there is a frozen jig', () => {
+    let frozenOutput: Output
+    beforeEach(() => {
+      const {exec} = emptyExec()
+      const flockMod = exec.import(modIdFor('flock'))
+      const flock = exec.instantiate(flockMod.idx, ...constructorArgs('flock', 'Flock', []))
+      exec.call(flock.idx, ...argsFor('flock', 'Flock', 'goToFridge', []))
+      const res = exec.finalize()
+      expect(res.outputs[1].lock.type).to.eql(LockType.FROZEN)
+      frozenOutput = res.outputs[1]
+      storage.persist(res)
+    })
+
+    it('cannot be called methods', () => {
+      const {exec} = emptyExec()
+      const jig = exec.loadJigByOutputId(frozenOutput.hash)
+      expect(() => exec.call(jig.idx, ...argsFor('flock', 'Flock', 'grow', []))).to
+        .throw(PermissionError,
+          /jig is frozen/)
+    })
+
+    it('cannot be locked', () => {
+      const {exec} = emptyExec()
+      const jig = exec.loadJigByOutputId(frozenOutput.hash)
+      expect(() => exec.lockJig(jig.idx, userAddr)).to
+        .throw(PermissionError,
+          /jig is frozen/)
+    })
+  });
+
   // describe('when a jig already exists', () => {
   //   beforeEach(() => {
   //     const pkg = exec.importModule(modIdFor('flock')).asInstance
@@ -290,38 +333,6 @@ describe('execute txs', () => {
   //     exec.loadJigByOrigin(location)
   //   ).to.throw(ExecutionError, `unknown jig: ${location.toString()}`)
   // })
-  //
-  // describe('when a jig was frozen', () => {
-  //   let freezeTx: Tx
-  //   let freezeExecResult: ExecutionResult
-  //   beforeEach(() => {
-  //     const freezeExec = emptyExec([PrivKey.fromRandom()])
-  //     const pkg = freezeExec.importModule(modIdFor('flock')).asInstance
-  //     const jig = freezeExec.instantiateByClassName(pkg, 'Flock', []).asJig()
-  //     freezeExec.callInstanceMethod(jig, 'goToFridge', [])
-  //     freezeExec.markAsFunded()
-  //     freezeExecResult = freezeExec.finalize()
-  //     storage.persist(freezeExecResult)
-  //     freezeTx = freezeExec.txContext.tx
-  //   })
-  //
-  //   it('cannot be called methods', () => {
-  //     const jig = exec.loadJigByOrigin(new Pointer(freezeTx.hash, 0)).asJig()
-  //     expect(() => exec.callInstanceMethod(jig, 'grow', [])).to
-  //       .throw(PermissionError,
-  //         `jig ${freezeExecResult.outputs[0].currentLocation.toString()} is not allowed to exec "grow" because it\'s frozen`)
-  //   })
-  //
-  //   it('cannot be locked', () => {
-  //     const jig = exec.loadJigByOrigin(new Pointer(freezeTx.hash, 0)).asJig()
-  //     expect(() => exec.lockJigToUser(jig, userAddr)).to.throw(PermissionError)
-  //   })
-  //
-  //   it('saves correctly serialized lock', () => {
-  //     const state = storage.getJigStateByOrigin(new Pointer(freezeTx.hash, 0)).orElse(() => expect.fail('should exist'))
-  //     expect(state.serializedLock).to.eql({type: LockType.FROZEN, data: new Uint8Array(0)})
-  //   })
-  // });
   //
   // it('can restore jigs that contain jigs of the same package', () => {
   //   const wasm = exec.importModule(modIdFor('flock')).asInstance

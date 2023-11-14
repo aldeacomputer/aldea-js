@@ -109,6 +109,7 @@ class TxExecution {
 
   call (jigIdx: number, methodIdx: number, argsBuf: Uint8Array): StatementResult {
     const jig = this.jigAt(jigIdx)
+    jig.lock.assertOpen(this)
     const abiClass = jig.classAbi();
     const method = abiClass.methodByIdx(methodIdx).get()
 
