@@ -4,7 +4,7 @@ import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, ref, Tx} fro
 import {Abi, AbiQuery} from '@aldea/core/abi';
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
-import {PermissionError} from "../src/errors.js";
+import {ExecutionError, PermissionError} from "../src/errors.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {StatementResult} from "../src/statement-result.js";
 
@@ -55,12 +55,12 @@ describe('execute txs', () => {
 
   const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
 
-  type callData = [
+  type CallData = [
     number,
     Uint8Array
   ]
 
-  function argsFor (pkgName: string, className: string, methodName: string, args: any[]): callData {
+  function argsFor (pkgName: string, className: string, methodName: string, args: any[]): CallData {
     const abi = abiFor(pkgName)
     const query = new AbiQuery(abi)
     const cls = query.fromExports().byName(className).getClass()
@@ -71,7 +71,7 @@ describe('execute txs', () => {
     ]
   }
 
-  function constructorArgs (pkgName: string, className: string, args: any[]): callData {
+  function constructorArgs (pkgName: string, className: string, args: any[]): CallData {
     const abi = abiFor(pkgName)
     const query = new AbiQuery(abi)
     const exports = query.fromExports().allCode()
@@ -172,13 +172,34 @@ describe('execute txs', () => {
     expect(flockOutput.lock.data).to.eql(shepherdOutput.origin.toBytes())
   })
 
-  it('accessing class ptr works', () => {
-    const {exec} = emptyExec([userPriv])
+  type ShepExec = {
+    exec: TxExecution,
+    flock: StatementResult,
+    shepherd: StatementResult
+  }
+
+  function shepherdExec (privKeys: PrivKey[] = []): ShepExec {
+    const {exec} = emptyExec(privKeys)
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
     const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
+    exec.call(flock.idx, ...argsFor('flock', 'Flock', 'grow', []))
     const shepherd = exec.instantiate(counterWasm.idx, ...constructorArgs('sheep-counter', 'Shepherd', [ref(flock.idx)]))
     exec.lockJig(shepherd.idx, userAddr)
+
+    return {
+      exec,
+      flock,
+      shepherd
+    }
+  }
+
+  it('accessing class ptr works', () => {
+    const {
+      exec,
+      shepherd
+    } = shepherdExec([userPriv])
+
     const result = exec.finalize()
     storage.persist(result)
 
@@ -195,15 +216,7 @@ describe('execute txs', () => {
   })
 
   it('fails if the tx is trying to lock an already locked jig', () => {
-    const {exec} = emptyExec()
-    const flockWasm = exec.import(modIdFor('flock'))
-    const counterWasm = exec.import(modIdFor('sheep-counter'))
-
-    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
-
-    // this locks the flock successfully
-    const shepherd = exec.instantiate(counterWasm.idx, ...constructorArgs('sheep-counter', 'Shepherd', [ref(flock.idx)]))
-    exec.lockJig(shepherd.idx, userAddr)
+    const {exec, flock, shepherd} = shepherdExec()
 
     expect(() => {
       exec.lockJig(flock.idx, userAddr)
@@ -334,101 +347,58 @@ describe('execute txs', () => {
     expect(antProps['ownForce']).to.eql(2)
   })
 
-  // describe('when a jig already exists', () => {
-  //   beforeEach(() => {
-  //     const pkg = exec.importModule(modIdFor('flock')).asInstance
-  //     const flock = exec.instantiateByClassName(pkg, 'Flock', []).asJig()
-  //     exec.lockJigToUser(flock, userAddr)
-  //     const result = exec.finalize()
-  //     storage.persist(result)
-  //   })
-  //
-  //   it('can load that jig', () => {
-  //     const otherAddress = PrivKey.fromRandom().toPubKey().toAddress()
-  //
-  //     const exec2 = emptyExec([userPriv])
-  //
-  //     const jig = exec2.loadJigByOrigin(new Pointer(exec.txContext.tx.hash, 0)).asJig()
-  //     exec2.lockJigToUser(jig, otherAddress)
-  //     exec2.markAsFunded()
-  //     const result = exec2.finalize()
-  //
-  //     const output = result.outputs[0]
-  //     expect(output.serializedLock.data).to.eql(otherAddress.hash)
-  //   })
-  // })
-  //
-  // it('cannot load a jig that does not exists', () => {
-  //   const zeroBuffer = new Uint8Array(32).fill(0);
-  //   const location = new Pointer(zeroBuffer, 99);
-  //   expect(() =>
-  //     exec.loadJigByOrigin(location)
-  //   ).to.throw(ExecutionError, `unknown jig: ${location.toString()}`)
-  // })
-  //
-  // it('can restore jigs that contain jigs of the same package', () => {
-  //   const wasm = exec.importModule(modIdFor('flock')).asInstance
-  //   const flock = exec.instantiateByClassName(wasm, 'Flock', []).asJig()
-  //   const bag = exec.instantiateByClassName(wasm, 'FlockBag', []).asJig()
-  //
-  //   exec.callInstanceMethod(bag, 'addFlock', [flock])
-  //   exec.lockJigToUser(bag, userAddr)
-  //   exec.markAsFunded()
-  //   const result1 = exec.finalize()
-  //
-  //   storage.persist(result1)
-  //
-  //   const exec2 = emptyExec([userPriv])
-  //   const loadedBag = exec2.loadJigByOutputId(result1.outputs[1].id()).asJig()
-  //   exec2.callInstanceMethod(loadedBag, 'growAll', [])
-  //   exec2.lockJigToUser(loadedBag, userAddr)
-  //   exec2.markAsFunded()
-  //   const result2 = exec2.finalize()
-  //
-  //   const flockOutput = result2.outputs[1];
-  //   const flockState = flockOutput.parsedState(abiFor('flock'))
-  //   expect(flockState[0]).to.eql(1)
-  //   const bagOutput = result2.outputs[0];
-  //   const bagState = bagOutput.parsedState(abiFor('flock'))
-  //   expect(bagState[0]).to.eql([flockOutput.origin])
-  // })
-  //
-  //
-  // it('can send local and external jigs as parameters', () => {
-  //   const flockWasm = exec.importModule(modIdFor('flock')).asInstance
-  //   const counterWasm = exec.importModule(modIdFor('sheep-counter')).asInstance
-  //   const flockStmt = exec.instantiateByClassName(flockWasm, 'Flock', [])
-  //
-  //   const shepherd = exec.instantiateByClassName(counterWasm, 'Shepherd', [flockStmt.asJig()]).asJig()
-  //   const counter = exec.instantiateByClassName(counterWasm, 'SheepCounter', []).asJig()
-  //   exec.callInstanceMethod(shepherd, 'growFlockUsingInternalTools', [])
-  //
-  //   exec.callInstanceMethod(counter, 'countShepherd', [shepherd])
-  //   exec.lockJigToUser(shepherd, userAddr)
-  //   exec.lockJigToUser(counter, userAddr)
-  //   exec.markAsFunded()
-  //   const result = exec.finalize()
-  //
-  //   const flockState = result.outputs[0].parsedState(abiFor('flock'))
-  //   expect(flockState[0]).to.eql(1)
-  //   const counterState = result.outputs[2].parsedState(abiFor('sheep-counter'))
-  //   expect(counterState[0]).to.eql(1)
-  //   expect(counterState[1]).to.eql(6)
-  // })
-  //
-  // it('can send static method result as parameter', () => {
-  //   const flockWasm = exec.importModule(modIdFor('flock')).asInstance
-  //   const flock = exec.execStaticMethod(flockWasm, 'Flock', 'createWithSize', [3]).asJig()
-  //   const bag = exec.instantiateByClassName(flockWasm, 'FlockBag', []).asJig()
-  //
-  //   exec.callInstanceMethod(bag, 'addFlock', [flock])
-  //   exec.lockJigToUser(bag, userAddr)
-  //   exec.markAsFunded()
-  //   const result = exec.finalize()
-  //
-  //   const bagState = result.outputs[1].parsedState(abiFor('flock'))
-  //   expect(bagState[0]).to.eql([result.outputs[0].origin])
-  // })
+  it('fails when try to load an unknown jig', () => {
+    const { exec } = emptyExec()
+
+    expect(() => {
+      exec.load(new Uint8Array(32).fill(1))
+    }).to.throw(ExecutionError)
+  })
+
+  it('fails when try to load by an unknown origin', () => {
+    const { exec } = emptyExec()
+
+    expect(() => {
+      exec.loadByOrigin(new Uint8Array(34).fill(1))
+    }).to.throw(ExecutionError)
+  })
+
+  it('can load jigs that include proxies to other packages', () => {
+    const { exec: exec1 } = shepherdExec()
+    const res1 = exec1.finalize()
+    storage.persist(res1)
+
+    const {exec: exec2} = emptyExec([userPriv])
+    const jig = exec2.load(res1.outputs[2].hash)
+    const value = exec2.call(jig.idx, ...argsFor('sheep-counter', 'Shepherd', 'sheepCount', []))
+    expect(value.asValue().ptr.toUInt()).to.eql(1)
+    const res2 = exec2.finalize()
+    expect(res2.outputs).to.have.length(2)
+  })
+
+  function execArgs (pkgName: string, fnName: string, args: any[]): CallData {
+    const abi = abiFor(pkgName);
+    const bcs = new BCS(abi)
+    const query = new AbiQuery(abi)
+    const idx = query.fromExports().allCode().findIndex(c => c.name === fnName)
+
+    return [idx, bcs.encode(fnName, args)]
+  }
+
+  it('can send static method result as parameter', () => {
+    const { exec } = emptyExec()
+    const flockWasm = exec.import(modIdFor('flock'))
+    const flock = exec.exec(flockWasm.idx, ...execArgs('flock', 'flockWithSize', [3]))
+    const bag = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'FlockBag', []))
+
+    exec.call(bag.idx, ...argsFor('flock','FlockBag', 'addFlock', [ref(flock.idx)]))
+    exec.lockJig(bag.idx, userAddr)
+
+    const result = exec.finalize()
+
+    const bagState = parseOutput(result.outputs[2])
+    expect(bagState.flocks).to.eql([result.outputs[1].origin])
+  })
   //
   // it('can hidrate jig with extern ref', () => {
   //   const flockWasm = exec.importModule(modIdFor('flock')).asInstance

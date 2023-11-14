@@ -1,4 +1,6 @@
 import {Abi, AbiQuery, ArgNode, FunctionNode, TypeNode} from "@aldea/core/abi";
+import {AbiArg} from "./abi-method.js";
+import {AbiType} from "./abi-type.js";
 
 export class AbiFunction {
   private abi: Abi;
@@ -17,11 +19,11 @@ export class AbiFunction {
     return this.node.name
   }
 
-  get args (): ArgNode[] {
-    return this.node.args
+  get args (): AbiArg[] {
+    return this.node.args.map((arg) => new AbiArg(arg))
   }
 
-  get rtype (): TypeNode {
-    return this.node.rtype
+  get rtype (): AbiType {
+    return new AbiType(this.node.rtype)
   }
 }

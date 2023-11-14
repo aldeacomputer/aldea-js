@@ -74,6 +74,16 @@ export class FlockBag extends Jig {
   }
 }
 
+export function flockWithSize(size: u32): Flock {
+  let flock = new Flock()
+  let i = size
+  while (i > 0) {
+    flock.grow()
+    i -= 1
+  }
+  return flock
+}
+
 // @ts-ignore
 @imported('df61ae40a3fb30adf1804b118e88d53112b88b527e1be33cc122e4170ae62f76')
 declare function fAddOne (n: u32): u32;

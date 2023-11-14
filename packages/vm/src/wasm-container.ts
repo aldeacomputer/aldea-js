@@ -244,7 +244,11 @@ export class WasmContainer {
           //   lockType: jigRef.lock.typeNumber(),
           //   lockData: jigRef.lock.data(),
           // }, jigInitParamsTypeNode)
-          return 0
+          return this._currentExec.get().vmConstructorLocal(
+            this,
+            WasmWord.fromNumber(classNamePtr),
+            WasmWord.fromNumber(argsPtr)
+          ).toUInt()
         },
         constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): WasmPointer => {
           // const pkgIdStr = this.liftString(pkgIdStrPtr)

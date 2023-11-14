@@ -17,6 +17,7 @@ import {fromCoreLock} from "./locks/from-core-lock.js";
 import {AddressLock} from "./locks/address-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {AbiArg, AbiMethod} from "./memory/abi-helpers/abi-method.js";
+import {JigInitParams} from "./jig-init-params.js";
 
 // const MIN_FUND_AMOUNT = 100
 
@@ -155,10 +156,11 @@ class TxExecution {
 
 
     const method = wasm.abi.exportedByName(classNode.name).get().toAbiClass().methodByName('constructor').get()
-
     const callArgs = this.lowerArgs(wasm, method.args, argsBuf)
 
-    this.stack.push(this.createNextOrigin())
+    const nextOrigin = this.createNextOrigin()
+    this.nextOrigin = Option.some(nextOrigin)
+    this.stack.push(nextOrigin)
     const result = wasm
       .callFn(method.callName(), callArgs, method.args.map(arg => arg.type))
       .get()
@@ -173,6 +175,22 @@ class TxExecution {
     const ret = new ValueStatementResult(this.statements.length, method.rtype, result, wasm);
     this.statements.push(ret)
     return ret
+  }
+
+  exec (wasmIdx: number, fnIdx: number, argsBuf: Uint8Array): StatementResult {
+    const wasm = this.statements[wasmIdx].asContainer()
+    const fn = wasm.abi.exportedByIdx(fnIdx).get().toAbiFunction()
+    const args = this.lowerArgs(wasm, fn.args, argsBuf)
+
+    const value = wasm.callFn(fn.name, args, fn.args.map(a => a.type))
+
+    const stmt = value.map<StatementResult>(ptr =>
+      new ValueStatementResult(this.statements.length, fn.rtype, ptr, wasm)
+    ).orDefault(new EmptyStatementResult(this.statements.length))
+
+    this.statements.push(stmt)
+
+    return stmt
   }
 
   // private serializeJig(jig: JigRef): Uint8Array {
@@ -613,8 +631,7 @@ class TxExecution {
    */
 
   vmJigInit (from: WasmContainer): WasmWord {
-    const nextOrigin = this.createNextOrigin();
-    this.nextOrigin = Option.some(nextOrigin)
+    const nextOrigin = this.nextOrigin.get()
     const buf = new BufWriter()
     buf.writeBytes(nextOrigin.toBytes())
     buf.writeBytes(nextOrigin.toBytes())
@@ -707,6 +724,41 @@ class TxExecution {
 
     jig.changeLock(lock)
     this.marKJigAsAffected(jig)
+  }
+
+  vmConstructorLocal (from: WasmContainer, clsNamePtr: WasmWord, argsPtr: WasmWord): WasmWord {
+    const clsName = from.liftString(clsNamePtr)
+
+    const method = from.abi.exportedByName(clsName).get()
+      .toAbiClass()
+      .methodByName('constructor')
+      .get()
+    // Move args
+    const argBuf = this.liftArgs(from, argsPtr, method.args)
+    const argsReader = new BufReader(argBuf)
+    const loweredArgs = method.args.map(arg => {
+      return from.low.lowerFromReader(argsReader, arg.type)
+    })
+
+    const nextOrigin = this.createNextOrigin()
+    this.nextOrigin = Option.some(nextOrigin)
+    this.stack.push(nextOrigin)
+    from.callFn(method.callName(), loweredArgs, method.args.map(arg => arg.type))
+    this.stack.pop()
+
+    const createdJig = this.jigs.find(ref => ref.origin.equals(nextOrigin))
+    if (!createdJig) {
+      throw new ExecutionError(`[line=${this.execLength()}]Jig was not created`)
+    }
+
+    const initParams = new JigInitParams(
+      createdJig.origin,
+      createdJig.latestLocation,
+      createdJig.classPtr(),
+      createdJig.lock
+    )
+
+    return initParams.lowerInto(from)
   }
 }
 
