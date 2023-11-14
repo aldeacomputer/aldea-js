@@ -8,7 +8,7 @@ import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {Option} from "./support/option.js";
 import {NewLiftValue} from "./memory/new-lift-value.js";
 import {NewLowerValue} from "./memory/new-lower-value.js";
-import {base16} from "@aldea/core";
+import {base16, BCS, BufReader} from "@aldea/core";
 
 export type Prop = {
   node: TypeNode;
@@ -272,8 +272,9 @@ export class WasmContainer {
         proxy_link: () => {
         },
         debug_str: (strPtr: number): void => {
-          // const msg = this.liftString(strPtr)
-          // console.log(`debug [pkg=${base16.encode(this.id).slice(0, 6)}...]: ${msg}`)
+          const msg = this.lifter.lift(WasmWord.fromNumber(strPtr), AbiType.fromName('string'))
+          const buf = Buffer.from(new BufReader(msg).readBytes())
+          console.log(`debug [pkg=${this.id.slice(0, 6)}...]: ${buf.toString()}`)
         }
       }
     }
@@ -431,5 +432,9 @@ export class WasmContainer {
     const args = wasmWords.map((w, i) => w.toWasmArg(abiTypes[i]))
     const ret = fn(...args)
     return Option.fromNullable(ret).map(r => WasmWord.fromNumeric(r))
+  }
+
+  bcs (): BCS {
+    return new BCS(this.abi.abi)
   }
 }

@@ -4,7 +4,7 @@ import {OpenLock} from "./locks/open-lock.js"
 import {WasmContainer} from "./wasm-container.js";
 import {Address, base16, BufReader, BufWriter, LockType, Output, Pointer} from '@aldea/core';
 import {COIN_CLS_PTR, jigInitParamsTypeNode} from "./memory/well-known-abi-nodes.js";
-import {ExecutionResult, PackageDeploy} from "./execution-result.js";
+import {ExecutionResult} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {ExecContext} from "./tx-context/exec-context.js";
 import {PkgData} from "./storage.js";
@@ -12,10 +12,11 @@ import {JigData} from "./memory/new-lower-value.js";
 import {Option} from "./support/option.js";
 import {WasmWord} from "./wasm-word.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
-import {serializeOutput} from "./memory/abi-helpers/serialize-output.js";
+import {serializeOutput, serializePointer} from "./memory/abi-helpers/serialize-output.js";
 import {fromCoreLock} from "./locks/from-core-lock.js";
 import {AddressLock} from "./locks/address-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
+import {AbiArg} from "./memory/abi-helpers/abi-method.js";
 
 // const COIN_CLASS_PTR = Pointer.fromBytes(new Uint8Array(34))
 
@@ -371,6 +372,18 @@ class TxExecution {
   //   }
   // }
 
+
+  private lowerArgs(wasm: WasmContainer, name: string, args: AbiArg[], argsBuf: Uint8Array): WasmWord[] {
+    const reader= new BufReader(argsBuf)
+    const _indexes = reader.readBytes()
+
+    return args.map((arg) => {
+      return wasm.low.lowerFromReader(reader, arg.type)
+    })
+
+
+  }
+
   instantiateByIndex (statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
     const statement = this.statements[statementIndex]
     const wasm = statement.asContainer()
@@ -380,11 +393,8 @@ class TxExecution {
 
 
     const method = wasm.abi.exportedByName(classNode.name).get().toAbiClass().methodByName('constructor').get()
-    const reader = new BufReader(argsBuf)
 
-    const callArgs = method.args.map(arg => {
-      return wasm.low.lowerFromReader(reader, arg.type)
-    })
+    const callArgs = this.lowerArgs(wasm, method.bcsName(), method.args, argsBuf)
 
     this.stack.push(this.createNextOrigin())
     const result = wasm
@@ -640,7 +650,7 @@ class TxExecution {
     const newJigRef = new JigRef(
         new ContainerRef(
             jigPtr,
-            AbiType.fromName(abiClass.name),
+            abiClass.ownTy(),
             from
         ),
         abiClass.idx,
@@ -655,7 +665,7 @@ class TxExecution {
     return from
         .low
         .lower(
-            new Pointer(from.hash, abiClass.idx).toBytes(),
+            serializePointer(new Pointer(from.hash, abiClass.idx)),
             AbiType.fromName('ArrayBuffer')
         )
   }

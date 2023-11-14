@@ -32,7 +32,7 @@ describe('NewMemoryLower', () => {
     modIdFor = data.modIdFor
     storage = data.storage
 
-    let pkgData = storage.getModule(modIdFor('test-types'))
+    let pkgData = storage.getModule(base16.encode(modIdFor('test-types')))
 
     container = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
     jigData = new Map<string, JigData>()

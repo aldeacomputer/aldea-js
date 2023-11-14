@@ -1,4 +1,4 @@
-import {BufWriter, Output} from "@aldea/core";
+import {BufWriter, Output, Pointer} from "@aldea/core";
 
 export function serializeOutput (output: Output): Uint8Array {
   const buf = new BufWriter()
@@ -15,5 +15,11 @@ export function serializeOutput (output: Output): Uint8Array {
   // Serialize state
   buf.writeFixedBytes(output.stateBuf)
 
+  return buf.data
+}
+
+export function serializePointer (p: Pointer): Uint8Array {
+  const buf = new BufWriter()
+  buf.writeBytes(p.toBytes())
   return buf.data
 }

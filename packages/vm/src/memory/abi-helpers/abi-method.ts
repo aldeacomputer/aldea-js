@@ -57,4 +57,8 @@ export class AbiMethod {
   callName (): string {
     return `__${this._className}_${this.name}`;
   }
+
+  bcsName (): string {
+    return `${this.className}_${this.name}`;
+  }
 }

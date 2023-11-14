@@ -63,8 +63,6 @@ describe('NewMemoryLower', () => {
     target = new NewLowerValue(container, (ptr) => Option.fromNullable(jigData.get(ptr.toString())))
   })
 
-
-
   it('can lower an u8', () => {
     const inputBuf = new BufWriter()
     inputBuf.writeU8(10)

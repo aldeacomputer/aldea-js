@@ -4,7 +4,7 @@ import {
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
-import {base16, LockType, PrivKey} from "@aldea/core";
+import {base16, BCS, LockType, PrivKey} from "@aldea/core";
 import { Abi } from '@aldea/core/abi';
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
@@ -55,7 +55,7 @@ describe('execute txs', () => {
 
   })
 
-  it('when a jig was created it returns an output', () => {
+  it('instantiate creates the right output', () => {
     const { exec, txHash} = emptyExec()
     const mod = exec.importModule(modIdFor('flock'))
     const instanceIndex = exec.instantiateByIndex(mod.idx, 0,  new Uint8Array([0]))
@@ -68,28 +68,20 @@ describe('execute txs', () => {
     expect(output.lock.type).to.eql(LockType.ADDRESS)
     expect(output.lock.data).to.eql(userAddr.hash)
   })
-  //
-  // it('creates instances from imported modules', () => {
-  //   const importIndex = exec.importModule(modIdFor('flock'))
-  //   const instanceIndex = exec.instantiateByClassName(importIndex.asInstance, 'Flock', [0])
-  //   exec.lockJigToUser(instanceIndex.asJig(), userAddr)
-  //   const result = exec.finalize()
-  //
-  //   const output = result.outputs[0]
-  //   expect(output.packageId).to.eql(modIdFor('flock'))
-  //   expect(output.classIdx).to.eql(0)
-  // })
-  //
-  // it('sends arguments to constructor properly.', () => {
-  //   const module = exec.importModule(modIdFor('weapon')) // index 0
-  //   const weapon = exec.instantiateByClassName(module.asInstance, 'Weapon', ['Sable Corvo de San Martín', 100000]) // index 1
-  //   exec.lockJigToUser(weapon.asJig(), userAddr)
-  //   const result = exec.finalize()
-  //
-  //   const parsed = result.outputs[0].parsedState(abiFor('weapon'))
-  //   expect(parsed[0]).to.eql('Sable Corvo de San Martín')
-  //   expect(parsed[1]).to.eql(100000)
-  // })
+
+  it('sends arguments to constructor properly.', () => {
+    const { exec } = emptyExec()
+    const module = exec.importModule(modIdFor('weapon')) // index 0
+    const bcs = new BCS(abiFor('weapon'));
+    const argBuf = bcs.encode('Weapon_constructor', ['Sable Corvo de San Martín', 100000])
+    const weapon = exec.instantiateByIndex(module.idx, 1, argBuf) // index 1
+    exec.lockJigToUserByIndex(weapon.idx, userAddr)
+    const result = exec.finalize()
+
+    const parsed = bcs.decode('Weapon', result.outputs[1].stateBuf)
+    expect(parsed[0]).to.eql('Sable Corvo de San Martín')
+    expect(parsed[1]).to.eql(100000)
+  })
   //
   // it('can call methods on jigs', () => {
   //   const importIndex = exec.importModule(modIdFor('flock'))

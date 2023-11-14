@@ -107,10 +107,12 @@ export class NewLiftValue {
     writer.writeULEB(arrLength)
 
     // let offset = dataPtr
-    const reader = new BufReader(this.liftBuffer(dataPtr))
+    // const reader = new BufReader(this.liftBuffer(dataPtr))
+    let offset = dataPtr
     for (let i = 0; i < arrLength; i++) {
-      const elemPtr = WasmWord.fromReader(reader, innerType)
+      const elemPtr = new WasmWord(this.container.mem.extract(offset, innerType.ownSize()))
       this.liftInto(elemPtr, innerType, writer)
+      offset = offset.plus(innerType.ownSize())
     }
   }
 
