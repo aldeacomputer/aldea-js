@@ -4,7 +4,7 @@ import {
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
-import {base16, BCS, LockType, PrivKey} from "@aldea/core";
+import {base16, BCS, LockType, Output, PrivKey} from "@aldea/core";
 import { Abi } from '@aldea/core/abi';
 import {buildVm, emptyExecFactoryFactory} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
@@ -20,7 +20,13 @@ describe('execute txs', () => {
   let abiForCoin: () => Abi
   let modIdFor: (key: string) => Uint8Array
 
-  let clock: Clock
+  function parseOutput(o: Output): { [key: string]: any } {
+    const props = o.props
+    if (!props) {
+      expect.fail('no output')
+    }
+    return props
+  }
 
   beforeEach(() => {
     const data = buildVm([
@@ -46,7 +52,6 @@ describe('execute txs', () => {
     abiFor = (key: string) => storage.getModule(base16.encode(modIdFor(key))).abi
     abiForCoin = () => storage.getModule(COIN_CLS_PTR.id).abi
     modIdFor = data.modIdFor
-    clock = data.clock
   })
 
   const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
@@ -82,28 +87,30 @@ describe('execute txs', () => {
     expect(parsed[0]).to.eql('Sable Corvo de San Martín')
     expect(parsed[1]).to.eql(100000)
   })
-  //
-  // it('can call methods on jigs', () => {
-  //   const importIndex = exec.importModule(modIdFor('flock'))
-  //   const flockIndex = exec.instantiateByClassName(importIndex.asInstance, 'Flock', [])
-  //   exec.callInstanceMethod(flockIndex.asJig(), 'grow', [])
-  //   exec.lockJigToUser(flockIndex.asJig(), userAddr)
-  //   const result = exec.finalize()
-  //
-  //   const parsed = result.outputs[0].parsedState(abiFor('flock'))
-  //   expect(parsed[0]).to.eql(1) // grow effect
-  // })
-  //
-  // it('can make calls on jigs sending basic parameters', () => {
-  //   const pkg = exec.importModule(modIdFor('flock')).asInstance
-  //   const flock = exec.instantiateByClassName(pkg, 'Flock', []).asJig()
-  //   exec.callInstanceMethod(flock, 'growMany', [7])
-  //   exec.lockJigToUser(flock, userAddr)
-  //   const result = exec.finalize()
-  //
-  //   const parsed = result.outputs[0].parsedState(abiFor('flock'))
-  //   expect(parsed[0]).to.eql(7) // growMany effect
-  // })
+
+  it('can call methods on jigs', () => {
+    const { exec } = emptyExec()
+    const importIndex = exec.importModule(modIdFor('flock'))
+    const flock = exec.instantiateByIndex(importIndex.idx, 0, new Uint8Array([0]))
+    exec.call(flock.idx, 1, new Uint8Array([0]))
+    exec.lockJigToUserByIndex(flock.idx, userAddr)
+    const result = exec.finalize()
+
+    const props = parseOutput(result.outputs[1])
+    expect(props['size']).to.eql(1)
+  })
+
+  it('can make calls on jigs sending basic parameters', () => {
+    const { exec } = emptyExec()
+    const pkg = exec.importModule(modIdFor('flock'))
+    const flock = exec.instantiateByIndex(pkg.idx, 0, new Uint8Array([0]))
+    exec.call(flock.idx, 3, new Uint8Array([0, 7, 0, 0, 0]))
+    exec.lockJigToUserByIndex(flock.idx, userAddr)
+    const result = exec.finalize()
+
+    const parsed = parseOutput(result.outputs[1])
+    expect(parsed['size']).to.eql(7)
+  })
   //
   // it('can make calls on jigs sending jigs as parameters', () => {
   //   const flockWasm = exec.importModule(modIdFor('flock'))

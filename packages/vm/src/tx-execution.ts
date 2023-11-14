@@ -68,6 +68,7 @@ class TxExecution {
         jigRef.classPtr(),
         jigRef.lock.coreLock(),
         jigProps,
+        jigRef.ref.container.abi.abi
       )
       result.addOutput(jigState)
     })
@@ -373,7 +374,7 @@ class TxExecution {
   // }
 
 
-  private lowerArgs(wasm: WasmContainer, name: string, args: AbiArg[], argsBuf: Uint8Array): WasmWord[] {
+  private lowerArgs(wasm: WasmContainer, args: AbiArg[], argsBuf: Uint8Array): WasmWord[] {
     const reader= new BufReader(argsBuf)
     const _indexes = reader.readBytes()
 
@@ -394,7 +395,7 @@ class TxExecution {
 
     const method = wasm.abi.exportedByName(classNode.name).get().toAbiClass().methodByName('constructor').get()
 
-    const callArgs = this.lowerArgs(wasm, method.bcsName(), method.args, argsBuf)
+    const callArgs = this.lowerArgs(wasm, method.args, argsBuf)
 
     this.stack.push(this.createNextOrigin())
     const result = wasm
@@ -425,6 +426,30 @@ class TxExecution {
   //   this.statements.push(ret)
   //   return ret
   // }
+
+  call (jigIdx: number, methodIdx: number, argsBuf: Uint8Array): StatementResult {
+    const jig = this.jigAt(jigIdx)
+    const abiClass = jig.classAbi();
+    const method = abiClass.methodByIdx(methodIdx).get()
+
+    const wasm = jig.ref.container;
+    const args = this.lowerArgs(wasm, method.args, argsBuf);
+
+    this.stack.push(jig.origin)
+    const res = wasm.callFn(
+        method.callName(),
+        [jig.ref.ptr, ...args],
+        [abiClass.ownTy(), ...method.args.map(a => a.type)]
+    )
+    this.stack.pop()
+
+    this.marKJigAsAffected(jig)
+    let stmt: StatementResult = res.map<StatementResult>(ptr => {
+      return new ValueStatementResult(this.statements.length, method.rtype, ptr, wasm)
+    }).orElse(() => new EmptyStatementResult(this.statements.length))
+    this.statements.push(stmt)
+    return stmt
+  }
 
   // callInstanceMethod(jig: JigRef, methodName: string, args: any[]): StatementResult {
   //   if (!this.jigs.includes(jig)) {
