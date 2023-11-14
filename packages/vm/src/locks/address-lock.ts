@@ -1,7 +1,7 @@
 import {Address, LockType} from '@aldea/core';
 import {CoreLock, Lock} from './lock.js'
 import {TxExecution} from "../tx-execution.js";
-import {NotImplementedError, PermissionError} from "../errors.js";
+import {PermissionError} from "../errors.js";
 
 export class AddressLock extends Lock {
   private addr: Address;
@@ -17,7 +17,7 @@ export class AddressLock extends Lock {
 
   assertOpen (exec: TxExecution): void {
     if (!exec.signedBy(this.addr)) {
-      throw new PermissionError(`[line=${exec.instrucCtr}] Missing signature for ${this.addr.toString()}`)
+      throw new PermissionError(`[line=${exec.execLength()}] Missing signature for ${this.addr.toString()}`)
     }
   }
 }

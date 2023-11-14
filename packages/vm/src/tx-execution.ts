@@ -18,9 +18,7 @@ import {AddressLock} from "./locks/address-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {AbiArg, AbiMethod} from "./memory/abi-helpers/abi-method.js";
 
-// const COIN_CLASS_PTR = Pointer.fromBytes(new Uint8Array(34))
-
-const MIN_FUND_AMOUNT = 100
+// const MIN_FUND_AMOUNT = 100
 
 class TxExecution {
   execContext: ExecContext;
@@ -32,7 +30,6 @@ class TxExecution {
   private fundAmount: number;
   private affectedJigs: JigRef[]
   private nextOrigin: Option<Pointer>
-  instrucCtr: number
 
   constructor (context: ExecContext) {
     this.execContext = context
@@ -44,7 +41,6 @@ class TxExecution {
     this.deployments = []
     this.affectedJigs = []
     this.nextOrigin = Option.none()
-    this.instrucCtr = 0
   }
 
   finalize (): ExecutionResult {
@@ -72,7 +68,7 @@ class TxExecution {
       )
       result.addOutput(jigState)
     })
-    //
+
     // this.deployments.forEach(pkgData => {
     //   result.addDeploy(new PackageDeploy(
     //     pkgData.sources,
@@ -541,7 +537,7 @@ class TxExecution {
         .some(s => s.toAddress().equals(addr))
   }
 
-  private execLength () {
+  execLength () {
     return this.statements.length
   }
 
@@ -654,6 +650,7 @@ class TxExecution {
     const methodName = from.liftString(methodNamePtr)
 
     const jig = this.assertJig(targetOrigin)
+    jig.lock.assertOpen(this)
 
     const method = jig.classAbi().methodByName(methodName).get()
 

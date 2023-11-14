@@ -1,4 +1,4 @@
-import {Instruction, Output, Pointer, PubKey, Tx} from "@aldea/core";
+import {Output, Pointer, PubKey} from "@aldea/core";
 import {WasmContainer} from "../wasm-container.js";
 import {PkgData} from "../storage.js";
 

@@ -215,31 +215,35 @@ describe('execute txs', () => {
       /Missing signature for/
     )
   })
-  //
-  // it('fails when a jig tries to lock a locked jig', () => {
-  //   const flockWasm = exec.importModule(modIdFor('flock')).asInstance
-  //   const counterWasm = exec.importModule(modIdFor('sheep-counter')).asInstance
-  //   const flock = exec.instantiateByClassName(flockWasm, 'Flock', []).asJig()
-  //
-  //   exec.lockJigToUser(flock, userAddr)
-  //
-  //   expect(() => exec.instantiateByClassName(counterWasm, 'Shepherd', [flock])).to.throw(PermissionError,
-  //     `lock cannot be changed`)
-  // })
-  //
-  // it('fails when a jig tries to call a method on a jig of the same class with no permissions', () => {
-  //   const antWasm = exec.importModule(modIdFor('ant')).asInstance
-  //   const ant1 = exec.instantiateByClassName(antWasm, 'Ant', []).asJig()
-  //   const ant2 = exec.instantiateByClassName(antWasm, 'Ant', []).asJig()
-  //
-  //   exec.callInstanceMethod(ant1, 'addFriend', [ant2]) // does not lock to caller
-  //   exec.lockJigToUser(ant1, userAddr)
-  //   exec.lockJigToUser(ant2, userAddr)
-  //
-  //   expect(() =>
-  //     exec.callInstanceMethod(ant1, 'forceAFriendToWork', []) // calls public method on not owned jig
-  //   ).to.throw(PermissionError)
-  // })
+
+  it('fails when a jig tries to lock a locked jig', () => {
+    const { exec } = emptyExec()
+    const flockWasm = exec.import(modIdFor('flock'))
+    const counterWasm = exec.import(modIdFor('sheep-counter'))
+    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
+
+    exec.lockJig(flock.idx, userAddr)
+
+    expect(() => exec.instantiate(
+      counterWasm.idx, ...constructorArgs('sheep-counter', 'Shepherd', [ref(flock.idx)])
+    )).to.throw(PermissionError,
+      /Missing signature for/)
+  })
+
+  it('fails when a jig tries to call a method on a jig of the same class with no permissions', () => {
+    const { exec } = emptyExec()
+    const antWasm = exec.import(modIdFor('ant'))
+    const ant1 = exec.instantiate(antWasm.idx, ...constructorArgs('ant', 'Ant', []))
+    const ant2 = exec.instantiate(antWasm.idx, ...constructorArgs('ant', 'Ant', []))
+
+    exec.call(ant1.idx, ...argsFor('ant', 'Ant', 'addFriend',  [ref(ant2.idx)])) // does not lock to caller
+    exec.lockJig(ant1.idx, userAddr)
+    exec.lockJig(ant2.idx, userAddr)
+
+    expect(() =>
+      exec.call(ant1.idx, ...argsFor('ant', 'Ant', 'forceAFriendToWork', [])) // calls public method on not owned jig
+    ).to.throw(PermissionError)
+  })
   //
   // it('fails when a jig tries to call a private method on another jig of the same module that does not own', () => {
   //   const antWasm = exec.importModule(modIdFor('ant')).asInstance

@@ -4,7 +4,6 @@ import {Pointer} from "@aldea/core";
 import {AbiClass} from "./memory/abi-helpers/abi-class.js";
 import {WasmWord} from "./wasm-word.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
-import {lockAbiNode} from "./memory/well-known-abi-nodes.js";
 
 export class ContainerRef {
   ptr: WasmWord
