@@ -382,7 +382,7 @@ class TxExecution {
     return args.map((arg, i) => {
       const importedOrExported = wasm.abi.exportedByName(arg.type.name).map(e => e.idx)
         .or(wasm.abi.importedByName(arg.type.name).map(e => e.idx))
-      if (importedOrExported || indexes.includes(i)) {
+      if (importedOrExported.isPresent() || indexes.includes(i)) {
         const idx = reader.readU8()
         const ref = this.statements[idx].asValue()
         const lifted = ref.container.lifter.lift(ref.ptr, ref.ty)
