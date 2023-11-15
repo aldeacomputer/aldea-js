@@ -1,15 +1,8 @@
-import {InstructionRef} from "@aldea/core";
-import {TypeNode} from "@aldea/core/abi";
 import {ExecutionError} from "./errors.js";
 import {ContainerRef, JigRef} from "./jig-ref.js";
 import {WasmContainer} from "./wasm-container.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {WasmWord} from "./wasm-word.js";
-
-export function isInstructionRef(obj: Object): boolean {
-  // This is a little hack to avoid having issues when 2 different builds are used at the same time.
-  return obj.constructor.name === 'InstructionRef' || obj instanceof InstructionRef
-}
 
 export abstract class StatementResult {
   private _idx: number
