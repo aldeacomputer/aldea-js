@@ -1,5 +1,5 @@
 import {ExecutionError} from "./errors.js";
-import {ContainerRef, JigRef} from "./jig-ref.js";
+import {ContainerRef} from "./jig-ref.js";
 import {WasmContainer} from "./wasm-container.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {WasmWord} from "./wasm-word.js";
