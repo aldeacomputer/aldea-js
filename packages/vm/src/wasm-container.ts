@@ -5,8 +5,8 @@ import {NewMemory} from "./new-memory.js";
 import {WasmWord} from "./wasm-word.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {Option} from "./support/option.js";
-import {NewLiftValue} from "./memory/new-lift-value.js";
-import {NewLowerValue} from "./memory/new-lower-value.js";
+import {ValueLifter} from "./memory/value-lifter.js";
+import {LowerValue} from "./memory/lower-value.js";
 import {base16, BCS, BufReader} from "@aldea/core";
 import {ExecutionError} from "./errors.js";
 
@@ -26,8 +26,8 @@ export class WasmContainer {
   private instance: WebAssembly.Instance;
   abi: AbiAccess;
   private newMemory: NewMemory;
-  lifter: NewLiftValue
-  low: NewLowerValue
+  lifter: ValueLifter
+  low: LowerValue
 
   constructor (module: WebAssembly.Module, abi: Abi, id: Uint8Array) {
     this.hash = id
@@ -36,8 +36,8 @@ export class WasmContainer {
     this._currentExec = Option.none()
     this.newMemory = new NewMemory(wasmMemory)
 
-    this.lifter = new NewLiftValue(this)
-    this.low = new NewLowerValue(this, (p) => this._currentExec.get().getJigData(p))
+    this.lifter = new ValueLifter(this)
+    this.low = new LowerValue(this, (p) => this._currentExec.get().getJigData(p))
 
     const imports: any = {
       env: {

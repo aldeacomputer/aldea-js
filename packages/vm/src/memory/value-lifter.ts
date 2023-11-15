@@ -8,7 +8,7 @@ import {BUF_RTID} from "./well-known-abi-nodes.js";
 import {ExecutionError} from "../errors.js";
 import {CodeKind} from "@aldea/core/abi";
 
-export class NewLiftValue {
+export class ValueLifter {
   private container: WasmContainer;
 
   constructor (container: WasmContainer) {

@@ -1,4 +1,4 @@
-import {JigData, NewLowerValue, Storage} from "../src/index.js";
+import {JigData, LowerValue, Storage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
 import {Address, base16, BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
@@ -7,10 +7,10 @@ import {AbiType} from "../src/memory/abi-helpers/abi-type.js";
 import {WasmWord} from "../src/wasm-word.js";
 import {Option} from "../src/support/option.js";
 import {PublicLock} from "../src/locks/public-lock.js";
-import {serializeOutput} from "../src/memory/abi-helpers/serialize-output.js";
+import {serializeOutput} from "../src/memory/serialize-output.js";
 import {AddressLock} from "../src/locks/address-lock.js";
 import {emptyTn} from "../src/memory/well-known-abi-nodes.js";
-import {NewLiftValue} from "../src/memory/new-lift-value.js";
+import {ValueLifter} from "../src/memory/value-lifter.js";
 
 
 const FLOAT_ERROR: number = 0.00001
@@ -21,8 +21,8 @@ describe('NewMemoryLower', () => {
   let container: WasmContainer;
   let jigData: Map<string, JigData>
 
-  let lower: NewLowerValue
-  let target: NewLiftValue
+  let lower: LowerValue
+  let target: ValueLifter
   beforeEach(() => {
     const data = buildVm([
       'test-types',
@@ -36,8 +36,8 @@ describe('NewMemoryLower', () => {
 
     container = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
     jigData = new Map<string, JigData>()
-    lower = new NewLowerValue(container, (ptr) => Option.fromNullable(jigData.get(ptr.toString())))
-    target = new NewLiftValue(container)
+    lower = new LowerValue(container, (ptr) => Option.fromNullable(jigData.get(ptr.toString())))
+    target = new ValueLifter(container)
   })
 
   it('can lift an array of u16', () => {

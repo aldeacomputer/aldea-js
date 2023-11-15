@@ -22,7 +22,7 @@ export type JigData = {
 
 type GetJigData = (p: Pointer) => Option<JigData>;
 
-export class NewLowerValue {
+export class LowerValue {
   private container: WasmContainer;
   private getJigData: GetJigData
 
