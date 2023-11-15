@@ -87,7 +87,7 @@ export class WasmContainer {
         jig_lock: (originPtr: number, type: number, argsPtr: number) => {
           this._currentExec.get().vmJigLock(this, WasmWord.fromNumber(originPtr), type, WasmWord.fromNumber(argsPtr))
         },
-        caller_typecheck: (rtIdToCheck: number, exact: boolean): boolean => {
+        caller_typecheck: (rtIdToCheck: number, exact: number): boolean => {
           return this._currentExec.get().vmCallerTypeCheck(
             this,
             rtIdToCheck,

@@ -3,7 +3,7 @@ import {ExecutionError} from "./errors.js"
 import {OpenLock} from "./locks/open-lock.js"
 import {AuthCheck, WasmContainer} from "./wasm-container.js";
 import {Address, base16, BufReader, BufWriter, Lock as CoreLock, LockType, Output, Pointer} from '@aldea/core';
-import {COIN_CLS_PTR, jigInitParamsTypeNode, outputTypeNode} from "./memory/well-known-abi-nodes.js";
+import {COIN_CLS_PTR, outputTypeNode} from "./memory/well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {ExecContext} from "./tx-context/exec-context.js";
@@ -582,9 +582,7 @@ class TxExecution {
       jig.lock
     )
 
-    const resPtr = initParams.lowerInto(from)
-
-    return resPtr;
+    return initParams.lowerInto(from);
   }
 
   vmCallerTypeCheck (from: WasmContainer, rtIdToCheck: number, exact: boolean): boolean {
@@ -596,8 +594,7 @@ class TxExecution {
 
     const jig = this.assertJig(callerOrigin)
 
-    const wasm = jig.ref.container
-
+    // const wasm = jig.ref.container
     const fromAbi = from.abi
     // const callerAbi = wasm.abi
 

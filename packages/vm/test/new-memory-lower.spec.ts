@@ -270,7 +270,6 @@ describe('NewMemoryLower', () => {
       Int8Array |
       Int16Array |
       Int32Array |
-      BigInt64Array |
       Float32Array |
       Float64Array
 
@@ -376,7 +375,6 @@ describe('NewMemoryLower', () => {
     const extOrigin = new Uint8Array(34).fill(1)
     const extLocation = new Uint8Array(34).fill(2)
     const extClassPtr = new Uint8Array(34).fill(3)
-    const extOutputHash = new Uint8Array(32).fill(4)
 
     jigData.set(externalJigOrigin.toString(), {
       origin: Pointer.fromBytes(extOrigin),
@@ -465,14 +463,12 @@ describe('NewMemoryLower', () => {
   })
 
   it('can lower an exported jig proxy', () => {
-    const buf = new BufWriter()
     const data = [1,2,3,4,5,6,7,8]
     const someTxId = new Uint8Array([...data, ...data, ...data, ...data])
     const externalJigOrigin = new Pointer(someTxId, 9)
 
     const extLocation = new Uint8Array(34).fill(2)
     const extClassPtr = new Uint8Array(34).fill(3)
-    const extOutputHash = new Uint8Array(32).fill(4)
     const addrBuf = new Uint8Array(20).fill(5)
 
     jigData.set(externalJigOrigin.toString(), {

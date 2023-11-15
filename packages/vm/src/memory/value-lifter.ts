@@ -77,7 +77,7 @@ export class ValueLifter {
       case 'Int64Array':
       case 'Float32Array':
       case 'Float64Array':
-        this.liftTypedArray(ptr, ty, writer)
+        this.liftTypedArray(ptr, writer)
         break
       case 'string':
         this.liftString(ptr, writer)
@@ -135,7 +135,7 @@ export class ValueLifter {
     writer.writeBytes(buf)
   }
 
-  private liftTypedArray (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
+  private liftTypedArray (ptr: WasmWord, writer: BufWriter) {
     const header = this.container.mem.read(ptr, 12)
     const bufPtr = WasmWord.fromNumber(header.readU32())
     header.readU32()
