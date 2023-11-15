@@ -1,4 +1,4 @@
-import { canCall } from 'aldea/auth'
+import {canCall} from 'aldea/auth'
 
 export class SheepCounter extends Jig {
   sheepCount: u32;
@@ -17,9 +17,7 @@ export class SheepCounter extends Jig {
   }
 
   countFlock(flock: Flock): u32 {
-    const aaaa = flock.size;
-    this.sheepCount += aaaa;
-    debug(`aaaa: ${aaaa}`)
+    this.sheepCount += flock.size;
     this.legCount += flock.legCount();
     return this.sheepCount;
   }

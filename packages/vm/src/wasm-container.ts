@@ -9,6 +9,7 @@ import {Option} from "./support/option.js";
 import {NewLiftValue} from "./memory/new-lift-value.js";
 import {NewLowerValue} from "./memory/new-lower-value.js";
 import {base16, BCS, BufReader} from "@aldea/core";
+import {ExecutionError} from "./errors.js";
 
 export type Prop = {
   node: TypeNode;
@@ -57,14 +58,14 @@ export class WasmContainer {
       env: {
         memory: wasmMemory,
         abort: (messagePtr: number, fileNamePtr: number, lineNumber: number, columnNumber: number) => {
-          // const messageStr = this.liftString(messagePtr);
-          // const fileNameStr = this.liftString(fileNamePtr);
-          //
-          // (() => {
-          //   // @external.js
-          //   console.warn(`${messageStr} in ${fileNameStr}:${lineNumber}:${columnNumber}`)
-          //   throw new ExecutionError(messageStr);
-          // })();
+          const messageStr = this.liftString(WasmWord.fromNumber(messagePtr));
+          const fileNameStr = this.liftString(WasmWord.fromNumber(fileNamePtr));
+
+          (() => {
+            // @external.js
+            console.warn(`${messageStr} in ${fileNameStr}:${lineNumber}:${columnNumber}`)
+            throw new ExecutionError(messageStr);
+          })();
         }
       },
       vm: {
@@ -72,7 +73,6 @@ export class WasmContainer {
           return this._currentExec.get().vmJigInit(this).toUInt()
         },
         jig_link: (jigPtr: number, rtid: number): WasmPointer => {
-
           return this._currentExec.get().vmJigLink(this, WasmWord.fromNumber(jigPtr), rtid).toUInt()
         },
         jig_authcheck: (callerOriginPtr: number, check: AuthCheck) => {
@@ -88,16 +88,6 @@ export class WasmContainer {
               WasmWord.fromNumber(argsPtr)
             ).toUInt();
         },
-        call_static: (originPtr: number, fnNamePtr: number, argsPtr: number): number => {
-          // const moduleId = this.liftString(originPtr).split('_')[0]
-          // const fnStr = this.liftString(fnNamePtr)
-          // const argBuf = this.liftBuffer(argsPtr)
-          //
-          // const result = this.currentExec.remoteStaticExecHandler(this, base16.decode(moduleId), fnStr, argBuf)
-          // return Number(this.insertValue(result.value, result.node))
-          return 0
-        },
-
         call_function: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): WasmPointer => {
           return this._currentExec.get().vmCallFunction(
             this,
@@ -204,26 +194,6 @@ export class WasmContainer {
           return 0
         },
         constructor_local: (classNamePtr: number, argsPtr: number): WasmPointer => {
-          // const className = this.liftString(classNamePtr)
-          // // const classIdx = this.abi.classIdxByName(className)
-          // const argsBuf = this.liftBuffer(argsPtr)
-          // const methodNode = this.abi.exportedByName(className).get().toAbiClass().methodByName('constructor').get()
-          // const args = this.liftArguments(argsBuf, methodNode.args)
-          //
-          // const instance = this.currentExec.instantiate(this, className, args)
-          // // this.currentExec.pushToStack(this.currentExec.createNextOrigin())
-          // // const instance = this.staticCall(className, 'constructor', args)
-          // // this.currentExec.popFromStack()
-          //
-          // const jigRef = instance.value as JigRef
-          //
-          // return this.insertValue({
-          //   origin: jigRef.origin.toBytes(),
-          //   location: jigRef.origin.toBytes(),
-          //   classPtr: jigRef.classPtr().toBytes(),
-          //   lockType: jigRef.lock.typeNumber(),
-          //   lockData: jigRef.lock.data(),
-          // }, jigInitParamsTypeNode)
           return this._currentExec.get().vmConstructorLocal(
             this,
             WasmWord.fromNumber(classNamePtr),
