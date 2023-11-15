@@ -3,17 +3,14 @@ import {
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
-import {base16, BufReader, PrivKey, ref} from "@aldea/core";
-import {emptyExecFactoryFactory, buildVm, ArgsBuilder, parseOutput} from "./util.js";
+import {base16, BufReader, ref} from "@aldea/core";
+import {emptyExecFactoryFactory, buildVm, ArgsBuilder, parseOutput} from './util.js';
 
 describe('execute txs', () => {
   let storage: Storage
   let vm: VM
-  const userPriv = PrivKey.fromRandom()
-  const userPub = userPriv.toPubKey()
-  const userAddr = userPub.toAddress()
 
-  let modIdFor: (key:string ) => Uint8Array
+  let modIdFor: (key: string) => Uint8Array
 
   let args: ArgsBuilder
   beforeEach(() => {
@@ -30,49 +27,48 @@ describe('execute txs', () => {
   describe('#is<T>', function () {
     describe('when exact is true', function () {
       it('returns true when the caller is the right caller', () => {
-        const { exec } = emptyExec()
+        const {exec} = emptyExec()
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
-        const sender = exec.instantiate(pkg.idx, ...args.constr( 'RightCaller', []))
+        const sender = exec.instantiate(pkg.idx, ...args.constr('RightCaller', []))
         exec.call(sender.idx, ...args.method('RightCaller', 'doTheCall', [ref(receiver.idx)]))
 
         const res = exec.finalize()
         const parsed = parseOutput(res.outputs[2])
         expect(parsed.lastCheck).to.eql("true")
       })
-    //
-    it('returns false when the caller is not the right caller', () => {
-      const { exec } = emptyExec()
-      const pkg = exec.import(modIdFor('caller-test-code'))
-      const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
-      const sender = exec.instantiate(pkg.idx, ...args.constr( 'AnotherCaller', []))
-      exec.call(sender.idx, ...args.method('AnotherCaller', 'doTheCall', [ref(receiver.idx)]))
 
-      const res = exec.finalize()
-      const parsed = parseOutput(res.outputs[2])
-      expect(parsed.lastCheck).to.eql("false")
-    })
-
-      it('returns false when the caller is at top level', () => {
-
-        const { exec } = emptyExec()
+      it('returns false when the caller is not the right caller', () => {
+        const {exec} = emptyExec()
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
-        exec.call(receiver.idx, ...args.method('Receiver', 'checkCallerType', [ref(receiver.idx)]))
+        const sender = exec.instantiate(pkg.idx, ...args.constr('AnotherCaller', []))
+        exec.call(sender.idx, ...args.method('AnotherCaller', 'doTheCall', [ref(receiver.idx)]))
+
+        const res = exec.finalize()
+        const parsed = parseOutput(res.outputs[2])
+        expect(parsed.lastCheck).to.eql("false")
+      })
+
+      it('returns false when the caller is at top level', () => {
+        const {exec} = emptyExec()
+        const pkg = exec.import(modIdFor('caller-test-code'))
+        const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
+        exec.call(receiver.idx, ...args.method('Receiver', 'checkCallerType', []))
 
         const res = exec.finalize()
         const parsed = parseOutput(res.outputs[1])
         expect(parsed.lastCheck).to.eql("false")
       })
-    //
-    //   // This case makes no sense with no interfaces
-    //   it('returns true for when an external class is the right one')
-    //
+      //
+      //   // This case makes no sense with no interfaces
+      //   it('returns true for when an external class is the right one')
+      //
       it('returns false when called from subclass', () => {
-        const { exec } = emptyExec()
+        const {exec} = emptyExec()
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
-        const sender = exec.instantiate(pkg.idx, ...args.constr( 'SubclassCaller', []))
+        const sender = exec.instantiate(pkg.idx, ...args.constr('SubclassCaller', []))
         exec.call(sender.idx, ...args.method('RightCaller', 'doTheCall', [ref(receiver.idx)]))
 
         const res = exec.finalize()

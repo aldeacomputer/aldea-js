@@ -120,6 +120,8 @@ export class WasmWord {
 
   toWasmArg (abiType: AbiType): WasmArg {
     if (['u64', 'i64'].includes(abiType.name)) return this.toBigInt()
+    if ('f32' === abiType.name) return this.toFloat()
+    if ('f64' === abiType.name) return this.toFloat()
     return this.toInt()
   }
 

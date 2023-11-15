@@ -146,7 +146,7 @@ export class AbiClass {
   hierarchyNames (): string[] {
     const query = new AbiQuery(this.abi)
     query.fromExports().byIndex(this.idx)
-    return query.getClassParents()
-      .map(node => node.name)
+    return [this.name, ...query.getClassParents()
+      .map(node => node.name)]
   }
 }

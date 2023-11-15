@@ -1,7 +1,10 @@
 
 export class Receiver extends Jig {
+  lastCheck: string = 'none'
   checkCallerType (): bool {
-    return caller.is<RightCaller>()
+    const res = caller.is<RightCaller>();
+    this.lastCheck = `${res}`
+    return res
   }
 
   checkCallerTypeStrict (): bool {

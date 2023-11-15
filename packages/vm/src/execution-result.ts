@@ -71,8 +71,7 @@ export class ExecutionResult {
     this.deploys.push(deploy)
   }
 
-  finish(time: moment.Moment) {
+  finish() {
     this.finished = true
-    this._executedAt = Option.some(time)
   }
 }
