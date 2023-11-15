@@ -30,23 +30,20 @@ describe('execute txs', () => {
     return props
   }
 
+  let flockArgs: ArgsBuilder
+  let ctrArgs: ArgsBuilder
+  let antArgs: ArgsBuilder
+  let sheepArgs: ArgsBuilder
+  let coinEaterArgs: ArgsBuilder
   beforeEach(() => {
     const data = buildVm([
       'ant',
       'basic-math',
-      'buff-test',
       'coin-eater',
-      'dependency-chain',
       'flock',
-      'forever-counter',
-      'gym',
-      'nft',
-      'runner',
       'sheep',
       'sheep-counter',
-      'tower',
-      'weapon',
-      'with-booleans'
+      'weapon'
     ])
 
     storage = data.storage
@@ -54,6 +51,11 @@ describe('execute txs', () => {
     abiFor = (key: string) => storage.getModule(base16.encode(modIdFor(key))).abi
     abiForCoin = () => storage.getModule(COIN_CLS_PTR.id).abi
     modIdFor = data.modIdFor
+    flockArgs = new ArgsBuilder('flock', abiFor)
+    ctrArgs = new ArgsBuilder('sheep-counter', abiFor)
+    antArgs = new ArgsBuilder('ant', abiFor)
+    sheepArgs = new ArgsBuilder('sheep', abiFor)
+    coinEaterArgs = new ArgsBuilder('coin-eater', abiFor)
   })
 
   const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
@@ -63,30 +65,39 @@ describe('execute txs', () => {
     Uint8Array
   ]
 
-  function argsFor (pkgName: string, className: string, methodName: string, args: any[]): CallData {
-    const abi = abiFor(pkgName)
-    const abiAccess = new AbiAccess(abi)
+  class ArgsBuilder {
+    private pkgName: string;
+    private abiFor: (key: string) => Abi;
+    constructor (pkgName: string, abiFor: (key: string) => Abi) {
+      this.pkgName = pkgName
+      this.abiFor = abiFor
+    }
 
-    const cls = abiAccess.exportedByName(className).get().toAbiClass()
-    const method = cls.methodByName(methodName).get()
-    const bcs = new BCS(abi)
-    return [
-      method.idx,
-      bcs.encode(`${className}_${methodName}`, args)
-    ]
-  }
+    method(className: string, methodName: string, args: any[]): CallData {
+      const abi = this.abiFor(this.pkgName)
+      const abiAccess = new AbiAccess(abi)
 
-  function constructorArgs (pkgName: string, className: string, args: any[]): CallData {
-    const abi = abiFor(pkgName)
-    const abiAccess = new AbiAccess(abi)
-    const abiClass = abiAccess.exportedByName(className).get().toAbiClass()
+      const cls = abiAccess.exportedByName(className).get().toAbiClass()
+      const method = cls.methodByName(methodName).get()
+      const bcs = new BCS(abi)
+      return [
+        method.idx,
+        bcs.encode(`${className}_${methodName}`, args)
+      ]
+    }
 
-    const bcs = new BCS(abi)
+    constr(className: string, args: any[]): CallData {
+      const abi = this.abiFor(this.pkgName)
+      const abiAccess = new AbiAccess(abi)
+      const abiClass = abiAccess.exportedByName(className).get().toAbiClass()
 
-    return [
-      abiClass.idx,
-      bcs.encode(`${className}_constructor`, args)
-    ]
+      const bcs = new BCS(abi)
+
+      return [
+        abiClass.idx,
+        bcs.encode(`${className}_constructor`, args)
+      ]
+    }
   }
 
   it('instantiate creates the right output', () => {
@@ -146,11 +157,11 @@ describe('execute txs', () => {
     const {exec} = emptyExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
-    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
-    const counter = exec.instantiate(counterWasm.idx, ...constructorArgs('sheep-counter', 'SheepCounter', []))
-    exec.call(flock.idx, ...argsFor('flock', 'Flock', 'grow', []))
-    exec.call(flock.idx, ...argsFor('flock', 'Flock', 'grow', []))
-    exec.call(counter.idx, ...argsFor('sheep-counter', 'SheepCounter', 'countFlock', [ref(flock.idx)]))
+    const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
+    const counter = exec.instantiate(counterWasm.idx, ...ctrArgs.constr('SheepCounter', []))
+    exec.call(flock.idx, ...flockArgs.method('Flock', 'grow', []))
+    exec.call(flock.idx, ...flockArgs.method('Flock', 'grow', []))
+    exec.call(counter.idx, ...ctrArgs.method('SheepCounter', 'countFlock', [ref(flock.idx)]))
     exec.lockJig(flock.idx, userAddr)
     exec.lockJig(counter.idx, userAddr)
     const result = exec.finalize()
@@ -165,8 +176,8 @@ describe('execute txs', () => {
     const {exec} = emptyExec()
     const flockMod = exec.import(modIdFor('flock'))
     const counterMod = exec.import(modIdFor('sheep-counter'))
-    const flock = exec.instantiate(flockMod.idx, ...constructorArgs('flock', 'Flock', []))
-    const shepherd = exec.instantiate(counterMod.idx, ...constructorArgs('sheep-counter', 'Shepherd', [ref(flock.idx)]))
+    const flock = exec.instantiate(flockMod.idx, ...flockArgs.constr('Flock', []))
+    const shepherd = exec.instantiate(counterMod.idx, ...ctrArgs.constr('Shepherd', [ref(flock.idx)]))
     exec.lockJig(shepherd.idx, userAddr)
     const result = exec.finalize()
 
@@ -187,9 +198,9 @@ describe('execute txs', () => {
     const {exec} = emptyExec(privKeys)
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
-    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
-    exec.call(flock.idx, ...argsFor('flock', 'Flock', 'grow', []))
-    const shepherd = exec.instantiate(counterWasm.idx, ...constructorArgs('sheep-counter', 'Shepherd', [ref(flock.idx)]))
+    const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
+    exec.call(flock.idx, ...flockArgs.method('Flock', 'grow', []))
+    const shepherd = exec.instantiate(counterWasm.idx, ...ctrArgs.constr('Shepherd', [ref(flock.idx)]))
     exec.lockJig(shepherd.idx, userAddr)
 
     return {
@@ -210,8 +221,8 @@ describe('execute txs', () => {
 
     const {exec: exec2} = emptyExec([userPriv])
     const loaded = exec2.load(result.outputs[2].hash)
-    const classPtrStmt = exec2.call(loaded.idx, ...argsFor('sheep-counter', 'Shepherd', 'myClassPtr', []))
-    const flockClassPtrStmt = exec2.call(loaded.idx, ...argsFor('sheep-counter', 'Shepherd', 'flockClassPtr', []))
+    const classPtrStmt = exec2.call(loaded.idx, ...ctrArgs.method('Shepherd', 'myClassPtr', []))
+    const flockClassPtrStmt = exec2.call(loaded.idx, ...ctrArgs.method('Shepherd', 'flockClassPtr', []))
 
 
     const r1 = new BufReader(classPtrStmt.asValue().lift())
@@ -242,12 +253,12 @@ describe('execute txs', () => {
     const {exec} = emptyExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
-    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
+    const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
 
     exec.lockJig(flock.idx, userAddr)
 
     expect(() => exec.instantiate(
-      counterWasm.idx, ...constructorArgs('sheep-counter', 'Shepherd', [ref(flock.idx)])
+      counterWasm.idx, ...ctrArgs.constr('Shepherd', [ref(flock.idx)])
     )).to.throw(PermissionError,
       /Missing signature for/)
   })
@@ -263,12 +274,12 @@ describe('execute txs', () => {
   function antExec (): AntExec {
     const {exec} = emptyExec()
     const antWasm = exec.import(modIdFor('ant'))
-    const ant1 = exec.instantiate(antWasm.idx, ...constructorArgs('ant', 'Ant', []))
-    const ant2 = exec.instantiate(antWasm.idx, ...constructorArgs('ant', 'Ant', []))
-    const ant3 = exec.instantiate(antWasm.idx, ...constructorArgs('ant', 'Ant', []))
+    const ant1 = exec.instantiate(antWasm.idx, ...antArgs.constr('Ant', []))
+    const ant2 = exec.instantiate(antWasm.idx, ...antArgs.constr('Ant', []))
+    const ant3 = exec.instantiate(antWasm.idx, ...antArgs.constr('Ant', []))
 
-    exec.call(ant1.idx, ...argsFor('ant', 'Ant', 'addFriend', [ref(ant2.idx)])) // does not lock to caller
-    exec.call(ant1.idx, ...argsFor('ant', 'Ant', 'addChild', [ref(ant3.idx)])) // locks to caller
+    exec.call(ant1.idx, ...antArgs.method('Ant', 'addFriend', [ref(ant2.idx)])) // does not lock to caller
+    exec.call(ant1.idx, ...antArgs.method('Ant', 'addChild', [ref(ant3.idx)])) // locks to caller
     exec.lockJig(ant1.idx, userAddr)
     exec.lockJig(ant2.idx, userAddr)
     return {exec, ant1, ant2, ant3}
@@ -278,7 +289,7 @@ describe('execute txs', () => {
     const {exec, ant1} = antExec()
 
     expect(() =>
-      exec.call(ant1.idx, ...argsFor('ant', 'Ant', 'forceAFriendToWork', [])) // calls public method on not owned jig
+      exec.call(ant1.idx, ...antArgs.method('Ant', 'forceAFriendToWork', [])) // calls public method on not owned jig
     ).to.throw(PermissionError)
   })
 
@@ -286,7 +297,7 @@ describe('execute txs', () => {
     const {exec, ant1} = antExec()
 
     expect(() =>
-      exec.call(ant1.idx, ...argsFor('ant', 'Ant', 'forceFriendsFamilyToWork', [])) // calls private method on not owned jig
+      exec.call(ant1.idx, ...antArgs.method('Ant', 'forceFriendsFamilyToWork', [])) // calls private method on not owned jig
     ).to.throw(PermissionError)
   })
 
@@ -295,8 +306,8 @@ describe('execute txs', () => {
     beforeEach(() => {
       const {exec} = emptyExec()
       const flockMod = exec.import(modIdFor('flock'))
-      const flock = exec.instantiate(flockMod.idx, ...constructorArgs('flock', 'Flock', []))
-      exec.call(flock.idx, ...argsFor('flock', 'Flock', 'goToFridge', []))
+      const flock = exec.instantiate(flockMod.idx, ...flockArgs.constr('Flock', []))
+      exec.call(flock.idx, ...flockArgs.method('Flock', 'goToFridge', []))
       const res = exec.finalize()
       expect(res.outputs[1].lock.type).to.eql(LockType.FROZEN)
       frozenOutput = res.outputs[1]
@@ -306,7 +317,7 @@ describe('execute txs', () => {
     it('cannot be called methods', () => {
       const {exec} = emptyExec()
       const jig = exec.load(frozenOutput.hash)
-      expect(() => exec.call(jig.idx, ...argsFor('flock', 'Flock', 'grow', []))).to
+      expect(() => exec.call(jig.idx, ...flockArgs.method('Flock', 'grow', []))).to
         .throw(PermissionError,
           /jig is frozen/)
     })
@@ -328,7 +339,7 @@ describe('execute txs', () => {
     const { exec: exec2 } = emptyExec([userPriv])
 
     const loaded = exec2.load(res1.outputs[1].hash)
-    exec2.call(loaded.idx, ...argsFor('ant', 'Ant', 'doExercise', []))
+    exec2.call(loaded.idx, ...antArgs.method('Ant', 'doExercise', []))
     const result = exec2.finalize()
 
     const antProps = parseOutput(result.outputs[1])
@@ -344,7 +355,7 @@ describe('execute txs', () => {
     const { exec: exec2 } = emptyExec([userPriv])
 
     const loaded = exec2.loadByOrigin(res1.outputs[1].origin.toBytes())
-    exec2.call(loaded.idx, ...argsFor('ant', 'Ant', 'doExercise', []))
+    exec2.call(loaded.idx, ...antArgs.method('Ant', 'doExercise', []))
     const result = exec2.finalize()
 
     const antProps = parseOutput(result.outputs[1])
@@ -375,7 +386,7 @@ describe('execute txs', () => {
 
     const {exec: exec2} = emptyExec([userPriv])
     const jig = exec2.load(res1.outputs[2].hash)
-    const value = exec2.call(jig.idx, ...argsFor('sheep-counter', 'Shepherd', 'sheepCount', []))
+    const value = exec2.call(jig.idx, ...ctrArgs.method('Shepherd', 'sheepCount', []))
     expect(value.asValue().ptr.toUInt()).to.eql(1)
     const res2 = exec2.finalize()
     expect(res2.outputs).to.have.length(2)
@@ -394,8 +405,8 @@ describe('execute txs', () => {
     const { exec } = emptyExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const flock = exec.exec(flockWasm.idx, ...execArgs('flock', 'flockWithSize', [3]))
-    const bag = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'FlockBag', []))
-    exec.call(bag.idx, ...argsFor('flock','FlockBag', 'addFlock', [ref(flock.idx)]))
+    const bag = exec.instantiate(flockWasm.idx, ...flockArgs.constr('FlockBag', []))
+    exec.call(bag.idx, ...flockArgs.method('FlockBag', 'addFlock', [ref(flock.idx)]))
     exec.lockJig(bag.idx, userAddr)
     return exec.finalize()
   }
@@ -438,8 +449,8 @@ describe('execute txs', () => {
   it('can call exported functions from inside jigs', () => {
     const { exec } = emptyExec()
     const flockWasm = exec.import(modIdFor('flock'))
-    const flock = exec.instantiate(flockWasm.idx, ...constructorArgs('flock', 'Flock', []))
-    exec.call(flock.idx, ...argsFor('flock', 'Flock', 'groWithExternalFunction', []))
+    const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
+    exec.call(flock.idx, ...flockArgs.method('Flock', 'groWithExternalFunction', []))
     exec.lockJig(flock.idx, userAddr)
     const res = exec.finalize()
 
@@ -450,7 +461,7 @@ describe('execute txs', () => {
   it('saves entire state for jigs using inheritance', () => {
     const {exec} = emptyExec()
     const wasm = exec.import(modIdFor('sheep'))
-    const sheep = exec.instantiate(wasm.idx, ...constructorArgs('sheep', 'MutantSheep', ['Wolverine', 'black']))
+    const sheep = exec.instantiate(wasm.idx, ...sheepArgs.constr('MutantSheep', ['Wolverine', 'black']))
     exec.lockJig(sheep.idx, userAddr)
     const res = exec.finalize()
 
@@ -464,10 +475,10 @@ describe('execute txs', () => {
   it('can call base class and concrete class methods', () => {
     const {exec} = emptyExec()
     const wasm = exec.import(modIdFor('sheep'))
-    const sheep = exec.instantiate(wasm.idx, ...constructorArgs('sheep', 'MutantSheep', ['Wolverine', 'black']))
-    exec.call(sheep.idx, ...argsFor('sheep', 'Sheep', 'chopOneLeg', []))
-    exec.call(sheep.idx, ...argsFor('sheep', 'Sheep', 'chopOneLeg', []))
-    exec.call(sheep.idx, ...argsFor('sheep', 'MutantSheep', 'regenerateLeg', []))
+    const sheep = exec.instantiate(wasm.idx, ...sheepArgs.constr('MutantSheep', ['Wolverine', 'black']))
+    exec.call(sheep.idx, ...sheepArgs.method('Sheep', 'chopOneLeg', []))
+    exec.call(sheep.idx, ...sheepArgs.method('Sheep', 'chopOneLeg', []))
+    exec.call(sheep.idx, ...sheepArgs.method('MutantSheep', 'regenerateLeg', []))
 
     exec.lockJig(sheep.idx, userAddr)
     const res = exec.finalize()
@@ -482,15 +493,15 @@ describe('execute txs', () => {
   it('can create, lock and reload a jig that uses inheritance', () => {
     const {exec: exec1} = emptyExec()
     const wasm = exec1.import(modIdFor('sheep'))
-    const sheep = exec1.instantiate(wasm.idx, ...constructorArgs('sheep', 'MutantSheep', ['Wolverine', 'black']))
+    const sheep = exec1.instantiate(wasm.idx, ...sheepArgs.constr('MutantSheep', ['Wolverine', 'black']))
     exec1.lockJig(sheep.idx, userAddr)
     const res1 = exec1.finalize()
     storage.persist(res1)
 
     const { exec: exec2 } = emptyExec([userPriv])
     const loaded = exec2.load(res1.outputs[1].hash)
-    exec2.call(loaded.idx, ...argsFor('sheep', 'Sheep', 'chopOneLeg',[])) // -1 leg
-    exec2.call(loaded.idx, ...argsFor('sheep', 'MutantSheep', 'regenerateLeg',[])) // +1 leg
+    exec2.call(loaded.idx, ...sheepArgs.method('Sheep', 'chopOneLeg',[])) // -1 leg
+    exec2.call(loaded.idx, ...sheepArgs.method('MutantSheep', 'regenerateLeg',[])) // +1 leg
     exec2.lockJig(loaded.idx, userAddr)
     const res2 = exec2.finalize()
 
@@ -510,7 +521,7 @@ describe('execute txs', () => {
     const mintedCoin = vm.mint(userAddr, 1000)
     const wasm = exec.import(modIdFor('coin-eater'))
     const coin = exec.load(mintedCoin.hash)
-    const eater = exec.instantiate(wasm.idx, ...constructorArgs('coin-eater', 'CoinEater', [ref(coin.idx)]))
+    const eater = exec.instantiate(wasm.idx, ...coinEaterArgs.constr('CoinEater', [ref(coin.idx)]))
     exec.lockJig(eater.idx, userAddr)
     const ret = exec.finalize()
     storage.persist(ret)
@@ -523,10 +534,10 @@ describe('execute txs', () => {
   it('keeps locking state up to date after lock', () => {
     const { exec} = emptyExec([userPriv])
     const wasm = exec.import(modIdFor('flock'))
-    const flock = exec.instantiate(wasm.idx, ...constructorArgs('flock', 'Flock', []))
+    const flock = exec.instantiate(wasm.idx, ...flockArgs.constr('Flock', []))
 
     exec.lockJig(flock.idx, userAddr)
-    exec.call(flock.idx, ...argsFor('flock', 'Flock', 'grow', [])).idx
+    exec.call(flock.idx, ...flockArgs.method('Flock', 'grow', [])).idx
     const res = exec.finalize()
 
     const parsed = parseOutput(res.outputs[1])
@@ -572,7 +583,7 @@ describe('execute txs', () => {
 
   it('when call an external constructor a new jig is created a right proxy gets assigned', () => {
     const { exec, shepherd } = shepherdExec([userPriv])
-    exec.call(shepherd.idx, ...argsFor('sheep-counter', 'Shepherd', 'breedANewFlock', [5]))
+    exec.call(shepherd.idx, ...ctrArgs.method('Shepherd', 'breedANewFlock', [5]))
     const res = exec.finalize()
 
     expect(res.outputs).to.have.length(4)

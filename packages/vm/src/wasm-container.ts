@@ -104,93 +104,15 @@ export class WasmContainer {
           this._currentExec.get().vmJigLock(this, WasmWord.fromNumber(originPtr), type, WasmWord.fromNumber(argsPtr))
         },
         caller_typecheck: (rtIdToCheck: number, exact: boolean): boolean => {
-          // const callerOrigin = this.currentExec.stackPreviousToTop()
-          //
-          // // If no caller then the caller is not of the given type.
-          // if (!callerOrigin) {
-          //   return false
-          // }
-          //
-          // // Get caller ref
-          // const callerRef = this.currentExec.getJigRefByOrigin(callerOrigin)
-          // const callerAbi = callerRef.package.abi
-          //
-          // if (callerAbi.rtIdById(rtIdToCheck).isAbsent()) {
-          //   return false
-          // }
-          // const rtIdNode = callerRef.package.abi.rtIdById(rtIdToCheck).get()
-          // const type = emptyTn(rtIdNode.name)
-          //
-          // // check if it's an exported class
-          // const exportedIndex = this.abi.exportedByName(type.name).get().toAbiClass().idx
-          //
-          // // Case when exported and exact, check is exactly the class
-          // if (exportedIndex > -1 && exact) {
-          //   return callerRef.classPtr().equals(new Pointer(this.id, exportedIndex))
-          // }
-          //
-          // // Case when exported and not exact, check inheritance chain
-          // if (exportedIndex > -1 && !exact) {
-          //   // both classes belong to the same package. We check if caller is subclass of exportedIndex
-          //   const callerClass = this.abi.exportedByIdx(callerRef.classIdx).get().toAbiClass()
-          //   return callerClass.isSubclassByIndex(exportedIndex)
-          // }
-          //
-          //
-          // // check if imported class
-          // this.abi.importedByName(type.name)
-          // const maybeImportedIndex = this.abi.importedByName(type.name)
-          // if (maybeImportedIndex.isAbsent()) {
-          //   return false
-          // }
-          // const importedIndex = maybeImportedIndex.get().idx
-          // const imported = this.abi.importedByIndex(importedIndex).get().toImportedClass()
-          // const module = this.currentExec.getLoadedModule(imported.pkgId)
-          // const externalExportedIndex = module.abi
-          //     .exportedByName(type.name)
-          //     .get()
-          //     .idx
-          // return callerRef.classPtr().equals(new Pointer(imported.pkgId, externalExportedIndex))
           return false
         },
         caller_outputcheck: (): boolean => {
-          // const callerOrigin = this.currentExec.stackPreviousToTop()
-          //
-          // return !!callerOrigin
           return false
         },
         caller_output: (): WasmPointer => {
-          // const callerOrigin = this.currentExec.stackPreviousToTop()
-          // if (!callerOrigin) {
-          //   throw new ExecutionError('caller function executed from top level')
-          // }
-          // const callerJig = this.currentExec.findJigByOrigin(callerOrigin)
-          // const outputObject = callerJig.outputObject();
-          // return this.insertValue(outputObject, outputTypeNode)
           return 0
         },
         caller_output_val: (keyPtr: number): WasmPointer => {
-          // const callerOrigin = this.currentExec.stackPreviousToTop()
-          // if (!callerOrigin) {
-          //   throw new ExecutionError('caller function executed from top level')
-          // }
-          // const callerJig = this.currentExec.findJigByOrigin(callerOrigin)
-          //
-          // const propName = this.liftString(keyPtr)
-          // let buf
-          // if (propName === 'origin') {
-          //   buf = callerJig.origin.toBytes()
-          // } else
-          // if (propName === 'location') {
-          //   buf = callerJig.latestLocation.toBytes()
-          // } else
-          // if (propName === 'class') {
-          //   buf = callerJig.classPtr().toBytes()
-          // } else {
-          //   throw new Error(`umnown caller property: ${propName}`)
-          // }
-          //
-          // return this.insertValue(buf, arrayBufferTypeNode)
           return 0
         },
         constructor_local: (classNamePtr: number, argsPtr: number): WasmPointer => {
@@ -208,8 +130,7 @@ export class WasmContainer {
             WasmWord.fromNumber(argBufPtr)
           ).toUInt()
         },
-        proxy_link: () => {
-        },
+        proxy_link: () => {},
         debug_str: (strPtr: number): void => {
           const msg = this.lifter.lift(WasmWord.fromNumber(strPtr), AbiType.fromName('string'))
           const buf = Buffer.from(new BufReader(msg).readBytes())
@@ -249,56 +170,6 @@ export class WasmContainer {
     const buf = this.lifter.lift(ptr, AbiType.fromName('ArrayBuffer'))
     return new BufReader(buf).readBytes()
   }
-
-    // getPropValue (ref: Internref, classIdx: number, fieldName: string): Prop {
-  //   const classNode = this.abi.exportedByIdx(classIdx).map(e => e.toAbiClass()).get()
-  //   const field = classNode.fieldByName(fieldName).expect(new ExecutionError(`unknown field: ${fieldName}`))
-  //
-  //   const offsets = getObjectMemLayout(classNode.fields)
-  //   const { offset, align } = offsets[field.name]
-  //   const TypedArray = getTypedArrayForPtr(field.type)
-  //   const ptr = new TypedArray(this.memory.buffer)[ref.ptr + offset >>> align]
-  //   return this.extractValue(ptr, field.type)
-  // }
-
-  /**
-   * The abi now exports plain functions - check this method is OK
-   * The static call above should probably look like this too, no?
-   */
-  // functionCall (fnNode: AbiFunction, args: any[] = []): WasmValue {
-  //   const ptrs = fnNode.args.map((argNode: ArgNode, i: number) => {
-  //     const visitor = new LowerArgumentVisitor(this.abi, this, args[i])
-  //     return visitor.travelFromType(argNode.type)
-  //   })
-  //
-  //   const fn = this.instance.exports[fnNode.name] as Function;
-  //   const ptr = fn(...ptrs)
-  //   return this.extractCallResult(ptr, fnNode.rtype)
-  // }
-
-  // extractState(ref: Internref, classIdx: number): Uint8Array {
-  //   const abiObj =  this.abi.exportedByIdx(classIdx).map(e => e.toAbiClass()).get()
-  //   const visitor = new LiftJigStateVisitor(this.abi, this, ref.ptr)
-  //   const lifted = visitor.visitExportedClass(
-  //     abiObj,
-  //     emptyTn(abiObj.name)
-  //   )
-  //   const bcs = new BCS(this.abi.abi)
-  //   return bcs.encode(abiObj.name, abiObj.nativeFields().map((field: FieldNode) => lifted[field.name]))
-  // }
-
-  // liftArguments (argBuffer: Uint8Array, args: ArgNode[]): any[] {
-  //   const argReader = new ArgReader(argBuffer)
-  //   return args.map((n: ArgNode) => {
-  //     const ptr = readType(argReader, n.type)
-  //     const visitor = new LiftArgumentVisitor(this.abi, this, ptr)
-  //     return visitor.travelFromType(n.type)
-  //   })
-  // }
-
-  // liftBasicJig(value: Internref): any {
-  //   return this.extractValue(value.ptr, emptyTn('__Jig')).value
-  // }
 
   malloc (size: number, rtid: number): WasmWord {
     const __new = this.instance.exports.__new;
