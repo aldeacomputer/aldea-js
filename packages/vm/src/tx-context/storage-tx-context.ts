@@ -11,12 +11,11 @@ export class StorageTxContext implements ExecContext {
   private storage: Storage
   private _signers: PubKey[]
   vm: VM
-  clock: Clock
-  constructor(txHash: Uint8Array, signers: PubKey[], storage: Storage, vm: VM, clock: Clock) {
+
+  constructor (txHash: Uint8Array, signers: PubKey[], storage: Storage, vm: VM) {
     this._txHash = txHash
     this.storage = storage
     this.vm = vm
-    this.clock = clock
     this._signers = signers
   }
 

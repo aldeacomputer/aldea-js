@@ -4,7 +4,7 @@ import {OpenLock} from "./locks/open-lock.js"
 import {WasmContainer} from "./wasm-container.js";
 import {Address, base16, BufReader, BufWriter, LockType, Output, Pointer, Lock as CoreLock} from '@aldea/core';
 import {COIN_CLS_PTR, jigInitParamsTypeNode} from "./memory/well-known-abi-nodes.js";
-import {ExecutionResult} from "./execution-result.js";
+import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {ExecContext} from "./tx-context/exec-context.js";
 import {PkgData} from "./storage.js";
@@ -19,7 +19,7 @@ import {FrozenLock} from "./locks/frozen-lock.js";
 import {AbiArg, AbiMethod} from "./memory/abi-helpers/abi-method.js";
 import {JigInitParams} from "./jig-init-params.js";
 
-// const MIN_FUND_AMOUNT = 100
+export const MIN_FUND_AMOUNT = 100
 
 class TxExecution {
   execContext: ExecContext;
@@ -46,9 +46,9 @@ class TxExecution {
 
   finalize (): ExecutionResult {
     const result = new ExecutionResult(this.execContext.txId())
-    // if (this.fundAmount < MIN_FUND_AMOUNT) {
-    //   throw new ExecutionError(`Not enough funding. Provided: ${this.fundAmount}. Needed: ${MIN_FUND_AMOUNT}`)
-    // }
+    if (this.fundAmount < MIN_FUND_AMOUNT) {
+      throw new ExecutionError(`Not enough funding. Provided: ${this.fundAmount}. Needed: ${MIN_FUND_AMOUNT}`)
+    }
     // this.jigs.forEach(jigRef => {
     //   if (jigRef.lock.isOpen()) {
     //     throw new PermissionError(`Finishing tx with unlocked jig (${jigRef.className()}): ${jigRef.origin}`)
@@ -70,15 +70,15 @@ class TxExecution {
       result.addOutput(jigState)
     })
 
-    // this.deployments.forEach(pkgData => {
-    //   result.addDeploy(new PackageDeploy(
-    //     pkgData.sources,
-    //     pkgData.entries,
-    //     pkgData.wasmBin,
-    //     pkgData.abi,
-    //     pkgData.docs
-    //   ))
-    // })
+    this.deployments.forEach(pkgData => {
+      result.addDeploy(new PackageDeploy(
+        pkgData.sources,
+        pkgData.entries,
+        pkgData.wasmBin,
+        pkgData.abi,
+        pkgData.docs
+      ))
+    })
     //
     // this.wasms = new Map()
     // this.jigs = []
@@ -152,8 +152,6 @@ class TxExecution {
     const wasm = statement.asContainer()
 
     const classNode = wasm.abi.exportedByIdx(classIdx).get().toAbiClass()
-    // const args = bcs.decode(`${classNode.name}_constructor`, argsBuf)
-
 
     const method = wasm.abi.exportedByName(classNode.name).get().toAbiClass().constructorDef()
     const callArgs = this.lowerArgs(wasm, method.args, argsBuf)
@@ -502,7 +500,7 @@ class TxExecution {
     return new Pointer(this.execContext.txHash(), this.affectedJigs.length)
   }
 
-  getStatementResult (index: number): StatementResult {
+  stmtAt (index: number): StatementResult {
     const result = this.statements[index]
     if (!result) {
       throw new ExecutionError(`undefined index: ${index}`)
@@ -520,7 +518,7 @@ class TxExecution {
   }
 
   private jigAt(jigIndex: number): JigRef {
-    const ref = this.getStatementResult(jigIndex).asValue()
+    const ref = this.stmtAt(jigIndex).asValue()
     return Option.fromNullable(this.jigs.find(j => j.ref.equals(ref)))
         .orElse(() => { throw new Error(`index ${jigIndex} is not a jig`)})
   }
@@ -528,6 +526,17 @@ class TxExecution {
   lockJig (jigIndex: number, address: Address): StatementResult {
     const jigRef = this.jigAt(jigIndex)
     return this.lockJigToUser(jigRef, address)
+  }
+
+  async deploy (entryPoint: string[], sources: Map<string, string>): Promise<StatementResult> {
+    const pkgData = await this.execContext.compile(entryPoint, sources)
+    this.deployments.push(pkgData)
+    const wasm = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
+    wasm.setExecution(this)
+    this.wasms.set(base16.encode(wasm.hash), wasm)
+    const ret = new WasmStatementResult(this.statements.length, wasm)
+    this.statements.push(ret)
+    return ret
   }
 
   private assertContainer(modId: string): WasmContainer {
@@ -545,17 +554,6 @@ class TxExecution {
   import (modId: Uint8Array): StatementResult {
     const instance = this.assertContainer(base16.encode(modId))
     const ret = new WasmStatementResult(this.statements.length, instance);
-    this.statements.push(ret)
-    return ret
-  }
-
-  async deployPackage (entryPoint: string[], sources: Map<string, string>): Promise<StatementResult> {
-    const pkgData = await this.execContext.compile(entryPoint, sources)
-    this.deployments.push(pkgData)
-    const wasm = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
-    wasm.setExecution(this)
-    this.wasms.set(base16.encode(wasm.hash), wasm)
-    const ret = new WasmStatementResult(this.statements.length, wasm)
     this.statements.push(ret)
     return ret
   }

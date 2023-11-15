@@ -19,7 +19,7 @@ export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () =
   const coinPriv = PrivKey.fromRandom()
   const pubKeys = [coinPriv, ...privKeys].map(p => p.toPubKey())
 
-  const context = new StorageTxContext(txHash, pubKeys, storage, vm, vm.clock)
+  const context = new StorageTxContext(txHash, pubKeys, storage, vm)
   const exec = new TxExecution(context)
   const output = vm.mint(pubKeys[0].toAddress(), 100, new Uint8Array(34).fill(1))
 

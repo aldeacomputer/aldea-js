@@ -9,6 +9,7 @@ import {TxExecution} from "../src/tx-execution.js";
 import {StatementResult} from "../src/statement-result.js";
 import {ExecutionResult} from "../src/execution-result.js";
 import {AbiAccess} from "../src/memory/abi-helpers/abi-access.js";
+import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -477,84 +478,87 @@ describe('execute txs', () => {
     expect(reader.readU8()).to.eql(6)
     expect(reader.readU32()).to.eql(10)
   })
-  //
-  // it('can create, freeze and reload a jig that uses inheritance', () => {
-  //   const wasm = exec.importModule(modIdFor('sheep')).asInstance
-  //   const sheep = exec.instantiateByClassName(wasm, 'MutantSheep', ['Wolverine', 'black']).asJig() // 7 legs
-  //   exec.callInstanceMethod(sheep, 'chopOneLeg', []) // -1 leg
-  //   exec.lockJigToUser(sheep, userAddr)
-  //   const ret1 = exec.finalize()
-  //   storage.persist(ret1)
-  //
-  //   const exec2 = emptyExec([userPriv])
-  //   const loaded = exec2.loadJigByOutputId(ret1.outputs[0].id()).asJig()
-  //   exec2.callInstanceMethod(loaded, 'chopOneLeg', []) // -1 leg
-  //   exec2.callInstanceMethod(loaded, 'regenerateLeg', []) // +1 leg
-  //   exec2.lockJigToUser(loaded, userAddr)
-  //   exec2.markAsFunded()
-  //   const ret2 = exec2.finalize()
-  //
-  //   const state = ret2.outputs[0].parsedState(abiFor('sheep'));
-  //   expect(state).to.have.length(4) // 3 base class + 1 concrete class
-  //   expect(state[0]).to.eql('Wolverine') // 3 base class + 1 concrete class
-  //   expect(state[1]).to.eql('black') // 3 base class + 1 concrete class
-  //   expect(state[2]).to.eql(6) // 3 base class + 1 concrete class
-  //   expect(state[3]).to.eql(10) // 3 base class + 1 concrete class
-  // })
-  //
-  // it('coin eater', () => {
-  //   const exec = emptyExec([userPriv])
-  //   const mintedCoin = vm.mint(userAddr, 1000)
-  //   const wasm = exec.importModule(modIdFor('coin-eater')).asInstance
-  //   const coin = exec.loadJigByOutputId(mintedCoin.id()).asJig()
-  //   const eaterIndex = exec.instantiateByClassName(wasm, 'CoinEater', [coin]).asJig()
-  //   exec.lockJigToUser(eaterIndex, userAddr)
-  //   const ret = exec.finalize()
-  //   storage.persist(ret)
-  //
-  //   const eaterState = ret.outputs[0].parsedState(abiFor('coin-eater'))
-  //   expect(eaterState[0]).to.eql(ret.outputs[1].origin)
-  //   expect(eaterState[1]).to.eql([])
-  // })
-  //
-  // it('chain of deps`', () => {
-  //   const exec = emptyExec([userPriv])
-  //   const modStmt = exec.importModule(modIdFor('dependency-chain'))
-  //   const jig1Stmt = exec.instantiateByIndex(modStmt.idx, 0, new Uint8Array())
-  //   const bcs = new BCS(abiFor('dependency-chain'))
-  //   const jig2Stmt = exec.instantiateByIndex(modStmt.idx, 1, bcs.encode('Second_constructor', [ref(jig1Stmt.idx)]))
-  //   const jig3Stmt = exec.instantiateByIndex(modStmt.idx, 2, bcs.encode('Second_constructor', [ref(jig2Stmt.idx)]))
-  //   exec.lockJigToUserByIndex(jig1Stmt.idx, userAddr)
-  //   exec.lockJigToUserByIndex(jig2Stmt.idx, userAddr)
-  //   exec.lockJigToUserByIndex(jig3Stmt.idx, userAddr)
-  //
-  //   const result = exec.finalize()
-  //
-  //   const state1 = result.outputs[0].parsedState(abiFor('dependency-chain'))
-  //   expect(state1).to.have.length(0)
-  //   const state2 = result.outputs[1].parsedState(abiFor('dependency-chain'))
-  //   expect(state2).to.have.length(1)
-  //   expect(state2[0]).to.eql(result.outputs[0].origin)
-  //   const state3 = result.outputs[2].parsedState(abiFor('dependency-chain'))
-  //   expect(state3).to.have.length(1)
-  //   expect(state3[0]).to.eql(result.outputs[1].origin)
-  // });
-  //
-  // it('keeps locking state up to date after lock', () => {
-  //   const exec = emptyExec([userPriv])
-  //   const wasm = exec.importModule(modIdFor('flock')).asInstance
-  //   const flock = exec.instantiateByClassName(wasm, 'Flock', []).asJig()
-  //
-  //   exec.lockJigToUser(flock, userAddr)
-  //   const resIdx = exec.callInstanceMethod(flock, 'returnLockAddres', []).idx
-  //   const res = exec.getStatementResult(resIdx).value
-  //
-  //   expect(res).to.eql(userAddr.hash)
-  //
-  //   exec.lockJigToUser(flock, userAddr)
-  //   exec.finalize()
-  // })
-  //
+
+  it('can create, lock and reload a jig that uses inheritance', () => {
+    const {exec: exec1} = emptyExec()
+    const wasm = exec1.import(modIdFor('sheep'))
+    const sheep = exec1.instantiate(wasm.idx, ...constructorArgs('sheep', 'MutantSheep', ['Wolverine', 'black']))
+    exec1.lockJig(sheep.idx, userAddr)
+    const res1 = exec1.finalize()
+    storage.persist(res1)
+
+    const { exec: exec2 } = emptyExec([userPriv])
+    const loaded = exec2.load(res1.outputs[1].hash)
+    exec2.call(loaded.idx, ...argsFor('sheep', 'Sheep', 'chopOneLeg',[])) // -1 leg
+    exec2.call(loaded.idx, ...argsFor('sheep', 'MutantSheep', 'regenerateLeg',[])) // +1 leg
+    exec2.lockJig(loaded.idx, userAddr)
+    const res2 = exec2.finalize()
+
+    const reader = new BufReader(res2.outputs[1].stateBuf)
+    expect(Buffer.from(reader.readBytes()).toString()).to.eql('Wolverine')
+    expect(Buffer.from(reader.readBytes()).toString()).to.eql('black')
+    expect(reader.readU8()).to.eql(7)
+    expect(reader.readU32()).to.eql(10)
+  })
+
+  it('coin eater', () => {
+    const txHash = new Uint8Array(32).fill(10)
+    const context = new StorageTxContext(txHash, [userPriv.toPubKey()], storage, vm)
+
+    const exec = new TxExecution(context)
+
+    const mintedCoin = vm.mint(userAddr, 1000)
+    const wasm = exec.import(modIdFor('coin-eater'))
+    const coin = exec.load(mintedCoin.hash)
+    const eater = exec.instantiate(wasm.idx, ...constructorArgs('coin-eater', 'CoinEater', [ref(coin.idx)]))
+    exec.lockJig(eater.idx, userAddr)
+    const ret = exec.finalize()
+    storage.persist(ret)
+
+    const eaterState = parseOutput(ret.outputs[0])
+    expect(eaterState[0]).to.eql(mintedCoin.origin)
+    expect(eaterState[1]).to.eql([mintedCoin.origin])
+  })
+
+  it('keeps locking state up to date after lock', () => {
+    const { exec} = emptyExec([userPriv])
+    const wasm = exec.import(modIdFor('flock'))
+    const flock = exec.instantiate(wasm.idx, ...constructorArgs('flock', 'Flock', []))
+
+    exec.lockJig(flock.idx, userAddr)
+    exec.call(flock.idx, ...argsFor('flock', 'Flock', 'grow', [])).idx
+    const res = exec.finalize()
+
+    const parsed = parseOutput(res.outputs[1])
+    expect(parsed['size']).to.eql(1)
+    expect(res.outputs[1].lock.type).to.eql(LockType.ADDRESS)
+    expect(res.outputs[1].lock.data).to.eql(userAddr.hash)
+  })
+
+
+  it('can compile', async () => {
+    const {exec} = emptyExec()
+    const fileContent = 'export class Dummy extends Jig {}'
+    const entries = ['main.ts']
+    const files = new Map<string, string>([['main.ts', fileContent]])
+
+    await exec.deploy(entries, files)
+
+    const res = exec.finalize()
+    expect(res.deploys[0].entries).to.eql(entries)
+    expect(res.deploys[0].sources).to.eql(files)
+  })
+
+  it('fails if not enough fees there', () => {
+    const txHash = new Uint8Array(32).fill(10)
+    const context = new StorageTxContext(txHash, [userPriv.toPubKey()], storage, vm)
+    const exec = new TxExecution(context)
+    const coin = vm.mint(userAddr, 10)
+    const stmt = exec.load(coin.hash)
+    exec.fund(stmt.idx)
+    expect(() => exec.finalize()).to.throw(ExecutionError, 'Not enough funding. Provided: 10. Needed: 100')
+  })
+
   // it('receives right amount from properties of foreign jigs', () => {
   //   const flockPkg = exec.importModule(modIdFor('flock')).asInstance
   //   const sheepCountPkg = exec.importModule(modIdFor('sheep-counter')).asInstance
