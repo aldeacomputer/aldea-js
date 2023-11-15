@@ -25,4 +25,12 @@ export class JigLock extends Lock {
       throw new PermissionError(`[line=${exec.execLength()}] no permission to unlock jig.`)
     })
   }
+
+  canReceiveCalls (param: TxExecution): boolean {
+    return false;
+  }
+
+  canBeChanged (param: TxExecution): boolean {
+    return false;
+  }
 }

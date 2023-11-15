@@ -1,8 +1,8 @@
 import {ContainerRef, JigRef} from "./jig-ref.js"
 import {ExecutionError} from "./errors.js"
 import {OpenLock} from "./locks/open-lock.js"
-import {WasmContainer} from "./wasm-container.js";
-import {Address, base16, BufReader, BufWriter, LockType, Output, Pointer, Lock as CoreLock} from '@aldea/core';
+import {AuthCheck, WasmContainer} from "./wasm-container.js";
+import {Address, base16, BufReader, BufWriter, Lock as CoreLock, LockType, Output, Pointer} from '@aldea/core';
 import {COIN_CLS_PTR, jigInitParamsTypeNode, outputTypeNode} from "./memory/well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
@@ -477,13 +477,22 @@ class TxExecution {
     jig.lock.assertOpen(this)
 
     let lockData: Uint8Array
-    if (lockType === LockType.ADDRESS) {
-      lockData = from.liftBuf(argsPtr)
-    } else if (lockType === LockType.JIG) {
-      lockData = this.stackFromTop(1).get().toBytes()
-    } else {
-      lockData = new Uint8Array(0)
+    switch (lockType) {
+      case LockType.ADDRESS:
+        lockData = from.liftBuf(argsPtr)
+        break
+      case LockType.JIG:
+        lockData = this.stackFromTop(1).get().toBytes()
+        break
+      case LockType.FROZEN:
+      case LockType.PUBLIC:
+      case LockType.NONE:
+        lockData = new Uint8Array(0)
+        break
+      default:
+        throw new Error(`Unknown locktype: ${lockType}`)
     }
+
     const lock = fromCoreLock(new CoreLock(lockType, lockData))
 
     jig.changeLock(lock)
@@ -606,6 +615,60 @@ class TxExecution {
     }
 
     return true
+  }
+
+  vmCallerOutputCheck () {
+    return this.stackFromTop(2).isPresent();
+  }
+
+  vmCallerOutput (from: WasmContainer): WasmWord {
+    const callerOrigin = this.stackFromTop(2).get();
+    const callerJig = this.assertJig(callerOrigin)
+
+    const buf = new BufWriter()
+    buf.writeBytes(callerJig.origin.toBytes())
+    buf.writeBytes(callerJig.latestLocation.toBytes())
+    buf.writeBytes(callerJig.classPtr().toBytes())
+
+    return from.low.lower(buf.data, new AbiType(outputTypeNode));
+  }
+
+  vmCallerOutputVal (from: WasmContainer, keyPtr: WasmWord): WasmWord {
+    const callerOrigin = this.stackFromTop(2).get();
+    const key = from.liftString(keyPtr)
+    const callerJig = this.assertJig(callerOrigin)
+
+    const buf = new BufWriter()
+
+    switch (key) {
+      case 'origin':
+        buf.writeBytes(callerJig.origin.toBytes())
+        break
+      case 'location':
+        buf.writeBytes(callerJig.latestLocation.toBytes())
+        break
+      case 'class':
+        buf.writeBytes(callerJig.classPtr().toBytes())
+        break
+      default:
+        throw new Error(`unknown vmCallerOutputVal key: ${key}`)
+    }
+
+    return from.low.lower(buf.data, AbiType.fromName('ArrayBuffer'))
+  }
+
+  vmJigAuthCheck (from: WasmContainer, targetOriginPtr: WasmWord, check: AuthCheck): boolean {
+    const origin = Pointer.fromBytes(from.liftBuf(targetOriginPtr))
+    const jig = this.assertJig(origin)
+
+    if (check === AuthCheck.LOCK) {
+      return jig.lock.canBeChanged(this)
+    } else
+    if (check === AuthCheck.CALL) {
+      return jig.lock.canReceiveCalls(this)
+    } else {
+      throw new Error(`unknown auth check: ${check}`)
+    }
   }
 }
 

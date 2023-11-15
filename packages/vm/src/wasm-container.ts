@@ -75,9 +75,8 @@ export class WasmContainer {
         jig_link: (jigPtr: number, rtid: number): WasmPointer => {
           return this._currentExec.get().vmJigLink(this, WasmWord.fromNumber(jigPtr), rtid).toUInt()
         },
-        jig_authcheck: (callerOriginPtr: number, check: AuthCheck) => {
-          // const callerOrigin = this.liftBuffer(callerOriginPtr)
-          // return this.currentExec.remoteAuthCheckHandler(Pointer.fromBytes(callerOrigin), check)
+        jig_authcheck: (callerOriginPtr: number, check: AuthCheck): boolean => {
+          return this._currentExec.get().vmJigAuthCheck(this, WasmWord.fromNumber(callerOriginPtr), check)
         },
         call_method: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number): number => {
           return this._currentExec.get()
@@ -111,13 +110,13 @@ export class WasmContainer {
           )
         },
         caller_outputcheck: (): boolean => {
-          return false
+          return this._currentExec.get().vmCallerOutputCheck()
         },
         caller_output: (): WasmPointer => {
-          return 0
+          return this._currentExec.get().vmCallerOutput(this).toUInt()
         },
         caller_output_val: (keyPtr: number): WasmPointer => {
-          return 0
+          return this._currentExec.get().vmCallerOutputVal(this, WasmWord.fromNumber(keyPtr)).toUInt()
         },
         constructor_local: (classNamePtr: number, argsPtr: number): WasmPointer => {
           return this._currentExec.get().vmConstructorLocal(

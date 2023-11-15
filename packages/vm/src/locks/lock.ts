@@ -14,6 +14,10 @@ export abstract class Lock {
     w.writeBytes(coreLock.data)
     return w.data
   }
+
+  abstract canBeChanged (param: TxExecution): boolean;
+
+  abstract canReceiveCalls (param: TxExecution): boolean;
 }
 
 export { CoreLock }

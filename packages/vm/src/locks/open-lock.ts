@@ -11,4 +11,12 @@ export class OpenLock extends Lock {
   assertOpen (_param: TxExecution): void {
     // no-op
   }
+
+  canReceiveCalls (_param: TxExecution): boolean {
+    return true;
+  }
+
+  canBeChanged (_param: TxExecution): boolean {
+    return true;
+  }
 }

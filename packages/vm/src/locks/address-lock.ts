@@ -20,4 +20,12 @@ export class AddressLock extends Lock {
       throw new PermissionError(`[line=${exec.execLength()}] Missing signature for ${this.addr.toString()}`)
     }
   }
+
+  canBeChanged (exec: TxExecution): boolean {
+    return exec.signedBy(this.addr);
+  }
+
+  canReceiveCalls (exec: TxExecution): boolean {
+    return this.canBeChanged(exec);
+  }
 }

@@ -8,7 +8,15 @@ export class PublicLock extends Lock {
     return new CoreLock(LockType.PUBLIC, new Uint8Array(0));
   }
 
-  assertOpen (_param: TxExecution): void {
-    throw new NotImplementedError()
+  canReceiveCalls (_param: TxExecution): boolean {
+    return true;
+  }
+
+  canBeChanged (_param: TxExecution): boolean {
+    return false;
+  }
+
+  assertOpen (param: TxExecution): void {
+    // no-op
   }
 }
