@@ -3,7 +3,6 @@ import {CompilerResult, PackageParser, writeDependency} from '@aldea/compiler'
 import {Address, BCS, Pointer, abiFromBin, util, Output} from "@aldea/core";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {Buffer} from "buffer";
-import {Clock} from "./clock.js";
 import {data as wasm} from './builtins/coin.wasm.js'
 import {data as rawAbi} from './builtins/coin.abi.bin.js'
 import {data as rawDocs} from './builtins/coin.docs.json.js'
@@ -22,12 +21,10 @@ export type CompileFn = (entry: string[], src: Map<string, string>, deps: Map<st
 
 export class VM {
   private readonly storage: Storage;
-  clock: Clock;
   private compile: CompileFn;
 
-  constructor (storage: Storage, clock: Clock, compile: CompileFn) {
+  constructor (storage: Storage, compile: CompileFn) {
     this.storage = storage
-    this.clock = clock
     this.compile = compile
     this.addPreCompiled(wasm, rawSource, rawAbi, rawDocs, COIN_PKG_ID)
   }

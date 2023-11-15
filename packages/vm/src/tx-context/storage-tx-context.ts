@@ -1,6 +1,5 @@
 import {base16, Output, Pointer, PubKey} from "@aldea/core";
 import {VM} from "../vm.js";
-import {Clock} from "../clock.js";
 import {ExecutionError} from "../errors.js";
 import {WasmContainer} from "../wasm-container.js";
 import {PkgData, Storage} from "../storage.js";

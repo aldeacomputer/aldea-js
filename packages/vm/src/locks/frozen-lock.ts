@@ -1,7 +1,7 @@
 import {CoreLock, Lock} from "./lock.js";
 import {LockType} from "@aldea/core";
 import {TxExecution} from "../tx-execution.js";
-import {NotImplementedError, PermissionError} from "../errors.js";
+import {PermissionError} from "../errors.js";
 
 export class FrozenLock extends Lock {
   coreLock (): CoreLock {

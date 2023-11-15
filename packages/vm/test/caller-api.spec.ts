@@ -4,6 +4,7 @@ import {
 } from '../src/index.js'
 import {expect} from 'chai'
 import {base16, BufReader, ref} from "@aldea/core";
+// @ts-ignore
 import {emptyExecFactoryFactory, buildVm, ArgsBuilder, parseOutput} from './util.js';
 
 describe('execute txs', () => {

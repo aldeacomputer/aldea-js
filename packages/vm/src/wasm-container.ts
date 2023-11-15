@@ -1,6 +1,5 @@
-import {Abi, TypeNode} from "@aldea/core/abi";
+import {Abi} from "@aldea/core/abi";
 import {TxExecution} from "./tx-execution.js";
-import {WasmPointer} from "./arg-reader.js";
 import {AbiAccess} from "./memory/abi-helpers/abi-access.js";
 import {NewMemory} from "./new-memory.js";
 import {WasmWord} from "./wasm-word.js";
@@ -11,25 +10,11 @@ import {NewLowerValue} from "./memory/new-lower-value.js";
 import {base16, BCS, BufReader} from "@aldea/core";
 import {ExecutionError} from "./errors.js";
 
-export type Prop = {
-  node: TypeNode;
-  mod: WasmContainer;
-  value: any;
-}
-
-export type WasmValue = {
-  node: TypeNode;
-  mod: WasmContainer;
-  value: any;
-}
+export type WasmPointer = number | bigint
 
 export enum AuthCheck {
   CALL,
   LOCK
-}
-
-export interface WasmExports extends WebAssembly.Exports {
-  [key: string]: (...args: WasmPointer[]) => number | void;
 }
 
 export class WasmContainer {

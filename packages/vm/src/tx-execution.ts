@@ -396,14 +396,13 @@ class TxExecution {
 
   vmJigInit (from: WasmContainer): WasmWord {
     const nextOrigin = this.nextOrigin.get()
-    const buf = new BufWriter()
-    buf.writeBytes(nextOrigin.toBytes())
-    buf.writeBytes(nextOrigin.toBytes())
-    buf.writeBytes(new Uint8Array(0))
-    buf.writeU32(LockType.NONE)
-    buf.writeBytes(new Uint8Array(0))
-
-    return from.low.lower(buf.data, new AbiType(jigInitParamsTypeNode))
+    const jigInitParams = new JigInitParams(
+      nextOrigin,
+      nextOrigin,
+      new Pointer(new Uint8Array(32).fill(0xff), 0xffff),
+      new OpenLock()
+    )
+    return jigInitParams.lowerInto(from)
   }
 
   vmJigLink (from: WasmContainer, jigPtr: WasmWord, rtId: number): WasmWord {

@@ -1,4 +1,4 @@
-import {Storage, StubClock, VM} from "../src/index.js";
+import {Storage, VM} from "../src/index.js";
 import {base16, BCS, Output, PrivKey} from "@aldea/core";
 import {TxExecution} from "../src/tx-execution.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
@@ -41,9 +41,8 @@ export function addPreCompiled (vm: VM, src: string ): Uint8Array {
 
 export function buildVm(sources: string[]) {
   const moduleIds = new Map<string, string>()
-  const clock = new StubClock()
   const storage = new Storage()
-  const vm = new VM(storage, clock, compile)
+  const vm = new VM(storage, compile)
 
   sources.forEach(src => {
     const id = addPreCompiled(vm, src)
@@ -58,7 +57,6 @@ export function buildVm(sources: string[]) {
       }
       return base16.decode(ret)
     },
-    clock,
     storage,
     vm
   }
@@ -69,8 +67,8 @@ export type CallData = [
   Uint8Array
 ]
 export class ArgsBuilder {
-  private pkgName: string;
-  private abiFor: (key: string) => Abi;
+  private readonly pkgName: string;
+  private readonly abiFor: (key: string) => Abi;
   constructor (pkgName: string, abiFor: (key: string) => Abi) {
     this.pkgName = pkgName
     this.abiFor = abiFor

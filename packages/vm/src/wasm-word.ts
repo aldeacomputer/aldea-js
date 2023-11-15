@@ -1,6 +1,5 @@
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {BufReader, BufWriter} from "@aldea/core";
-import {WasmValue} from "./wasm-container.js";
 
 type WasmArg = number | bigint
 
