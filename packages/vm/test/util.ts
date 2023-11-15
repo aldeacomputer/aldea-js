@@ -1,5 +1,5 @@
 import {Storage, StubClock, VM} from "../src/index.js";
-import {base16, PrivKey, Tx, ed25519} from "@aldea/core";
+import {base16, PrivKey, Tx, ed25519, BCS} from "@aldea/core";
 import {SignInstruction} from "@aldea/core/instructions";
 import {TxExecution} from "../src/tx-execution.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
@@ -7,6 +7,8 @@ import fs from "fs";
 import {fileURLToPath} from "url";
 import {compile} from "@aldea/compiler";
 import {randomBytes} from "@aldea/core/support/util";
+import {Abi, AbiQuery} from "@aldea/core/abi";
+import {AbiAccess} from "../src/memory/abi-helpers/abi-access.js";
 
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 
@@ -62,4 +64,50 @@ export function buildVm(sources: string[]) {
   }
 }
 
+export type CallData = [
+  number,
+  Uint8Array
+]
+export class ArgsBuilder {
+  private pkgName: string;
+  private abiFor: (key: string) => Abi;
+  constructor (pkgName: string, abiFor: (key: string) => Abi) {
+    this.pkgName = pkgName
+    this.abiFor = abiFor
+  }
 
+  method(className: string, methodName: string, args: any[]): CallData {
+    const abi = this.abiFor(this.pkgName)
+    const abiAccess = new AbiAccess(abi)
+
+    const cls = abiAccess.exportedByName(className).get().toAbiClass()
+    const method = cls.methodByName(methodName).get()
+    const bcs = new BCS(abi)
+    return [
+      method.idx,
+      bcs.encode(`${className}_${methodName}`, args)
+    ]
+  }
+
+  constr(className: string, args: any[]): CallData {
+    const abi = this.abiFor(this.pkgName)
+    const abiAccess = new AbiAccess(abi)
+    const abiClass = abiAccess.exportedByName(className).get().toAbiClass()
+
+    const bcs = new BCS(abi)
+
+    return [
+      abiClass.idx,
+      bcs.encode(`${className}_constructor`, args)
+    ]
+  }
+
+  exec(fnName: string, args: any[]): CallData {
+    const abi = this.abiFor(this.pkgName);
+    const bcs = new BCS(abi)
+    const query = new AbiQuery(abi)
+    const idx = query.fromExports().allCode().findIndex(c => c.name === fnName)
+
+    return [idx, bcs.encode(fnName, args)]
+  }
+}

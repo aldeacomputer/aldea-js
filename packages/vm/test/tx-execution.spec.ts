@@ -2,7 +2,7 @@ import {Storage, VM} from '../src/index.js'
 import {expect} from 'chai'
 import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, ref, Tx} from "@aldea/core";
 import {Abi, AbiQuery} from '@aldea/core/abi';
-import {buildVm, emptyExecFactoryFactory} from "./util.js";
+import {ArgsBuilder, buildVm, CallData, emptyExecFactoryFactory} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {TxExecution} from "../src/tx-execution.js";
@@ -60,45 +60,8 @@ describe('execute txs', () => {
 
   const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
 
-  type CallData = [
-    number,
-    Uint8Array
-  ]
 
-  class ArgsBuilder {
-    private pkgName: string;
-    private abiFor: (key: string) => Abi;
-    constructor (pkgName: string, abiFor: (key: string) => Abi) {
-      this.pkgName = pkgName
-      this.abiFor = abiFor
-    }
 
-    method(className: string, methodName: string, args: any[]): CallData {
-      const abi = this.abiFor(this.pkgName)
-      const abiAccess = new AbiAccess(abi)
-
-      const cls = abiAccess.exportedByName(className).get().toAbiClass()
-      const method = cls.methodByName(methodName).get()
-      const bcs = new BCS(abi)
-      return [
-        method.idx,
-        bcs.encode(`${className}_${methodName}`, args)
-      ]
-    }
-
-    constr(className: string, args: any[]): CallData {
-      const abi = this.abiFor(this.pkgName)
-      const abiAccess = new AbiAccess(abi)
-      const abiClass = abiAccess.exportedByName(className).get().toAbiClass()
-
-      const bcs = new BCS(abi)
-
-      return [
-        abiClass.idx,
-        bcs.encode(`${className}_constructor`, args)
-      ]
-    }
-  }
 
   it('instantiate creates the right output', () => {
     const {exec, txHash} = emptyExec()
@@ -392,19 +355,10 @@ describe('execute txs', () => {
     expect(res2.outputs).to.have.length(2)
   })
 
-  function execArgs (pkgName: string, fnName: string, args: any[]): CallData {
-    const abi = abiFor(pkgName);
-    const bcs = new BCS(abi)
-    const query = new AbiQuery(abi)
-    const idx = query.fromExports().allCode().findIndex(c => c.name === fnName)
-
-    return [idx, bcs.encode(fnName, args)]
-  }
-
   function flockBagExec (): ExecutionResult {
     const { exec } = emptyExec()
     const flockWasm = exec.import(modIdFor('flock'))
-    const flock = exec.exec(flockWasm.idx, ...execArgs('flock', 'flockWithSize', [3]))
+    const flock = exec.exec(flockWasm.idx, ...flockArgs.exec('flockWithSize', [3]))
     const bag = exec.instantiate(flockWasm.idx, ...flockArgs.constr('FlockBag', []))
     exec.call(bag.idx, ...flockArgs.method('FlockBag', 'addFlock', [ref(flock.idx)]))
     exec.lockJig(bag.idx, userAddr)
