@@ -1,6 +1,6 @@
 import {PkgData, Storage} from "./storage.js";
 import {CompilerResult, PackageParser, writeDependency} from '@aldea/compiler'
-import {Address, BCS, Pointer, abiFromBin, util, Output} from "@aldea/core";
+import {abiFromBin, Address, BCS, OpCode, Output, Pointer, Tx, util} from "@aldea/core";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {Buffer} from "buffer";
 import {data as wasm} from './builtins/coin.wasm.js'
@@ -8,6 +8,9 @@ import {data as rawAbi} from './builtins/coin.abi.bin.js'
 import {data as rawDocs} from './builtins/coin.docs.json.js'
 import {data as rawSource} from './builtins/coin.source.js'
 import {AddressLock} from "./locks/address-lock.js";
+import {ExecutionResult} from "./execution-result.js";
+import {StorageTxContext} from "./tx-context/storage-tx-context.js";
+import {TxExecution} from "./tx-execution.js";
 
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([
@@ -21,7 +24,7 @@ export type CompileFn = (entry: string[], src: Map<string, string>, deps: Map<st
 
 export class VM {
   private readonly storage: Storage;
-  private compile: CompileFn;
+  private readonly compile: CompileFn;
 
   constructor (storage: Storage, compile: CompileFn) {
     this.storage = storage
@@ -29,13 +32,42 @@ export class VM {
     this.addPreCompiled(wasm, rawSource, rawAbi, rawDocs, COIN_PKG_ID)
   }
 
-  // async execTx(tx: Tx): Promise<ExecutionResult> {
-  //   const context = new StorageTxContext(tx, this.storage, this, this.clock)
-  //   const currentExecution = new TxExecution(context)
-  //   const result = await currentExecution.run()
-  //   this.storage.persist(result)
-  //   return result
-  // }
+  async execTx(tx: Tx): Promise<ExecutionResult> {
+    const context = new StorageTxContext(tx.hash, tx.signers(), this.storage, this)
+    const currentExec = new TxExecution(context)
+
+    for (const inst of tx.instructions) {
+      switch (inst.opcode) {
+        case OpCode.IMPORT:
+          break
+        case OpCode.LOAD:
+          break
+        case OpCode.LOADBYORIGIN:
+          break
+        case OpCode.NEW:
+          break
+        case OpCode.CALL:
+          break
+        case OpCode.EXEC:
+          break
+        case OpCode.FUND:
+          break
+        case OpCode.LOCK:
+          break
+        case OpCode.DEPLOY:
+          break
+        case OpCode.SIGN:
+          break
+        case OpCode.SIGNTO:
+          break
+        default:
+          throw new Error(`unknown opcode: ${inst.opcode}`)
+      }
+    }
+    const result = currentExec.finalize()
+    this.storage.persist(result)
+    return result
+  }
 
   // async execTxFromInputs(exTx: ExtendedTx) {
   //   const context = new ExTxExecContext(exTx, this.clock, this.pkgs, this)
@@ -70,7 +102,6 @@ export class VM {
   }
 
   addPreCompiled (wasmBin: Uint8Array, sourceStr: string, abiBin: Uint8Array, docs: Uint8Array, defaultId: Uint8Array | null = null): Uint8Array {
-
     const sources = new Map<string, string>()
     sources.set('index.ts',sourceStr.toString())
     const entries = ['index.ts'];
