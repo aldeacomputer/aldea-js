@@ -1,16 +1,20 @@
 import {
   Address,
-  BufReader, BufWriter,
-  Instruction, InstructionSerializer, OpCode,
-  PrivKey, PubKey,
+  BufReader,
+  BufWriter,
+  Instruction,
+  InstructionSerializer,
+  OpCode,
+  PrivKey,
+  PubKey,
   Serializable,
-  SignInstruction, SignToInstruction,
+  SignInstruction,
+  SignToInstruction,
 } from './internal.js'
 
-import { base16 } from './support/base.js'
-import { verify } from './support/ed25519.js'
-import { hash } from './support/blake3.js'
-import { sign } from "./support/ed25519.js"
+import {base16} from './support/base.js'
+import {sign, verify} from './support/ed25519.js'
+import {hash} from './support/blake3.js'
 
 const TX_VERSION = 1
 
@@ -97,14 +101,12 @@ export class Tx {
 
   /**
    * Returns a valid signature for the current tx using the given key.
-   * // todo - review this function!!
    */
   createSignature (privKey: PrivKey, to: number = this.instructions.length): Uint8Array {
     const msg = this.sighash(to)
     return sign(msg, privKey)
   }
 
-  // TODO - review this function!!
   isSignedBy (addr: Address, index: number): boolean {
     let i = 0
     for (const inst of this.instructions) {
@@ -133,6 +135,21 @@ export class Tx {
    */
   toHex(): string {
     return base16.encode(this.toBytes())
+  }
+
+  signers (): PubKey[] {
+    const signToSigners = this.instructions.filter(i => [OpCode.SIGNTO].includes(i.opcode))
+      .map((i): PubKey => {
+        let sign = i as SignToInstruction
+        return PubKey.fromBytes(sign.pubkey)
+      })
+    const signSigners = this.instructions.filter(i => [OpCode.SIGN].includes(i.opcode))
+      .map((i): PubKey => {
+        let sign = i as SignInstruction
+        return PubKey.fromBytes(sign.pubkey)
+      })
+
+    return [...signToSigners, ...signSigners]
   }
 
   /**

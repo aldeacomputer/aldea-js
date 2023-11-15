@@ -1,17 +1,17 @@
 
 import {Output, Tx} from "@aldea/core";
-import {JigState} from "../jig-state.js";
+
 export class ExtendedTx {
   private _tx: Tx
-  private _inputs: JigState[]
+  private _inputs: Output[]
   constructor(tx: Tx, inputs: Output[]) {
     this._tx = tx
-    this._inputs = inputs.map(output => JigState.fromOutput(output))
+    this._inputs = inputs
   }
   get tx(): Tx {
     return this._tx
   }
-  get inputs(): JigState[] {
+  get inputs(): Output[] {
     return this._inputs
   }
 }

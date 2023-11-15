@@ -1,5 +1,4 @@
 import minimist from 'minimist'
-import { MomentClock } from '@aldea/vm'
 import { logger } from './globals.js'
 import { buildApp } from './server.js'
 import { startNode, stopNode } from './p2p/node.js'
@@ -13,7 +12,7 @@ const argv = minimist(process.argv.slice(2), {
   string: ['_']
 })
 
-const { app, p2p } = await buildApp(new MomentClock(), argv)
+const { app, p2p } = await buildApp(argv)
 
 const server = app.listen(PORT, () => {
   app.set('started-at', Date.now())

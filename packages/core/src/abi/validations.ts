@@ -34,6 +34,7 @@ function validateCodeDef(obj: any): obj is CodeDef {
     case CodeKind.OBJECT:     return validateObjectNode(obj)
     case CodeKind.PROXY_CLASS:
     case CodeKind.PROXY_FUNCTION:
+    case CodeKind.PROXY_INTERFACE:
       return validateProxyNode(obj)
     default:
       return false

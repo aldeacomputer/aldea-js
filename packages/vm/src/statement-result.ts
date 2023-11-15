@@ -1,13 +1,8 @@
-import {InstructionRef} from "@aldea/core";
-import {TypeNode} from "@aldea/core/abi";
 import {ExecutionError} from "./errors.js";
-import {JigRef} from "./jig-ref.js";
-import {WasmInstance} from "./wasm-instance.js";
-
-export function isInstructionRef(obj: Object): boolean {
-  // This is a little hack to avoid having issues when 2 different builds are used at the same time.
-  return obj.constructor.name === 'InstructionRef' || obj instanceof InstructionRef
-}
+import {ContainerRef} from "./jig-ref.js";
+import {WasmContainer} from "./wasm-container.js";
+import {AbiType} from "./memory/abi-helpers/abi-type.js";
+import {WasmWord} from "./wasm-word.js";
 
 export abstract class StatementResult {
   private _idx: number
@@ -15,13 +10,9 @@ export abstract class StatementResult {
     this._idx = idx
   }
 
-  abstract get abiNode(): TypeNode
+  abstract asValue(): ContainerRef
 
-  abstract get value(): any
-
-  abstract get asInstance(): WasmInstance
-
-  abstract asJig(): JigRef
+  abstract asContainer(): WasmContainer
 
   get idx(): number {
     return this._idx
@@ -29,69 +20,50 @@ export abstract class StatementResult {
 }
 
 export class WasmStatementResult extends StatementResult {
-  private readonly _instance: WasmInstance;
+  private readonly _instance: WasmContainer;
 
-  constructor(idx: number, instance: WasmInstance) {
+  constructor(idx: number, instance: WasmContainer) {
     super(idx)
     this._instance = instance
   }
 
-  get abiNode(): TypeNode {
-    throw new ExecutionError('statement is not a value');
+  asValue (): ContainerRef {
+    throw new Error(`statement ${this.idx}  is not a value`)
   }
 
-  asJig(): JigRef {
-    throw new ExecutionError('statement is not a jig');
-  }
-
-  get value(): any {
-    throw new ExecutionError('statement is not a value');
-  }
-
-  get asInstance(): WasmInstance {
+  asContainer(): WasmContainer {
     return this._instance;
   }
 }
 
 export class ValueStatementResult extends StatementResult {
-  abiNode: TypeNode
-  value: any
-  wasm: WasmInstance
+  value: ContainerRef
 
-  constructor(idx: number, node: TypeNode, value: any, wasm: WasmInstance) {
+
+  constructor(idx: number, ty: AbiType, ptr: WasmWord, wasm: WasmContainer) {
     super(idx)
-    this.abiNode = node
-    this.value = value
-    this.wasm = wasm
+    this.value = new ContainerRef(
+        ptr,
+        ty,
+        wasm
+    )
   }
 
-  asJig(): JigRef {
-    if (JigRef.isJigRef(this.value)) {
-      return this.value as JigRef
-    } else {
-      throw new ExecutionError(`${this.abiNode.name} is not a jig`)
-    }
+  asValue (): ContainerRef {
+    return this.value;
   }
 
-  get asInstance(): WasmInstance {
+  asContainer(): WasmContainer {
     throw new ExecutionError('statement is not a wasm instance');
   }
 }
 
 export class EmptyStatementResult extends StatementResult {
-  get abiNode(): TypeNode {
-    throw new ExecutionError('wrong index')
+  asContainer (): WasmContainer {
+    throw new Error('not a container');
   }
 
-  asJig(): JigRef {
-    throw new ExecutionError('wrong index')
-  }
-
-  get asInstance(): WasmInstance {
-    throw new ExecutionError('wrong index')
-  }
-
-  get value(): any {
-    throw new ExecutionError('wrong index')
+  asValue (): ContainerRef {
+    throw new Error('not a value');
   }
 }

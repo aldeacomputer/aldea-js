@@ -640,6 +640,7 @@ function getCodeKindNodeName(kind: CodeKind): string {
     case CodeKind.OBJECT:     return 'abi_object_node'
     case CodeKind.PROXY_CLASS:
     case CodeKind.PROXY_FUNCTION:
+    case CodeKind.PROXY_INTERFACE:
       return 'abi_proxy_node'
     default: throw new Error(`invalid ABI code kind: ${kind}`)
   }
