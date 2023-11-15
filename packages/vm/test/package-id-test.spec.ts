@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import {calculatePackageId} from "../src/calculate-package-id.js";
+import {calculatePackageId} from "../src/index.js";
 
 describe('calculatePackageId', function () {
   const file1 = `

@@ -6,10 +6,9 @@ import morgan from 'morgan'
 import asyncHandler from 'express-async-handler'
 import { Libp2p } from 'libp2p'
 import { CompileError } from '@aldea/compiler'
-import { VM, Storage, Clock } from '@aldea/vm'
-import { JigState } from '@aldea/vm/jig-state'
+import { VM, Storage, PackageDeploy } from '@aldea/vm'
 import { ExecutionResult } from '@aldea/vm/execution-result'
-import { Address, base16, Pointer, Tx, abiToBin, abiToJson, BCS, ed25519 } from '@aldea/core'
+import {Address, base16, Pointer, Tx, abiToBin, abiToJson, BCS, ed25519, Output} from '@aldea/core'
 import { buildVm } from './build-vm.js'
 import { HttpNotFound } from './errors.js'
 import { logStream, logger } from './globals.js'
@@ -23,43 +22,38 @@ export interface iApp {
   vm: VM
 }
 
-export async function buildApp (clock: Clock, argv: ParsedArgs = { _: [] }): Promise<iApp> {
-  const { vm, storage, minterPriv, coinOrigin } = await buildVm(clock)
+export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
+  const { vm, storage, minterPriv, coinOrigin } = await buildVm()
   const p2p: Libp2p | undefined = argv.p2p !== undefined ? await createNode(argv) : undefined
 
-  const serializeJigState = (jigState: JigState): object => {
-    const lock = jigState.serializedLock
+  const serializeJigState = (output: Output): object => {
     return {
-      id: base16.encode(jigState.id()),
-      origin: jigState.origin.toString(),
-      location: jigState.currentLocation.toString(),
-      class: jigState.classPtr().toString(),
+      id: output.id,
+      origin: output.origin.toString(),
+      location: output.location.toString(),
+      class: output.classPtr.toString(),
       lock: {
-        type: lock.type,
-        data: base16.encode(lock.data)
+        type: output.lock.type,
+        data: output.lock.data
       },
-      state: base16.encode(jigState.stateBuf),
-      created_at: jigState.createdAt
+      state: base16.encode(output.stateBuf)
     }
   }
 
-  const serializeExecResult = (txExec: ExecutionResult): object => {
+  const serializeExecResult = (execRes: ExecutionResult, tx: Tx): object => {
     return {
-      id: txExec.tx.id,
-      rawtx: txExec.tx.toHex(),
-      packages: txExec.deploys.map((pkg) => {
-        const pkgId = base16.encode(pkg.hash)
-        const data = storage.getModule(pkg.hash, () => {
-          throw new HttpNotFound(`Unknown package: ${pkgId}`, { pkg_id: pkgId })
-        })
+      id: execRes.txId,
+      rawtx: tx.toHex(),
+      packages: execRes.deploys.map((pkg: PackageDeploy) => {
+        const files = [...pkg.sources.entries()]
+            .map(([key, value]) => ({ name: key, content: value }) );
         return {
-          id: pkgId,
-          files: Array.from(data.sources.entries()).map(([key, value]) => { return { name: key, content: value } }),
-          entries: data.entries
+          id: pkg.id,
+          files,
+          entries: pkg.entries
         }
       }),
-      outputs: txExec.outputs.map(o => serializeJigState(o)),
-      executed_at: txExec.executedAt
+      outputs: execRes.outputs.map(o => serializeJigState(o))
     }
   }
 
@@ -82,34 +76,36 @@ export async function buildApp (clock: Clock, argv: ParsedArgs = { _: [] }): Pro
     // }
     const txResult = await vm.execTx(tx)
     emitTx(tx)
-    res.send(serializeExecResult(txResult))
+    res.send(serializeExecResult(txResult, tx))
   }))
 
   app.get('/tx/:txid', (req, res) => {
     const txid = req.params.txid
-    const exec = storage.getTransaction(txid)
-    if (exec == null) {
-      throw new HttpNotFound(`unknown tx: ${txid}`, { txid })
-    }
-    res.status(200).send(serializeExecResult(exec))
+    const exec = storage.getExecResult(txid).expect(
+        new HttpNotFound('exec result not found', { txid })
+    )
+    const tx = storage.getTx(txid).expect(
+        new HttpNotFound('tx not found', { txid })
+    )
+
+    res.status(200).send(serializeExecResult(exec, tx))
   })
 
   app.get('/rawtx/:txid', (req, res) => {
     const txid = req.params.txid
-    const exec = storage.getTransaction(txid)
-    if (exec == null) {
-      throw new HttpNotFound(`unknown tx: ${txid}`, { txid })
-    }
+    const tx = storage.getTx(txid).expect(
+        new HttpNotFound('tx not foind', { txid })
+    )
+
     res.set('content-type', 'application/octet-stream')
-    res.status(200).send(Buffer.from(exec.tx.toBytes()))
+    res.status(200).send(Buffer.from(tx.toBytes()))
   })
 
   app.get('/output/:outputId', (req, res) => {
     const outputId = req.params.outputId
     const jigState = storage.getHistoricalUtxo(
-      base16.decode(outputId),
-      () => { throw new HttpNotFound(`${outputId} not found`, { outputId }) }
-    )
+      base16.decode(outputId)
+    ).expect(new HttpNotFound(`${outputId} not found`, { outputId }))
     res.status(200).send(serializeJigState(jigState))
   })
 
@@ -125,14 +121,12 @@ export async function buildApp (clock: Clock, argv: ParsedArgs = { _: [] }): Pro
     const addressStr = req.params.address
     const address = Address.fromString(addressStr)
     res.send(
-      storage.utxosForAddress(address).map(u => serializeJigState(u))
+      storage.utxosForAddress(address).map((u: Output) => serializeJigState(u))
     )
   })
 
   app.post('/mint', asyncHandler(async (req, res) => {
-    const coinPkg = storage.getModule(base16.decode('0000000000000000000000000000000000000000000000000000000000000000'), (pkgId) => {
-      throw new HttpNotFound('coin pkg not found', { package_id: pkgId })
-    })
+    const coinPkg = storage.getPkg('0000000000000000000000000000000000000000000000000000000000000000').get()
     const bcs = new BCS(coinPkg.abi)
     const { address, amount } = req.body
     const coinLocation = storage.tipFor(coinOrigin)
@@ -158,9 +152,9 @@ export async function buildApp (clock: Clock, argv: ParsedArgs = { _: [] }): Pro
   app.get('/package/:packageId/abi.:format', (req, res) => {
     const { packageId, format } = req.params
 
-    const data = storage.getModule(base16.decode(packageId), (pkgId) => {
-      throw new HttpNotFound(`package with id ${pkgId} not found`, { package_id: packageId })
-    })
+    const data = storage.getPkg(packageId).expect(
+        new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
+    )
 
     if (format === 'json' || format.length === 0) {
       res.set('content-type', 'application/json')
@@ -175,9 +169,7 @@ export async function buildApp (clock: Clock, argv: ParsedArgs = { _: [] }): Pro
 
   app.get('/package/:packageId/source', (req, res) => {
     const { packageId } = req.params
-    const data = storage.getModule(base16.decode(packageId), () => {
-      throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
-    })
+    const data = storage.getPkg(packageId).expect(new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId }))
     const pkgData = BCS.pkg.encode([data.entries, data.sources])
     res.set('content-type', 'application/octet-stream')
     res.send(Buffer.from(pkgData))
@@ -185,23 +177,19 @@ export async function buildApp (clock: Clock, argv: ParsedArgs = { _: [] }): Pro
 
   app.get('/package/:packageId/wasm', (req, res) => {
     const { packageId } = req.params
-    const data = storage.getModule(base16.decode(packageId), () => {
-      throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
-    })
+    const data = storage.getPkg(packageId).expect(new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId }))
     res.set('content-type', 'application/wasm')
     res.send(Buffer.from(data.wasmBin))
   })
 
   app.get('/package/:packageId/docs', (req, res) => {
     const { packageId } = req.params
-    const data = storage.getModule(base16.decode(packageId), () => {
-      throw new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId })
-    })
+    const data = storage.getPkg(packageId).expect(new HttpNotFound(`package with id ${packageId} not found`, { package_id: packageId }))
     res.set('content-type', 'application/json')
     res.send(JSON.parse(Buffer.from(data.docs).toString()))
   })
 
-  app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof HttpNotFound) {
       res.status(statuses.NOT_FOUND)
       res.send({

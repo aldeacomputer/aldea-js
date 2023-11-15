@@ -392,10 +392,10 @@ describe('reading complex types from memory', () => {
       args: [{ name: 'string', args: [], nullable: false }]
     })
 
-    const arrI8Ty = arrTy('i8')
-    const arrI16Ty = arrTy('i16')
-    const arrI32Ty = arrTy('i32')
-    const arrI64Ty = arrTy('i64')
+    // const arrI8Ty = arrTy('i8')
+    // const arrI16Ty = arrTy('i16')
+    // const arrI32Ty = arrTy('i32')
+    // const arrI64Ty = arrTy('i64')
 
 
     it('reads array with u8 values', async () => {

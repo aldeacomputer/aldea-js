@@ -41,8 +41,8 @@ describe('execute txs', () => {
 
     storage = data.storage
     vm = data.vm
-    abiFor = (key: string) => storage.getModule(base16.encode(modIdFor(key))).abi
-    abiForCoin = () => storage.getModule(COIN_CLS_PTR.id).abi
+    abiFor = (key: string) => storage.getPkg(base16.encode(modIdFor(key))).get().abi
+    abiForCoin = () => storage.getPkg(COIN_CLS_PTR.id).get().abi
     modIdFor = data.modIdFor
     flockArgs = new ArgsBuilder('flock', abiFor)
     ctrArgs = new ArgsBuilder('sheep-counter', abiFor)
@@ -173,7 +173,7 @@ describe('execute txs', () => {
     } = shepherdExec([userPriv])
 
     const result = exec.finalize()
-    storage.persist(result)
+    storage.persistExecResult(result)
 
     const {exec: exec2} = emptyExec([userPriv])
     const loaded = exec2.load(result.outputs[2].hash)
@@ -267,7 +267,7 @@ describe('execute txs', () => {
       const res = exec.finalize()
       expect(res.outputs[1].lock.type).to.eql(LockType.FROZEN)
       frozenOutput = res.outputs[1]
-      storage.persist(res)
+      storage.persistExecResult(res)
     })
 
     it('cannot be called methods', () => {
@@ -290,7 +290,7 @@ describe('execute txs', () => {
   it('can load an existing jig', () => {
     const { exec: exec1 } = antExec()
     const res1 = exec1.finalize();
-    storage.persist(res1)
+    storage.persistExecResult(res1)
 
     const { exec: exec2 } = emptyExec([userPriv])
 
@@ -306,7 +306,7 @@ describe('execute txs', () => {
   it('can load an existing jig by origin', () => {
     const { exec: exec1 } = antExec()
     const res1 = exec1.finalize();
-    storage.persist(res1)
+    storage.persistExecResult(res1)
 
     const { exec: exec2 } = emptyExec([userPriv])
 
@@ -338,7 +338,7 @@ describe('execute txs', () => {
   it('can load jigs that include proxies to other packages', () => {
     const { exec: exec1 } = shepherdExec()
     const res1 = exec1.finalize()
-    storage.persist(res1)
+    storage.persistExecResult(res1)
 
     const {exec: exec2} = emptyExec([userPriv])
     const jig = exec2.load(res1.outputs[2].hash)
@@ -369,7 +369,7 @@ describe('execute txs', () => {
 
   it('when a child jig is not used it does not appear in the outputs', () => {
     const res1 = flockBagExec()
-    storage.persist(res1)
+    storage.persistExecResult(res1)
 
     const anotherKey = PrivKey.fromRandom()
 
@@ -443,7 +443,7 @@ describe('execute txs', () => {
     const sheep = exec1.instantiate(wasm.idx, ...sheepArgs.constr('MutantSheep', ['Wolverine', 'black']))
     exec1.lockJig(sheep.idx, userAddr)
     const res1 = exec1.finalize()
-    storage.persist(res1)
+    storage.persistExecResult(res1)
 
     const { exec: exec2 } = emptyExec([userPriv])
     const loaded = exec2.load(res1.outputs[1].hash)
@@ -471,7 +471,7 @@ describe('execute txs', () => {
     const eater = exec.instantiate(wasm.idx, ...coinEaterArgs.constr('CoinEater', [ref(coin.idx)]))
     exec.lockJig(eater.idx, userAddr)
     const ret = exec.finalize()
-    storage.persist(ret)
+    storage.persistExecResult(ret)
 
     const eaterState = parseOutput(ret.outputs[1])
     expect(eaterState.lastCoin).to.eql(mintedCoin.origin)

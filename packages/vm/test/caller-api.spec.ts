@@ -19,7 +19,7 @@ describe('execute txs', () => {
     storage = data.storage
     vm = data.vm
     modIdFor = data.modIdFor
-    const abiFor = (key: string) => storage.getModule(base16.encode(modIdFor(key))).abi
+    const abiFor = (key: string) => storage.getPkg(base16.encode(modIdFor(key))).get().abi
     args = new ArgsBuilder('caller-test-code', abiFor)
   })
 

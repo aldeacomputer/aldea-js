@@ -1,5 +1,5 @@
 import moment from "moment";
-import {Output, Tx} from "@aldea/core";
+import {base16, Output} from "@aldea/core";
 import {Abi} from "@aldea/core/abi";
 import {ExecutionError} from "./errors.js";
 import {calculatePackageId} from "./calculate-package-id.js";
@@ -23,6 +23,10 @@ export class PackageDeploy {
 
   get hash (): Uint8Array {
     return calculatePackageId(this.entries, this.sources)
+  }
+
+  get id (): string {
+    return base16.encode(this.hash)
   }
 
   static fromPackageDate(pkgData: PkgData): PackageDeploy {

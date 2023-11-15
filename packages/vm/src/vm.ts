@@ -65,7 +65,8 @@ export class VM {
       }
     }
     const result = currentExec.finalize()
-    this.storage.persist(result)
+    this.storage.persistTx(tx)
+    this.storage.persistExecResult(result)
     return result
   }
 
@@ -83,7 +84,7 @@ export class VM {
     const pkg = await PackageParser.create(entries, {
       getSrc: (src) => sources.get(src),
       getDep: (pkgId) => {
-        const { abi } = this.storage.getModule(pkgId)
+        const { abi } = this.storage.getPkg(pkgId).get()
         return writeDependency(abi)
       }, 
     })

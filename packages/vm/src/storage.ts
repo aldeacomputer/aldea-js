@@ -1,4 +1,4 @@
-import {Address, base16, LockType, Output, Pointer} from "@aldea/core";
+import {Address, base16, LockType, Output, Pointer, Tx} from "@aldea/core";
 import {Abi} from "@aldea/core/abi";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {WasmContainer} from "./wasm-container.js";
@@ -53,7 +53,8 @@ export class Storage {
   private utxosByAddress: Map<string, Output[]> // address -> state. Only utxos
   private tips: Map<string, string> // origin -> latest output_id
   private origins: Map<string, string> // utxo -> origin. Only utxos
-  private transactions: Map<string, ExecutionResult> // txid -> transaction execution.
+  private txs: Map<string, Tx>
+  private execResults: Map<string, ExecutionResult> // txid -> transaction execution.
   private packages: Map<string, PkgData> // pkg_id -> pkg data
   private historicalUtxos: Map<string, Output>
 
@@ -61,14 +62,20 @@ export class Storage {
     this.utxosByOid = new Map()
     this.tips = new Map()
     this.origins = new Map()
-    this.transactions = new Map()
+    this.txs = new Map()
+    this.execResults = new Map()
     this.packages = new Map()
     this.historicalUtxos = new Map()
     this.utxosByAddress = new Map()
   }
 
-  persist(txExecution: ExecutionResult) {
-    this.addTransaction(txExecution)
+
+  persistTx(tx: Tx) {
+    this.txs.set(tx.id, tx)
+  }
+
+  persistExecResult(txExecution: ExecutionResult) {
+    this.execResults.set(txExecution.txId, txExecution)
     txExecution.outputs.forEach((state) => this.addUtxo(state))
     txExecution.deploys.forEach(pkgDeploy => this.addPackage(pkgDeploy.hash, PkgData.fromPackageDeploy(pkgDeploy)))
   }
@@ -142,24 +149,21 @@ export class Storage {
     return base16.decode(tip)
   }
 
-  addTransaction(exec: ExecutionResult): void {
-    this.transactions.set(exec.txId, exec)
+  getTx(txid: string): Option<Tx> {
+    return Option.fromNullable(this.txs.get(txid))
   }
 
-  getTransaction(txid: string): ExecutionResult | undefined {
-    return this.transactions.get(txid)
+  getExecResult(txid: string): Option<ExecutionResult> {
+    return Option.fromNullable(this.execResults.get(txid))
   }
 
   addPackage(id: Uint8Array, pkgData: PkgData): void {
     this.packages.set(base16.encode(id), pkgData)
   }
 
-  getModule (id: string, onNotFound: OnNotFound = throwNotFound): PkgData {
-    const module =  this.packages.get(id)
-    if (!module) {
-      return onNotFound(id)
-    }
-    return module
+  getPkg (id: string): Option<PkgData> {
+    const pkg =  this.packages.get(id)
+    return Option.fromNullable(pkg)
   }
 
   hasModule(id: Uint8Array): boolean {
@@ -185,7 +189,7 @@ export class Storage {
   }
 
   wasmForPackageId(moduleId: string): WasmContainer {
-    let mod = this.getModule(moduleId)
-    return new WasmContainer(mod.mod, mod.abi, mod.id);
+    let pkg = this.getPkg(moduleId).get()
+    return new WasmContainer(pkg.mod, pkg.abi, pkg.id);
   }
 }
