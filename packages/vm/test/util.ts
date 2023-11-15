@@ -1,6 +1,5 @@
 import {Storage, StubClock, VM} from "../src/index.js";
-import {base16, PrivKey, Tx, ed25519, BCS} from "@aldea/core";
-import {SignInstruction} from "@aldea/core/instructions";
+import {base16, BCS, Output, PrivKey} from "@aldea/core";
 import {TxExecution} from "../src/tx-execution.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import fs from "fs";
@@ -9,6 +8,7 @@ import {compile} from "@aldea/compiler";
 import {randomBytes} from "@aldea/core/support/util";
 import {Abi, AbiQuery} from "@aldea/core/abi";
 import {AbiAccess} from "../src/memory/abi-helpers/abi-access.js";
+import {expect} from "chai";
 
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 
@@ -110,4 +110,12 @@ export class ArgsBuilder {
 
     return [idx, bcs.encode(fnName, args)]
   }
+}
+
+export function parseOutput (o: Output): { [key: string]: any } {
+  const props = o.props
+  if (!props) {
+    expect.fail('no output')
+  }
+  return props
 }

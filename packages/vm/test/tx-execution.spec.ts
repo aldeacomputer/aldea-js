@@ -1,14 +1,13 @@
 import {Storage, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, ref, Tx} from "@aldea/core";
-import {Abi, AbiQuery} from '@aldea/core/abi';
-import {ArgsBuilder, buildVm, CallData, emptyExecFactoryFactory} from "./util.js";
+import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, ref} from "@aldea/core";
+import {Abi} from '@aldea/core/abi';
+import {ArgsBuilder, buildVm, emptyExecFactoryFactory, parseOutput} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {StatementResult} from "../src/statement-result.js";
 import {ExecutionResult} from "../src/execution-result.js";
-import {AbiAccess} from "../src/memory/abi-helpers/abi-access.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 
 describe('execute txs', () => {
@@ -22,13 +21,7 @@ describe('execute txs', () => {
   let abiForCoin: () => Abi
   let modIdFor: (key: string) => Uint8Array
 
-  function parseOutput (o: Output): { [key: string]: any } {
-    const props = o.props
-    if (!props) {
-      expect.fail('no output')
-    }
-    return props
-  }
+
 
   let flockArgs: ArgsBuilder
   let ctrArgs: ArgsBuilder

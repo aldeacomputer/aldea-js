@@ -142,4 +142,11 @@ export class AbiClass {
   ownTy (): AbiType {
     return AbiType.fromName(`*${this.name}`)
   }
+
+  hierarchyNames (): string[] {
+    const query = new AbiQuery(this.abi)
+    query.fromExports().byIndex(this.idx)
+    return query.getClassParents()
+      .map(node => node.name)
+  }
 }

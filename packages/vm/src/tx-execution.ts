@@ -825,6 +825,35 @@ class TxExecution {
 
     return resPtr;
   }
+
+  vmCallerTypeCheck (from: WasmContainer, rtIdToCheck: number, exact: boolean): boolean {
+    const maybeOrigin = this.stackFromTop(2)
+    if (maybeOrigin.isAbsent()) {
+      return false
+    }
+    const callerOrigin = maybeOrigin.get()
+
+    const jig = this.assertJig(callerOrigin)
+
+    const wasm = jig.ref.container
+
+    const fromAbi = from.abi
+    // const callerAbi = wasm.abi
+
+    const fromRtidNode = fromAbi.rtIdById(rtIdToCheck).get()
+
+    if (exact) {
+      if (jig.ref.ty.proxy().name !== fromRtidNode.name) {
+        return false
+      }
+    } else {
+      if (!jig.classAbi().hierarchyNames().includes(fromRtidNode.name)) {
+        return false
+      }
+    }
+
+    return true
+  }
 }
 
 // vmRemoteState (from: WasmContainer, originPtr: WasmWord): WasmWord {

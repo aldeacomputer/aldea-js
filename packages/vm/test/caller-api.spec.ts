@@ -3,9 +3,8 @@ import {
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
-import {Pointer, PrivKey} from "@aldea/core";
-import {ExecutionError} from "../src/errors.js";
-import {emptyExecFactoryFactory, buildVm} from "./util.js";
+import {base16, BufReader, PrivKey, ref} from "@aldea/core";
+import {emptyExecFactoryFactory, buildVm, ArgsBuilder, parseOutput} from "./util.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -16,11 +15,14 @@ describe('execute txs', () => {
 
   let modIdFor: (key:string ) => Uint8Array
 
+  let args: ArgsBuilder
   beforeEach(() => {
     const data = buildVm(['caller-test-code'])
     storage = data.storage
     vm = data.vm
     modIdFor = data.modIdFor
+    const abiFor = (key: string) => storage.getModule(base16.encode(modIdFor(key))).abi
+    args = new ArgsBuilder('caller-test-code', abiFor)
   })
 
   const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
@@ -29,60 +31,54 @@ describe('execute txs', () => {
     describe('when exact is true', function () {
       it('returns true when the caller is the right caller', () => {
         const { exec } = emptyExec()
-        const pkg = exec.import(modIdFor('caller-test-code')).asContainer
-        const receiver = exec.instantiate(pkg, 'Receiver', []).asJig()
-        const sender = exec.instantiate(pkg, 'RightCaller', []).asJig()
-        const resulStmt = exec.call(sender, 'doTheCall', [receiver])
+        const pkg = exec.import(modIdFor('caller-test-code'))
+        const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
+        const sender = exec.instantiate(pkg.idx, ...args.constr( 'RightCaller', []))
+        exec.call(sender.idx, ...args.method('RightCaller', 'doTheCall', [ref(receiver.idx)]))
 
-        expect(exec.getStatementResult(resulStmt.idx).value).to.eql(true)
-
-        exec.lockJigToUser(receiver, userAddr)
-        exec.lockJigToUser(sender, userAddr)
-        exec.finalize()
+        const res = exec.finalize()
+        const parsed = parseOutput(res.outputs[2])
+        expect(parsed.lastCheck).to.eql("true")
       })
     //
-    //   it('returns false when the caller is the right caller', () => {
-    //     const exec = emptyExec()
-    //     const pkg = exec.importModule(modIdFor('caller-test-code')).asContainer
-    //     const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
-    //     const sender = exec.instantiateByClassName(pkg, 'AnotherCaller', []).asJig()
-    //     const resultStmt = exec.callInstanceMethod(sender, 'doTheCall', [receiver])
-    //
-    //       expect(exec.getStatementResult(resultStmt.idx).value).to.eql(false)
-    //
-    //     exec.lockJigToUser(receiver, userAddr)
-    //     exec.lockJigToUser(sender, userAddr)
-    //     exec.finalize()
-    //   })
-    //
-    //   it('returns false when the caller is at top level', () => {
-    //     const exec = emptyExec()
-    //     const pkg = exec.importModule(modIdFor('caller-test-code')).asContainer
-    //     const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
-    //     const resultStmt = exec.callInstanceMethod(receiver, 'checkCallerType', [])
-    //
-    //       expect(exec.getStatementResult(resultStmt.idx).value).to.eql(false)
-    //
-    //     exec.lockJigToUser(receiver, userAddr)
-    //     exec.finalize()
-    //   })
+    it('returns false when the caller is not the right caller', () => {
+      const { exec } = emptyExec()
+      const pkg = exec.import(modIdFor('caller-test-code'))
+      const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
+      const sender = exec.instantiate(pkg.idx, ...args.constr( 'AnotherCaller', []))
+      exec.call(sender.idx, ...args.method('AnotherCaller', 'doTheCall', [ref(receiver.idx)]))
+
+      const res = exec.finalize()
+      const parsed = parseOutput(res.outputs[2])
+      expect(parsed.lastCheck).to.eql("false")
+    })
+
+      it('returns false when the caller is at top level', () => {
+
+        const { exec } = emptyExec()
+        const pkg = exec.import(modIdFor('caller-test-code'))
+        const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
+        exec.call(receiver.idx, ...args.method('Receiver', 'checkCallerType', [ref(receiver.idx)]))
+
+        const res = exec.finalize()
+        const parsed = parseOutput(res.outputs[1])
+        expect(parsed.lastCheck).to.eql("false")
+      })
     //
     //   // This case makes no sense with no interfaces
     //   it('returns true for when an external class is the right one')
     //
-    //   it('returns false when called from subclass', () => {
-    //     const exec = emptyExec()
-    //     const pkg = exec.importModule(modIdFor('caller-test-code')).asContainer
-    //     const receiver = exec.instantiateByClassName(pkg, 'Receiver', []).asJig()
-    //     const sender = exec.instantiateByClassName(pkg, 'SubclassCaller', []).asJig()
-    //     const resultStmt = exec.callInstanceMethod(sender, 'doTheCall', [receiver])
-    //
-    //       expect(exec.getStatementResult(resultStmt.idx).value).to.eql(true)
-    //
-    //     exec.lockJigToUser(receiver, userAddr)
-    //     exec.lockJigToUser(sender, userAddr)
-    //     exec.finalize()
-    //   })
+      it('returns false when called from subclass', () => {
+        const { exec } = emptyExec()
+        const pkg = exec.import(modIdFor('caller-test-code'))
+        const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
+        const sender = exec.instantiate(pkg.idx, ...args.constr( 'SubclassCaller', []))
+        exec.call(sender.idx, ...args.method('RightCaller', 'doTheCall', [ref(receiver.idx)]))
+
+        const res = exec.finalize()
+        const reader = new BufReader(res.outputs[2].stateBuf)
+        expect(Buffer.from(reader.readBytes()).toString()).to.eql('true')
+      })
     });
 
 

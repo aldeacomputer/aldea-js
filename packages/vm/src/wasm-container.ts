@@ -104,7 +104,11 @@ export class WasmContainer {
           this._currentExec.get().vmJigLock(this, WasmWord.fromNumber(originPtr), type, WasmWord.fromNumber(argsPtr))
         },
         caller_typecheck: (rtIdToCheck: number, exact: boolean): boolean => {
-          return false
+          return this._currentExec.get().vmCallerTypeCheck(
+            this,
+            rtIdToCheck,
+            !!exact
+          )
         },
         caller_outputcheck: (): boolean => {
           return false
