@@ -92,8 +92,10 @@ export class Shepherd extends Jig {
 
   breedANewFlock(size: u32): Flock {
     const newFlock = new Flock()
-    for (let i: u32 = 0; i++; i < size) {
+    let i: u32 = 0;
+    while (i < size) {
       newFlock.grow()
+      i++;
     }
     return this.replace(newFlock)
   }
@@ -106,7 +108,7 @@ export function buildSomeSheepCounter (): SheepCounter {
 
 
 // @ts-ignore
-@imported('a6ab705aab2865a323f2dac53f7427dc6b2c9ebef697965e1bef392e4bbad8a4')
+@imported('02aa22e6df49ebc7254b011b77dfedcf1b8ce7287f8f6af8f7e64c2c50a13696')
 declare class Flock extends Jig {
   constructor();
   size: u32;

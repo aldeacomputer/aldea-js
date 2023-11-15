@@ -201,24 +201,12 @@ export class WasmContainer {
           ).toUInt()
         },
         constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): WasmPointer => {
-          // const pkgIdStr = this.liftString(pkgIdStrPtr)
-          // const className = this.liftString(namePtr)
-          // const argBuf = this.liftBuffer(argBufPtr)
-          // const pkg = this.currentExec.loadModule(base16.decode(pkgIdStr))
-          //
-          // const abiNode = pkg.abi.exportedByName(className).get().toAbiClass().methodByName('constructor').get()
-          // const args = this.liftArguments(argBuf, abiNode.args)
-          // const result = this.currentExec.instantiate(pkg, className, args)
-          // const jigRef = result.value as JigRef
-          //
-          // return this.insertValue({
-          //   origin: jigRef.origin.toBytes(),
-          //   location: jigRef.origin.toBytes(),
-          //   classPtr: jigRef.classPtr().toBytes(),
-          //   lockType: jigRef.lock.typeNumber(),
-          //   lockData: jigRef.lock.data(),
-          // }, jigInitParamsTypeNode)
-          return 0
+          return this._currentExec.get().vmConstructorRemote(
+            this,
+            WasmWord.fromNumber(pkgIdStrPtr),
+            WasmWord.fromNumber(namePtr),
+            WasmWord.fromNumber(argBufPtr)
+          ).toUInt()
         },
         proxy_link: () => {
         },

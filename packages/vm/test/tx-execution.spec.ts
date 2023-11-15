@@ -570,6 +570,16 @@ describe('execute txs', () => {
     expect(() => stmt2.asContainer()).to.throw()
   })
 
+  it('when call an external constructor a new jig is created a right proxy gets assigned', () => {
+    const { exec, shepherd } = shepherdExec([userPriv])
+    exec.call(shepherd.idx, ...argsFor('sheep-counter', 'Shepherd', 'breedANewFlock', [5]))
+    const res = exec.finalize()
+
+    expect(res.outputs).to.have.length(4)
+    const parsedFlock = parseOutput(res.outputs[3])
+    expect(parsedFlock.size).to.eql(5)
+  })
+
   // it('receives right amount from properties of foreign jigs', () => {
   //   const flockPkg = exec.importModule(modIdFor('flock')).asInstance
   //   const sheepCountPkg = exec.importModule(modIdFor('sheep-counter')).asInstance

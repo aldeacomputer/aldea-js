@@ -787,6 +787,44 @@ class TxExecution {
 
     return res.orDefault(WasmWord.null());
   }
+
+  vmConstructorRemote (from: WasmContainer, pkgIdStrPtr: WasmWord, namePtr: WasmWord, argBufPtr: WasmWord): WasmWord {
+    const pkgId = from.liftString(pkgIdStrPtr)
+    const clsName = from.liftString(namePtr)
+
+    const targetContainer = this.assertContainer(pkgId)
+    const abiClass = targetContainer.abi.exportedByName(clsName).get().toAbiClass()
+    const constructorDef = abiClass.constructorDef()
+
+    const argsBuf = this.liftArgs(from, argBufPtr, constructorDef.args)
+
+    const argsRead = new BufReader(argsBuf)
+    const args = constructorDef.args.map(arg => {
+      return targetContainer.low.lowerFromReader(argsRead, arg.type)
+    })
+
+    const nextOrigin = this.createNextOrigin()
+    this.nextOrigin = Option.some(nextOrigin)
+    this.stack.push(nextOrigin)
+    targetContainer.callFn(constructorDef.callName(), args, constructorDef.args.map(args => args.type))
+    this.stack.pop()
+
+    const jig = this.jigs.find(j => j.origin.equals(nextOrigin))
+    if (!jig) {
+      throw new Error('jig should exist')
+    }
+
+    const initParams = new JigInitParams(
+      nextOrigin,
+      nextOrigin,
+      jig.classPtr(),
+      jig.lock
+    )
+
+    const resPtr = initParams.lowerInto(from)
+
+    return resPtr;
+  }
 }
 
 // vmRemoteState (from: WasmContainer, originPtr: WasmWord): WasmWord {
