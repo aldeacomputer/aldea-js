@@ -110,20 +110,6 @@ export class WasmContainer {
         get_prop: (targetOriginPtr: number, propNamePtr: number): number => {
           return this._currentExec.get().vmGetProp(this, WasmWord.fromNumber(targetOriginPtr), WasmWord.fromNumber(propNamePtr)).toUInt()
         },
-        remote_state: (originPtr: number): number => {
-          // const originBuff = this.liftBuffer(originPtr)
-          // const jigRef = this.currentExec.findRemoteUtxoHandler(originBuff)
-          // const utxo = {
-          //   origin: jigRef.origin.toString(),
-          //   location: jigRef.latestLocation,
-          //   lock: {
-          //     type: jigRef.lock.typeNumber(),
-          //     data: jigRef.lock.data()
-          //   }
-          // }
-          // return Number(this.insertValue(utxo, outputTypeNode))
-          return 0
-        },
         jig_lock: (originPtr: number, type: number, argsPtr: number) => {
           this._currentExec.get().vmJigLock(this, WasmWord.fromNumber(originPtr), type, WasmWord.fromNumber(argsPtr))
         },

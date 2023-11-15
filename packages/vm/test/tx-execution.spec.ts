@@ -502,10 +502,10 @@ describe('execute txs', () => {
   })
 
   it('coin eater', () => {
-    const txHash = new Uint8Array(32).fill(10)
-    const context = new StorageTxContext(txHash, [userPriv.toPubKey()], storage, vm)
+    // const txHash = new Uint8Array(32).fill(10)
+    // const context = new StorageTxContext(txHash, [userPriv.toPubKey()], storage, vm)
 
-    const exec = new TxExecution(context)
+    const {exec} = emptyExec([userPriv])
 
     const mintedCoin = vm.mint(userAddr, 1000)
     const wasm = exec.import(modIdFor('coin-eater'))
@@ -515,9 +515,9 @@ describe('execute txs', () => {
     const ret = exec.finalize()
     storage.persist(ret)
 
-    const eaterState = parseOutput(ret.outputs[0])
-    expect(eaterState[0]).to.eql(mintedCoin.origin)
-    expect(eaterState[1]).to.eql([mintedCoin.origin])
+    const eaterState = parseOutput(ret.outputs[1])
+    expect(eaterState.lastCoin).to.eql(mintedCoin.origin)
+    expect(eaterState.otherCoins).to.eql([])
   })
 
   it('keeps locking state up to date after lock', () => {
@@ -557,6 +557,17 @@ describe('execute txs', () => {
     const stmt = exec.load(coin.hash)
     exec.fund(stmt.idx)
     expect(() => exec.finalize()).to.throw(ExecutionError, 'Not enough funding. Provided: 10. Needed: 100')
+  })
+
+  it('generates empty statements for sign and signto', () => {
+    const {exec} = emptyExec()
+    const stmt1 = exec.sign(new Uint8Array(64).fill(0), new Uint8Array(32).fill(1))
+    const stmt2 = exec.signTo(new Uint8Array(64).fill(2), new Uint8Array(32).fill(3))
+
+    expect(() => stmt1.asValue()).to.throw()
+    expect(() => stmt1.asContainer()).to.throw()
+    expect(() => stmt2.asValue()).to.throw()
+    expect(() => stmt2.asContainer()).to.throw()
   })
 
   // it('receives right amount from properties of foreign jigs', () => {

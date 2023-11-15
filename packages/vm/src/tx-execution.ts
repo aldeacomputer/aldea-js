@@ -3,7 +3,7 @@ import {ExecutionError} from "./errors.js"
 import {OpenLock} from "./locks/open-lock.js"
 import {WasmContainer} from "./wasm-container.js";
 import {Address, base16, BufReader, BufWriter, LockType, Output, Pointer, Lock as CoreLock} from '@aldea/core';
-import {COIN_CLS_PTR, jigInitParamsTypeNode} from "./memory/well-known-abi-nodes.js";
+import {COIN_CLS_PTR, jigInitParamsTypeNode, outputTypeNode} from "./memory/well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {ExecContext} from "./tx-context/exec-context.js";
@@ -133,7 +133,7 @@ class TxExecution {
     const output = this.execContext.stateByOutputId(outputId)
     const jigRef = this.hydrate(output)
 
-    const ret = new ValueStatementResult(this.statements.length, jigRef.ref.ty, jigRef.ref.ptr, jigRef.ref.container);
+    const ret = new ValueStatementResult(this.statements.length, jigRef.ref.ty.proxy(), jigRef.ref.ptr, jigRef.ref.container);
     this.statements.push(ret)
     return ret
   }
@@ -142,7 +142,7 @@ class TxExecution {
     const origin = Pointer.fromBytes(originBytes)
     const output = this.execContext.inputByOrigin(origin)
     const jigRef = this.hydrate(output)
-    const stmt = new ValueStatementResult(this.statements.length, jigRef.ref.ty, jigRef.ref.ptr, jigRef.ref.container)
+    const stmt = new ValueStatementResult(this.statements.length, jigRef.ref.ty.proxy(), jigRef.ref.ptr, jigRef.ref.container)
     this.statements.push(stmt)
     return stmt
   }
@@ -188,6 +188,18 @@ class TxExecution {
 
     this.statements.push(stmt)
 
+    return stmt
+  }
+
+  sign(_sig: Uint8Array, _pubKey: Uint8Array): StatementResult {
+    const stmt = new EmptyStatementResult(this.statements.length);
+    this.statements.push(stmt)
+    return stmt
+  }
+
+  signTo (_sig: Uint8Array, _pubKey: Uint8Array): StatementResult {
+    const stmt = new EmptyStatementResult(this.statements.length);
+    this.statements.push(stmt)
     return stmt
   }
 
@@ -374,7 +386,7 @@ class TxExecution {
       const importedOrExported = wasm.abi.exportedByName(arg.type.name).map(e => e.idx)
         .or(wasm.abi.importedByName(arg.type.name).map(e => e.idx))
       if (importedOrExported.isPresent() || indexes.includes(i)) {
-        const idx = reader.readU8()
+        const idx = reader.readU16()
         const ref = this.statements[idx].asValue()
         const lifted = ref.container.lifter.lift(ref.ptr, ref.ty)
         return wasm.low.lower(lifted, arg.type)
@@ -776,5 +788,23 @@ class TxExecution {
     return res.orDefault(WasmWord.null());
   }
 }
+
+// vmRemoteState (from: WasmContainer, originPtr: WasmWord): WasmWord {
+//   const origin = Pointer.fromBytes(from.liftBuf(originPtr))
+//   const jigRef = this.jigs.find(j => j.origin.equals(origin))
+//   if (!jigRef) {
+//     throw new Error('should be present')
+//   }
+//
+//   const buf = new BufWriter()
+//   buf.writeBytes(jigRef.origin.toBytes())
+//   buf.writeBytes(jigRef.latestLocation.toBytes())
+//   buf.writeBytes(jigRef.classPtr().toBytes())
+//   const lock = jigRef.lock.coreLock();
+//   buf.writeU32(lock.type)
+//   buf.writeBytes(lock.data)
+//
+//   return from.low.lower(buf.data, new AbiType(outputTypeNode));
+// }
 
 export {TxExecution}

@@ -13,7 +13,7 @@ import {Option} from "../../support/option.js";
 import {AbiExport} from "./abi-export.js";
 import {AbiImport} from "./abi-import.js";
 import {ExecutionError} from "../../errors.js";
-import {basicJigAbiNode, jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "../well-known-abi-nodes.js";
+import {basicJigAbiNode, coinNode, jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "../well-known-abi-nodes.js";
 import {AbiType} from "./abi-type.js";
 
 export class AbiAccess {
@@ -29,12 +29,18 @@ export class AbiAccess {
       this.abi.exports.push(
         this.abi.defs.push(objNode) - 1
       )
+    });
+
+    [coinNode].forEach(impNode => {
+      this.abi.imports.push(
+        this.abi.defs.push(impNode) - 1
+      )
     })
 
     this._exports = this.abi.exports.map((_e, index) =>
       new AbiExport(this.abi, index)
     )
-    this._imports = this.abi.imports.map((_i, index) => new AbiImport(abi, index))
+    this._imports = this.abi.imports.map((_i, index) => new AbiImport(this.abi, index))
     this.rtids = this.abi.typeIds
   }
 

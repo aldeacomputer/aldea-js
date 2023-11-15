@@ -52,4 +52,10 @@ export class AbiType {
   normalizedName () {
     return normalizeTypeName(this.ty);
   }
+
+  proxy (): AbiType {
+    const otherNode = structuredClone(this.ty)
+    otherNode.name = otherNode.name.replace('*', '')
+    return new AbiType(otherNode)
+  }
 }
