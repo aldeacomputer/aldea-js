@@ -1,4 +1,4 @@
-import {JigData, LowerValue, Storage} from "../src/index.js";
+import {Storage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
 import {base16, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
@@ -8,6 +8,7 @@ import {Option} from "../src/support/option.js";
 import {serializeOutput} from "../src/memory/serialize-output.js";
 import {emptyTn} from "../src/memory/well-known-abi-nodes.js";
 import {ValueLifter} from "../src/memory/value-lifter.js";
+import {JigData, LowerValue} from "../src/memory/lower-value.js";
 
 describe('NewMemoryLower', () => {
   let modIdFor: (key: string) => Uint8Array

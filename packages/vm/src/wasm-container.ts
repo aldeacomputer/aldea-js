@@ -149,6 +149,10 @@ export class WasmContainer {
     this._currentExec = Option.some(tx)
   }
 
+  clearExecution () {
+    this._currentExec = Option.none()
+  }
+
   liftString(ptr: WasmWord): string {
     const buf = this.lifter.lift(ptr, AbiType.fromName('string'))
     return Buffer.from(new BufReader(buf).readBytes()).toString()

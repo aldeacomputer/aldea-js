@@ -26,13 +26,11 @@ export class AbiField {
 }
 
 export class AbiPlainObject {
-  private abi: Abi;
   idx: number;
   private node: ObjectNode;
   private _fields: AbiField[];
 
-  constructor (abi: Abi, idx: number, node: ObjectNode) {
-    this.abi = abi
+  constructor (idx: number, node: ObjectNode) {
     this.idx = idx
     this.node = node
 

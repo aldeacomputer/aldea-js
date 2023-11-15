@@ -12,7 +12,6 @@ import {expect} from "chai";
 
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 
-
 export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () => VM) => (privKeys: PrivKey[] = []) => {
   const storage = lazyStorage()
   const vm = lazyVm()
@@ -23,7 +22,7 @@ export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () =
 
   const context = new StorageTxContext(txHash, pubKeys, storage, vm)
   const exec = new TxExecution(context)
-  const output = vm.mint(pubKeys[0].toAddress(), 100, new Uint8Array(34).fill(1))
+  const output = vm.mint(pubKeys[0].toAddress(), 100, new Uint8Array(32).fill(1))
 
   const stmt =  exec.load(output.hash)
   exec.fund(stmt.idx)

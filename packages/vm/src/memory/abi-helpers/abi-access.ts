@@ -1,4 +1,4 @@
-import {Abi, TypeIdNode} from "@aldea/core/abi";
+import {Abi, CodeKind, ObjectNode, TypeIdNode} from "@aldea/core/abi";
 // import {
 //   basicJigAbiNode,
 //   coinNode,
@@ -12,9 +12,9 @@ import {Abi, TypeIdNode} from "@aldea/core/abi";
 import {Option} from "../../support/option.js";
 import {AbiExport} from "./abi-export.js";
 import {AbiImport} from "./abi-import.js";
-import {ExecutionError} from "../../errors.js";
 import {basicJigAbiNode, coinNode, jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "../well-known-abi-nodes.js";
 import {AbiType} from "./abi-type.js";
+import {AbiPlainObject} from "./abi-plain-object.js";
 
 export class AbiAccess {
   readonly abi: Abi;
@@ -22,41 +22,47 @@ export class AbiAccess {
   private _exports: AbiExport[]
   private _imports: AbiImport[]
   private rtids: TypeIdNode[]
-  constructor(abi: Abi) {
+
+  constructor (abi: Abi) {
     this.abi = structuredClone(abi);
 
     [outputAbiNode, jigInitParamsAbiNode, lockAbiNode, basicJigAbiNode].forEach(objNode => {
       this.abi.exports.push(
-        this.abi.defs.push(objNode) - 1
+          this.abi.defs.push(objNode) - 1
       )
     });
 
-    [coinNode].forEach(impNode => {
+
+    const importBase = this.abi.defs.some(e => e.name === 'Coin')
+        ? []
+        : [coinNode]
+
+    importBase.forEach(impNode => {
       this.abi.imports.push(
-        this.abi.defs.push(impNode) - 1
+          this.abi.defs.push(impNode) - 1
       )
     })
 
     this._exports = this.abi.exports.map((_e, index) =>
-      new AbiExport(this.abi, index)
+        new AbiExport(this.abi, index)
     )
     this._imports = this.abi.imports.map((_i, index) => new AbiImport(this.abi, index))
     this.rtids = this.abi.typeIds
   }
 
-  get version(): number {
+  get version (): number {
     return this.abi.version
   }
 
-  get exports(): AbiExport[] {
+  get exports (): AbiExport[] {
     return this._exports
   }
 
-  get imports(): AbiImport[] {
+  get imports (): AbiImport[] {
     return this._imports
   }
 
-  get typeIds(): TypeIdNode[] {
+  get typeIds (): TypeIdNode[] {
     return this.typeIds
   }
 
@@ -71,38 +77,29 @@ export class AbiAccess {
     return Option.fromNullable(exported)
   }
 
-  rtIdByName(name: string): Option<TypeIdNode> {
+  rtIdByName (name: string): Option<TypeIdNode> {
     const maybe = this.rtids.find(rtid => rtid.name === name);
     return Option.fromNullable(maybe)
   }
 
-  rtIdById(id: number): Option<TypeIdNode> {
+  rtIdById (id: number): Option<TypeIdNode> {
     const maybe = this.rtids.find(rtid => rtid.id === id);
     return Option.fromNullable(maybe)
   }
 
-  rtidFromTypeNode(type: AbiType): Option<TypeIdNode> {
+  rtidFromTypeNode (type: AbiType): Option<TypeIdNode> {
     return this.rtIdByName(type.normalizedName())
   }
 
-  outputRtid(): TypeIdNode {
-    return Option.fromNullable(
-      this.rtids.find(rtid => rtid.name == 'Output')
-    ).expect(new ExecutionError('Output rtid not found'))
-  }
-
-  lockRtid(): TypeIdNode {
-    return Option.fromNullable(
-      this.rtids.find(rtid => rtid.name == 'Lock')
-    ).expect(new ExecutionError('Lock rtid not found'))
-  }
-
-  importedByIndex(importedIndex: number): Option<AbiImport> {
-    return Option.fromNullable(this._imports[importedIndex])
-  }
-
-  importedByName(typeName: string): Option<AbiImport> {
+  importedByName (typeName: string): Option<AbiImport> {
     const node = this._imports.find(i => i.name === typeName)
     return Option.fromNullable(node)
+  }
+
+  objectDef (typeName: string): Option<AbiPlainObject> {
+    const search = this.abi.defs.find(def => def.name === typeName);
+    return Option.fromNullable(search)
+        .filter(def => def.kind === CodeKind.OBJECT)
+        .map(def => new AbiPlainObject(-1, def as ObjectNode))
   }
 }

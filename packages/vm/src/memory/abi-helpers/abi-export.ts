@@ -34,7 +34,7 @@ export class AbiExport {
         .fromExports()
         .byIndex(this.idx)
         .getObject()
-    return new AbiPlainObject(this.abi, this.idx, node)
+    return new AbiPlainObject(this.idx, node)
   }
 
   toAbiInterface (): AbiInterface {

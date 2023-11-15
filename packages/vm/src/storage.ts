@@ -188,8 +188,9 @@ export class Storage {
     return this.getJigStateByOrigin(origin);
   }
 
-  wasmForPackageId(moduleId: string): WasmContainer {
-    let pkg = this.getPkg(moduleId).get()
-    return new WasmContainer(pkg.mod, pkg.abi, pkg.id);
+  wasmForPackageId(moduleId: string): Option<WasmContainer> {
+    return  this.getPkg(moduleId).map(pkg => {
+      return new WasmContainer(pkg.mod, pkg.abi, pkg.id);
+    })
   }
 }

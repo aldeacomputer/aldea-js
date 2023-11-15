@@ -26,7 +26,8 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
   const { vm, storage, minterPriv, coinOrigin } = await buildVm()
   const p2p: Libp2p | undefined = argv.p2p !== undefined ? await createNode(argv) : undefined
 
-  const serializeJigState = (output: Output): object => {
+  const serializeOutput = (output: Output): object => {
+    console.log(output.origin.toString())
     return {
       id: output.id,
       origin: output.origin.toString(),
@@ -34,7 +35,7 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
       class: output.classPtr.toString(),
       lock: {
         type: output.lock.type,
-        data: output.lock.data
+        data: base16.encode(output.lock.data)
       },
       state: base16.encode(output.stateBuf)
     }
@@ -53,7 +54,7 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
           entries: pkg.entries
         }
       }),
-      outputs: execRes.outputs.map(o => serializeJigState(o))
+      outputs: execRes.outputs.map(o => serializeOutput(o))
     }
   }
 
@@ -106,7 +107,7 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
     const jigState = storage.getHistoricalUtxo(
       base16.decode(outputId)
     ).expect(new HttpNotFound(`${outputId} not found`, { outputId }))
-    res.status(200).send(serializeJigState(jigState))
+    res.status(200).send(serializeOutput(jigState))
   })
 
   app.get('/output-by-origin/:origin', (req, res) => {
@@ -114,14 +115,14 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
     const jigState = storage.getJigStateByOrigin(
       Pointer.fromString(origin)
     ).orElse(() => { throw new HttpNotFound(`${origin} not found`, { origin }) })
-    res.status(200).send(serializeJigState(jigState))
+    res.status(200).send(serializeOutput(jigState))
   })
 
   app.get('/utxos-by-address/:address', (req, res) => {
     const addressStr = req.params.address
     const address = Address.fromString(addressStr)
     res.send(
-      storage.utxosForAddress(address).map((u: Output) => serializeJigState(u))
+      storage.utxosForAddress(address).map((u: Output) => serializeOutput(u))
     )
   })
 
@@ -132,8 +133,8 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
     const coinLocation = storage.tipFor(coinOrigin)
     const tx = new Tx()
     tx.push(new LoadInstruction(coinLocation))
-    tx.push(new CallInstruction(0, 1, bcs.encode('Coin$send', [amount])))
-    tx.push(new CallInstruction(0, 1, bcs.encode('Coin$send', [200])))
+    tx.push(new CallInstruction(0, 0, bcs.encode('Coin_send', [amount])))
+    tx.push(new CallInstruction(0, 0, bcs.encode('Coin_send', [200])))
     tx.push(new FundInstruction(2))
     tx.push(new LockInstruction(1, Address.fromString(address).hash))
     tx.push(new SignInstruction(new Uint8Array(), minterPriv.toPubKey().toBytes()))
@@ -146,7 +147,7 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
     if (coinOutput == null) {
       throw new Error('coin output should exist')
     }
-    res.status(200).json(serializeJigState(coinOutput))
+    res.status(200).json(serializeOutput(coinOutput))
   }))
 
   app.get('/package/:packageId/abi.:format', (req, res) => {

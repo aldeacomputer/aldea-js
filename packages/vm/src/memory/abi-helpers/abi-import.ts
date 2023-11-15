@@ -25,7 +25,7 @@ export class AbiImport {
       .fromImports()
       .byIndex(this.idx)
       .getObject()
-    return new AbiPlainObject(this.abi, this.idx, node)
+    return new AbiPlainObject(this.idx, node)
   }
 
   toImportedFunction (): AbiImportedProxy {

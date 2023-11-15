@@ -11,6 +11,14 @@ import {AddressLock} from "./locks/address-lock.js";
 import {ExecutionResult} from "./execution-result.js";
 import {StorageTxContext} from "./tx-context/storage-tx-context.js";
 import {TxExecution} from "./tx-execution.js";
+import {
+  CallInstruction,
+  ImportInstruction,
+  LoadByOriginInstruction,
+  LoadInstruction,
+  NewInstruction,
+  ExecInstruction, FundInstruction, LockInstruction, DeployInstruction, SignInstruction, SignToInstruction
+} from "@aldea/core/instructions";
 
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([
@@ -39,26 +47,49 @@ export class VM {
     for (const inst of tx.instructions) {
       switch (inst.opcode) {
         case OpCode.IMPORT:
+          const importIns = inst as ImportInstruction;
+          currentExec.import(importIns.pkgId);
           break
         case OpCode.LOAD:
+          const loadIns = inst as LoadInstruction;
+          currentExec.load(loadIns.outputId);
           break
         case OpCode.LOADBYORIGIN:
+          const loadByOrigin = inst as LoadByOriginInstruction;
+          currentExec.loadByOrigin(loadByOrigin.origin);
           break
         case OpCode.NEW:
+          const instantiate = inst as NewInstruction;
+          currentExec.instantiate(instantiate.idx, instantiate.exportIdx, instantiate.argsBuf);
           break
         case OpCode.CALL:
+          const call = inst as CallInstruction;
+          currentExec.call(call.idx, call.methodIdx, call.argsBuf);
           break
         case OpCode.EXEC:
+          const exec = inst as ExecInstruction;
+          currentExec.exec(exec.idx, exec.exportIdx, exec.argsBuf);
           break
         case OpCode.FUND:
+          const fund = inst as FundInstruction;
+          currentExec.fund(fund.idx);
           break
         case OpCode.LOCK:
+          const lock = inst as LockInstruction;
+          currentExec.lockJig(lock.idx, new Address(lock.pubkeyHash));
           break
         case OpCode.DEPLOY:
+          const deploy = inst as DeployInstruction;
+          const [ entries, files] = BCS.pkg.decode(deploy.pkgBuf);
+          await currentExec.deploy(entries, files);
           break
         case OpCode.SIGN:
+          const sign = inst as SignInstruction;
+          currentExec.sign(sign.sig, sign.pubkey)
           break
         case OpCode.SIGNTO:
+          const signTo = inst as SignToInstruction;
+          currentExec.signTo(signTo.sig, signTo.pubkey)
           break
         default:
           throw new Error(`unknown opcode: ${inst.opcode}`)

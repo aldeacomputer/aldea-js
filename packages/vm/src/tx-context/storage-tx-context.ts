@@ -33,7 +33,9 @@ export class StorageTxContext implements ExecContext {
   }
 
   wasmFromPkgId (pkgId: string): WasmContainer {
-    return this.storage.wasmForPackageId(pkgId)
+    return this.storage.wasmForPackageId(pkgId).expect(
+        new ExecutionError(`Missing package: ${pkgId}`)
+    )
   }
 
   compile (entries: string[], sources: Map<string, string>): Promise<PkgData> {

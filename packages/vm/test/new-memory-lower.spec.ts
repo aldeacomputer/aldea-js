@@ -1,4 +1,4 @@
-import {JigData, LowerValue, Storage} from "../src/index.js";
+import {Storage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
 import {Address, base16, BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
@@ -10,6 +10,7 @@ import {PublicLock} from "../src/locks/public-lock.js";
 import {serializeOutput} from "../src/memory/serialize-output.js";
 import {AddressLock} from "../src/locks/address-lock.js";
 import {BUF_RTID, emptyTn, STRING_RTID} from "../src/memory/well-known-abi-nodes.js";
+import {JigData, LowerValue} from "../src/memory/lower-value.js";
 
 
 const FLOAT_ERROR: number = 0.00001

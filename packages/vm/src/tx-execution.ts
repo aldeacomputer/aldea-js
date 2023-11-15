@@ -1,5 +1,5 @@
 import {ContainerRef, JigRef} from "./jig-ref.js"
-import {ExecutionError} from "./errors.js"
+import {ExecutionError, IvariantBroken} from "./errors.js"
 import {OpenLock} from "./locks/open-lock.js"
 import {AuthCheck, WasmContainer} from "./wasm-container.js";
 import {Address, base16, BufReader, BufWriter, Lock as CoreLock, LockType, Output, Pointer} from '@aldea/core';
@@ -18,6 +18,8 @@ import {AddressLock} from "./locks/address-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {AbiArg, AbiMethod} from "./memory/abi-helpers/abi-method.js";
 import {JigInitParams} from "./jig-init-params.js";
+import {ArgsTranslator} from "./args-translator.js";
+import {CodeKind} from "@aldea/core/abi";
 
 export const MIN_FUND_AMOUNT = 100
 
@@ -80,6 +82,9 @@ class TxExecution {
       ))
     })
 
+    for (const wasm of this.wasms.values()) {
+      wasm.clearExecution()
+    }
     this.wasms = new Map()
     this.jigs = []
     this.statements = []
@@ -117,9 +122,8 @@ class TxExecution {
     const wasm = jig.ref.container;
     const args = this.lowerArgs(wasm, method.args, argsBuf);
 
-    const res = this.performMethodCall(jig, method, args)
-
     this.marKJigAsAffected(jig)
+    const res = this.performMethodCall(jig, method, args)
 
     let stmt: StatementResult = res.map<StatementResult>(ref => {
       return new ValueStatementResult(this.statements.length, ref.ty, ref.ptr, ref.container)
@@ -228,21 +232,14 @@ class TxExecution {
     return newJigRef
   }
 
-  private lowerArgs(wasm: WasmContainer, args: AbiArg[], argsBuf: Uint8Array): WasmWord[] {
+  private lowerArgs(wasm: WasmContainer, args: AbiArg[], rawArgs: Uint8Array): WasmWord[] {
+    const fixer = new ArgsTranslator(this, wasm.abi)
+    const argsBuf = fixer.fix(rawArgs, args)
+
     const reader= new BufReader(argsBuf)
-    const indexes = reader.readSeq(r => r.readU8())
 
     return args.map((arg, i) => {
-      const importedOrExported = wasm.abi.exportedByName(arg.type.name).map(e => e.idx)
-        .or(wasm.abi.importedByName(arg.type.name).map(e => e.idx))
-      if (importedOrExported.isPresent() || indexes.includes(i)) {
-        const idx = reader.readU16()
-        const ref = this.statements[idx].asValue()
-        const lifted = ref.container.lifter.lift(ref.ptr, ref.ty)
-        return wasm.low.lower(lifted, arg.type)
-      } else {
-        return wasm.low.lowerFromReader(reader, arg.type)
-      }
+      return wasm.low.lowerFromReader(reader, arg.type)
     })
   }
 
@@ -284,8 +281,15 @@ class TxExecution {
 
   private jigAt(jigIndex: number): JigRef {
     const ref = this.stmtAt(jigIndex).asValue()
-    return Option.fromNullable(this.jigs.find(j => j.ref.equals(ref)))
-        .orElse(() => { throw new Error(`index ${jigIndex} is not a jig`)})
+    ref.container.abi.exportedByName(ref.ty.name)
+        .filter(e => e.kind === CodeKind.CLASS)
+        .map(e => e.toAbiClass())
+        .expect(new ExecutionError(`index ${jigIndex} is not a jig`))
+
+    const lifted = Pointer.fromBytes(ref.lift())
+
+    return Option.fromNullable(this.jigs.find(j => j.origin.equals(lifted)))
+        .expect(new IvariantBroken('Lowered jig is not in jig list'))
   }
 
   lockJig (jigIndex: number, address: Address): StatementResult {
