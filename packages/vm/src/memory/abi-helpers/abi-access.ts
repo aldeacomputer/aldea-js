@@ -1,14 +1,4 @@
 import {Abi, CodeKind, ObjectNode, TypeIdNode} from "@aldea/core/abi";
-// import {
-//   basicJigAbiNode,
-//   coinNode,
-//   emptyTn,
-//   JIG_TOP_CLASS_NAME,
-//   jigInitParamsAbiNode,
-//   jigNode,
-//   lockAbiNode,
-//   outputAbiNode
-// } from "./well-known-abi-nodes.js";
 import {Option} from "../../support/option.js";
 import {AbiExport} from "./abi-export.js";
 import {AbiImport} from "./abi-import.js";
@@ -18,7 +8,6 @@ import {AbiPlainObject} from "./abi-plain-object.js";
 
 export class AbiAccess {
   readonly abi: Abi;
-  // readonly abi: Abi;
   private _exports: AbiExport[]
   private _imports: AbiImport[]
   private rtids: TypeIdNode[]
