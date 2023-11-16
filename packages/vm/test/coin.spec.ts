@@ -14,13 +14,13 @@ import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
 describe('Coin', () => {
   let storage: Storage
   let vm: VM
-  const userPriv = PrivKey.fromRandom()
-  const userPub = userPriv.toPubKey()
-  const userAddr = userPub.toAddress()
+  // const userPriv = PrivKey.fromRandom()
+  // const userPub = userPriv.toPubKey()
+  // const userAddr = userPub.toAddress()
 
-  const otherUserPriv = PrivKey.fromRandom()
-  const otherUserPub = otherUserPriv.toPubKey()
-  const otherUserAddr = otherUserPub.toAddress()
+  // const otherUserPriv = PrivKey.fromRandom()
+  // const otherUserPub = otherUserPriv.toPubKey()
+  // const otherUserAddr = otherUserPub.toAddress()
 
 
 

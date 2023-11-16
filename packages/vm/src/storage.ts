@@ -44,10 +44,6 @@ export class PkgData {
   }
 }
 
-type OnNotFound = (pkgId: string) => PkgData
-
-const throwNotFound = (idHex: string) => { throw new Error(`unknown module: ${idHex}`) }
-
 export class Storage {
   private utxosByOid: Map<string, Output> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, Output[]> // address -> state. Only utxos

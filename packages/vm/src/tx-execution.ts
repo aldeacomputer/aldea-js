@@ -238,7 +238,7 @@ class TxExecution {
 
     const reader= new BufReader(argsBuf)
 
-    return args.map((arg, i) => {
+    return args.map((arg) => {
       return wasm.low.lowerFromReader(reader, arg.type)
     })
   }

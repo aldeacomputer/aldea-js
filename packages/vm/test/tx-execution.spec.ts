@@ -7,7 +7,7 @@ import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {StatementResult} from "../src/statement-result.js";
-import {ExecutionResult} from "../src/execution-result.js";
+import {ExecutionResult} from "../src/index.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 
 describe('execute txs', () => {
@@ -169,7 +169,6 @@ describe('execute txs', () => {
   it('accessing class ptr works', () => {
     const {
       exec,
-      shepherd
     } = shepherdExec([userPriv])
 
     const result = exec.finalize()
