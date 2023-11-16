@@ -1,7 +1,7 @@
 import fs from 'fs'
 import { join } from 'path'
 import { abiToJson } from '@aldea/core'
-import { Abi } from '@aldea/core/abi'
+import { Abi, ProxyNode } from '@aldea/core/abi'
 import { writeDependency } from '@aldea/compiler'
 import { env } from '../../globals.js'
 
@@ -25,7 +25,7 @@ export async function buildDepsMap(
   if (!pkgs.has(pkgId)) {
     const abi = await env.aldea.getPackageAbi(pkgId)
     pkgs.set(pkgId, abi)
-    await abi.imports.map(i => i.pkg).reduce(buildDepsMap, Promise.resolve(pkgs))
+    await abi.imports.map(i => (<ProxyNode>abi.defs[i]).pkg).reduce(buildDepsMap, Promise.resolve(pkgs))
   }
   return pkgs
 }
