@@ -45,10 +45,10 @@ export abstract class Wallet {
     return await this.client.createTx({ extend: partialTx }, async (txb) => {
       let motosIn = 0n
 
-      for (const coin of coinOutputs) {  
-        if (coin.props?.motos) {
+      for (const coin of coinOutputs) {
+        if (coin.props?.amount) {
           const coinRef = txb.load(coin.id)
-          motosIn += coin.props.motos
+          motosIn += coin.props.amount
 
           if (motosIn > 100n) {
             const changeAddr = await this.getNextAddress()

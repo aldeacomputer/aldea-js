@@ -10,7 +10,7 @@
       "implements": [],
       "fields": [
         {
-          "name": "motos",
+          "name": "amount",
           "type": {
             "name": "u64",
             "args": []

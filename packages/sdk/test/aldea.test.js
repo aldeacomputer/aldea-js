@@ -314,7 +314,7 @@ test('Aldea.loadOutput() returns an Output json object if exists', async t => {
   const res = await aldea.loadOutput('eb1a5706276e030e0518ab4b09e11bf0f30e195b31634abc4eeb2c9e3657ebaa')
   t.true(res instanceof Output)
   t.true(typeof res.props === 'object')
-  t.true(typeof res.props.motos === 'bigint')
+  t.true(typeof res.props.amount === 'bigint')
 })
 
 test('Aldea.loadOutputByOrigin() returns an Output json object if exists', async t => {
@@ -326,7 +326,7 @@ test('Aldea.loadOutputByOrigin() returns an Output json object if exists', async
   const res = await aldea.loadOutputByOrigin('b010448235a7b4ab082435b9c497ba38e8b85e5c0717b91b5b3ae9c1e10b7551_1')
   t.true(res instanceof Output)
   t.true(typeof res.props === 'object')
-  t.true(typeof res.props.motos === 'bigint')
+  t.true(typeof res.props.amount === 'bigint')
 })
 
 test('Aldea.loadOutput() throws error if notfound', async t => {

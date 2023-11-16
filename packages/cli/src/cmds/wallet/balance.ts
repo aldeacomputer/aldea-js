@@ -23,7 +23,7 @@ async function walletBalance() {
   const outputs = await env.wallet.getInventory()
   const motos = outputs
     .filter(o => o.classPtr.equals(COIN_PTR))
-    .reduce((sum, o) => sum += (<{ motos: bigint }>o.props).motos, 0n)
+    .reduce((sum, o) => sum += (<{ motos: bigint }>o.props).amount, 0n)
 
   log(lightBlue('  ₳'), formatMotos(motos))
   log()
