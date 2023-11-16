@@ -105,12 +105,12 @@ test('builds, serialized and parses a kitchen sink tx', async ({ page }) => {
 
   expect(tx.instructions[4].opcode).toBe(OpCode.CALL)
   expect(tx.instructions[4].idx).toBe(1)
-  expect(tx.instructions[4].methodIdx).toBe(1)
+  expect(tx.instructions[4].methodIdx).toBe(0)
   expect(decodeArgs(coinAbi, 'Coin_send', tx.instructions[4].argsBuf)).toEqual([700n, addr.hash])
 
   expect(tx.instructions[5].opcode).toBe(OpCode.CALL)
   expect(tx.instructions[5].idx).toBe(2)
-  expect(tx.instructions[5].methodIdx).toBe(1)
+  expect(tx.instructions[5].methodIdx).toBe(0)
   expect(decodeArgs(pkgAbi, 'Badge_rename', tx.instructions[5].argsBuf)).toEqual(['bar'])
 
   expect(tx.instructions[6].opcode).toBe(OpCode.EXEC)

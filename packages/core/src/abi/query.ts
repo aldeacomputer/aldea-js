@@ -40,6 +40,14 @@ export class AbiQuery {
     return this.#target
   }
 
+  getClassFull(): ClassNode {
+    const node = this.getClass()
+    const parents = this.getClassParents()
+    const fields = parents.flatMap(p => p.fields).concat(node.fields)
+    const methods = parents.flatMap(p => p.methods).concat(node.methods)
+    return { ...node, fields, methods }
+  }
+
   getFunction(): FunctionNode {
     assertFunction(this.#target)
     return this.#target
@@ -50,6 +58,14 @@ export class AbiQuery {
     return this.#target
   }
 
+  getInterfaceFull(): InterfaceNode {
+    const node = this.getInterface()
+    const parents = this.getInterfaceParents()
+    const fields = parents.flatMap(p => p.fields).concat(node.fields)
+    const methods = parents.flatMap(p => p.methods).concat(node.methods)
+    return { ...node, fields, methods }
+  }
+
   getObject(): ObjectNode {
     assertObject(this.#target)
     return this.#target
@@ -58,23 +74,58 @@ export class AbiQuery {
   getField(name: string): FieldNode
   getField(idx: number): FieldNode
   getField(q: string | number): FieldNode {
-    assertNodeKind<ClassNode | InterfaceNode | ObjectNode>(this.#target, ['fields'])
-    const field = typeof q === 'string' ?
-      this.#target.fields.find(n => n.name === q) :
-      this.#target.fields[q];
+    const fields = this.getFieldsFull()
+    const field = typeof q === 'string' ? fields.find(n => n.name === q) : fields[q];
     assertExists(field, 'field')
     return field
+  }
+
+  getFieldIdx(name: string): number {
+    const fields = this.getFieldsFull()
+    const idx = fields.findIndex(f => f.name === name)
+    assertExists(idx >= 0, 'field')
+    return idx
+  }
+
+  getFieldsFull(): FieldNode[] {
+    assertNodeKind<ClassNode | InterfaceNode | ObjectNode>(this.#target, ['fields'])
+    let fields: FieldNode[]
+    switch (this.#target.kind) {
+      case CodeKind.CLASS:
+        fields = this.getClassFull().fields
+        break
+      case CodeKind.INTERFACE:
+        fields = this.getInterfaceFull().fields
+      default:
+        fields = this.#target.fields
+    }
+    // Filter out dupes
+    return [...new Set(fields)]
   }
 
   getMethod(name: string): MethodNode | FunctionNode
   getMethod(idx: number): MethodNode | FunctionNode
   getMethod(q: string | number): MethodNode | FunctionNode {
-    assertNodeKind<ClassNode | InterfaceNode>(this.#target, ['methods'])
+    const methods = this.getMethodsFull()
     const method = typeof q === 'string' ?
-      (<Array<MethodNode | FunctionNode>>this.#target.methods).find(n => n.name === q) :
-      (<Array<MethodNode | FunctionNode>>this.#target.methods)[q];
+      methods.find(n => n.name === q) :
+      methods.filter(m => m.name !== 'constructor')[q];
     assertExists(method, 'method')
     return method
+  }
+
+  getMethodIdx(name: string): number {
+    const methods = this.getMethodsFull()
+    const idx = methods.filter(m => m.name !== 'constructor').findLastIndex(m => m.name === name)
+    assertExists(idx >= 0, 'method')
+    return idx
+  }
+
+  getMethodsFull(): Array<MethodNode | FunctionNode> {
+    assertNodeKind<ClassNode | InterfaceNode>(this.#target, ['methods'])
+    return isClass(this.#target) ?
+      this.getClassFull().methods :
+      this.getInterfaceFull().methods ;
   }
 
   getClassInterfaces(): Array<InterfaceNode | ProxyInterfaceNode> {

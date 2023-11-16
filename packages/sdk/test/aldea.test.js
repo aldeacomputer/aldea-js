@@ -83,12 +83,12 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
 
   t.is(tx2.instructions[4].opcode, OpCode.CALL)
   t.is(tx2.instructions[4].idx, 1)
-  t.is(tx2.instructions[4].methodIdx, 1)
+  t.is(tx2.instructions[4].methodIdx, 0)
   t.deepEqual(decodeArgs(coinAbi, 'Coin_send', tx2.instructions[4].argsBuf), [700n, addr.hash])
 
   t.is(tx2.instructions[5].opcode, OpCode.CALL)
   t.is(tx2.instructions[5].idx, 2)
-  t.is(tx2.instructions[5].methodIdx, 1)
+  t.is(tx2.instructions[5].methodIdx, 0)
   t.deepEqual(decodeArgs(pkgAbi, 'Badge_rename', tx2.instructions[5].argsBuf), ['bar'])
 
   t.is(tx2.instructions[6].opcode, OpCode.EXEC)

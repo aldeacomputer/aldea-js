@@ -451,9 +451,8 @@ export namespace TxBuilder {
     const query = new AbiQuery(res.abi).fromExports().byIndex(res.exportIdx)
     const klass = query.getCode()
     assertClassLike(klass)
-    const method = query.getMethod(methodName) as MethodNode
-    const methodIdx = (<MethodNode[]>klass.methods).indexOf(method)
-    const argsBuf = new BCS(res.abi).encode(`${klass.name}_${method.name}`, args)
+    const methodIdx = query.getMethodIdx(methodName)    
+    const argsBuf = new BCS(res.abi).encode(`${klass.name}_${methodName}`, args)
     return new CallInstruction(ref.idx, methodIdx, argsBuf)
   }
 
