@@ -301,6 +301,14 @@ export class Validator {
   }
 
   private validateClassDeclarationNode(node: ClassDeclaration): void {
+    if (node.name.text === 'Jig') {
+      this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+        DiagnosticCategory.Error,
+        AldeaDiagnosticCode.Invalid_class,
+        ['Class cannot be named `Jig`.'],
+        node.range
+      ))
+    }
     // Ensures class is not ambient and exported from entry
     //if (
     //  isExported(node.flags) &&

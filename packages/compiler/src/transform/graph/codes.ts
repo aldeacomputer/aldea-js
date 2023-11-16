@@ -21,6 +21,7 @@ import {
   MethodNode,
   ObjectNode,
   TypeNode,
+  normalizeTypeName,
 } from '@aldea/core/abi'
 
 import {
@@ -112,7 +113,7 @@ export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
     const parents: Array<CodeNode<ClassDeclaration | InterfaceDeclaration>> = []
     if (isClass(this.node)) {
       let parent = this.findParent()
-      while (parent) {
+      while (parent && parent.node !== this.node) {
         parents.push(parent)
         parent = parent.findParent()
       }

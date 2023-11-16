@@ -333,3 +333,51 @@ test('throws if exposed object is not exported', async t => {
   // TODO - should be better error about exporting plain objects
   t.regex(e.stderr.toString(), /Invalid type/)
 })
+
+test('should not be able to name a class Jig', async t => {
+  const src = `
+  export class Jig extends Jig {}
+  `
+
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Invalid class/)
+})
+
+test('export class cannot have circular dependency', async t => {
+  const src = `
+  export class A extends B {}
+  export class B extends A {}
+  `
+
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Invalid class/)
+})
+
+test('sidekick classes cannot make circular dependency', async t => {
+  const src = `
+  export function test(): void {
+    const a = new A()
+  }
+
+  class A extends B {}
+  class B extends A {}
+  `
+
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /TS2506/)
+})
+
+test.skip('implementing a different method signature should fail', async t => {
+  const src = `
+  export interface A {
+    m(): void;
+  }
+
+  export class B extends Jig implements A {
+    m(n: u8): void {}
+  }
+  `
+
+  const e = await t.throwsAsync(() => compile(src))
+  console.log(e.stderr.toString())
+})
