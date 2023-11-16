@@ -108,7 +108,7 @@ export class AbiQuery {
   getMethod(q: string | number): MethodNode | FunctionNode {
     const methods = this.getMethodsFull()
     const method = typeof q === 'string' ?
-      methods.find(n => n.name === q) :
+      methods.findLast(n => n.name === q) :
       methods.filter(m => m.name !== 'constructor')[q];
     assertExists(method, 'method')
     return method
