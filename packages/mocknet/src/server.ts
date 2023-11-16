@@ -83,10 +83,10 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
   app.get('/tx/:txid', (req, res) => {
     const txid = req.params.txid
     const exec = storage.getExecResult(txid).expect(
-        new HttpNotFound('exec result not found', { txid })
+        new HttpNotFound(`Exec result not found for tx id: ${txid}`, { txid })
     )
     const tx = storage.getTx(txid).expect(
-        new HttpNotFound('tx not found', { txid })
+        new HttpNotFound(`Tx not found for id: ${txid}`, { txid })
     )
 
     res.status(200).send(serializeExecResult(exec, tx))
@@ -95,7 +95,7 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
   app.get('/rawtx/:txid', (req, res) => {
     const txid = req.params.txid
     const tx = storage.getTx(txid).expect(
-        new HttpNotFound('tx not foind', { txid })
+        new HttpNotFound(`Tx not found for id: ${txid}`, { txid })
     )
 
     res.set('content-type', 'application/octet-stream')
