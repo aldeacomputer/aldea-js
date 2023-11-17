@@ -2,7 +2,8 @@ import {BufReader, BufWriter} from "@aldea/core";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {TxExecution} from "./tx-execution.js";
 import {AbiAccess} from "./memory/abi-helpers/abi-access.js";
-import {AbiArg} from "./memory/abi-helpers/abi-method.js";
+
+import {AbiArg} from "./memory/abi-helpers/abi-arg.js";
 
 export class ArgsTranslator {
   exec: TxExecution

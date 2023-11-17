@@ -1,13 +1,11 @@
 import {Abi, AbiQuery, FieldNode, FunctionNode, InterfaceNode} from "@aldea/core/abi";
 
 export class AbiInterface {
-  private abi: Abi;
   idx: any;
   name: string;
   node: InterfaceNode;
 
   constructor (abi: Abi, idx: number) {
-    this.abi = abi
     this.idx = idx
     const code = new AbiQuery(abi)
       .fromExports()

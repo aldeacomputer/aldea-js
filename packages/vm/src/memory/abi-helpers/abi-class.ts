@@ -1,11 +1,10 @@
-import {Abi, AbiQuery, ClassNode, CodeKind, FieldNode, MethodNode} from "@aldea/core/abi";
+import {Abi, AbiQuery, ClassNode, CodeKind, FieldNode, MethodKind, MethodNode} from "@aldea/core/abi";
 import {Option} from "../../support/option.js";
 import {AbiType} from "./abi-type.js";
 import {AbiField} from "./abi-plain-object.js";
 import {WasmWord} from "../../wasm-word.js";
 import {AbiMethod} from "./abi-method.js";
 import {lockTypeNode, outputTypeNode} from "../well-known-abi-nodes.js";
-import {AbiImportedProxy} from "./abi-imported-proxy.js";
 import {ProxyDef} from "./proxy-def.js";
 
 const BASE_FIELDS = [{
@@ -23,6 +22,7 @@ function createAbiMethods (cls: ClassNode[]) {
     .map<Array<[MethodNode, string]>>(cls => cls.methods.map(m => [m, cls.name]))
     .flat()
     .filter(([m, _]) => m.name !== 'constructor')
+    .filter(([m, _]) => m.kind === MethodKind.PUBLIC)
     .map(([m, className], i) =>  new AbiMethod(i, className, m))
 }
 
@@ -45,7 +45,7 @@ export class AbiClass {
     if (!constructorNode) {
       throw new Error('malformed abi, missing constructor for class')
     }
-    this._constructor = new AbiMethod(0, this.node.name, constructorNode)
+    this._constructor = new AbiMethod(-1, this.node.name, constructorNode)
 
     this._methods = createAbiMethods([...parents, this.node])
 
@@ -83,13 +83,6 @@ export class AbiClass {
   ownFields (): AbiField[] {
     return this._fields.slice(2)
   }
-
-  // allNativeFields (): FieldNode[] {
-  //   const query = new AbiQuery(this.abi)
-  //   query.fromExports().byIndex(this.idx)
-  //   const parents = query.getClassParents()
-  //   return parents.map(p => p.fields).flat()
-  // }
 
   nativeFields (): FieldNode[] {
     return this.node.fields

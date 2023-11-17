@@ -1,6 +1,6 @@
 import {Abi, AbiQuery, ArgNode, FunctionNode, TypeNode} from "@aldea/core/abi";
-import {AbiArg} from "./abi-method.js";
 import {AbiType} from "./abi-type.js";
+import {AbiArg} from "./abi-arg.js";
 
 export class AbiFunction {
   private abi: Abi;

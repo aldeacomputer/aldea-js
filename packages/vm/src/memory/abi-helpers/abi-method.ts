@@ -1,24 +1,8 @@
-import {Abi, AbiQuery, ArgNode, MethodNode, TypeNode} from "@aldea/core/abi";
+import {MethodNode} from "@aldea/core/abi";
 import {Option} from "../../support/option.js";
 import {emptyTn} from "../well-known-abi-nodes.js";
 import {AbiType} from "./abi-type.js";
-
-
-export class AbiArg {
-  node: ArgNode
-
-  constructor (node: ArgNode) {
-    this.node = node
-  }
-
-  get name (): string {
-    return this.node.name
-  }
-
-  get type (): AbiType {
-    return new AbiType(this.node.type)
-  }
-}
+import {AbiArg} from "./abi-arg.js";
 
 export class AbiMethod {
   idx: number;

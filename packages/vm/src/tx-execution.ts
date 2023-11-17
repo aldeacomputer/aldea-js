@@ -16,10 +16,11 @@ import {serializeOutput, serializePointer} from "./memory/serialize-output.js";
 import {fromCoreLock} from "./locks/from-core-lock.js";
 import {AddressLock} from "./locks/address-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
-import {AbiArg, AbiMethod} from "./memory/abi-helpers/abi-method.js";
+import {AbiMethod} from "./memory/abi-helpers/abi-method.js";
 import {JigInitParams} from "./jig-init-params.js";
 import {ArgsTranslator} from "./args-translator.js";
 import {CodeKind} from "@aldea/core/abi";
+import {AbiArg} from "./memory/abi-helpers/abi-arg.js";
 
 export const MIN_FUND_AMOUNT = 100
 
