@@ -27,7 +27,6 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
   const p2p: Libp2p | undefined = argv.p2p !== undefined ? await createNode(argv) : undefined
 
   const serializeOutput = (output: Output): object => {
-    console.log(output.origin.toString())
     return {
       id: output.id,
       origin: output.origin.toString(),

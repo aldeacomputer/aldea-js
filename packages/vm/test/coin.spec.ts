@@ -1,6 +1,6 @@
 import {Storage, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {BCS, Output, PrivKey, Tx} from "@aldea/core";
+import {BCS, BufReader, Output, PrivKey, Tx} from "@aldea/core";
 import {compile} from "@aldea/compiler";
 import {
   CallInstruction,
@@ -60,6 +60,12 @@ describe('Coin', () => {
       expect(res.outputs[1].origin.idx).to.eql(1)
       expect(res.outputs[2].origin.id).to.eql(tx.id)
       expect(res.outputs[2].origin.idx).to.eql(2)
+
+      const r = new BufReader(res.outputs[1].stateBuf)
+      expect(r.readU64()).to.eql(800n)
+
+      const r2 = new BufReader(res.outputs[2].stateBuf)
+      expect(r2.readU64()).to.eql(100n)
     })
   })
 

@@ -173,7 +173,6 @@ class TxExecution {
     if (!jigRef) {
       throw new Error('jig should had been created created')
     }
-    this.marKJigAsAffected(jigRef)
 
     const ret = new ValueStatementResult(this.statements.length, method.rtype, result, wasm);
     this.statements.push(ret)
@@ -379,7 +378,6 @@ class TxExecution {
     const w = new BufWriter()
     w.writeU8(0)
 
-
     const argsBuf = new BufReader(from.liftBuf(ptr))
 
     for (const arg of argDef) {
@@ -451,12 +449,14 @@ class TxExecution {
 
     // Move args
     const argBuf = this.liftArgs(from, argsPtr, method.args)
-    const argsReader = new BufReader(argBuf)
-    const loweredArgs = method.args.map(arg => {
-      return jig.ref.container.low.lowerFromReader(argsReader, arg.type)
-    })
+    const loweredArgs = this.lowerArgs(jig.ref.container, method.args, argBuf)
+    // const argsReader = new BufReader(argBuf)
+    // const loweredArgs = method.args.map(arg => {
+    //   return jig.ref.container.low.lowerFromReader(argsReader, arg.type)
+    // })
 
     const methodRes = this.performMethodCall(jig, method, loweredArgs)
+    this.marKJigAsAffected(jig)
 
     return methodRes.map(value => {
       const lifted = value.lift()
@@ -511,15 +511,12 @@ class TxExecution {
       .constructorDef()
     // Move args
     const argBuf = this.liftArgs(from, argsPtr, method.args)
-    const argsReader = new BufReader(argBuf)
-    const loweredArgs = method.args.map(arg => {
-      return from.low.lowerFromReader(argsReader, arg.type)
-    })
+    const loweredArgs = this.lowerArgs(from, method.args, argBuf)
 
     const nextOrigin = this.createNextOrigin()
     this.nextOrigin = Option.some(nextOrigin)
     this.stack.push(nextOrigin)
-    from.callFn(method.callName(), loweredArgs, method.args.map(arg => arg.type))
+    let res = from.callFn(method.callName(), loweredArgs, method.args.map(arg => arg.type))
     this.stack.pop()
 
     const createdJig = this.jigs.find(ref => ref.origin.equals(nextOrigin))
@@ -543,11 +540,7 @@ class TxExecution {
     const wasm = this.assertContainer(pkgId)
     const fn = wasm.abi.exportedByName(fnName).get().toAbiFunction()
     const argsBuf = this.liftArgs(from, argsBufPtr, fn.args)
-
-    const argsRead = new BufReader(argsBuf)
-    const args = fn.args.map(arg => {
-      return wasm.low.lowerFromReader(argsRead, arg.type)
-    })
+    const args = this.lowerArgs(wasm, fn.args, argsBuf)
 
     const res = wasm.callFn(fnName, args, fn.args.map(arg => arg.type))
 

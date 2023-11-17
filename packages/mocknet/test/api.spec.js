@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import request from 'supertest'
-import { BCS, Pointer, Tx, PrivKey, instructions, Address, base16, ed25519, util } from '@aldea/core'
+import { BCS, Pointer, Tx, PrivKey, instructions, Address, base16, ed25519, util, BufReader } from '@aldea/core'
 import { buildApp } from '../dist/server.js'
 
 const {
@@ -344,6 +344,9 @@ describe('api', () => {
 
       expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state'])
       expect(response.body.class).to.eql(`${new Array(64).fill('0').join('')}_0`)
+      const buf = base16.decode(response.body.state)
+      const r = new BufReader(buf)
+      expect(r.readU64()).to.eql(1000n)
     })
 
     it('fails address is not an address', async () => {

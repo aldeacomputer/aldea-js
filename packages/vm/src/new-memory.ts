@@ -55,7 +55,11 @@ export class NewMemory {
     } else
     if (size === 4) {
       return view.readUInt32LE()
-    } else {
+    } else
+    if (size === 8) {
+      return Number(view.readBigUint64LE())
+    }
+    else {
       throw new Error('wrong number size')
     }
   }
