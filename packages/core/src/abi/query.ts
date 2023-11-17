@@ -10,6 +10,7 @@ import {
   ObjectNode,
   ProxyInterfaceNode,
   ProxyNode,
+  MethodKind,
 } from "./types.js"
 
 export class AbiQuery {
@@ -103,25 +104,25 @@ export class AbiQuery {
     return [...new Set(fields)]
   }
 
-  getMethod(name: string): MethodNode | FunctionNode
-  getMethod(idx: number): MethodNode | FunctionNode
-  getMethod(q: string | number): MethodNode | FunctionNode {
+  getMethod(name: string): MethodNode
+  getMethod(idx: number): MethodNode
+  getMethod(q: string | number): MethodNode {
     const methods = this.getMethodsFull()
     const method = typeof q === 'string' ?
       methods.findLast(n => n.name === q) :
-      methods.filter(m => m.name !== 'constructor')[q];
+      methods.filter(publicMethodsOnly)[q];
     assertExists(method, 'method')
     return method
   }
 
   getMethodIdx(name: string): number {
     const methods = this.getMethodsFull()
-    const idx = methods.filter(m => m.name !== 'constructor').findLastIndex(m => m.name === name)
+    const idx = methods.filter(publicMethodsOnly).findLastIndex(m => m.name === name)
     assertExists(idx >= 0, 'method')
     return idx
   }
 
-  getMethodsFull(): Array<MethodNode | FunctionNode> {
+  getMethodsFull(): Array<MethodNode> {
     assertNodeKind<ClassNode | InterfaceNode>(this.#target, ['methods'])
     return isClass(this.#target) ?
       this.getClassFull().methods :
@@ -199,7 +200,7 @@ export class AbiQuery {
     return this.fromExports().byName(parentName)
   }
 
-  search(name: string): CodeDef | FieldNode | MethodNode | FunctionNode {
+  search(name: string): CodeDef | FieldNode | MethodNode {
     this.reset()
     const match = name.match(/^(\w+)(_|\.)(\w+)$/)
 
@@ -312,4 +313,8 @@ export function isField(node: any): node is FieldNode {
 
 export function isMethod(node: any): node is MethodNode {
   return isNodeKind<MethodNode>(node, ['kind', 'args', 'rtype'])
+}
+
+function publicMethodsOnly(m: MethodNode): boolean {
+  return (typeof m.kind === 'undefined' || m.kind === MethodKind.PUBLIC) && m.name !== 'constructor'
 }

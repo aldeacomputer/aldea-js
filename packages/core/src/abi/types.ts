@@ -62,7 +62,7 @@ export interface InterfaceNodeSchema {
   name: string;
   extends: string[];
   fields: FieldNode[];
-  methods: FunctionNode[];
+  methods: MethodNode[];
 }
 
 export interface ObjectNodeSchema {
@@ -139,7 +139,7 @@ export interface FieldNode {
  * As the Function interface, with additional kind prop and rtype can be null
  */
 export interface MethodNode {
-  kind: MethodKind;
+  kind?: MethodKind;
   name: string;
   args: ArgNode[];
   rtype: TypeNode | null;

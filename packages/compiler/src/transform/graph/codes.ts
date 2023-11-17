@@ -198,7 +198,7 @@ function toInterfaceNode(
     name: node.name.text,
     extends: parents.map(p => p.name),
     fields: fields.map(n => toFieldNode(n as FieldDeclaration)),
-    methods: methods.map(n => toFunctionNode(n as FunctionDeclaration)),
+    methods: methods.map(n => toMethodNode(n as MethodDeclaration, false)),
   }
 }
 
@@ -221,8 +221,10 @@ function toFieldNode(node: FieldDeclaration): FieldNode {
   }
 }
 
-function toMethodNode(node: MethodDeclaration): MethodNode {
-  const kind = isProtected(node.flags) ? MethodKind.PROTECTED : MethodKind.PUBLIC
+function toMethodNode(node: MethodDeclaration, hasKind: boolean = true): MethodNode {
+  const kind = hasKind ?
+    (isProtected(node.flags) ? MethodKind.PROTECTED : MethodKind.PUBLIC) :
+    undefined;
   const name = node.name.text
   const args = node.signature.parameters.map(n => toArgNode(n as ParameterNode))
   const rtype = name === 'constructor' ? null : toTypeNode(node.signature.returnType as NamedTypeNode)

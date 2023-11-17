@@ -119,7 +119,7 @@ export class TransformGraph {
     const applyClass = (obj: ClassNode | ObjectNode | InterfaceNode) => {
       obj.fields.forEach(n => setType(n.type))
       if ("methods" in obj) {
-        obj.methods.forEach(n => applyFunction(n as MethodNode))
+        obj.methods.forEach(n => applyFunction(n))
       }
     }
   

@@ -302,7 +302,7 @@ function jigToRemoteClass(code: CodeNode<ClassDeclaration>): void {
 function jigToBindingFunctions(ex: ExportEdge): void {
   const abiNode = ex.code.abiNode as ClassNode
   const ts = abiNode.methods
-    .filter(n => n.kind <= MethodKind.PUBLIC)
+    .filter(n => n.kind! <= MethodKind.PUBLIC)
     .reduce((acc: string[], n: MethodNode): string[] => {
       acc.push(writeJigBinding(n, abiNode))
       return acc
@@ -372,7 +372,7 @@ function importToRemoteClass(code: CodeNode<ClassDeclaration>, pkgId: string): v
   const abiNode = code.abiNode as ClassNode
 
   const fields = abiNode.fields
-  const methods = abiNode.methods.filter(n => n.kind <= MethodKind.PUBLIC)
+  const methods = abiNode.methods.filter(n => n.kind! <= MethodKind.PUBLIC)
 
   const source = code.node.range.source
   const ts = writeImportedRemoteClass(abiNode, fields, methods, pkgId, isExported(code.node))

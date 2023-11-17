@@ -1,4 +1,4 @@
-import {Abi, AbiQuery, FieldNode, FunctionNode, InterfaceNode} from "@aldea/core/abi";
+import {Abi, AbiQuery, FieldNode, MethodNode, InterfaceNode} from "@aldea/core/abi";
 
 export class AbiInterface {
   idx: any;
@@ -27,7 +27,7 @@ export class AbiInterface {
     return this.node.fields
   }
 
-  get methods (): FunctionNode[] {
+  get methods (): MethodNode[] {
     return this.node.methods
   }
 }

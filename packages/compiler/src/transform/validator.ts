@@ -624,7 +624,7 @@ export class Validator {
     abiNode.methods.forEach(m => {
       const node = code.node.members.find(n => {
         return n.kind === NodeKind.MethodDeclaration &&
-          nodeHasMethodFlags(n as MethodDeclaration, m.kind) &&
+          nodeHasMethodFlags(n as MethodDeclaration, m.kind!) &&
           n.name.text === m.name
       })!
       this.validateArgTypes(m, node as MethodDeclaration)

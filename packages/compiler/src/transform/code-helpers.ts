@@ -117,7 +117,7 @@ export function writeJigBinding(
 export function writeInterfaceRemoteClass(
   obj: InterfaceNode,
   fields: FieldNode[],
-  methods: FunctionNode[],
+  methods: MethodNode[],
   exported: boolean = false
 ): string {
   const fieldCode = fields.reduce((acc: string[], n: FieldNode): string[] => {
@@ -125,7 +125,7 @@ export function writeInterfaceRemoteClass(
     return acc
   }, []).join('\n')
 
-  const methodCode = methods.reduce((acc: string[], n: FunctionNode): string[] => {
+  const methodCode = methods.reduce((acc: string[], n: MethodNode): string[] => {
     acc.push(writeRemoteInterfaceMethod(n, obj))
     return acc
   }, []).join('\n')
@@ -304,7 +304,7 @@ export function writeRemoteMethod(method: MethodNode, obj: ClassNode, pkg?: stri
  * As `writeRemoteMethod` but for intefaces it is always an instance method so
  * can have simpler implementation.
  */
-export function writeRemoteInterfaceMethod(method: FunctionNode, obj: InterfaceNode, pkg?: string): string {
+export function writeRemoteInterfaceMethod(method: MethodNode, obj: InterfaceNode, pkg?: string): string {
   const args = method.args.map((f, i) => `a${i}: ${normalizeTypeName(f.type)}`)
   const rtype = normalizeTypeName(method.rtype)
   return `
