@@ -1,5 +1,18 @@
 # @aldea/mocknet
 
+## 0.7.0
+
+### Minor Changes
+
+- 8ef9466: Major rewrite of VM. Using new ABI format. Using new idx format
+
+### Patch Changes
+
+- Updated dependencies [2cec12c]
+- Updated dependencies [8ef9466]
+  - @aldea/core@0.7.0
+  - @aldea/vm@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes

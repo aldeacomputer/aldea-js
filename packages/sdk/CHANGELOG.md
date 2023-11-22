@@ -1,5 +1,23 @@
 # @aldea/sdk
 
+## 0.7.0
+
+### Minor Changes
+
+- 2cec12c: Change to design of ABI structure and Jig model. Including:
+
+  - static methods removed
+  - EXEC removed. EXECFUNC becomes EXEC
+  - access modifiers on fields now ignores (public by definition)
+  - access modifiers on methods refined
+  - plain objects are first class code items like classes and functions
+  - protected and private constructors are enabled
+
+### Patch Changes
+
+- Updated dependencies [2cec12c]
+  - @aldea/core@0.7.0
+
 ## 0.6.1
 
 ### Patch Changes
