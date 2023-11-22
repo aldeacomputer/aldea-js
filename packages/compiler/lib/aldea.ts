@@ -1,14 +1,20 @@
 export {
-  vm_constructor_local,
-  vm_constructor_remote,
-  vm_call_method,
-  vm_call_static,
-  vm_call_function,
-  vm_get_prop,
-  vm_debug_str,
+  __vm_constructor_local,
+  __vm_constructor_remote,
+  __vm_call_method,
+  __vm_call_function,
+  __vm_get_prop,
 } from './aldea/imports'
 
-export { Jig, _LocalJig, _RemoteJig, JigInitParams } from './aldea/jig'
-export { Coin } from './aldea/coin'
+export { Jig, JigInitParams, __LocalJig, __ProxyJig } from './aldea/jig'
+export { Coin, Fungible, __ProxyFungible } from './aldea/coin'
 export { caller } from './aldea/caller'
-export { ArgWriter } from './aldea/arg-writer'
+export { __ArgWriter } from './aldea/arg-writer'
+
+export { BigInt } from './vendor/big-int'
+
+import { __vm_debug_str } from './aldea/imports'
+
+export function debug(str: string): void {
+  __vm_debug_str(str)
+}

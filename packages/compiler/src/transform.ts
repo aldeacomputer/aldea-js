@@ -6,7 +6,6 @@ import {
   FunctionDeclaration,
   IdentifierExpression,
   InstanceOfExpression,
-  MethodDeclaration,
   Module,
   NamedTypeNode,
   NewExpression,
@@ -24,17 +23,17 @@ import {
 } from 'assemblyscript'
 
 import { abiToBin, abiToJson } from '@aldea/core'
-import { ClassNode, FieldKind, FunctionNode, InterfaceNode, MethodKind, MethodNode, TypeNode } from '@aldea/core/abi'
+import { ClassNode, CodeKind, FunctionNode, InterfaceNode, MethodKind, MethodNode, ObjectNode, TypeNode } from '@aldea/core/abi'
 import { CodeNode, ExportEdge, ExportNode, ImportEdge, ImportNode, TransformGraph } from './transform/graph/index.js'
 import { createDocs } from './transform/docs.js'
-import { filterAST } from './transform/filters.js'
+import { filterAST, isConstructor, isProtected, isPublic } from './transform/filters.js'
 
 import {
-  writeClass,
   writeJigInterface,
   writeJigLocalClass,
   writeJigRemoteClass,
   writeJigBinding,
+  writeObjectClass,
   writeImportStatement,
   writeExportStatement,
   writeInterfaceRemoteClass,
@@ -80,37 +79,43 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
 
     // 1 - apply necessary transformations to each exported code declaration
     $ctx.exports.forEach(ex => {
-      switch (ex.code.node.kind) {
-        case NodeKind.ClassDeclaration:
-          ensureJigConstructor(ex.code as CodeNode<ClassDeclaration>)
+      switch (ex.code.abiCodeKind) {
+        case CodeKind.CLASS:
           jigToInterface(ex.code as CodeNode<ClassDeclaration>)
           jigToLocalClass(ex.code as CodeNode<ClassDeclaration>)
           jigToRemoteClass(ex.code as CodeNode<ClassDeclaration>)
           jigToBindingFunctions(ex)
           dropDeclaration(ex.code)
           break
-        case NodeKind.FunctionDeclaration:
+        case CodeKind.FUNCTION:
           break
-        case NodeKind.InterfaceDeclaration:
+        case CodeKind.INTERFACE:
           interfaceToRemoteClass(ex.code as CodeNode<InterfaceDeclaration>)
+          break
+        case CodeKind.OBJECT:
+          objectToClass(ex.code as CodeNode<ClassDeclaration>)
+          dropDeclaration(ex.code)
           break
       }
     })
 
     // 2 - apply necessary transformations to each import
     $ctx.imports.forEach(im => {
-      switch (im.code.node.kind) {
-        case NodeKind.ClassDeclaration:
-          ensureJigConstructor(im.code as CodeNode<ClassDeclaration>)
+      switch (im.code.abiCodeKind) {
+        case CodeKind.CLASS:
           importToRemoteClass(im.code as CodeNode<ClassDeclaration>, im.pkgId!)
           dropDeclaration(im.code)
           break
-        case NodeKind.FunctionDeclaration:
+          case CodeKind.FUNCTION:
           importToRemoteFunction(im.code as CodeNode<FunctionDeclaration>, im.pkgId!)
           dropDeclaration(im.code)
           break
-        case NodeKind.InterfaceDeclaration:
+        case CodeKind.INTERFACE:
           interfaceToRemoteClass(im.code as CodeNode<InterfaceDeclaration>)
+          break
+        case CodeKind.OBJECT:
+          objectToClass(im.code as CodeNode<ClassDeclaration>)
+          dropDeclaration(im.code)
           break
       }
     })
@@ -129,15 +134,10 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
       })
     })
 
-    // 4 - Remove declare keyword from objects
-    $ctx.objects.forEach(code => {
-      objectSanitize(code as CodeNode<ClassDeclaration>)
-    })
-
-    // 5 - inject complex setters
+    // 4 - inject complex setters
     complexTypeSetters($ctx)
 
-    // 6 - filter through the AST and apply necessary mutations
+    // 5 - filter through the AST and apply necessary mutations
     $ctx.sources.forEach(src => {
       filterAST(src.source, (node: Node, parent?: Node, parentProp?: string) => {
         switch (node.kind) {
@@ -183,6 +183,8 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
         }
       })
     })
+
+    writeGlobalTypeIds($ctx)
   }
 
   /**
@@ -222,30 +224,6 @@ export class Transform implements Omit<AscTransform, 'baseDir' | 'log' | 'writeF
 // --
 
 /**
- * Ensures a constructor exists (if not, it adds one to the code and the ABI).
- */
-function ensureJigConstructor(code: CodeNode<ClassDeclaration>): void {
-  const abiNode = code.abiNode as ClassNode
-  // First ensure a constructor exists
-  if (!abiNode.methods.find(n => n.kind === MethodKind.CONSTRUCTOR)) {
-    const source = code.node.range.source
-    const ts = writeClass(abiNode)
-    const src = code.src.ctx.parse(ts, source.normalizedPath)
-    const node = (src.statements[0] as ClassDeclaration).members[0] as MethodDeclaration
-    const idx = Math.max(0, source.statements.findIndex(n => n.kind === NodeKind.MethodDeclaration))
-
-    // insert compiled code and constructor into transform ctx
-    code.node.members.splice(idx, 0, node)
-    abiNode.methods.unshift({
-      kind: MethodKind.CONSTRUCTOR,
-      name: 'constructor',
-      args: [],
-      rtype: null
-    })
-  }
-}
-
-/**
  * Transforms the given jig class to an interface.
  */
 function jigToInterface(code: CodeNode<ClassDeclaration>): void {
@@ -254,12 +232,10 @@ function jigToInterface(code: CodeNode<ClassDeclaration>): void {
   const parentFields = parents.flatMap(p => p.fields.map(n => n.name) as string[])
   const parentMethods = parents.flatMap(p => p.methods.map(n => n.name) as string[])
 
-  const fields = abiNode.fields.filter(n => {
-    return n.kind === FieldKind.PUBLIC && !parentFields.includes(n.name)
-  })
+  const fields = abiNode.fields.filter(n => !parentFields.includes(n.name))
 
   const methods = abiNode.methods.filter(n => {
-    return n.kind === MethodKind.INSTANCE && !parentMethods.includes(n.name)
+    return n.name !== 'constructor' && !parentMethods.includes(n.name)
   })
 
   const source = code.node.range.source
@@ -285,8 +261,18 @@ function jigToLocalClass(code: CodeNode<ClassDeclaration>): void {
   const ts = writeJigLocalClass(abiNode, isExported(code.node))
   
   const src = code.src.ctx.parse(ts, source.normalizedPath)
-  // add original members into new class
-  ;(<ClassDeclaration>src.statements[0]).members = code.node.members
+  // add original members into new class with transformations
+  // 1 - all fields become public
+  // 2 - protected modifer is removed from methods (private is kept)
+  ;(<ClassDeclaration>src.statements[0]).members = code.node.members.map(n => {
+    n.flags &= ~CommonFlags.Readonly
+    n.flags &= ~CommonFlags.Protected
+    if (n.kind === NodeKind.FieldDeclaration) {
+      n.flags &= ~CommonFlags.Private
+      if (!isPublic(n.flags)) { n.flags |= CommonFlags.Public }
+    }
+    return n
+  })
   const idx = source.statements.indexOf(code.node as Statement)
   source.statements.splice(idx+1, 0, ...src.statements)
 }
@@ -297,11 +283,9 @@ function jigToLocalClass(code: CodeNode<ClassDeclaration>): void {
  */
 function jigToRemoteClass(code: CodeNode<ClassDeclaration>): void {
   const abiNode = code.abiNode as ClassNode
-  const fields = abiNode.fields
-    .filter(n => n.kind === FieldKind.PUBLIC)
 
-  const methods = abiNode.methods
-    .filter(n => n.kind === MethodKind.CONSTRUCTOR || n.kind === MethodKind.INSTANCE)
+  const fields = abiNode.fields
+  const methods = abiNode.methods //.filter(n => n.kind <= MethodKind.PUBLIC)
 
   const source = code.node.range.source
   const ts = writeJigRemoteClass(abiNode, fields, methods, isExported(code.node))
@@ -318,7 +302,7 @@ function jigToRemoteClass(code: CodeNode<ClassDeclaration>): void {
 function jigToBindingFunctions(ex: ExportEdge): void {
   const abiNode = ex.code.abiNode as ClassNode
   const ts = abiNode.methods
-    .filter(n => n.kind !== MethodKind.PRIVATE && n.kind !== MethodKind.PROTECTED)
+    .filter(n => n.kind! <= MethodKind.PUBLIC)
     .reduce((acc: string[], n: MethodNode): string[] => {
       acc.push(writeJigBinding(n, abiNode))
       return acc
@@ -354,12 +338,26 @@ function interfaceToRemoteClass(code: CodeNode<InterfaceDeclaration>): void {
 /**
  * Removes ambient context from delcared plain objects.
  */
-function objectSanitize(code: CodeNode<ClassDeclaration>): void {
-  code.node.flags &= ~CommonFlags.Ambient
-  code.node.flags &= ~CommonFlags.Declare
-  code.node.members.forEach(m => {
-    m.flags &= ~CommonFlags.Ambient
+function objectToClass(code: CodeNode<ClassDeclaration>): void {
+  const abiNode = code.abiNode as ObjectNode
+
+  const source = code.node.range.source
+  const ts = writeObjectClass(abiNode, true)
+  
+  const src = code.src.ctx.parse(ts, source.normalizedPath)
+  // add original members into new class with transformations
+  // 1 - all fields become public
+  // 2 - protected modifer is removed from methods (private is kept)
+  ;(<ClassDeclaration>src.statements[0]).members = code.node.members.map(n => {
+    n.flags &= ~CommonFlags.Ambient
+    n.flags &= ~CommonFlags.Readonly
+    n.flags &= ~CommonFlags.Protected
+    n.flags &= ~CommonFlags.Private
+    if (!isPublic(n.flags)) { n.flags |= CommonFlags.Public }
+    return n
   })
+  const idx = source.statements.indexOf(code.node as Statement)
+  source.statements.splice(idx+1, 0, ...src.statements)
 }
 
 
@@ -374,10 +372,7 @@ function importToRemoteClass(code: CodeNode<ClassDeclaration>, pkgId: string): v
   const abiNode = code.abiNode as ClassNode
 
   const fields = abiNode.fields
-    .filter(n => n.kind === FieldKind.PUBLIC)
-
-  const methods = abiNode.methods
-    .filter(n => n.kind !== MethodKind.PRIVATE && n.kind !== MethodKind.PROTECTED)
+  const methods = abiNode.methods.filter(n => n.kind! <= MethodKind.PUBLIC)
 
   const source = code.node.range.source
   const ts = writeImportedRemoteClass(abiNode, fields, methods, pkgId, isExported(code.node))
@@ -482,11 +477,22 @@ function complexTypeSetters(ctx: TransformGraph): void {
 }
 
 /**
+ * Ensures type IDs get compiled into the ABI
+ */
+function writeGlobalTypeIds(ctx: TransformGraph): void {
+  const code = `
+  idof<__ProxyFungible>()
+  `.trim()
+  const src = ctx.parse(code, ctx.entries[0].source.normalizedPath)
+  ctx.entries[0].source.statements.push(...src.statements)
+}
+
+/**
  * Mutates static property access expressions on Jig classes to use LocalClass.
  */
 function mutateJigPropertyAccess(node: PropertyAccessExpression): void {
   const id = node.expression as IdentifierExpression
-  id.text = `_Local${id.text}`
+  id.text = `__Local${id.text}`
 }
 
 /**
@@ -501,7 +507,7 @@ function mutateInstanceOfJig(
   const varName = (<IdentifierExpression>node.expression).text
   const jigName = (<NamedTypeNode>node.isType).name.identifier.text
 
-  const code = `(${varName} instanceof _Local${jigName} || ${varName} instanceof _Remote${jigName})`
+  const code = `(${varName} instanceof __Local${jigName} || ${varName} instanceof __Proxy${jigName})`
   const src = ctx.parse(code, node.range.source.normalizedPath)
   // @ts-ignore
   const exp = src.statements[0].expression
@@ -519,7 +525,7 @@ function mutateInstanceOfJig(
  */
 function mutateNewJigExpression(node: NewExpression): void {
   const id = node.typeName.identifier as IdentifierExpression
-  id.text = `_Remote${id.text}`
+  id.text = `__Proxy${id.text}`
 }
 
 /**
@@ -527,7 +533,7 @@ function mutateNewJigExpression(node: NewExpression): void {
  */
 function mutateJigTypeArg(node: NamedTypeNode): void {
   const id = node.name.identifier
-  id.text = `_Remote${id.text}`
+  id.text = `__Proxy${id.text}`
 }
 
 
@@ -551,21 +557,18 @@ function isExportedJig(name: string, source: Source, ctx: TransformGraph): boole
  */
 function reduceEdgeNames(names: string[], e: ImportEdge | ExportEdge): string[] {
   names.push(e.name)
-  if (
-    e.code.node.kind === NodeKind.ClassDeclaration &&
-    e.ctx.graph.exports.some(ex => ex.code.node === e.code.node)
-  ) {
-    names.push(`_Local${e.name}`)
-    names.push(`_Remote${e.name}`)
+  if (e.code.abiCodeKind === CodeKind.CLASS) {
+    names.push(`__Local${e.name}`)
+    names.push(`__Proxy${e.name}`)
   }
-  if (e.code.node.kind === NodeKind.InterfaceDeclaration) {
-    names.push(`_Remote${e.name}`)
+  if (e.code.abiCodeKind === CodeKind.INTERFACE) {
+    names.push(`__Proxy${e.name}`)
   }
   return names
 }
 
 /**
- * Returns true if the given statement is exported froma user entry.
+ * Returns true if the given statement is exported NOT from a user entry.
  */
 function isExported(node: DeclarationStatement): boolean {
   return (node.flags & CommonFlags.Export) === CommonFlags.Export &&

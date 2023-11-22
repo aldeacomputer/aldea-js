@@ -5,25 +5,18 @@ export enum CodeKind {
   CLASS,
   FUNCTION,
   INTERFACE,
+  OBJECT,
+  //ENUM,
+  PROXY_CLASS = 100,
+  PROXY_FUNCTION,
+  PROXY_INTERFACE,
 }
 
 /**
  * Method kind
  */
 export enum MethodKind {
-  STATIC,
-  CONSTRUCTOR,
-  INSTANCE,
-  PRIVATE,
-  PROTECTED,
-}
-
-/**
- * Field kind
- */
- export enum FieldKind {
   PUBLIC,
-  PRIVATE,
   PROTECTED,
 }
 
@@ -32,59 +25,95 @@ export enum MethodKind {
  */
 export interface Abi {
   version: number;
-  exports: ExportNode[];
-  imports: ImportNode[];
-  objects: ObjectNode[];
+  exports: number[];
+  imports: number[];
+  defs: CodeDef[];
   typeIds: TypeIdNode[];
 }
 
 /**
- * Export interface
+ * Code Definition interface
  */
-export interface ExportNode {
-  kind: CodeKind;
-  code: ClassNode | FunctionNode | InterfaceNode;
+export type CodeDef<T = ClassNode | FunctionNode | InterfaceNode | ObjectNode | ProxyNode> = T
+export type ProxyNode = ProxyClassNode | ProxyFunctionNode | ProxyInterfaceNode
+export type ExportCode = ClassNode | FunctionNode | InterfaceNode | ObjectNode
+export type ImportCode = ProxyNode | ObjectNode
+
+export interface ProxyNodeSchema {
+  name: string;
+  pkg: string;
+}
+
+export interface ClassNodeSchema {
+  name: string;
+  extends: string;
+  implements: string[];
+  fields: FieldNode[];
+  methods: MethodNode[];
+}
+
+export interface FunctionNodeSchema {
+  name: string;
+  args: ArgNode[];
+  rtype: TypeNode;
+}
+
+export interface InterfaceNodeSchema {
+  name: string;
+  extends: string[];
+  fields: FieldNode[];
+  methods: MethodNode[];
+}
+
+export interface ObjectNodeSchema {
+  name: string;
+  fields: FieldNode[];
 }
 
 /**
- * Import interface
+ * TODO
  */
-export interface ImportNode {
-  kind: CodeKind;
-  name: string;
-  pkg: string;
+export interface ProxyClassNode extends ProxyNodeSchema {
+  kind: CodeKind.PROXY_CLASS;
+}
+
+/**
+ * TODO
+ */
+export interface ProxyFunctionNode extends ProxyNodeSchema {
+  kind: CodeKind.PROXY_FUNCTION;
+}
+
+/**
+ * TODO
+ */
+export interface ProxyInterfaceNode extends ProxyNodeSchema {
+  kind: CodeKind.PROXY_INTERFACE;
 }
 
 /**
  * Class interface
  */
-export interface ClassNode {
-  name: string;
-  extends: string;
-  implements: TypeNode[];
-  fields: FieldNode[];
-  methods: MethodNode[];
+export interface ClassNode extends ClassNodeSchema {
+  kind: CodeKind.CLASS;
+}
+
+
+
+/**
+ * Function interface
+ */
+export interface FunctionNode extends FunctionNodeSchema {
+  kind: CodeKind.FUNCTION;
 }
 
 /**
  * Interface interafce (lol)
  * 
- * As the Class interfacem, but methods are Function interfaces
+ * As the Class interface, but methods are Function interfaces
  */
-export interface InterfaceNode {
-  name: string;
-  extends: string | null;
-  fields: FieldNode[];
-  methods: FunctionNode[];
-}
-
-/**
- * Function interface
- */
-export interface FunctionNode {
-  name: string;
-  args: ArgNode[];
-  rtype: TypeNode;
+export interface InterfaceNode extends InterfaceNodeSchema {
+  kind: CodeKind.INTERFACE;
 }
 
 /**
@@ -92,16 +121,14 @@ export interface FunctionNode {
  * 
  * As the Class interface, minus any methods.
  */
-export interface ObjectNode {
-  name: string;
-  fields: FieldNode[];
+export interface ObjectNode extends ObjectNodeSchema {
+  kind: CodeKind.OBJECT;
 }
 
 /**
  * Field interface
  */
 export interface FieldNode {
-  kind: FieldKind;
   name: string;
   type: TypeNode;
 }
@@ -112,7 +139,7 @@ export interface FieldNode {
  * As the Function interface, with additional kind prop and rtype can be null
  */
 export interface MethodNode {
-  kind: MethodKind;
+  kind?: MethodKind;
   name: string;
   args: ArgNode[];
   rtype: TypeNode | null;

@@ -1,20 +1,23 @@
-import {Address, Pointer} from "@aldea/core";
+import {BufWriter, Lock as CoreLock} from "@aldea/core";
 import {TxExecution} from "../tx-execution.js";
-import {Option} from "../support/option.js";
-import {SerializedLock} from "./serialized-lock.js";
 
-export interface Lock {
-  data(): Uint8Array;
-  serialize (): SerializedLock;
-  isOpen (): boolean
+export abstract class Lock {
+  abstract coreLock (): CoreLock;
 
-  acceptsExecution(context: TxExecution): boolean;
+  abstract assertOpen (param: TxExecution): void;
 
-  canBeChangedBy(context: TxExecution): boolean;
+  serialize (origin: Uint8Array): Uint8Array {
+    const w = new BufWriter()
+    const coreLock = this.coreLock();
+    w.writeBytes(origin)
+    w.writeU32(coreLock.type)
+    w.writeBytes(coreLock.data)
+    return w.data
+  }
 
-  typeNumber(): number;
+  abstract canBeChanged (param: TxExecution): boolean;
 
-  acceptsChangeFrom(callerOrigin: Pointer, context: TxExecution): boolean;
-
-  address(): Option<Address>;
+  abstract canReceiveCalls (param: TxExecution): boolean;
 }
+
+export { CoreLock }

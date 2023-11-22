@@ -1,7 +1,10 @@
 
 export class Receiver extends Jig {
+  lastCheck: string = 'none'
   checkCallerType (): bool {
-    return caller.is<RightCaller>()
+    const res = caller.is<RightCaller>();
+    this.lastCheck = `${res}`
+    return res
   }
 
   checkCallerTypeStrict (): bool {
@@ -43,8 +46,6 @@ export class Receiver extends Jig {
     return caller.getClassOrFail()
   }
 
-
-
   private compareBuffs (buff1: ArrayBuffer, buff2: ArrayBuffer): bool {
     const array1 =  Uint8Array.wrap(buff1)
     const array2 =  Uint8Array.wrap(buff2)
@@ -61,50 +62,79 @@ export class Receiver extends Jig {
 }
 
 export class RightCaller extends Jig {
+  lastCheck: string = "none"
+  lastBuf: ArrayBuffer = new ArrayBuffer(0)
+
   doTheCall (target: Receiver): bool {
-    return target.checkCallerType()
+    const ret = target.checkCallerType()
+    this.lastCheck = `${ret}`
+    return ret
   }
 
   doTheCallExact (target: Receiver): bool {
-    return target.checkCallerTypeStrict()
+    const ret = target.checkCallerTypeStrict()
+    this.lastCheck = `${ret}`
+    return ret
   }
 
   doIHaveOutput (target: Receiver): bool {
-    return target.callerHasOutput()
+    const ret = target.callerHasOutput()
+    this.lastCheck = `${ret}`
+    return ret
   }
 
   giveMeMyOutputOrigin (target: Receiver): ArrayBuffer {
-    return target.returnCallerOutputOrigin()
+    const ret = target.returnCallerOutputOrigin()
+    this.lastBuf = ret
+    return ret
   }
 
   giveMeMyOutputLocation (target: Receiver): ArrayBuffer {
-    return target.returnCallerOutputLocation()
+    const ret = target.returnCallerOutputLocation()
+    this.lastBuf = ret
+    return ret
   }
 
   giveMeMyOutputClassPtr (target: Receiver): ArrayBuffer {
-    return target.returnCallerOutputClassPtr()
+    const ret = target.returnCallerOutputClassPtr()
+    this.lastBuf = ret
+    return ret
   }
 
   giveMeMyOrigin (target: Receiver): ArrayBuffer {
-    return target.returnCallerOrigin()
+    const ret = target.returnCallerOrigin()
+    this.lastBuf = ret
+    return ret
   }
   giveMeMyLocation (target: Receiver): ArrayBuffer {
-    return target.returnCallerLocation()
+    const ret = target.returnCallerLocation()
+    this.lastBuf = ret
+    return ret
   }
   giveMeMyClassPtr (target: Receiver): ArrayBuffer {
-    return target.returnCallerClassPtr()
+    const ret = target.returnCallerClassPtr()
+    this.lastBuf = ret
+    return ret
   }
 
   checkMyData (target: Receiver): bool {
     return target.checkCallerDataConsistency()
+
   }
 }
 
-export class SubclassCaller extends RightCaller {}
+export class SubclassCaller extends RightCaller {
+  constructor () {
+    super();
+  }
+}
 
 
 export class AnotherCaller extends Jig {
+  lastCheck: string = "none"
   doTheCall (target: Receiver): bool {
-    return target.checkCallerType()
+    const ret = target.checkCallerType()
+    this.lastCheck = `${ret}`
+    return ret
   }
 }

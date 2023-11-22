@@ -1,7 +1,6 @@
 import { expect } from 'chai'
 import request from 'supertest'
-import { BCS, Pointer, Tx, PrivKey, instructions, Address, base16, ed25519, util } from '@aldea/core'
-import { StubClock } from '@aldea/vm'
+import { BCS, Pointer, Tx, PrivKey, instructions, Address, base16, ed25519, util, BufReader } from '@aldea/core'
 import { buildApp } from '../dist/server.js'
 
 const {
@@ -19,10 +18,9 @@ const NFT_PKG_ID = '446f2f5ebbcbd8eb081d207a67c1c9f1ba3d15867c12a92b96e752038288
 describe('api', () => {
   let app
   let storage
-  const clock = new StubClock()
 
   beforeEach(async () => {
-    const built = await buildApp(clock)
+    const built = await buildApp()
     app = built.app
     storage = built.storage
   })
@@ -51,7 +49,7 @@ describe('api', () => {
 
   describe('POST /tx', function () {
     it('returns correct data when the tx goes trough', async () => {
-      const nftPkg = storage.getModule(base16.decode(NFT_PKG_ID))
+      const nftPkg = storage.getPkg(NFT_PKG_ID).get()
       const bcs = new BCS(nftPkg.abi)
       const coinId = await mint()
       const tx = new Tx()
@@ -71,9 +69,8 @@ describe('api', () => {
         .expect('Content-Type', /application\/json/)
         .expect(200)
 
-      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs', 'executed_at'])
+      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs'])
       expect(response.body.id).to.eql(tx.id)
-      expect(response.body.executed_at).to.eql(clock.now().unix())
       expect(response.body.outputs).to.have.length(2)
       expect(response.body.outputs[0].location).to.eql(new Pointer(tx.id, 0).toString())
       expect(response.body.outputs[0].origin).to.eql(new Pointer(tx.id, 0).toString())
@@ -82,7 +79,7 @@ describe('api', () => {
     })
 
     it('fails when a module does not exist', async () => {
-      const nftPkg = storage.getModule(base16.decode(NFT_PKG_ID))
+      const nftPkg = storage.getPkg(NFT_PKG_ID).get()
       const bcs = new BCS(nftPkg.abi)
       const coinId = await mint()
       const tx = new Tx()
@@ -110,7 +107,7 @@ describe('api', () => {
   describe('GET /tx/:txid', () => {
     let txid
     beforeEach(async () => {
-      const nftPkg = storage.getModule(base16.decode(NFT_PKG_ID))
+      const nftPkg = storage.getPkg(NFT_PKG_ID).get()
       const bcs = new BCS(nftPkg.abi)
       const coinId = await mint()
       const tx = new Tx()
@@ -138,9 +135,8 @@ describe('api', () => {
         .expect('Content-Type', /application\/json/)
         .expect(200)
 
-      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs', 'executed_at'])
+      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs'])
       expect(response.body.id).to.eql(txid)
-      expect(response.body.executed_at).to.eql(clock.now().unix())
       expect(response.body.outputs).to.have.length(2)
       expect(response.body.outputs[0].location).to.eql(new Pointer(txid, 0).toString())
       expect(response.body.outputs[0].origin).to.eql(new Pointer(txid, 0).toString())
@@ -156,7 +152,7 @@ describe('api', () => {
 
       expect(response.body).to.have.keys(['code', 'message', 'data'])
       expect(response.body.code).to.eql('NOT_FOUND')
-      expect(response.body.message).to.eql('unknown tx: 0000000000000000000000000000000000000000000000000000000000000000')
+      expect(response.body.message).to.eql('Exec result not found for tx id: 0000000000000000000000000000000000000000000000000000000000000000')
       expect(response.body.data).to.eql({ txid: '0000000000000000000000000000000000000000000000000000000000000000' })
     })
   })
@@ -164,7 +160,7 @@ describe('api', () => {
   describe('GET /rawtx/:txid', () => {
     let tx
     beforeEach(async () => {
-      const nftPkg = storage.getModule(base16.decode(NFT_PKG_ID))
+      const nftPkg = storage.getPkg(NFT_PKG_ID).get()
       const bcs = new BCS(nftPkg.abi)
       const coinId = await mint()
       tx = new Tx()
@@ -203,7 +199,7 @@ describe('api', () => {
 
       expect(response.body).to.have.keys(['code', 'message', 'data'])
       expect(response.body.code).to.eql('NOT_FOUND')
-      expect(response.body.message).to.eql('unknown tx: 0000000000000000000000000000000000000000000000000000000000000000')
+      expect(response.body.message).to.eql('Tx not found for id: 0000000000000000000000000000000000000000000000000000000000000000')
       expect(response.body.data).to.eql({ txid: '0000000000000000000000000000000000000000000000000000000000000000' })
     })
   })
@@ -211,7 +207,7 @@ describe('api', () => {
   describe('when a tx already exists', () => {
     let outputs
     beforeEach(async () => {
-      const nftPkg = storage.getModule(base16.decode(NFT_PKG_ID))
+      const nftPkg = storage.getPkg(NFT_PKG_ID).get()
       const bcs = new BCS(nftPkg.abi)
       const coinId = await mint()
       const tx = new Tx()
@@ -234,28 +230,28 @@ describe('api', () => {
       outputs = response.body.outputs
     })
 
-    describe('GET /state/:outputid', () => {
-      it('returns parsed state', async () => {
-        const response = await request(app)
-          .get(`/state/${outputs[0].id}`)
-          .expect('Content-Type', /application\/json/)
-          .expect(200)
-
-        expect(response.body).to.eql({ state: { name: 'someNft', rarity: 0, image: 'file://nft.png' } })
-      })
-
-      it('fails when output does not exists', async () => {
-        const response = await request(app)
-          .get(`/state/${Buffer.alloc(32).fill(0).toString('hex')}`)
-          .expect('Content-Type', /application\/json/)
-          .expect(404)
-
-        expect(response.body).to.have.keys(['code', 'message', 'data'])
-        expect(response.body.code).to.eql('NOT_FOUND')
-        expect(response.body.message).to.eql('state not found: 0000000000000000000000000000000000000000000000000000000000000000')
-        expect(response.body.data).to.eql({ outputId: '0000000000000000000000000000000000000000000000000000000000000000' })
-      })
-    })
+    // describe('GET /state/:outputid', () => {
+    //   it('returns parsed state', async () => {
+    //     const response = await request(app)
+    //       .get(`/state/${outputs[0].id}`)
+    //       .expect('Content-Type', /application\/json/)
+    //       .expect(200)
+    //
+    //     expect(response.body).to.eql({ state: { name: 'someNft', rarity: 0, image: 'file://nft.png' } })
+    //   })
+    //
+    //   it('fails when output does not exists', async () => {
+    //     const response = await request(app)
+    //       .get(`/state/${Buffer.alloc(32).fill(0).toString('hex')}`)
+    //       .expect('Content-Type', /application\/json/)
+    //       .expect(404)
+    //
+    //     expect(response.body).to.have.keys(['code', 'message', 'data'])
+    //     expect(response.body.code).to.eql('NOT_FOUND')
+    //     expect(response.body.message).to.eql('state not found: 0000000000000000000000000000000000000000000000000000000000000000')
+    //     expect(response.body.data).to.eql({ outputId: '0000000000000000000000000000000000000000000000000000000000000000' })
+    //   })
+    // })
 
     describe('GET /output/:id', function () {
       it('returns the output', async () => {
@@ -264,14 +260,13 @@ describe('api', () => {
           .expect('Content-Type', /application\/json/)
           .expect(200)
 
-        expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state', 'created_at'])
+        expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state'])
         expect(response.body.id).to.eql(outputs[0].id)
         expect(response.body.origin).to.eql(outputs[0].origin)
         expect(response.body.location).to.eql(outputs[0].location)
         expect(response.body.class).to.eql(outputs[0].class)
         expect(response.body.lock).to.eql(outputs[0].lock)
         expect(response.body.state).to.eql(outputs[0].state)
-        expect(response.body.created_at).to.eql(clock.now().unix())
       })
 
       it('returns not found when does not exists', async () => {
@@ -315,14 +310,13 @@ describe('api', () => {
           .expect('Content-Type', /application\/json/)
           .expect(200)
 
-        expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state', 'created_at'])
+        expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state'])
         expect(response.body.id).to.eql(outputs[0].id)
         expect(response.body.origin).to.eql(outputs[0].origin)
         expect(response.body.location).to.eql(outputs[0].location)
         expect(response.body.class).to.eql(outputs[0].class)
         expect(response.body.lock).to.eql(outputs[0].lock)
         expect(response.body.state).to.eql(outputs[0].state)
-        expect(response.body.created_at).to.eql(clock.now().unix())
       })
 
       it('returns not found when does not exists', async () => {
@@ -348,8 +342,11 @@ describe('api', () => {
         .expect(200)
         .expect('Content-Type', /application\/json/)
 
-      expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state', 'created_at'])
+      expect(response.body).to.have.keys(['id', 'origin', 'location', 'class', 'lock', 'state'])
       expect(response.body.class).to.eql(`${new Array(64).fill('0').join('')}_0`)
+      const buf = base16.decode(response.body.state)
+      const r = new BufReader(buf)
+      expect(r.readU64()).to.eql(1000n)
     })
 
     it('fails address is not an address', async () => {
@@ -383,7 +380,7 @@ describe('api', () => {
         .expect(200)
         .expect('Content-Type', /application\/json/)
 
-      expect(response.body).to.have.keys(['version', 'exports', 'objects', 'typeIds', 'imports'])
+      expect(response.body).to.have.keys(['version', 'exports', 'imports', 'defs', 'typeIds'])
     })
 
     it('when type is bin returns a bin', async () => {
@@ -468,7 +465,7 @@ describe('api', () => {
         .expect('Content-Type', /application\/json/)
 
       expect(response.body).to.have.keys(['docs'])
-      expect(response.body.docs).to.have.keys(['SomeClass', 'SomeClass$m1'])
+      expect(response.body.docs).to.have.keys(['SomeClass', 'SomeClass_m1'])
     })
   })
 

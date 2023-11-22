@@ -1,40 +1,22 @@
-import {Lock} from "./lock.js";
+import {CoreLock, Lock} from "./lock.js";
+import {LockType} from "@aldea/core";
 import {TxExecution} from "../tx-execution.js";
-import {LockType} from "../wasm-instance.js";
-import {Address, Pointer} from "@aldea/core";
-import {Option} from "../support/option.js";
-import {SerializedLock} from "./serialized-lock.js";
+import {PermissionError} from "../errors.js";
 
-export class FrozenLock implements Lock {
-  constructor () {}
-
-  serialize (): SerializedLock {
-    return new SerializedLock(this.typeNumber(), this.data())
+export class FrozenLock extends Lock {
+  coreLock (): CoreLock {
+    return new CoreLock(Number(LockType.FROZEN), new Uint8Array(0));
+  }
+  assertOpen (exec: TxExecution): void {
+    throw new PermissionError(`[line=${exec.execLength()}] jig is frozen`)
   }
 
-  isOpen (): boolean {
-    return false
-  }
-
-  acceptsExecution(_context: TxExecution): boolean {
+  canReceiveCalls (_param: TxExecution): boolean {
     return false;
   }
 
-  canBeChangedBy(context: TxExecution): boolean {
+  canBeChanged (_param: TxExecution): boolean {
     return false;
   }
 
-  typeNumber(): number {
-    return LockType.FROZEN;
-  }
-
-  data(): Uint8Array {
-    return new Uint8Array(0);
-  }
-
-  acceptsChangeFrom(callerOrigin: Pointer, context: TxExecution): boolean {
-    return false;
-  }
-
-  address(): Option<Address> { return Option.none() }
 }

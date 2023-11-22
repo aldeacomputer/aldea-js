@@ -62,7 +62,7 @@ declare module 'aldea/jig' {
 	    lockData: ArrayBuffer;
 	}
 	/**
-	 * TODO
+	 * Base Jig interface
 	 */
 	export interface Jig {
 	    readonly $output: Output;
@@ -71,7 +71,7 @@ declare module 'aldea/jig' {
 	/**
 	 * Base Jig class
 	 */
-	export class _BaseJig implements Jig {
+	export class __BaseJig implements Jig {
 	    readonly $output: Output;
 	    readonly $lock: Lock;
 	    constructor(params: JigInitParams);
@@ -79,13 +79,13 @@ declare module 'aldea/jig' {
 	/**
 	 * Local Jig class
 	 */
-	export class _LocalJig extends _BaseJig {
+	export class __LocalJig extends __BaseJig {
 	    constructor();
 	}
 	/**
-	 * Remote Jig class
+	 * Proxy Jig class
 	 */
-	export class _RemoteJig extends _BaseJig {
+	export class __ProxyJig extends __BaseJig {
 	    constructor(params: JigInitParams);
 	}
 
@@ -113,15 +113,25 @@ declare module 'aldea/auth' {
 
 }
 declare module 'aldea/coin' {
-	import { _RemoteJig } from 'aldea/jig';
+	import { __ProxyJig } from 'aldea/jig';
+	export interface Fungible {
+	    amount: u64;
+	    send(amount: u64): Fungible;
+	    combine(tokens: Fungible[]): Fungible;
+	}
+	export class __ProxyFungible extends __ProxyJig implements Jig, Fungible {
+	    get amount(): u64;
+	    send(amount: u64): Fungible;
+	    combine(tokens: Fungible[]): Fungible;
+	}
 	/**
 	 * Coin class
 	 *
 	 * Built in Jig that proxies calls to the VM for handling.
 	 */
-	export class Coin extends _RemoteJig {
+	export class Coin extends __ProxyJig implements Fungible {
 	    constructor();
-	    get motos(): u64;
+	    get amount(): u64;
 	    send(motos: u64): Coin;
 	    combine(coins: Coin[]): Coin;
 	}
@@ -166,88 +176,152 @@ declare module 'aldea/caller' {
 	}
 
 }
-declare module 'aldea/bytes' {
-	/**
-	 * Bytes class
-	 *
-	 * A wrapper around an ArrayBuffer that provides convinience helpers for
-	 * converting to and from common encoding formats.
-	 */
-	export class Bytes {
-	    buffer: ArrayBuffer;
-	    constructor(buf: ArrayBuffer);
-	    static fromBuffer(buf: ArrayBuffer): Bytes;
-	    static fromBase16(str: string): Bytes;
-	    static fromBase64(str: string): Bytes;
-	    static fromBase64url(str: string, padding?: bool): Bytes;
-	    static fromBech32(str: string, prefix?: string | null): Bytes;
-	    static fromBech32m(str: string, prefix?: string | null): Bytes;
-	    static fromHex(str: string): Bytes;
-	    static fromString(str: string): Bytes;
-	    toBase16(): string;
-	    toBase64(): string;
-	    toBase64url(padding?: bool): string;
-	    toBech32(prefix: string): string;
-	    toBech32m(prefix: string): string;
-	    toHex(): string;
-	    toString(): string;
+declare module 'vendor/big-int' {
+	export class BigInt {
+	    private d;
+	    private n;
+	    private isNeg;
+	    get isNegative(): boolean;
+	    private static readonly p;
+	    private static readonly actualBits;
+	    private static readonly maxComba;
+	    private static readonly digitMask;
+	    private static readonly precision;
+	    private constructor();
+	    /**
+	     * Returns a new {BigInt} instance from generic type {T}.
+	     *
+	     * @param  val the number as {BigInt}, {string}, or {number}
+	     * @return BigInt the new {BigInt} instance
+	     */
+	    static from<T>(val: T): BigInt;
+	    static fromString(bigInteger: string, radix?: i32): BigInt;
+	    static fromUInt16(val: u16): BigInt;
+	    static fromUInt32(val: u32): BigInt;
+	    static fromUInt64(val: u64): BigInt;
+	    static fromInt16(val: i16): BigInt;
+	    static fromInt32(val: i32): BigInt;
+	    static fromInt64(val: i64): BigInt;
+	    private static fromDigits;
+	    copy(): BigInt;
+	    opposite(): BigInt;
+	    abs(): BigInt;
+	    private static getEmptyResultContainer;
+	    private trimLeadingZeros;
+	    private resize;
+	    private grow;
+	    toString(radix?: i32): string;
+	    toInt32(): i32;
+	    toInt64(): i64;
+	    toUInt32(): u32;
+	    toUInt64(): u64;
+	    eq<T>(other: T): boolean;
+	    ne<T>(other: T): boolean;
+	    lt<T>(other: T): boolean;
+	    lte<T>(other: T): boolean;
+	    gt<T>(other: T): boolean;
+	    gte<T>(other: T): boolean;
+	    compareTo(other: BigInt): i32;
+	    magCompareTo(other: BigInt): i32;
+	    add<T>(other: T): BigInt;
+	    sub<T>(other: T): BigInt;
+	    private _add;
+	    private _sub;
+	    private _addOne;
+	    private _subOne;
+	    mul2(): BigInt;
+	    div2(): BigInt;
+	    private mulBasisPow;
+	    private divBasisPow;
+	    mulPowTwo(k: i32): BigInt;
+	    divPowTwo(k: i32): BigInt;
+	    modPowTwo(k: i32): BigInt;
+	    leftShift(k: i32): BigInt;
+	    rightShift(k: i32): BigInt;
+	    private leftShiftByAbsolute;
+	    private rightShiftByAbsolute;
+	    private rightShiftMustRoundDown;
+	    private static rightShiftByMaximum;
+	    mul<T>(other: T): BigInt;
+	    private _mulPartial;
+	    private _mulComba;
+	    pow<T>(val: T): BigInt;
+	    private _powBigint;
+	    private _powInt;
+	    square(): BigInt;
+	    private _baseSquare;
+	    private _squareComba;
+	    sqrt(): BigInt;
+	    log2(): BigInt;
+	    log<T>(base: T): BigInt;
+	    private _logNumber;
+	    private _logBigint;
+	    div<T>(other: T): BigInt;
+	    mod<T>(other: T): BigInt;
+	    divMod<T>(other: T): BigInt[];
+	    private _div;
+	    private _divRemainder;
+	    private _divMod;
+	    private _divCore;
+	    roundedDiv<T>(other: T): BigInt;
+	    addInt(b: u32): BigInt;
+	    subInt(b: u32): BigInt;
+	    mulInt(b: u32): BigInt;
+	    private inplaceMulInt;
+	    divInt(b: u32): BigInt;
+	    private inplaceDivInt;
+	    modInt(b: u32): u32;
+	    divModInt(b: u32): BigInt[];
+	    roundedDivInt(b: u32): BigInt;
+	    bitwiseNot(): BigInt;
+	    bitwiseAnd<T>(other: T): BigInt;
+	    bitwiseOr<T>(other: T): BigInt;
+	    bitwiseXor<T>(other: T): BigInt;
+	    private static _and;
+	    private _andNot;
+	    private static _or;
+	    private static _xor;
+	    countBits(): i32;
+	    isOdd(): boolean;
+	    isZero(): boolean;
+	    private static isPow2;
+	    static get ZERO(): BigInt;
+	    static get ONE(): BigInt;
+	    static get NEG_ONE(): BigInt;
+	    static eq<T, U>(left: T, right: U): boolean;
+	    private static eqOp;
+	    static ne<T, U>(left: T, right: U): boolean;
+	    private static neOp;
+	    static lt<T, U>(left: T, right: U): boolean;
+	    private static ltOp;
+	    static lte<T, U>(left: T, right: U): boolean;
+	    private static lteOp;
+	    static gt<T, U>(left: T, right: U): boolean;
+	    private static gtOp;
+	    static gte<T, U>(left: T, right: U): boolean;
+	    private static gteOp;
+	    static add<T, U>(left: T, right: U): BigInt;
+	    private static addOp;
+	    static sub<T, U>(left: T, right: U): BigInt;
+	    private static subOp;
+	    static mul<T, U>(left: T, right: U): BigInt;
+	    private static mulOp;
+	    static div<T, U>(left: T, right: U): BigInt;
+	    static divOp(left: BigInt, right: BigInt): BigInt;
+	    static mod<T, U>(left: T, right: U): BigInt;
+	    private static modOp;
+	    static pow<T>(base: T, k: i32): BigInt;
+	    private static powOp;
+	    private static leftShift;
+	    private static rightShift;
+	    static bitwiseNot<T>(a: T): BigInt;
+	    static bitwiseAnd<T, U>(a: T, b: U): BigInt;
+	    private static bitwiseAndOp;
+	    static bitwiseOr<T, U>(a: T, b: U): BigInt;
+	    private static bitwiseOrOp;
+	    static bitwiseXor<T, U>(a: T, b: U): BigInt;
+	    private static bitwiseXorOp;
 	}
-	/**
-	 * Decodes the Base16 encoded string into a Buffer.
-	 */
-	export function fromBase16(str: string): ArrayBuffer;
-	/**
-	 * Decodes the Base64 encoded string into a Buffer.
-	 */
-	export function fromBase64(str: string): ArrayBuffer;
-	/**
-	 * Decodes the Base64url encoded string into a Buffer.
-	 */
-	export function fromBase64url(str: string, padding?: bool): ArrayBuffer;
-	/**
-	 * Decodes the Bech32 encoded string into a Buffer.
-	 */
-	export function fromBech32(str: string, prefix?: string | null): ArrayBuffer;
-	/**
-	 * Decodes the Base32m encoded string into a Buffer.
-	 */
-	export function fromBech32m(str: string, prefix?: string | null): ArrayBuffer;
-	/**
-	 * Decodes the Hex encoded string into a Buffer.
-	 */
-	export function fromHex(str: string): ArrayBuffer;
-	/**
-	 * Decodes the UTF-16 encoded string into a Buffer.
-	 */
-	export function fromString(str: string): ArrayBuffer;
-	/**
-	 * Encodes the buffer into a Base16 encoded string.
-	 */
-	export function toBase16(buf: ArrayBuffer): string;
-	/**
-	 * Encodes the buffer into a Base64 encoded string.
-	 */
-	export function toBase64(buf: ArrayBuffer): string;
-	/**
-	 * Encodes the buffer into a Base64url encoded string.
-	 */
-	export function toBase64url(buf: ArrayBuffer, padding?: bool): string;
-	/**
-	 * Encodes the buffer into a Bech32 encoded string.
-	 */
-	export function toBech32(buf: ArrayBuffer, prefix: string): string;
-	/**
-	 * Encodes the buffer into a Bech32m encoded string.
-	 */
-	export function toBech32m(buf: ArrayBuffer, prefix: string): string;
-	/**
-	 * Encodes the buffer into a Hex encoded string.
-	 */
-	export function toHex(buf: ArrayBuffer): string;
-	/**
-	 * Encodes the buffer into a UTF-16 encoded string.
-	 */
-	export function toString(buf: ArrayBuffer): string;
 
 }
 
@@ -258,15 +332,30 @@ declare class Jig {
   $output: import('aldea/output').Output;
 }
 
+/** Built in Fungible interface */
+declare interface Fungible {
+  amount: u64;
+  send(amount: u64): Fungible;
+  combine(coins: Fungible[]): Fungible;
+}
+
 /** Built in Coin remote jig */
-declare class Coin extends Jig {
-  get motos(): u64;
-  send(motos: u64): Coin;
+declare class Coin extends Jig implements Fungible {
+  amount: u64;
+  constructor(amount: u64);
+  send(amount: u64): Coin;
   combine(coins: Coin[]): Coin;
 }
 
 /** Global caller instance */
 declare const caller: typeof import('aldea/caller').caller;
 
+/** BigInt */
+type BigInt = import('vendor/big-int').BigInt
+declare const BigInt: typeof import('vendor/big-int').BigInt;
+
+// declare namespace console {
 /** Debug */
-declare function vm_debug_str(msg: string): void;
+function debug(msg: string): void;
+// }
+

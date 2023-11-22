@@ -1,4 +1,4 @@
-import {vm_jig_init, vm_jig_link, vm_proxy_link} from './imports';
+import { __vm_jig_init, __vm_jig_link, __vm_proxy_link } from './imports'
 import { Lock, LockType } from './lock'
 import { Output } from './output'
 
@@ -19,7 +19,7 @@ export class JigInitParams {
 }
 
 /**
- * TODO
+ * Base Jig interface
  */
 export interface Jig {
   readonly $output: Output;
@@ -29,7 +29,7 @@ export interface Jig {
 /**
  * Base Jig class
  */
-export class _BaseJig implements Jig {
+export class __BaseJig implements Jig {
   readonly $output: Output;
   readonly $lock: Lock;
 
@@ -46,22 +46,22 @@ export class _BaseJig implements Jig {
 /**
  * Local Jig class
  */
-export class _LocalJig extends _BaseJig {
+export class __LocalJig extends __BaseJig {
   constructor() {
-    const params = vm_jig_init()
+    const params = __vm_jig_init()
     super(params)
     const ptr = changetype<i32>(this)
     const rtid = load<i32>(ptr-8)
-    this.$output.classPtr = vm_jig_link(this, rtid)
+    this.$output.classPtr = __vm_jig_link(this, rtid)
   }
 }
 
 /**
- * Remote Jig class
+ * Proxy Jig class
  */
-export class _RemoteJig extends _BaseJig {
+export class __ProxyJig extends __BaseJig {
   constructor(params: JigInitParams) {
     super(params)
-    vm_proxy_link(this, this.$output.origin)
+    __vm_proxy_link(this, this.$output.origin)
   }
 }

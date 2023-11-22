@@ -1,42 +1,21 @@
-// import { ExecutionError } from '../errors.js'
-import {Lock} from "./lock.js";
+import {CoreLock, Lock} from "./lock.js";
+import {LockType} from "@aldea/core";
 import {TxExecution} from "../tx-execution.js";
-import {LockType} from "../wasm-instance.js";
-import {Address, Pointer} from "@aldea/core";
-import {Option} from "../support/option.js";
-import {SerializedLock} from "./serialized-lock.js";
 
-export class PublicLock implements Lock {
-  constructor () {}
-
-  serialize (): SerializedLock {
-    return new SerializedLock(this.typeNumber(), this.data())
-
+export class PublicLock extends Lock {
+  coreLock (): CoreLock {
+    return new CoreLock(LockType.PUBLIC, new Uint8Array(0));
   }
 
-  isOpen (): boolean {
-    return false
-  }
-
-  acceptsExecution(_context: TxExecution): boolean {
+  canReceiveCalls (_param: TxExecution): boolean {
     return true;
   }
 
-  canBeChangedBy(context: TxExecution): boolean {
+  canBeChanged (_param: TxExecution): boolean {
     return false;
   }
 
-  typeNumber(): number {
-    return LockType.ANYONE;
+  assertOpen (param: TxExecution): void {
+    // no-op
   }
-
-  data(): Uint8Array {
-    return new Uint8Array(0);
-  }
-
-  acceptsChangeFrom(_callerOrigin: Pointer, _context: TxExecution): boolean {
-    return false;
-  }
-
-  address(): Option<Address> { return Option.none() }
 }

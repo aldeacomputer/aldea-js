@@ -23,8 +23,7 @@ export function normalizeNodeName(
   if (parent && parent.fields.includes(node as FieldNode)) {
     return `${parent.name}.${node.name}`
   } else if (parent && (<ClassNode | InterfaceNode>parent).methods.includes(node as MethodNode & FunctionNode)) {
-    const delim = 'kind' in node ? (node.kind === MethodKind.INSTANCE ? '$' : '_'): '$';
-    return parent.name + delim + node.name
+    return `${parent.name}_${node.name}`
   } else {
     return node.name
   }
