@@ -41,7 +41,7 @@ export const AbiSchema: AbiSchemeInterface = {
     { name: 'name', type: type('string') },
     { name: 'extends', type: type('Array', [type('string')]) },
     { name: 'fields', type: type('Array', [type('abi_field_node')]) },
-    { name: 'methods', type: type('Array', [type('abi_function_node')]) },
+    { name: 'methods', type: type('Array', [type('abi_method_node')]) },
   ],
   abi_object_node: [
     { name: 'name', type: type('string') },
@@ -56,7 +56,7 @@ export const AbiSchema: AbiSchemeInterface = {
     { name: 'type', type: type('abi_type_node') },
   ],
   abi_method_node: [
-    { name: 'kind', type: type('u8') },
+    { name: 'kind', type: type('u8', [], true) },
     { name: 'name', type: type('string') },
     { name: 'args', type: type('Array', [type('abi_arg_node')]) },
     { name: 'rtype', type: type('abi_type_node', [], true) },

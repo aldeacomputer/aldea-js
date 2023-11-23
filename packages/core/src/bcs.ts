@@ -506,8 +506,8 @@ export class BCS {
       },
       encode: (writer, val, type) => {
         assertTypeNode(type, 1)
-        writer.writeBool(!!val)
-        if (!!val) this.encodeType(type.args[0], val, writer)
+        writer.writeBool(val !== null && val !== undefined)
+        if (val !== null && val !== undefined) this.encodeType(type.args[0], val, writer)
       }
     })
 

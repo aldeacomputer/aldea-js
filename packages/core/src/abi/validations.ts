@@ -85,7 +85,7 @@ function validateFieldNode(obj: any): obj is FieldNode {
 
 // Validates the given object implements the MethodNode interface
 function validateMethodNode(obj: any): obj is MethodNode {
-  return typeof obj?.kind === 'number' &&
+  return typeof (obj?.kind === 'number' || obj?.kind === null) &&
     typeof obj?.name === 'string' &&
     Array.isArray(obj.args) && obj.args.every(validateArgNode) &&
     'rtype' in obj && (obj.rtype === null || validateTypeNode(obj.rtype))
