@@ -529,7 +529,7 @@ class TxExecution {
     const nextOrigin = this.createNextOrigin()
     this.nextOrigin = Option.some(nextOrigin)
     this.stack.push(nextOrigin)
-    let res = from.callFn(method.callName(), loweredArgs, method.args.map(arg => arg.type))
+    from.callFn(method.callName(), loweredArgs, method.args.map(arg => arg.type)) // Result is ignored because jigs are saved in local state.
     this.stack.pop()
 
     const createdJig = this.jigs.find(ref => ref.origin.equals(nextOrigin))
