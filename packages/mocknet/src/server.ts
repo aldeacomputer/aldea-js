@@ -53,7 +53,9 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
           entries: pkg.entries
         }
       }),
-      outputs: execRes.outputs.map(o => serializeOutput(o))
+      outputs: execRes.outputs.map((o: Output) => serializeOutput(o)),
+      spends: execRes.spends.map((s: Output) => s.id),
+      reads: execRes.reads.map((r: Output) => r.id)
     }
   }
 
