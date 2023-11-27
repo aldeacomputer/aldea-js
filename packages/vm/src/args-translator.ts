@@ -51,6 +51,7 @@ export class ArgsTranslator {
         into.writeFixedBytes(from.readFixedBytes(ty.ownSize()))
         break
       case 'Array':
+      case 'Set':
       case 'StaticArray':
         this.translateArray(from, ty, into)
         break
@@ -66,7 +67,6 @@ export class ArgsTranslator {
       case 'Float32Array':
       case 'Float64Array':
       case 'string':
-      case 'Set':
         into.writeBytes(from.readBytes())
         break
       case 'Map':

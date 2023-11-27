@@ -32,13 +32,15 @@ export class JigRef {
   origin: Pointer;
   latestLocation: Pointer;
   lock: Lock;
+  readonly isNew: boolean;
 
-  constructor (ref: ContainerRef, classIdx: number, origin: Pointer, latestLocation: Pointer, lock: Lock) {
+  constructor (ref: ContainerRef, classIdx: number, origin: Pointer, latestLocation: Pointer, lock: Lock, isNew: boolean) {
     this.ref = ref
     this.classIdx = classIdx
     this.origin = origin
     this.latestLocation = latestLocation
     this.lock = lock
+    this.isNew = isNew
   }
 
   get originBuf (): ArrayBuffer {

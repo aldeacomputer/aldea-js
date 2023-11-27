@@ -34,3 +34,7 @@ export class MutantSheep extends Sheep {
     this.radiation += 10
   }
 }
+
+export function clone (original: Sheep): Sheep {
+  return new Sheep(original.name, original.color)
+}

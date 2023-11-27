@@ -1,6 +1,6 @@
 import {Storage, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, ref} from "@aldea/core";
+import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, PubKey, ref} from "@aldea/core";
 import {Abi} from '@aldea/core/abi';
 import {ArgsBuilder, buildVm, emptyExecFactoryFactory, parseOutput} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
@@ -9,6 +9,7 @@ import {TxExecution} from "../src/tx-execution.js";
 import {StatementResult} from "../src/statement-result.js";
 import {ExecutionResult} from "../src/index.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
+import {randomBytes} from "@aldea/core/support/util";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -51,13 +52,16 @@ describe('execute txs', () => {
     coinEaterArgs = new ArgsBuilder('coin-eater', abiFor)
   })
 
-  const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
-
-
+  const fundedExec = emptyExecFactoryFactory(() => storage, () => vm)
+  const emptyExec = (pubKeys: PubKey[] = []) => {
+    const txHash = randomBytes(32)
+    const context = new StorageTxContext(txHash, pubKeys, storage, vm)
+    return new TxExecution(context)
+  }
 
 
   it('instantiate creates the right output', () => {
-    const {exec, txHash} = emptyExec()
+    const {exec, txHash} = fundedExec()
     const mod = exec.import(modIdFor('flock'))
     const instanceIndex = exec.instantiate(mod.idx, 0, new Uint8Array([0]))
     exec.lockJig(instanceIndex.idx, userAddr)
@@ -71,7 +75,7 @@ describe('execute txs', () => {
   })
 
   it('sends arguments to constructor properly.', () => {
-    const {exec} = emptyExec()
+    const {exec} = fundedExec()
     const module = exec.import(modIdFor('weapon')) // index 0
     const bcs = new BCS(abiFor('weapon'));
     const argBuf = bcs.encode('Weapon_constructor', ['Sable Corvo de San Martín', 100000])
@@ -85,7 +89,7 @@ describe('execute txs', () => {
   })
 
   it('can call methods on jigs', () => {
-    const {exec} = emptyExec()
+    const {exec} = fundedExec()
     const importIndex = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(importIndex.idx, 0, new Uint8Array([0]))
     exec.call(flock.idx, 1, new Uint8Array([0]))
@@ -97,7 +101,7 @@ describe('execute txs', () => {
   })
 
   it('can make calls on jigs sending basic parameters', () => {
-    const {exec} = emptyExec()
+    const {exec} = fundedExec()
     const pkg = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(pkg.idx, 0, new Uint8Array([0]))
     exec.call(flock.idx, 2, new Uint8Array([0, 7, 0, 0, 0]))
@@ -110,7 +114,7 @@ describe('execute txs', () => {
 
 
   it('can make calls on jigs sending jigs as parameters', () => {
-    const {exec} = emptyExec()
+    const {exec} = fundedExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
     const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
@@ -129,7 +133,7 @@ describe('execute txs', () => {
   })
 
   it('after locking a jig in the code the state gets updated properly', () => {
-    const {exec} = emptyExec()
+    const {exec} = fundedExec()
     const flockMod = exec.import(modIdFor('flock'))
     const counterMod = exec.import(modIdFor('sheep-counter'))
     const flock = exec.instantiate(flockMod.idx, ...flockArgs.constr('Flock', []))
@@ -151,7 +155,7 @@ describe('execute txs', () => {
   }
 
   function shepherdExec (privKeys: PrivKey[] = []): ShepExec {
-    const {exec} = emptyExec(privKeys)
+    const {exec} = fundedExec(privKeys)
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
     const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
@@ -174,7 +178,7 @@ describe('execute txs', () => {
     const result = exec.finalize()
     storage.persistExecResult(result)
 
-    const {exec: exec2} = emptyExec([userPriv])
+    const {exec: exec2} = fundedExec([userPriv])
     const loaded = exec2.load(result.outputs[2].hash)
     const classPtrStmt = exec2.call(loaded.idx, ...ctrArgs.method('Shepherd', 'myClassPtr', []))
     const flockClassPtrStmt = exec2.call(loaded.idx, ...ctrArgs.method('Shepherd', 'flockClassPtr', []))
@@ -205,7 +209,7 @@ describe('execute txs', () => {
   })
 
   it('fails when a jig tries to lock a locked jig', () => {
-    const {exec} = emptyExec()
+    const {exec} = fundedExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
     const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
@@ -227,7 +231,7 @@ describe('execute txs', () => {
   }
 
   function antExec (): AntExec {
-    const {exec} = emptyExec()
+    const {exec} = fundedExec()
     const antWasm = exec.import(modIdFor('ant'))
     const ant1 = exec.instantiate(antWasm.idx, ...antArgs.constr('Ant', []))
     const ant2 = exec.instantiate(antWasm.idx, ...antArgs.constr('Ant', []))
@@ -259,7 +263,7 @@ describe('execute txs', () => {
   describe('when there is a frozen jig', () => {
     let frozenOutput: Output
     beforeEach(() => {
-      const {exec} = emptyExec()
+      const {exec} = fundedExec()
       const flockMod = exec.import(modIdFor('flock'))
       const flock = exec.instantiate(flockMod.idx, ...flockArgs.constr('Flock', []))
       exec.call(flock.idx, ...flockArgs.method('Flock', 'goToFridge', []))
@@ -270,7 +274,7 @@ describe('execute txs', () => {
     })
 
     it('cannot be called methods', () => {
-      const {exec} = emptyExec()
+      const {exec} = fundedExec()
       const jig = exec.load(frozenOutput.hash)
       expect(() => exec.call(jig.idx, ...flockArgs.method('Flock', 'grow', []))).to
         .throw(PermissionError,
@@ -278,7 +282,7 @@ describe('execute txs', () => {
     })
 
     it('cannot be locked', () => {
-      const {exec} = emptyExec()
+      const {exec} = fundedExec()
       const jig = exec.load(frozenOutput.hash)
       expect(() => exec.lockJig(jig.idx, userAddr)).to
         .throw(PermissionError,
@@ -291,7 +295,7 @@ describe('execute txs', () => {
     const res1 = exec1.finalize();
     storage.persistExecResult(res1)
 
-    const { exec: exec2 } = emptyExec([userPriv])
+    const { exec: exec2 } = fundedExec([userPriv])
 
     const loaded = exec2.load(res1.outputs[1].hash)
     exec2.call(loaded.idx, ...antArgs.method('Ant', 'doExercise', []))
@@ -307,7 +311,7 @@ describe('execute txs', () => {
     const res1 = exec1.finalize();
     storage.persistExecResult(res1)
 
-    const { exec: exec2 } = emptyExec([userPriv])
+    const { exec: exec2 } = fundedExec([userPriv])
 
     const loaded = exec2.loadByOrigin(res1.outputs[1].origin.toBytes())
     exec2.call(loaded.idx, ...antArgs.method('Ant', 'doExercise', []))
@@ -319,7 +323,7 @@ describe('execute txs', () => {
   })
 
   it('fails when try to load an unknown jig', () => {
-    const { exec } = emptyExec()
+    const { exec } = fundedExec()
 
     expect(() => {
       exec.load(new Uint8Array(32).fill(1))
@@ -327,7 +331,7 @@ describe('execute txs', () => {
   })
 
   it('fails when try to load by an unknown origin', () => {
-    const { exec } = emptyExec()
+    const { exec } = fundedExec()
 
     expect(() => {
       exec.loadByOrigin(new Uint8Array(34).fill(1))
@@ -339,7 +343,7 @@ describe('execute txs', () => {
     const res1 = exec1.finalize()
     storage.persistExecResult(res1)
 
-    const {exec: exec2} = emptyExec([userPriv])
+    const {exec: exec2} = fundedExec([userPriv])
     const jig = exec2.load(res1.outputs[2].hash)
     const value = exec2.call(jig.idx, ...ctrArgs.method('Shepherd', 'sheepCount', []))
     expect(value.asValue().ptr.toUInt()).to.eql(1)
@@ -348,7 +352,7 @@ describe('execute txs', () => {
   })
 
   function flockBagExec (): ExecutionResult {
-    const { exec } = emptyExec()
+    const { exec } = fundedExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const flock = exec.exec(flockWasm.idx, ...flockArgs.exec('flockWithSize', [3]))
     const bag = exec.instantiate(flockWasm.idx, ...flockArgs.constr('FlockBag', []))
@@ -372,7 +376,7 @@ describe('execute txs', () => {
 
     const anotherKey = PrivKey.fromRandom()
 
-    const {exec} = emptyExec([userPriv])
+    const {exec} = fundedExec([userPriv])
     const loadedJig = exec.load(res1.outputs[2].hash)
     exec.lockJig(loadedJig.idx, anotherKey.toPubKey().toAddress())
 
@@ -393,7 +397,7 @@ describe('execute txs', () => {
   it('can return types with nested jigs')
 
   it('can call exported functions from inside jigs', () => {
-    const { exec } = emptyExec()
+    const { exec } = fundedExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
     exec.call(flock.idx, ...flockArgs.method('Flock', 'groWithExternalFunction', []))
@@ -405,7 +409,7 @@ describe('execute txs', () => {
   })
 
   it('saves entire state for jigs using inheritance', () => {
-    const {exec} = emptyExec()
+    const {exec} = fundedExec()
     const wasm = exec.import(modIdFor('sheep'))
     const sheep = exec.instantiate(wasm.idx, ...sheepArgs.constr('MutantSheep', ['Wolverine', 'black']))
     exec.lockJig(sheep.idx, userAddr)
@@ -419,7 +423,7 @@ describe('execute txs', () => {
   })
 
   it('can call base class and concrete class methods', () => {
-    const {exec} = emptyExec()
+    const {exec} = fundedExec()
     const wasm = exec.import(modIdFor('sheep'))
     const sheep = exec.instantiate(wasm.idx, ...sheepArgs.constr('MutantSheep', ['Wolverine', 'black']))
     exec.call(sheep.idx, ...sheepArgs.method('Sheep', 'chopOneLeg', []))
@@ -437,14 +441,14 @@ describe('execute txs', () => {
   })
 
   it('can create, lock and reload a jig that uses inheritance', () => {
-    const {exec: exec1} = emptyExec()
+    const {exec: exec1} = fundedExec()
     const wasm = exec1.import(modIdFor('sheep'))
     const sheep = exec1.instantiate(wasm.idx, ...sheepArgs.constr('MutantSheep', ['Wolverine', 'black']))
     exec1.lockJig(sheep.idx, userAddr)
     const res1 = exec1.finalize()
     storage.persistExecResult(res1)
 
-    const { exec: exec2 } = emptyExec([userPriv])
+    const { exec: exec2 } = fundedExec([userPriv])
     const loaded = exec2.load(res1.outputs[1].hash)
     exec2.call(loaded.idx, ...sheepArgs.method('Sheep', 'chopOneLeg',[])) // -1 leg
     exec2.call(loaded.idx, ...sheepArgs.method('MutantSheep', 'regenerateLeg',[])) // +1 leg
@@ -462,7 +466,7 @@ describe('execute txs', () => {
     // const txHash = new Uint8Array(32).fill(10)
     // const context = new StorageTxContext(txHash, [userPriv.toPubKey()], storage, vm)
 
-    const {exec} = emptyExec([userPriv])
+    const {exec} = fundedExec([userPriv])
 
     const mintedCoin = vm.mint(userAddr, 1000)
     const wasm = exec.import(modIdFor('coin-eater'))
@@ -478,7 +482,7 @@ describe('execute txs', () => {
   })
 
   it('keeps locking state up to date after lock', () => {
-    const { exec} = emptyExec([userPriv])
+    const { exec} = fundedExec([userPriv])
     const wasm = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(wasm.idx, ...flockArgs.constr('Flock', []))
 
@@ -494,7 +498,7 @@ describe('execute txs', () => {
 
 
   it('can compile', async () => {
-    const {exec} = emptyExec()
+    const {exec} = fundedExec()
     const fileContent = 'export class Dummy extends Jig {}'
     const entries = ['main.ts']
     const files = new Map<string, string>([['main.ts', fileContent]])
@@ -517,7 +521,7 @@ describe('execute txs', () => {
   })
 
   it('generates empty statements for sign and signto', () => {
-    const {exec} = emptyExec()
+    const {exec} = fundedExec()
     const stmt1 = exec.sign(new Uint8Array(64).fill(0), new Uint8Array(32).fill(1))
     const stmt2 = exec.signTo(new Uint8Array(64).fill(2), new Uint8Array(32).fill(3))
 
@@ -535,6 +539,59 @@ describe('execute txs', () => {
     expect(res.outputs).to.have.length(4)
     const parsedFlock = parseOutput(res.outputs[3])
     expect(parsedFlock.size).to.eql(5)
+  })
+
+  it('input does not include newly created jigs', () => {
+    const exec = emptyExec([userPub])  // this loads a coin
+    const minted = vm.mint(userAddr, 100)
+    const imported = exec.import(modIdFor('flock'))
+    const jig = exec.instantiate(imported.idx, 0, new Uint8Array([0]))
+    exec.lockJig(jig.idx, userAddr)
+    const coin = exec.load(minted.hash)
+    exec.fund(coin.idx)
+
+    const res = exec.finalize()
+
+    expect(res.spends).to.have.length(1)
+    expect(res.spends[0].id).to.eql(minted.id)
+  })
+
+  it('result includes reads', () => {
+    const { exec: exec1 } = fundedExec([])  // this loads a coin
+    const pkg = exec1.import(modIdFor('sheep'))
+    const sheep = exec1.instantiate(pkg.idx, ...sheepArgs.constr('Sheep', ['Baa', 'black']) )
+    exec1.lockJig(sheep.idx, userAddr)
+    const res1 = exec1.finalize();
+    storage.persistExecResult(res1)
+
+    const { exec: exec2 } = fundedExec([])  // this loads a coin
+    const loaded = exec2.load(res1.outputs[1].hash)
+    const imported = exec2.import(modIdFor('sheep'))
+    const cloned = exec2.exec(imported.idx, ...sheepArgs.exec('clone', [ref(loaded.idx)]))
+    exec2.lockJig(cloned.idx, userAddr)
+    const res2 = exec2.finalize()
+
+    expect(res2.reads).to.have.length(1)
+    expect(res2.reads[0].hash).to.eql(res1.outputs[1].hash)
+  })
+
+  it('when a read was also spend it does not appear in spends', () => {
+    const { exec: exec1 } = fundedExec([])  // this loads a coin
+    const pkg = exec1.import(modIdFor('sheep'))
+    const sheep = exec1.instantiate(pkg.idx, ...sheepArgs.constr('Sheep', ['Baa', 'black']) )
+    exec1.lockJig(sheep.idx, userAddr)
+    const res1 = exec1.finalize();
+    storage.persistExecResult(res1)
+
+    const { exec: exec2 } = fundedExec([userPriv])  // this loads a coin
+    const loaded = exec2.load(res1.outputs[1].hash)
+    const imported = exec2.import(modIdFor('sheep'))
+    const cloned = exec2.exec(imported.idx, ...sheepArgs.exec('clone', [ref(loaded.idx)]))
+    exec2.call(loaded.idx, ...sheepArgs.method('Sheep', 'chopOneLeg', []))
+    exec2.lockJig(cloned.idx, userAddr)
+    const res2 = exec2.finalize()
+
+    expect(res2.reads).to.have.length(0)
   })
 
   // it('receives right amount from properties of foreign jigs', () => {

@@ -42,7 +42,8 @@ export class PackageDeploy {
 
 export class ExecutionResult {
   outputs: Output[]
-  inputs: Output[]
+  spends: Output[]
+  reads: Output[]
   deploys: PackageDeploy[]
   private finished: boolean
   txId: string
@@ -51,7 +52,8 @@ export class ExecutionResult {
   constructor(txId: string) {
     this.outputs = []
     this.deploys = []
-    this.inputs = []
+    this.spends = []
+    this.reads = []
     this.finished = false
     this.txId = txId
     this._executedAt = Option.none()
@@ -64,8 +66,8 @@ export class ExecutionResult {
     this.outputs.push(output)
   }
 
-  addInput(output: Output) {
-    this.inputs.push(output)
+  addSpend(output: Output) {
+    this.spends.push(output)
   }
 
   addDeploy(deploy: PackageDeploy) {
@@ -77,5 +79,9 @@ export class ExecutionResult {
 
   finish() {
     this.finished = true
+  }
+
+  addRead (output: Output) {
+    this.reads.push(output)
   }
 }
