@@ -23,7 +23,6 @@ describe('execute txs', () => {
   let modIdFor: (key: string) => Uint8Array
 
 
-
   let flockArgs: ArgsBuilder
   let ctrArgs: ArgsBuilder
   let antArgs: ArgsBuilder
@@ -291,11 +290,11 @@ describe('execute txs', () => {
   });
 
   it('can load an existing jig', () => {
-    const { exec: exec1 } = antExec()
+    const {exec: exec1} = antExec()
     const res1 = exec1.finalize();
     storage.persistExecResult(res1)
 
-    const { exec: exec2 } = fundedExec([userPriv])
+    const {exec: exec2} = fundedExec([userPriv])
 
     const loaded = exec2.load(res1.outputs[1].hash)
     exec2.call(loaded.idx, ...antArgs.method('Ant', 'doExercise', []))
@@ -307,11 +306,11 @@ describe('execute txs', () => {
   })
 
   it('can load an existing jig by origin', () => {
-    const { exec: exec1 } = antExec()
+    const {exec: exec1} = antExec()
     const res1 = exec1.finalize();
     storage.persistExecResult(res1)
 
-    const { exec: exec2 } = fundedExec([userPriv])
+    const {exec: exec2} = fundedExec([userPriv])
 
     const loaded = exec2.loadByOrigin(res1.outputs[1].origin.toBytes())
     exec2.call(loaded.idx, ...antArgs.method('Ant', 'doExercise', []))
@@ -323,7 +322,7 @@ describe('execute txs', () => {
   })
 
   it('fails when try to load an unknown jig', () => {
-    const { exec } = fundedExec()
+    const {exec} = fundedExec()
 
     expect(() => {
       exec.load(new Uint8Array(32).fill(1))
@@ -331,7 +330,7 @@ describe('execute txs', () => {
   })
 
   it('fails when try to load by an unknown origin', () => {
-    const { exec } = fundedExec()
+    const {exec} = fundedExec()
 
     expect(() => {
       exec.loadByOrigin(new Uint8Array(34).fill(1))
@@ -339,7 +338,7 @@ describe('execute txs', () => {
   })
 
   it('can load jigs that include proxies to other packages', () => {
-    const { exec: exec1 } = shepherdExec()
+    const {exec: exec1} = shepherdExec()
     const res1 = exec1.finalize()
     storage.persistExecResult(res1)
 
@@ -352,7 +351,7 @@ describe('execute txs', () => {
   })
 
   function flockBagExec (): ExecutionResult {
-    const { exec } = fundedExec()
+    const {exec} = fundedExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const flock = exec.exec(flockWasm.idx, ...flockArgs.exec('flockWithSize', [3]))
     const bag = exec.instantiate(flockWasm.idx, ...flockArgs.constr('FlockBag', []))
@@ -397,7 +396,7 @@ describe('execute txs', () => {
   it('can return types with nested jigs')
 
   it('can call exported functions from inside jigs', () => {
-    const { exec } = fundedExec()
+    const {exec} = fundedExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
     exec.call(flock.idx, ...flockArgs.method('Flock', 'groWithExternalFunction', []))
@@ -448,10 +447,10 @@ describe('execute txs', () => {
     const res1 = exec1.finalize()
     storage.persistExecResult(res1)
 
-    const { exec: exec2 } = fundedExec([userPriv])
+    const {exec: exec2} = fundedExec([userPriv])
     const loaded = exec2.load(res1.outputs[1].hash)
-    exec2.call(loaded.idx, ...sheepArgs.method('Sheep', 'chopOneLeg',[])) // -1 leg
-    exec2.call(loaded.idx, ...sheepArgs.method('MutantSheep', 'regenerateLeg',[])) // +1 leg
+    exec2.call(loaded.idx, ...sheepArgs.method('Sheep', 'chopOneLeg', [])) // -1 leg
+    exec2.call(loaded.idx, ...sheepArgs.method('MutantSheep', 'regenerateLeg', [])) // +1 leg
     exec2.lockJig(loaded.idx, userAddr)
     const res2 = exec2.finalize()
 
@@ -482,7 +481,7 @@ describe('execute txs', () => {
   })
 
   it('keeps locking state up to date after lock', () => {
-    const { exec} = fundedExec([userPriv])
+    const {exec} = fundedExec([userPriv])
     const wasm = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(wasm.idx, ...flockArgs.constr('Flock', []))
 
@@ -532,7 +531,7 @@ describe('execute txs', () => {
   })
 
   it('when call an external constructor a new jig is created a right proxy gets assigned', () => {
-    const { exec, shepherd } = shepherdExec([userPriv])
+    const {exec, shepherd} = shepherdExec([userPriv])
     exec.call(shepherd.idx, ...ctrArgs.method('Shepherd', 'breedANewFlock', [5]))
     const res = exec.finalize()
 
@@ -557,14 +556,14 @@ describe('execute txs', () => {
   })
 
   it('result includes reads', () => {
-    const { exec: exec1 } = fundedExec([])  // this loads a coin
+    const {exec: exec1} = fundedExec([])  // this loads a coin
     const pkg = exec1.import(modIdFor('sheep'))
-    const sheep = exec1.instantiate(pkg.idx, ...sheepArgs.constr('Sheep', ['Baa', 'black']) )
+    const sheep = exec1.instantiate(pkg.idx, ...sheepArgs.constr('Sheep', ['Baa', 'black']))
     exec1.lockJig(sheep.idx, userAddr)
     const res1 = exec1.finalize();
     storage.persistExecResult(res1)
 
-    const { exec: exec2 } = fundedExec([])  // this loads a coin
+    const {exec: exec2} = fundedExec([])  // this loads a coin
     const loaded = exec2.load(res1.outputs[1].hash)
     const imported = exec2.import(modIdFor('sheep'))
     const cloned = exec2.exec(imported.idx, ...sheepArgs.exec('clone', [ref(loaded.idx)]))
@@ -576,14 +575,14 @@ describe('execute txs', () => {
   })
 
   it('when a read was also spend it does not appear in spends', () => {
-    const { exec: exec1 } = fundedExec([])  // this loads a coin
+    const {exec: exec1} = fundedExec([])  // this loads a coin
     const pkg = exec1.import(modIdFor('sheep'))
-    const sheep = exec1.instantiate(pkg.idx, ...sheepArgs.constr('Sheep', ['Baa', 'black']) )
+    const sheep = exec1.instantiate(pkg.idx, ...sheepArgs.constr('Sheep', ['Baa', 'black']))
     exec1.lockJig(sheep.idx, userAddr)
     const res1 = exec1.finalize();
     storage.persistExecResult(res1)
 
-    const { exec: exec2 } = fundedExec([userPriv])  // this loads a coin
+    const {exec: exec2} = fundedExec([userPriv])  // this loads a coin
     const loaded = exec2.load(res1.outputs[1].hash)
     const imported = exec2.import(modIdFor('sheep'))
     const cloned = exec2.exec(imported.idx, ...sheepArgs.exec('clone', [ref(loaded.idx)]))
@@ -593,6 +592,74 @@ describe('execute txs', () => {
 
     expect(res2.reads).to.have.length(0)
   })
+
+
+  describe('when class with optional argument was deployed', () => {
+    let pkgHash: Uint8Array;
+    beforeEach(async () => {
+      let src = `
+        export class A extends Jig {
+          a: string | null
+          check: u8
+        
+          constructor(a: string | null) {
+            super()
+            this.a = a
+            this.check = 0
+          }
+          
+          checkIsPresent(): void {
+            if (this.a === null) {
+              this.check = 1
+            } else {
+              this.check = 2
+            }
+          }
+        }
+      `
+
+      const {exec: exec1} = fundedExec()
+      await exec1.deploy(['a.ts'], new Map([['a.ts', src]]))
+      const res = exec1.finalize()
+      pkgHash = res.deploys[0].hash
+
+      storage.persistExecResult(res)
+    })
+
+    it('understand null as null', () => {
+      const { exec } = fundedExec()
+
+      let pkgStmt = exec.import(pkgHash)
+      exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 0]))
+      const res = exec.finalize()
+      expect(res.outputs[1].stateBuf).to.eql(new Uint8Array([0, 0]))
+    })
+
+    it('understand present values as the value', () => {
+      const { exec } = fundedExec()
+
+      let pkgStmt = exec.import(pkgHash)
+      exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 1, 5, 104, 101, 108, 108, 111]))
+      const res = exec.finalize()
+      expect(res.outputs[1].stateBuf).to.eql(new Uint8Array([1, 5, 104, 101, 108, 108, 111, 0]))
+    })
+
+    it('is correctly interpreted by asc', () => {
+      const { exec } = fundedExec()
+
+      const pkgStmt = exec.import(pkgHash)
+      const jig1 =  exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 1, 5, 104, 101, 108, 108, 111]))
+      const jig2 = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 0]))
+      exec.call(jig1.idx, 0, new Uint8Array([0]))
+      exec.call(jig2.idx, 0, new Uint8Array([0]))
+
+      const res = exec.finalize()
+      expect(res.outputs[1].stateBuf).to.eql(new Uint8Array([1, 5, 104, 101, 108, 108, 111, 2]))
+      expect(res.outputs[2].stateBuf).to.eql(new Uint8Array([0, 1]))
+    })
+  })
+
+
 
   // it('receives right amount from properties of foreign jigs', () => {
   //   const flockPkg = exec.importModule(modIdFor('flock')).asInstance

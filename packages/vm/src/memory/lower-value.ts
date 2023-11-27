@@ -37,6 +37,10 @@ export class LowerValue {
   }
 
   lowerFromReader(reader: BufReader, ty: AbiType) {
+    if (ty.nullable) {
+      return this.lowerOptional(reader, ty)
+    }
+
     switch (ty.name) {
       case 'bool':
         return WasmWord.fromNumber(reader.readU8())
@@ -87,6 +91,15 @@ export class LowerValue {
         return this.lowerSet(reader, ty)
       default:
         return this.lowerCompoundType(reader, ty)
+    }
+  }
+
+  private lowerOptional(reader: BufReader, ty: AbiType): WasmWord {
+    let isPresent = reader.readU8()
+    if (isPresent) {
+      return this.lowerFromReader(reader, ty.toPresent())
+    } else {
+      return WasmWord.null()
     }
   }
 

@@ -58,4 +58,12 @@ export class AbiType {
     otherNode.name = otherNode.name.replace('*', '')
     return new AbiType(otherNode)
   }
+
+  toPresent (): AbiType {
+    let newTy = structuredClone(this.ty)
+    newTy.nullable = false
+    return new AbiType(
+      newTy
+    );
+  }
 }

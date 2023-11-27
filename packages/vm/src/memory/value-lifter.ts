@@ -22,6 +22,10 @@ export class ValueLifter {
   }
 
   liftInto (ptr: WasmWord, ty: AbiType, writer: BufWriter) {
+    if (ty.nullable) {
+      return this.liftNullable(ptr, ty, writer)
+    }
+
     switch (ty.name) {
       case 'bool':
         writer.writeU8(ptr.toInt() === 0 ? 0 : 1)
@@ -91,6 +95,17 @@ export class ValueLifter {
       default:
         this.liftCompoundType(ptr, ty, writer)
         break
+    }
+  }
+
+  private liftNullable(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
+    const read = this.container.mem.read(ptr, 4)
+    const ptrRead = WasmWord.fromReader(read)
+    if (ptrRead.equals(WasmWord.null())) {
+      writer.writeU8(0)
+    } else {
+      writer.writeU8(1)
+      this.liftInto(ptr, ty.toPresent(), writer)
     }
   }
 

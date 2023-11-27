@@ -34,6 +34,10 @@ export class ArgsTranslator {
   }
 
   translateChunk(from: BufReader, ty: AbiType, into: BufWriter): void {
+    if (ty.nullable) {
+      return this.translateNullable(from, ty, into)
+    }
+
     switch (ty.name) {
       case 'bool':
       case 'u8':
@@ -75,6 +79,16 @@ export class ArgsTranslator {
       default:
         this.translateComplexType(from, ty, into)
         break
+    }
+  }
+
+  private translateNullable(from: BufReader, ty: AbiType, into: BufWriter) {
+    const flag = from.readU8()
+    if (flag !== 0) {
+      into.writeU8(1)
+      this.translateChunk(from, ty.toPresent(), into)
+    } else {
+      into.writeU8(0)
     }
   }
 
