@@ -1,6 +1,6 @@
 import { ClassDeclaration, DiagnosticCategory, NodeKind } from 'assemblyscript'
 import { CodeNode } from '../graph/codes.js'
-import { Abi, AbiQuery, ClassNode, CodeKind, FieldNode, InterfaceNode, MethodNode, TypeNode, normalizeTypeName } from '@aldea/core/abi';
+import { Abi, AbiQuery, ClassNode, CodeKind, InterfaceNode, TypeNode, normalizeTypeName } from '@aldea/core/abi';
 import { TransformGraph } from '../graph/graph.js';
 import { SourceNode } from '../graph/sources.js';
 import { AldeaDiagnosticCode, createDiagnosticMessage } from '../diagnostics.js';
@@ -8,18 +8,22 @@ import { AldeaDiagnosticCode, createDiagnosticMessage } from '../diagnostics.js'
 export class ImplementationValidator {
   abi: Abi;
   ctx: TransformGraph;
+  src: SourceNode;
   fullClass: ClassNode;
   interfaces: InterfaceNode[];
 
   constructor(public code: CodeNode<ClassDeclaration>) {
     this.abi = code.src.ctx.toABI()
     this.ctx = code.src.ctx
+    this.src = code.src
 
     const query = new AbiQuery(this.abi).fromExports().byName(code.name)
     this.fullClass = query.getClassFull()
 
-    query.reset().byKind([CodeKind.INTERFACE, CodeKind.PROXY_INTERFACE])
-    this.interfaces = this.fullClass.implements.map(name => query.byName(name).getInterfaceFull())
+    this.interfaces = this.fullClass.implements.map(name => {
+      // get the abi node from the source, rather than the abi, as it could be imported
+      return code.src.findCode(name)?.abiNode as InterfaceNode
+    })
   }
 
   get abiNode(): ClassNode {
@@ -57,10 +61,44 @@ export class ImplementationValidator {
     })
   }
 
+  // What this checks
+  // - the type name exactly matches
+  // - the subject is a class that directly implements the interface
+  // - the subject is a subclass of a class that directly implements the interface
+  // - the subject is an interface that directly extends the interface
+  //
+  // What this doesn't check
+  // - the subject is an interface that extends from a parent interface that implements the target
   private isCompatibleTypes(subject: TypeNode | null, target: TypeNode | null): boolean {
-    if (normalizeTypeName(subject) === normalizeTypeName(target)) return true
-    
-    // TODO - for now this check matchea only the name of the types
+    if (
+      normalizeTypeName(subject) === normalizeTypeName(target) ||
+      normalizeTypeName(subject) === this.fullClass.name
+    ) {
+      return true
+    }
+
+    if (subject!.args.length > 0 && subject!.args.length === target?.args.length) {
+      return subject!.args.every((_a, i) => this.isCompatibleTypes(subject!.args[i], target!.args[i]))
+    }
+
+    const code = this.src.findCode(normalizeTypeName(subject))
+    if (
+      code && code.node.kind === NodeKind.ClassDeclaration &&
+      (<ClassNode>code.abiNode).implements.includes(normalizeTypeName(target))
+    ) {
+      return true
+    }
+
+    if (
+      code && code.node.kind === NodeKind.InterfaceDeclaration &&
+      (<InterfaceNode>code.abiNode).extends.includes(normalizeTypeName(target))
+    ) {
+      return true
+    }
+
+    // TODO - for now this check matches only the name of the types,
+    // or if the class implements the type directly
+    //
     // in theory this is not enough but the type checking gets pretty convoluted
     // the type we're checking maye be:
     // - a subclass
