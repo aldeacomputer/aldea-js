@@ -1,17 +1,13 @@
-export class JigTypeBearer extends Jig {
-  jigProperty: Jig;
-
-  constructor(jigProperty: Jig) {
-    super();
-    this.jigProperty = jigProperty;
+export class A extends Jig {
+  constructor() {
+    super()
   }
 
-  getJig (): Jig {
-    return this.jigProperty
+  m1(): void {
+    const a = BigInt.fromUInt32(1000)
+    const b = BigInt.fromUInt32(1000)
+    const c = a * b
+    debug(`${c.d}`)
+    debug(`${c.n}`)
   }
-
-  setJig (jig: Jig): void {
-    this.jigProperty = jig
-  }
-
 }

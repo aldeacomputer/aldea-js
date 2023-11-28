@@ -102,6 +102,25 @@ export const basicJigAbiNode: ObjectNode = {
   ]
 }
 
+export const bigIntNode: ObjectNode = {
+  name: 'BigInt',
+  kind: CodeKind.OBJECT,
+  fields: [
+    {
+      name: 'd',
+      type: emptyTn('Uint32Array')
+    },
+    {
+      name: 'n',
+      type: emptyTn('i32')
+    },
+    {
+      name: 'isNeg',
+      type: emptyTn('bool')
+    }
+  ]
+}
+
 export function emptyTn(name: string): TypeNode {
   return { name, args: [], nullable: false }
 }
