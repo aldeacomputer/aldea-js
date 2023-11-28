@@ -120,7 +120,7 @@ export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
     } else if (isInterface(this.node)) {
       this.node.implementsTypes?.forEach(type => {
         const code = this.src.findCode(type.name.identifier.text)
-        if (code) parents.push(code as CodeNode<InterfaceDeclaration>)
+        if (code) parents.push(code as CodeNode<InterfaceDeclaration>, ...code.findAllParents())
       })
     }
     return parents

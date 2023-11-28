@@ -24,13 +24,15 @@ export enum AldeaDiagnosticCode {
   Invalid_method_type,
   Invalid_decorator,
   Invalid_package,
-  Illegal_identifier = 410,
+  Invalid_implementation,
+  Illegal_identifier = 420,
   Illegal_access_global,
   Illegal_access_property,
   Illegal_assignment,
   Illegal_import,
   Illegal_export,
-  Private_member = 420,
+  Private_member = 430,
+
 }
 
 /**
@@ -58,6 +60,8 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
       return 'Invalid decorator. AssemblyScript decorators are not allowed.'
     case AldeaDiagnosticCode.Invalid_package:
       return 'Invalid package. {0}'
+    case AldeaDiagnosticCode.Invalid_implementation:
+      return 'Class `{0}` incorrectly implements interface `{1}`. Types of property `{2}` are incompatible.'
 
     case AldeaDiagnosticCode.Illegal_identifier:
       return 'Illegal identifier. Double underscore-prefixed identifiers cannot be used.'

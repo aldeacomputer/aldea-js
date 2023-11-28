@@ -367,7 +367,7 @@ test('sidekick classes cannot make circular dependency', async t => {
   t.regex(e.stderr.toString(), /TS2506/)
 })
 
-test.skip('implementing a different method signature should fail', async t => {
+test('implementing a different method signature should fail', async t => {
   const src = `
   export interface A {
     m(): void;
@@ -377,7 +377,27 @@ test.skip('implementing a different method signature should fail', async t => {
     m(n: u8): void {}
   }
   `
-
+  
   const e = await t.throwsAsync(() => compile(src))
-  console.log(e.stderr.toString())
+  t.regex(e.stderr.toString(), /Types of property `m` are incompatible./)
+})
+
+test('implementing a different method signature from nested interfaces should fail', async t => {
+  const src = `
+  export interface A {
+    m(a: A): A;
+  }
+
+  export interface B extends A {
+    m2(a: A): B;
+  }
+
+  export class C extends Jig implements B {
+    m(a: A): A { return a }
+    m2(a: u8): B { return a }
+  }
+  `
+  
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Types of property `m2` are incompatible./)
 })

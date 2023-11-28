@@ -35,6 +35,7 @@ import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
 import { filterAST, isAmbient, isConst, isConstructor, isExported, isGetter, isInstance, isPrivate, isProtected, isReadonly, isSetter, isStatic } from './filters.js'
 import { TransformGraph, CodeNode, ImportEdge, ImportNode, ExportNode, SourceNode } from './graph/index.js'
 import { isClass, isFunction, isInterface } from './graph/helpers.js'
+import { ImplementationValidator } from './validator/implementation-validator.js'
 
 // Allowed top-level statements - everything else is an error!
 const allowedSrcStatements = [
@@ -164,6 +165,7 @@ export class Validator {
     this.ctx.exports.forEach(ex => {
       switch (ex.code.abiCodeKind) {
         case CodeKind.CLASS:
+          this.validateJigImpl(ex.code as CodeNode<ClassDeclaration>)
           this.validateJigInheritance(ex.code as CodeNode<ClassDeclaration>)
           this.validateJigMembers(ex.code as CodeNode<ClassDeclaration>)
           this.validateClassTypes(ex.code as CodeNode<ClassDeclaration>)
@@ -241,8 +243,6 @@ export class Validator {
 
   private validateCodeDeclaration(code: CodeNode): void {
     if (code.node.kind === NodeKind.ClassDeclaration) {
-      const abiNode = code.abiNode as ClassNode
-
       if (code.isJig && (<ClassDeclaration>code.node).members.some(n => isStatic(n.flags))) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
           DiagnosticCategory.Error,
@@ -559,6 +559,13 @@ export class Validator {
         ['Must be 32 byte hex-encoded string.'],
         im.isLegacy ? im.code.node.range : im.ctx.node.range
       ))
+    }
+  }
+
+  private validateJigImpl(code: CodeNode<ClassDeclaration>): void {
+    if (code.isJig && code.node.implementsTypes?.length) {
+      const check = new ImplementationValidator(code)
+      check.validate()
     }
   }
 
