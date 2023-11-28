@@ -69,7 +69,7 @@ describe('api', () => {
         .expect('Content-Type', /application\/json/)
         .expect(200)
 
-      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs'])
+      expect(response.body).to.have.keys(['id', 'rawtx', 'reads', 'spends', 'outputs', 'packages'])
       expect(response.body.id).to.eql(tx.id)
       expect(response.body.outputs).to.have.length(2)
       expect(response.body.outputs[0].location).to.eql(new Pointer(tx.id, 0).toString())
@@ -135,7 +135,7 @@ describe('api', () => {
         .expect('Content-Type', /application\/json/)
         .expect(200)
 
-      expect(response.body).to.have.keys(['id', 'rawtx', 'packages', 'outputs'])
+      expect(response.body).to.have.keys(['id', 'rawtx', 'reads', 'spends', 'outputs', 'packages'])
       expect(response.body.id).to.eql(txid)
       expect(response.body.outputs).to.have.length(2)
       expect(response.body.outputs[0].location).to.eql(new Pointer(txid, 0).toString())

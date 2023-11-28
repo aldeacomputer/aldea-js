@@ -1,5 +1,5 @@
 export interface Runner extends Jig{
-  speed(): number;
+  speed(): u32;
   run(energy: u32): void;
 }
 
