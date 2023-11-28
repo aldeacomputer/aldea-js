@@ -83,6 +83,9 @@ export class LowerValue {
       case 'Float32Array':
       case 'Float64Array':
         return this.lowerTypedArray(reader, ty)
+      // case 'BigInt':
+      //   // throw new Error('not implemented')
+      //
       case 'string':
         return this.lowerString(reader)
       case 'Map':
@@ -102,6 +105,12 @@ export class LowerValue {
       return WasmWord.null()
     }
   }
+
+  // private lowerBigInt(reader: BufReader): WasmWord {
+  //   const dBytes = reader.readBytes()
+  //   const n = reader.readI32()
+  //   const isNeg = reader.readBool()
+  // }
 
   private lowerArray(reader: BufReader, ty: AbiType): WasmWord {
     const rtId = this.container.abi.rtidFromTypeNode(ty).get()

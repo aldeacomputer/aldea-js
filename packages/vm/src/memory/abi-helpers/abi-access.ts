@@ -2,7 +2,14 @@ import {Abi, CodeKind, ObjectNode, TypeIdNode} from "@aldea/core/abi";
 import {Option} from "../../support/option.js";
 import {AbiExport} from "./abi-export.js";
 import {AbiImport} from "./abi-import.js";
-import {basicJigAbiNode, coinNode, jigInitParamsAbiNode, lockAbiNode, outputAbiNode} from "../well-known-abi-nodes.js";
+import {
+  basicJigAbiNode,
+  bigIntNode,
+  coinNode,
+  jigInitParamsAbiNode,
+  lockAbiNode,
+  outputAbiNode
+} from "../well-known-abi-nodes.js";
 import {AbiType} from "./abi-type.js";
 import {AbiPlainObject} from "./abi-plain-object.js";
 
@@ -15,7 +22,7 @@ export class AbiAccess {
   constructor (abi: Abi) {
     this.abi = structuredClone(abi);
 
-    [outputAbiNode, jigInitParamsAbiNode, lockAbiNode, basicJigAbiNode].forEach(objNode => {
+    [outputAbiNode, jigInitParamsAbiNode, lockAbiNode, basicJigAbiNode, bigIntNode].forEach(objNode => {
       this.abi.exports.push(
           this.abi.defs.push(objNode) - 1
       )

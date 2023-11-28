@@ -70,6 +70,11 @@ export class ArgsTranslator {
       case 'Int64Array':
       case 'Float32Array':
       case 'Float64Array':
+      case 'BigInt':
+        into.writeBytes(from.readBytes())
+        into.writeI32(from.readI32())
+        into.writeBool(from.readBool())
+        break
       case 'string':
         into.writeBytes(from.readBytes())
         break

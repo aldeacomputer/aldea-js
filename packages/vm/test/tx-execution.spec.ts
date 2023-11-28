@@ -659,7 +659,50 @@ describe('execute txs', () => {
     })
   })
 
+  describe('when a class with bigint was deployed', () => {
+    let pkgHash: Uint8Array;
+    let pkgAbi: Abi;
+    beforeEach(async () => {
+      let src = `
+        export class A extends Jig {
+          a: BigInt
+          b: BigInt
+        
+          constructor(a: BigInt) {
+            super()
+            this.a = a
+            this.b = BigInt.fromUInt32(0)
+          }
+        
+          check(): void {
+            this.b = this.a + BigInt.fromUInt32(1)
+          }
+        }
+      `
 
+      const {exec: exec1} = fundedExec()
+      await exec1.deploy(['a.ts'], new Map([['a.ts', src]]))
+      const res = exec1.finalize()
+      pkgHash = res.deploys[0].hash
+      pkgAbi = res.deploys[0].abi
+
+      storage.persistExecResult(res)
+    })
+
+    it('can lower and lift', () => {
+      const { exec } = fundedExec()
+
+      let pkgStmt = exec.import(pkgHash)
+      const bcs = new BCS(pkgAbi);
+      const buf = bcs.encode('BigInt', 10n)
+      const jigStmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, ...buf]))
+      exec.call(jigStmt.idx, 0, new Uint8Array([0]))
+      const res = exec.finalize()
+      const parsed = bcs.decode('A', res.outputs[1].stateBuf)
+      expect(parsed[0]).to.eql(10n)
+      expect(parsed[1]).to.eql(11n)
+    })
+  })
 
   // it('receives right amount from properties of foreign jigs', () => {
   //   const flockPkg = exec.importModule(modIdFor('flock')).asInstance
