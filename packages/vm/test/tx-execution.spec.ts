@@ -689,7 +689,7 @@ describe('execute txs', () => {
       storage.persistExecResult(res)
     })
 
-    it('can lower and lift', () => {
+    it('can lower and lift bigints', () => {
       const { exec } = fundedExec()
 
       let pkgStmt = exec.import(pkgHash)

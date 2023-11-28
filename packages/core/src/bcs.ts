@@ -1,15 +1,14 @@
 import {
   Abi,
-  ClassNode,
   CodeDef,
   CodeKind,
   FieldNode,
-  FunctionNode, InterfaceNode,
+  FunctionNode,
   MethodNode,
   TypeNode,
 } from './abi/types.js'
 
-import { AbiQuery, isClass, isClassLike, isFunctionLike, isInterface } from './abi/query.js'
+import { AbiQuery, isClassLike, isFunctionLike } from './abi/query.js'
 import { AbiSchema, PkgSchema } from './bcs/schemas.js'
 
 import {  
@@ -21,9 +20,7 @@ import {
 } from './internal.js'
 
 import { strToBytes, bytesToStr } from './support/util.js'
-import {base16} from "./support/base.js";
-import * as buffer from "buffer";
-import {bigIntDecode, bigIntEncode, bigIntToDigits, digitsToBigInt} from "./support/bigint-buf.js";
+import {bigIntToDigits, digitsToBigInt} from "./support/bigint-buf.js";
 
 /**
  * BCS Encoder interface.
