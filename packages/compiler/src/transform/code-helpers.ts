@@ -53,6 +53,8 @@ export function writeJigLocalClass(
 ): string {
   return `
   ${exported ? 'export ' : ''}class __Local${obj.name} extends __Local${obj.extends} implements ${obj.name} {}
+  // required to ensure compilation
+  idof<__Local${obj.name}>()
   `.trim()
 }
 
