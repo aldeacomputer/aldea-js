@@ -59,7 +59,7 @@ export class CodeNode<T extends DeclarationStatement = DeclarationStatement> {
       } else if (isFunction(this.node)) {
         this.#abiNode = toFunctionNode(this.node)
       } else if (isInterface(this.node)) {
-        this.#abiNode = toInterfaceNode(this.node, this.findAllParents())
+        this.#abiNode = toInterfaceNode(this.node)
       }
     }
     if (!this.#abiNode) { throw new Error(`abi node not created for node kind: ${this.node.kind}`) }
@@ -181,10 +181,7 @@ function toFunctionNode(node: FunctionDeclaration): FunctionNode {
   }
 }
 
-function toInterfaceNode(
-  node: InterfaceDeclaration,
-  parents: Array<CodeNode<InterfaceDeclaration>>
-): InterfaceNode {
+function toInterfaceNode(node: InterfaceDeclaration): InterfaceNode {
   const fields = node.members.filter(n => {
     return n.kind === NodeKind.FieldDeclaration && !isStatic(n.flags)
   })
@@ -196,7 +193,7 @@ function toInterfaceNode(
   return {
     kind: CodeKind.INTERFACE,
     name: node.name.text,
-    extends: parents.map(p => p.name),
+    extends: (node.implementsTypes || []).map(n => n.name.identifier.text),
     fields: fields.map(n => toFieldNode(n as FieldDeclaration)),
     methods: methods.map(n => toMethodNode(n as MethodDeclaration, false)),
   }

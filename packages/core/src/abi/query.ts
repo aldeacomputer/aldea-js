@@ -46,7 +46,7 @@ export class AbiQuery {
     const parents = this.getClassParents()
     const fields = parents.flatMap(p => p.fields).concat(node.fields)
     const methods = parents.flatMap(p => p.methods).concat(node.methods)
-    return { ...node, fields, methods }
+    return { ...node, extends: 'Jig', fields, methods }
   }
 
   getFunction(): FunctionNode {

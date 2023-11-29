@@ -385,19 +385,81 @@ test('implementing a different method signature should fail', async t => {
 test('implementing a different method signature from nested interfaces should fail', async t => {
   const src = `
   export interface A {
-    m(a: A): A;
+    m1(): void;
   }
 
   export interface B extends A {
-    m2(a: A): B;
+    m2(): void;
   }
 
-  export class C extends Jig implements B {
-    m(a: A): A { return a }
-    m2(a: u8): B { return a }
+  export interface C extends B {
+    m3(): void;
+  }
+
+  export class D extends Jig implements C {
+    m1(n: u8): void {}
+    m2(): void {}
+    m3(): void {}
   }
   `
   
   const e = await t.throwsAsync(() => compile(src))
-  t.regex(e.stderr.toString(), /Types of property `m2` are incompatible./)
+  t.regex(e.stderr.toString(), /Types of property `m1` are incompatible./)
+})
+
+test('implementing a different method signature with compatible types should pass', async t => {
+  const src = `
+  export interface A {
+    m1(): A;
+  }
+
+  export interface B extends A {
+    m2(): B;
+  }
+
+  export class C extends Jig implements A {
+    m1(): C { return this };
+  }
+
+  export class D extends Jig implements B {
+    m1(): D { return this };
+    m2(): B { return this };
+  }
+  `
+  
+  await t.notThrowsAsync(() => compile(src))
+})
+
+test('extending a different method signature should fail', async t => {
+  const src = `
+  export interface A {
+    m(): void;
+  }
+
+  export interface B extends A {
+    m(n: u8): void;
+  }
+  `
+  
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Types of property `m` are incompatible./)
+})
+
+test('extending a different method signature from nested interfaces should fail', async t => {
+  const src = `
+  export interface A {
+    m1(): void;
+  }
+
+  export interface B extends A {
+    m2(): void;
+  }
+
+  export interface C extends B {
+    m1(n: u8): void;
+  }
+  `
+  
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Types of property `m1` are incompatible./)
 })

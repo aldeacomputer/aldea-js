@@ -25,6 +25,7 @@ export enum AldeaDiagnosticCode {
   Invalid_decorator,
   Invalid_package,
   Invalid_implementation,
+  Invalid_interface_inheritance,
   Illegal_identifier = 420,
   Illegal_access_global,
   Illegal_access_property,
@@ -61,7 +62,9 @@ export function diagnosticCodeToString(code: AldeaDiagnosticCode): string {
     case AldeaDiagnosticCode.Invalid_package:
       return 'Invalid package. {0}'
     case AldeaDiagnosticCode.Invalid_implementation:
-      return 'Class `{0}` incorrectly implements interface `{1}`. Types of property `{2}` are incompatible.'
+      return 'Class `{0}` incorrectly implements `{1}`. Types of property `{2}` are incompatible.'
+    case AldeaDiagnosticCode.Invalid_interface_inheritance:
+      return 'Interface `{0}` incorrectly extends `{1}`. Types of property `{2}` are incompatible.'
 
     case AldeaDiagnosticCode.Illegal_identifier:
       return 'Illegal identifier. Double underscore-prefixed identifiers cannot be used.'

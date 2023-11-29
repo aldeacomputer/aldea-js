@@ -22,6 +22,7 @@ import {
 } from 'assemblyscript'
 
 import {
+  AbiQuery,
   ClassNode,
   CodeKind,
   FunctionNode,
@@ -29,13 +30,14 @@ import {
   MethodKind,
   MethodNode,
   ObjectNode,
+  TypeNode,
+  normalizeTypeName,
 } from '@aldea/core/abi'
 
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
 import { filterAST, isAmbient, isConst, isConstructor, isExported, isGetter, isInstance, isPrivate, isProtected, isReadonly, isSetter, isStatic } from './filters.js'
 import { TransformGraph, CodeNode, ImportEdge, ImportNode, ExportNode, SourceNode } from './graph/index.js'
 import { isClass, isFunction, isInterface } from './graph/helpers.js'
-import { ImplementationValidator } from './validator/implementation-validator.js'
 
 // Allowed top-level statements - everything else is an error!
 const allowedSrcStatements = [
@@ -175,7 +177,7 @@ export class Validator {
           this.validateFunctionReturnType(ex.code as CodeNode<FunctionDeclaration>)
           break
         case CodeKind.INTERFACE:
-          //this.validateInterfaceInheritance(code as InterfaceNode)
+          this.validateInterfaceInheritance(ex.code as CodeNode<InterfaceDeclaration>)
           break
         case CodeKind.OBJECT:
           break
@@ -188,14 +190,12 @@ export class Validator {
 
       switch (im.abiCodeKind) {
         case CodeKind.PROXY_CLASS:
-          // must not export from entry
           //this.validateJigInheritance(im.code as CodeNode<ClassDeclaration>)
           this.validateJigMembers(im.code as CodeNode<ClassDeclaration>)
           this.validatePrivateMembers(im.code as CodeNode<ClassDeclaration>)
           this.validateClassTypes(im.code as CodeNode<ClassDeclaration>)
           break
         case CodeKind.PROXY_FUNCTION:
-          // must not export from entry
           this.validateFunctionArgTypes(im.code as CodeNode<FunctionDeclaration>)
           this.validateFunctionReturnType(im.code as CodeNode<FunctionDeclaration>)
           break
@@ -547,10 +547,6 @@ export class Validator {
     }
   }
 
-  private validateInterfaceInheritance(obj: InterfaceNode): void {
-
-  }
-
   private validatePackageId(im: ImportEdge): void {
     if (!im.pkgId || !/^[a-f0-9]{64}$/i.test(im.pkgId)) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
@@ -564,8 +560,95 @@ export class Validator {
 
   private validateJigImpl(code: CodeNode<ClassDeclaration>): void {
     if (code.isJig && code.node.implementsTypes?.length) {
-      const check = new ImplementationValidator(code)
-      check.validate()
+      const abi = code.src.ctx.toABI()
+      const query = new AbiQuery(abi).fromExports().byName(code.name)
+      const fullCode = query.getClassFull()
+
+      // get interface abi nodes from the source, rather than the abi
+      // as it could be imported and the abi only includes proxy details
+      const interfaces = fullCode.implements.reduce((map, name) => {
+        const int = code.src.findCode(name)!
+        const children = int.findAllParents().map(i => i.abiNode as InterfaceNode)
+        map.set(int.abiNode as InterfaceNode, children.reverse())
+        return map
+      }, new Map<InterfaceNode, InterfaceNode[]>())
+
+      interfaces.forEach((children, parent) => {
+        [...children, parent].forEach(int => {
+          int.fields.forEach(t => {
+            const f = fullCode.fields.find(f => f.name === t.name)!
+            if (!isCompatibleTypes(f.type, t.type, code)) {
+              this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+                DiagnosticCategory.Error,
+                AldeaDiagnosticCode.Invalid_implementation,
+                [fullCode.name, parent.name, f.name],
+                code.node.range,
+              ))
+            }
+          })
+          int.methods.forEach(t => {
+            const m = fullCode.methods.find(f => f.name === t.name)!
+            if (!(
+              t.args.length === m.args.length &&
+              t.args.every((a, i) => isCompatibleTypes(m.args[i].type, a.type, code)) &&
+              isCompatibleTypes(m.rtype, t.rtype, code)
+            )) {
+              this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+                DiagnosticCategory.Error,
+                AldeaDiagnosticCode.Invalid_implementation,
+                [fullCode.name, parent.name, m.name],
+                code.node.range,
+              ))
+            }
+          })
+        })
+      })
+    }
+  }
+
+  private validateInterfaceInheritance(code: CodeNode<InterfaceDeclaration>): void {
+    if (code.node.implementsTypes?.length) {
+      const fullCode = code.abiNode as InterfaceNode
+
+      // get interface abi nodes from the source, rather than the abi
+      // as it could be imported and the abi only includes proxy details
+      const interfaces = fullCode.extends.reduce((map, name) => {
+        const int = code.src.findCode(name)!
+        const children = int.findAllParents().map(i => i.abiNode as InterfaceNode)
+        map.set(int.abiNode as InterfaceNode, children.reverse())
+        return map
+      }, new Map<InterfaceNode, InterfaceNode[]>())
+
+      interfaces.forEach((children, parent) => {
+        [...children, parent].forEach(int => {
+          int.fields.forEach(t => {
+            const f = fullCode.fields.find(f => f.name === t.name)!
+            if (!isCompatibleTypes(f.type, t.type, code)) {
+              this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+                DiagnosticCategory.Error,
+                AldeaDiagnosticCode.Invalid_interface_inheritance,
+                [fullCode.name, parent.name, f.name],
+                code.node.range,
+              ))
+            }
+          })
+          int.methods.forEach(t => {
+            const m = fullCode.methods.find(f => f.name === t.name)
+            if (m && !(
+              t.args.length === m.args.length &&
+              t.args.every((a, i) => isCompatibleTypes(m.args[i].type, a.type, code)) &&
+              isCompatibleTypes(m.rtype, t.rtype, code)
+            )) {
+              this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+                DiagnosticCategory.Error,
+                AldeaDiagnosticCode.Invalid_interface_inheritance,
+                [fullCode.name, parent.name, m.name],
+                code.node.range,
+              ))
+            }
+          })
+        })
+      })
     }
   }
 
@@ -796,6 +879,58 @@ function isAllowedLiteralOther(node: Expression | null): Boolean {
     NodeKind.False,
     NodeKind.Null
   ].includes(node.kind)
+}
+
+// TODO ??
+// What this checks
+// - the type name exactly matches
+// - the subject is a class that directly implements the interface
+// - the subject is a subclass of a class that directly implements the interface
+// - the subject is an interface that directly extends the interface
+//
+// What this doesn't check
+// - the subject is an interface that extends from a parent interface that implements the target
+function isCompatibleTypes(subject: TypeNode | null, target: TypeNode | null, context: CodeNode): boolean {
+  if (
+    normalizeTypeName(subject) === normalizeTypeName(target) ||
+    normalizeTypeName(subject) === context.name
+  ) {
+    return true
+  }
+
+  if (subject!.args.length > 0 && subject!.args.length === target?.args.length) {
+    return subject!.args.every((_a, i) => isCompatibleTypes(subject!.args[i], target!.args[i], context))
+  }
+
+  const code = context.src.findCode(normalizeTypeName(subject))
+  if (
+    code && code.node.kind === NodeKind.ClassDeclaration &&
+    (<ClassNode>code.abiNode).implements.includes(normalizeTypeName(target))
+  ) {
+    return true
+  }
+
+  if (
+    code && code.node.kind === NodeKind.InterfaceDeclaration &&
+    code.findAllParents().map(c => c.name).includes(normalizeTypeName(target))
+  ) {
+    return true
+  }
+
+  // TODO - for now this check matches only the name of the types,
+  // or if the class implements the type directly
+  //
+  // in theory this is not enough but the type checking gets pretty convoluted
+  // the type we're checking maye be:
+  // - a subclass
+  // - an implementation of an interface
+  // - a subclass of an implementation of an interface
+  // - an implementation of an extended interface
+  // - or.... a subclass of an implementation of an extended interface
+  //
+  // so for now, we'll just check the names
+
+  return false
 }
 
 // Returns true if node has flags for given method kind
