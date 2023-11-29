@@ -1,5 +1,6 @@
 ---
 "@aldea/compiler": minor
+"@aldea/sdk": patch
 ---
 
-Add basic validation to check field types and method signatures of interface implementations.
+Improved validations to check field types and method signatures of interface implementations.
