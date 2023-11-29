@@ -860,7 +860,7 @@ class SimpleCache {
 }
 
 // Returns true if node kind is a safe literal
-function isAllowedLiteral(node: Expression | null): Boolean {
+function isAllowedLiteral(node: Expression | null): boolean {
   if (!node) return false
   return node.kind === NodeKind.Literal && [
     LiteralKind.Float,
@@ -872,7 +872,7 @@ function isAllowedLiteral(node: Expression | null): Boolean {
 }
 
 // Returns true if node kind is a safe literal other
-function isAllowedLiteralOther(node: Expression | null): Boolean {
+function isAllowedLiteralOther(node: Expression | null): boolean {
   if (!node) return false
   return [
     NodeKind.True,
@@ -881,15 +881,7 @@ function isAllowedLiteralOther(node: Expression | null): Boolean {
   ].includes(node.kind)
 }
 
-// TODO ??
-// What this checks
-// - the type name exactly matches
-// - the subject is a class that directly implements the interface
-// - the subject is a subclass of a class that directly implements the interface
-// - the subject is an interface that directly extends the interface
-//
-// What this doesn't check
-// - the subject is an interface that extends from a parent interface that implements the target
+// Checks if the subject type is compatible with the target type
 function isCompatibleTypes(subject: TypeNode | null, target: TypeNode | null, context: CodeNode): boolean {
   if (
     normalizeTypeName(subject) === normalizeTypeName(target) ||
@@ -916,19 +908,6 @@ function isCompatibleTypes(subject: TypeNode | null, target: TypeNode | null, co
   ) {
     return true
   }
-
-  // TODO - for now this check matches only the name of the types,
-  // or if the class implements the type directly
-  //
-  // in theory this is not enough but the type checking gets pretty convoluted
-  // the type we're checking maye be:
-  // - a subclass
-  // - an implementation of an interface
-  // - a subclass of an implementation of an interface
-  // - an implementation of an extended interface
-  // - or.... a subclass of an implementation of an extended interface
-  //
-  // so for now, we'll just check the names
 
   return false
 }
