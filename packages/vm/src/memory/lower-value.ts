@@ -1,6 +1,6 @@
 import {WasmContainer} from "../wasm-container.js";
 import {WasmWord} from "../wasm-word.js";
-import {BufReader, BufWriter, Pointer} from "@aldea/core";
+import {base16, BufReader, BufWriter, Pointer} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
 import {ARR_HEADER_LENGTH, BUF_RTID, STRING_RTID, TYPED_ARR_HEADER_LENGTH} from "./well-known-abi-nodes.js";
 import {CodeKind, normalizeTypeName} from "@aldea/core/abi";
@@ -12,6 +12,8 @@ import {AbiClass} from "./abi-helpers/abi-class.js";
 import {ProxyDef} from "./abi-helpers/proxy-def.js";
 import {blake3} from "@noble/hashes/blake3";
 import {bytesToHex as toHex} from "@noble/hashes/utils";
+import {bigIntToDigits} from "./bigint-buf.js";
+import {bytesToBn} from "@aldea/core/support/util";
 
 export type JigData = {
   origin: Pointer,
@@ -83,9 +85,9 @@ export class LowerValue {
       case 'Float32Array':
       case 'Float64Array':
         return this.lowerTypedArray(reader, ty)
-      // case 'BigInt':
-      //   // throw new Error('not implemented')
-      //
+      case 'BigInt':
+        return this.lowerBigInt(reader, ty)
+
       case 'string':
         return this.lowerString(reader)
       case 'Map':
@@ -97,6 +99,28 @@ export class LowerValue {
     }
   }
 
+  private lowerBigInt(reader: BufReader, ty: AbiType): WasmWord {
+    const isNeg = reader.readBool()
+    const bytes = reader.readBytes()
+    const abs = bytesToBn(bytes)
+    const val = isNeg ? abs * -1n : abs
+    const { d: d32Array, n } = bigIntToDigits(val)
+    const dWriter = new BufWriter()
+    dWriter.writeBytes(new Uint8Array(d32Array.buffer))
+    const encodedD = dWriter.data
+
+    const rtid = this.container.abi.rtIdByName('BigInt').expect(new ExecutionError("Expected BigInt in abi but not present"))
+    const header = this.container.malloc(9, rtid.id)
+
+    const dPtr = this.lower(encodedD, AbiType.fromName("Uint32Array"))
+
+    this.container.mem.write(header, dPtr.serialize(AbiType.u32()))
+    this.container.mem.write(header.plus(4), WasmWord.fromNumber(n).serialize(AbiType.u32()))
+    this.container.mem.write(header.plus(8), new Uint8Array([Number(isNeg)]))
+
+    return header
+  }
+
   private lowerOptional(reader: BufReader, ty: AbiType): WasmWord {
     let isPresent = reader.readU8()
     if (isPresent) {
@@ -105,12 +129,6 @@ export class LowerValue {
       return WasmWord.null()
     }
   }
-
-  // private lowerBigInt(reader: BufReader): WasmWord {
-  //   const dBytes = reader.readBytes()
-  //   const n = reader.readI32()
-  //   const isNeg = reader.readBool()
-  // }
 
   private lowerArray(reader: BufReader, ty: AbiType): WasmWord {
     const rtId = this.container.abi.rtidFromTypeNode(ty).get()

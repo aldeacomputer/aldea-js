@@ -19,8 +19,7 @@ import {
   ref,
 } from './internal.js'
 
-import { strToBytes, bytesToStr } from './support/util.js'
-import {bigIntToDigits, digitsToBigInt} from "./support/bigint-buf.js";
+import {strToBytes, bytesToStr, bytesToBn, bnToShortestBytes} from './support/util.js'
 
 /**
  * BCS Encoder interface.
@@ -387,18 +386,16 @@ export class BCS {
     this.registerType<bigint>('BigInt', {
       assert: (val) => assert(typeof val === 'bigint', `bigint expected. recieved: ${val}`),
       decode: (reader) => {
-        const dBytes = reader.readBytes()
-        const d = new Uint32Array(new Uint8Array(dBytes).buffer)
-        const n = reader.readI32()
         const isNeg = reader.readBool()
-        return digitsToBigInt(d, n, isNeg)
+        const bytes = reader.readBytes()
+        const bigInt = bytesToBn(bytes)
+        return isNeg ? bigInt * -1n : bigInt
       },
       encode: (writer, val) => {
-        const { d, n, isNeg } = bigIntToDigits(val)
-
-        writer.writeBytes(new Uint8Array(d.buffer))
-        writer.writeI32(n)
+        const isNeg = val < 0n;
+        const buf = bnToShortestBytes(val)
         writer.writeBool(isNeg)
+        writer.writeBytes(buf)
       },
     })
 

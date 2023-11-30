@@ -702,8 +702,37 @@ describe('execute txs', () => {
       expect(parsed[0]).to.eql(10n)
       expect(parsed[1]).to.eql(11n)
     })
-  })
 
+    it('can lower and lift big bigints', () => {
+      const { exec } = fundedExec()
+
+      let pkgStmt = exec.import(pkgHash)
+      const bcs = new BCS(pkgAbi);
+      const value = (1n << 100n)
+      const buf = bcs.encode('BigInt', value)
+      const jigStmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, ...buf]))
+      exec.call(jigStmt.idx, 0, new Uint8Array([0]))
+      const res = exec.finalize()
+      const parsed = bcs.decode('A', res.outputs[1].stateBuf)
+      expect(parsed[0]).to.eql(value)
+      expect(parsed[1]).to.eql(value + 1n)
+    })
+
+    it('can lower and lift big big bigints', () => {
+      const { exec } = fundedExec()
+
+      let pkgStmt = exec.import(pkgHash)
+      const bcs = new BCS(pkgAbi);
+      const value = (1n << 1000n) - 1n
+      const buf = bcs.encode('BigInt', value)
+      const jigStmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, ...buf]))
+      exec.call(jigStmt.idx, 0, new Uint8Array([0]))
+      const res = exec.finalize()
+      const parsed = bcs.decode('A', res.outputs[1].stateBuf)
+      expect(parsed[0]).to.eql(value)
+      expect(parsed[1]).to.eql(value + 1n)
+    })
+  })
   // it('receives right amount from properties of foreign jigs', () => {
   //   const flockPkg = exec.importModule(modIdFor('flock')).asInstance
   //   const sheepCountPkg = exec.importModule(modIdFor('sheep-counter')).asInstance
