@@ -1,5 +1,6 @@
 import test from 'ava'
 import { abiFromBin } from '@aldea/core'
+import { MethodKind } from '@aldea/core/abi'
 import { compile } from '../dist/compiler.js'
 
 test('compiles single source', async t => {
@@ -12,17 +13,17 @@ test('compiles multiple sources', async t => {
     ['foo.ts', 'export declare class Foo { name: string }'],
     ['input.ts', `
       import { Foo } from './foo'
+      export { Foo }
       export function test(foo: Foo): string { return foo.name }
-    `.trim()]
+    `.trim()],
   ])
 
   const res = await compile(['input.ts'], sources)
   const abi = abiFromBin(res.output.abi)
 
-  t.is(abi.objects.length, 1)
-  t.is(abi.objects[0].name, 'Foo')
-  t.is(abi.exports.length, 1)
-  t.is(abi.exports[0].code.name, 'test')
+  t.is(abi.exports.length, 2)
+  t.is(abi.exports.map(i => abi.defs[i] )[0].name, 'Foo')
+  t.is(abi.exports.map(i => abi.defs[i] )[1].name, 'test')
 })
 
 test('compiles multiple entries', async t => {
@@ -31,6 +32,7 @@ test('compiles multiple entries', async t => {
     ['foo.ts', 'export declare class Foo { name: string }'],
     ['input1.ts', `
       import { Foo } from './foo'
+      export { Foo }
       export function test1(foo: Foo): string { return foo.name }
     `.trim()],
     ['input2.ts', `
@@ -42,11 +44,10 @@ test('compiles multiple entries', async t => {
   const res = await compile(['input2.ts', 'input1.ts'], sources)
   const abi = abiFromBin(res.output.abi)
 
-  t.is(abi.objects.length, 1)
-  t.is(abi.objects[0].name, 'Foo')
-  t.is(abi.exports.length, 2)
-  t.is(abi.exports[0].code.name, 'test1')
-  t.is(abi.exports[1].code.name, 'test2')
+  t.is(abi.exports.length, 3)
+  t.is(abi.exports.map(i => abi.defs[i] )[0].name, 'Foo')
+  t.is(abi.exports.map(i => abi.defs[i] )[1].name, 'test1')
+  t.is(abi.exports.map(i => abi.defs[i] )[2].name, 'test2')
 })
 
 test('child classes do not include fields of parents', async t => {
@@ -56,9 +57,11 @@ test('child classes do not include fields of parents', async t => {
   }
   export class B extends A {
     b: string = 'b';
+    constructor() { super() }
   }
   export class C extends B {
     a: string = 'c';
+    constructor() { super() }
   }
   `.trim()
   
@@ -66,14 +69,14 @@ test('child classes do not include fields of parents', async t => {
   const abi = abiFromBin(res.output.abi)
 
   t.is(abi.exports.length, 3)
-  t.is(abi.exports[0].code.name, 'A')
-  t.is(abi.exports[0].code.fields.length, 1)
-  t.is(abi.exports[0].code.fields[0].name, 'a')
-  t.is(abi.exports[1].code.name, 'B')
-  t.is(abi.exports[1].code.fields.length, 1)
-  t.is(abi.exports[1].code.fields[0].name, 'b')
-  t.is(abi.exports[2].code.name, 'C')
-  t.is(abi.exports[2].code.fields.length, 0)
+  t.is(abi.exports.map(i => abi.defs[i] )[0].name, 'A')
+  t.is(abi.exports.map(i => abi.defs[i] )[0].fields.length, 1)
+  t.is(abi.exports.map(i => abi.defs[i] )[0].fields[0].name, 'a')
+  t.is(abi.exports.map(i => abi.defs[i] )[1].name, 'B')
+  t.is(abi.exports.map(i => abi.defs[i] )[1].fields.length, 1)
+  t.is(abi.exports.map(i => abi.defs[i] )[1].fields[0].name, 'b')
+  t.is(abi.exports.map(i => abi.defs[i] )[2].name, 'C')
+  t.is(abi.exports.map(i => abi.defs[i] )[2].fields.length, 0)
 })
 
 test('child classes do not include methods of parents unless overwritten', async t => {
@@ -82,9 +85,11 @@ test('child classes do not include methods of parents unless overwritten', async
     foo(): void {}
   }
   export class B extends A {
+    constructor() { super() }
     bar(): void {}
   }
   export class C extends B {
+    constructor() { super() }
     foo(): void {}
   }
   `.trim()
@@ -93,14 +98,81 @@ test('child classes do not include methods of parents unless overwritten', async
   const abi = abiFromBin(res.output.abi)
 
   t.is(abi.exports.length, 3)
-  t.is(abi.exports[0].code.name, 'A')
+  t.is(abi.exports.map(i => abi.defs[i] )[0].name, 'A')
   // constructor is always first method
-  t.is(abi.exports[0].code.methods.length, 2)
-  t.is(abi.exports[0].code.methods[1].name, 'foo')
-  t.is(abi.exports[1].code.name, 'B')
-  t.is(abi.exports[1].code.methods.length, 2)
-  t.is(abi.exports[1].code.methods[1].name, 'bar')
-  t.is(abi.exports[2].code.name, 'C')
-  t.is(abi.exports[2].code.methods.length, 2)
-  t.is(abi.exports[2].code.methods[1].name, 'foo')
+  t.is(abi.exports.map(i => abi.defs[i] )[0].methods.length, 2)
+  t.is(abi.exports.map(i => abi.defs[i] )[0].methods[1].name, 'foo')
+  t.is(abi.exports.map(i => abi.defs[i] )[1].name, 'B')
+  t.is(abi.exports.map(i => abi.defs[i] )[1].methods.length, 2)
+  t.is(abi.exports.map(i => abi.defs[i] )[1].methods[1].name, 'bar')
+  t.is(abi.exports.map(i => abi.defs[i] )[2].name, 'C')
+  t.is(abi.exports.map(i => abi.defs[i] )[2].methods.length, 2)
+  t.is(abi.exports.map(i => abi.defs[i] )[2].methods[1].name, 'foo')
+})
+
+test('imported plain objects handled', async t => {
+  const src = `
+  @imported('0000000000000000000000000000000000000000000000000000000000000000')
+  declare class A {
+    name: string;
+  }
+  export class B extends Jig {
+    foo(a: A): string {
+      return a.name
+    }
+  }
+  `.trim()
+  
+  const res = await compile(src)
+  const abi = abiFromBin(res.output.abi)
+
+  t.is(abi.imports.length, 1)
+  t.is(abi.imports.map(i => abi.defs[i] )[0].name, 'A')
+  t.is(abi.exports.length, 1)
+  t.is(abi.exports.map(i => abi.defs[i] )[0].name, 'B')
+})
+
+test('protected constructors appear in ABI as protected', async t => {
+  const src = `
+  export class Foo extends Jig {
+    protected constructor(
+      public bar: string
+    ) {
+      super()
+    }
+
+    foo(): string {
+      return this.bar
+    }
+  }
+  `.trim()
+  
+  const res = await compile(src)
+  const abi = abiFromBin(res.output.abi)
+
+  t.is(abi.exports.map(i => abi.defs[i] )[0].methods.length, 2)
+  t.is(abi.exports.map(i => abi.defs[i] )[0].methods[0].name, 'constructor')
+  t.is(abi.exports.map(i => abi.defs[i] )[0].methods[0].kind, MethodKind.PROTECTED)
+})
+
+test('private constructors omitted from ABI', async t => {
+  const src = `
+  export class Foo extends Jig {
+    private constructor(
+      public bar: string
+    ) {
+      super()
+    }
+
+    foo(): string {
+      return this.bar
+    }
+  }
+  `.trim()
+  
+  const res = await compile(src)
+  const abi = abiFromBin(res.output.abi)
+
+  t.is(abi.exports.map(i => abi.defs[i] )[0].methods.length, 1)
+  t.not(abi.exports.map(i => abi.defs[i] )[0].methods[0].name, 'constructor')
 })

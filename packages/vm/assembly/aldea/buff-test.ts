@@ -42,7 +42,6 @@ export class BuffCollectionTest extends Jig {
   array: Array<Uint16Array>
   set: Set<Uint16Array>
   map: Map<Uint16Array, Uint16Array>
-  staticArray: StaticArray<Uint16Array>
 
   constructor() {
     super()
@@ -56,7 +55,6 @@ export class BuffCollectionTest extends Jig {
     ]
     this.set = new Set()
     this.map = new Map()
-    this.staticArray = new StaticArray(2)
 
     const set1 = new Uint16Array(4);
     const set2 = new Uint16Array(4);
@@ -83,8 +81,6 @@ export class BuffCollectionTest extends Jig {
     const static2 = new Uint16Array(4)
     static1.fill(9)
     static2.fill(10)
-    this.staticArray[0] = static1
-    this.staticArray[1] = static2
   }
 
   m1 (): void {
@@ -106,12 +102,6 @@ export class BuffCollectionTest extends Jig {
     })
 
     this.map.values().forEach(arr => {
-      for (let i = 0; i < arr.length; i++) {
-        arr[i] = arr[i] * 2
-      }
-    })
-
-    this.staticArray.forEach(arr => {
       for (let i = 0; i < arr.length; i++) {
         arr[i] = arr[i] * 2
       }

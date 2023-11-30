@@ -45,8 +45,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
     tx.new(ref(0), 'Badge', ['foo'])
     tx.call(ref(1), 'send', [700, addr.hash])
     tx.call(ref(2), 'rename', ['bar'])
-    tx.exec(ref(0), 'Badge', 'helloWorld', ['mum'])
-    tx.execFunc(ref(0), 'helloWorld', ['dad'])
+    tx.exec(ref(0), 'helloWorld', ['dad'])
   
     tx.fund(ref(1))
     tx.lock(ref(2), addr)
@@ -67,7 +66,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
   t.true(tx1 instanceof Tx)
   t.true(tx2 instanceof Tx)
 
-  t.is(tx2.instructions.length, 14)
+  t.is(tx2.instructions.length, 13)
   t.is(tx2.instructions[0].opcode, OpCode.IMPORT)
   t.deepEqual(tx2.instructions[0].pkgId, base16.decode(pkgId))
 
@@ -84,46 +83,40 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
 
   t.is(tx2.instructions[4].opcode, OpCode.CALL)
   t.is(tx2.instructions[4].idx, 1)
-  t.is(tx2.instructions[4].methodIdx, 1)
-  t.deepEqual(decodeArgs(coinAbi, 'Coin$send', tx2.instructions[4].argsBuf), [700n, addr.hash])
+  t.is(tx2.instructions[4].methodIdx, 0)
+  t.deepEqual(decodeArgs(coinAbi, 'Coin_send', tx2.instructions[4].argsBuf), [700n, addr.hash])
 
   t.is(tx2.instructions[5].opcode, OpCode.CALL)
   t.is(tx2.instructions[5].idx, 2)
-  t.is(tx2.instructions[5].methodIdx, 1)
-  t.deepEqual(decodeArgs(pkgAbi, 'Badge$rename', tx2.instructions[5].argsBuf), ['bar'])
+  t.is(tx2.instructions[5].methodIdx, 0)
+  t.deepEqual(decodeArgs(pkgAbi, 'Badge_rename', tx2.instructions[5].argsBuf), ['bar'])
 
   t.is(tx2.instructions[6].opcode, OpCode.EXEC)
   t.is(tx2.instructions[6].idx, 0)
-  t.is(tx2.instructions[6].exportIdx, 0)
-  t.is(tx2.instructions[6].methodIdx, 2)
-  t.deepEqual(decodeArgs(pkgAbi, 'Badge_helloWorld', tx2.instructions[6].argsBuf), ['mum'])
+  t.is(tx2.instructions[6].exportIdx, 1)
+  t.deepEqual(decodeArgs(pkgAbi, 'helloWorld', tx2.instructions[6].argsBuf), ['dad'])
 
-  t.is(tx2.instructions[7].opcode, OpCode.EXECFUNC)
-  t.is(tx2.instructions[7].idx, 0)
-  t.is(tx2.instructions[7].exportIdx, 1)
-  t.deepEqual(decodeArgs(pkgAbi, 'helloWorld', tx2.instructions[7].argsBuf), ['dad'])
+  t.is(tx2.instructions[7].opcode, OpCode.FUND)
+  t.is(tx2.instructions[7].idx, 1)
 
-  t.is(tx2.instructions[8].opcode, OpCode.FUND)
-  t.is(tx2.instructions[8].idx, 1)
-
-  t.is(tx2.instructions[9].opcode, OpCode.LOCK)
-  t.is(tx2.instructions[9].idx, 2)
+  t.is(tx2.instructions[8].opcode, OpCode.LOCK)
+  t.is(tx2.instructions[8].idx, 2)
   t.deepEqual(tx2.instructions[9].pubkeyHash, addr.hash)
 
-  t.is(tx2.instructions[10].opcode, OpCode.LOCK)
-  t.is(tx2.instructions[10].idx, 3)
-  t.deepEqual(tx2.instructions[10].pubkeyHash, addr.hash)
+  t.is(tx2.instructions[9].opcode, OpCode.LOCK)
+  t.is(tx2.instructions[9].idx, 3)
+  t.deepEqual(tx2.instructions[9].pubkeyHash, addr.hash)
 
-  t.is(tx2.instructions[11].opcode, OpCode.DEPLOY)
-  t.deepEqual(BCS.pkg.decode(tx2.instructions[11].pkgBuf), [['index.ts'], pkg])
+  t.is(tx2.instructions[10].opcode, OpCode.DEPLOY)
+  t.deepEqual(BCS.pkg.decode(tx2.instructions[10].pkgBuf), [['index.ts'], pkg])
 
-  t.is(tx2.instructions[12].opcode, OpCode.SIGN)
+  t.is(tx2.instructions[11].opcode, OpCode.SIGN)
+  t.is(tx2.instructions[11].sig.length, 64)
+  t.deepEqual(tx2.instructions[11].pubkey, keys.pubKey.toBytes())
+
+  t.is(tx2.instructions[12].opcode, OpCode.SIGNTO)
   t.is(tx2.instructions[12].sig.length, 64)
   t.deepEqual(tx2.instructions[12].pubkey, keys.pubKey.toBytes())
-
-  t.is(tx2.instructions[13].opcode, OpCode.SIGNTO)
-  t.is(tx2.instructions[13].sig.length, 64)
-  t.deepEqual(tx2.instructions[13].pubkey, keys.pubKey.toBytes())
 
   t.true(tx2.verify())
 })
@@ -253,9 +246,9 @@ test('Aldea.getPackageAbi() returns an ABI json object if exists', async t => {
   })
   const res = await aldea.getPackageAbi('29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69')
   t.true(typeof res.version === 'number')
-  t.true(Array.isArray(res.exports))
-  t.true(Array.isArray(res.imports))
-  t.true(Array.isArray(res.objects))
+  t.true(Array.isArray(res.exports) && res.exports.every(n => typeof n === 'number'))
+  t.true(Array.isArray(res.imports) && res.imports.every(n => typeof n === 'number'))
+  t.true(Array.isArray(res.defs))
   t.true('typeIds' in res)
 })
 
@@ -321,7 +314,7 @@ test('Aldea.loadOutput() returns an Output json object if exists', async t => {
   const res = await aldea.loadOutput('eb1a5706276e030e0518ab4b09e11bf0f30e195b31634abc4eeb2c9e3657ebaa')
   t.true(res instanceof Output)
   t.true(typeof res.props === 'object')
-  t.true(typeof res.props.motos === 'bigint')
+  t.true(typeof res.props.amount === 'bigint')
 })
 
 test('Aldea.loadOutputByOrigin() returns an Output json object if exists', async t => {
@@ -333,7 +326,7 @@ test('Aldea.loadOutputByOrigin() returns an Output json object if exists', async
   const res = await aldea.loadOutputByOrigin('b010448235a7b4ab082435b9c497ba38e8b85e5c0717b91b5b3ae9c1e10b7551_1')
   t.true(res instanceof Output)
   t.true(typeof res.props === 'object')
-  t.true(typeof res.props.motos === 'bigint')
+  t.true(typeof res.props.amount === 'bigint')
 })
 
 test('Aldea.loadOutput() throws error if notfound', async t => {

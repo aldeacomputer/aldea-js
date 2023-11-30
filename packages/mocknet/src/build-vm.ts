@@ -1,5 +1,5 @@
 import { base16, Pointer, PrivKey } from '@aldea/core'
-import { VM, Storage, Clock } from '@aldea/vm'
+import { VM, Storage } from '@aldea/vm'
 import { compile } from '@aldea/compiler'
 import { logger } from './globals.js'
 
@@ -25,13 +25,13 @@ const nftSourceCode = `export class NFT extends Jig {
 }
 `
 
-export async function buildVm (clock: Clock): Promise<iVM> {
+export async function buildVm (): Promise<iVM> {
   const magicBytes = base16.decode('189a1004c9c0424e4ed1188efb8129f46cf1625d26e3ad6ff2ae440f80e67caf')
   const minterPrivKey = PrivKey.fromHex('f9d65ed0a27fd5a88b232a0b4598ba294ff5bba87f4010e3674ddebc30c04365')
   const minterAddress = minterPrivKey.toPubKey().toAddress()
 
   const storage = new Storage()
-  const vm = new VM(storage, storage, clock, compile)
+  const vm = new VM(storage, compile)
 
   const result = await compile(nftSourceCode)
   const id = vm.addPreCompiled(

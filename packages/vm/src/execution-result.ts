@@ -1,7 +1,6 @@
 import moment from "moment";
-import {Output, Tx} from "@aldea/core";
+import {base16, Output} from "@aldea/core";
 import {Abi} from "@aldea/core/abi";
-import {JigState} from "./jig-state.js";
 import {ExecutionError} from "./errors.js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {Option} from "./support/option.js";
@@ -26,6 +25,10 @@ export class PackageDeploy {
     return calculatePackageId(this.entries, this.sources)
   }
 
+  get id (): string {
+    return base16.encode(this.hash)
+  }
+
   static fromPackageDate(pkgData: PkgData): PackageDeploy {
       return new this(
         pkgData.sources,
@@ -38,36 +41,33 @@ export class PackageDeploy {
 }
 
 export class ExecutionResult {
-  outputs: JigState[]
-  inputs: Output[]
+  outputs: Output[]
+  spends: Output[]
+  reads: Output[]
   deploys: PackageDeploy[]
   private finished: boolean
-  private _tx: Tx
+  txId: string
   private _executedAt: Option<moment.Moment>
 
-  constructor(tx: Tx) {
+  constructor(txId: string) {
     this.outputs = []
     this.deploys = []
-    this.inputs = []
+    this.spends = []
+    this.reads = []
     this.finished = false
-    this._tx = tx
+    this.txId = txId
     this._executedAt = Option.none()
   }
 
-
-  get tx (): Tx {
-    return this._tx
-  }
-
-  addOutput(output: JigState) {
+  addOutput(output: Output) {
     if (this.finished) {
       throw new ExecutionError('Execution already finished')
     }
     this.outputs.push(output)
   }
 
-  addInput(output: Output) {
-    this.inputs.push(output)
+  addSpend(output: Output) {
+    this.spends.push(output)
   }
 
   addDeploy(deploy: PackageDeploy) {
@@ -77,14 +77,11 @@ export class ExecutionResult {
     this.deploys.push(deploy)
   }
 
-  get executedAt(): number {
-    return this._executedAt
-      .map(aMoment => aMoment.unix())
-      .orElse(() => { throw new Error('todo mal') })
+  finish() {
+    this.finished = true
   }
 
-  finish(time: moment.Moment) {
-    this.finished = true
-    this._executedAt = Option.some(time)
+  addRead (output: Output) {
+    this.reads.push(output)
   }
 }

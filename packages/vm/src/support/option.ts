@@ -2,13 +2,20 @@
 type empty = null | undefined;
 export abstract class Option<T> {
   abstract get(): T
+  abstract expect(err: Error): T;
   abstract orElse(fn: () =>T): T
 
   abstract orDefault(t: T): T
   
   abstract map<Y>(fn: (a: T) => Y): Option<Y>
+  abstract filter(fn: (a: T) => boolean): Option<T>;
   abstract or(another: Option<T>): Option<T>
   abstract ifPresent(fn: (t: T) => void): void
+
+  abstract isPresent(): boolean;
+  isAbsent(): boolean {
+    return !this.isPresent()
+  }
 
 
   static none<Y> () {
@@ -39,6 +46,10 @@ export class Some<T> extends Option<T> {
     return this.value;
   }
 
+  expect (_err: Error): T {
+    return this.value
+  }
+
   orElse(_fn: () => T): T {
     return this.value;
   }
@@ -47,7 +58,15 @@ export class Some<T> extends Option<T> {
     return new Some(fn(this.value));
   }
 
-  orDefault(_t: T): T {
+  filter (fn: (a: T) => boolean): Option<T> {
+      if (fn(this.value)) {
+        return this
+      } else {
+        return Option.none()
+      }
+  }
+
+    orDefault(_t: T): T {
     return this.value;
   }
 
@@ -58,11 +77,19 @@ export class Some<T> extends Option<T> {
   ifPresent(fn: (t: T) => void): void {
     fn(this.value)
   }
+
+  isPresent (): boolean {
+    return true;
+  }
 }
 
 export class None<T> extends Option<T> {
   get(): T {
     throw new Error('Not present');
+  }
+
+  expect (err: Error): T {
+    throw err
   }
 
   orElse(fn: () => T): T {
@@ -73,7 +100,11 @@ export class None<T> extends Option<T> {
     return new None<Y>();
   }
 
-  orDefault(t: T): T {
+  filter (fn: (a: T) => boolean): Option<T> {
+      return this;
+  }
+
+    orDefault(t: T): T {
     return t;
   }
 
@@ -83,5 +114,9 @@ export class None<T> extends Option<T> {
 
   ifPresent(fn: (t: T) => void): void {
     // no-op
+  }
+
+  isPresent (): boolean {
+    return false;
   }
 }

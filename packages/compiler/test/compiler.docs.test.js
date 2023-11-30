@@ -50,7 +50,7 @@ export function c(): D {
 /**
  * Object D
  */
-declare class D {
+export declare class D {
   /** a */
   a: u8;
   /** b */
@@ -78,7 +78,7 @@ export function c(): D {
   return { a: 1, b: 'foo' }
 }
 
-declare class D {
+export declare class D {
   a: u8;
   b: string;
 }
@@ -98,13 +98,13 @@ test('compilerDocs returns docs with everything captured', async t => {
   t.is(docs['A.a'], 'a')
   t.is(docs['A.b'], 'b')
   t.is(docs['A_constructor'], 'constructor')
-  t.is(docs['A_s'], 'static')
-  t.is(docs['A$m'], 'method')
-  t.is(docs['A$p'], 'private')
+  t.is(docs['A_s'], undefined)
+  t.is(docs['A_m'], 'method')
+  t.is(docs['A$p'], undefined)
 
   t.is(docs['B'], 'Interface B')
   t.is(docs['B.a'], 'a')
-  t.is(docs['B$m'], 'method')
+  t.is(docs['B_m'], 'method')
 
   t.is(docs['c'], 'Function c')
 

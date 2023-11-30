@@ -1,39 +1,42 @@
-import {JigLock} from "./locks/jig-lock.js"
-import {JigRef} from "./jig-ref.js"
-import {ExecutionError, PermissionError} from "./errors.js"
-import {UserLock} from "./locks/user-lock.js"
-import {NoLock} from "./locks/no-lock.js"
-import {JigState} from "./jig-state.js"
-import {AuthCheck, LockType, Prop, WasmInstance, WasmValue} from "./wasm-instance.js";
-import {Lock} from "./locks/lock.js";
-import {ClassNode, CodeKind} from '@aldea/core/abi'
-import {Address, base16, BCS, instructions, OpCode, Output, Pointer} from '@aldea/core';
-import {PublicLock} from "./locks/public-lock.js";
-import {FrozenLock} from "./locks/frozen-lock.js";
-import {emptyTn} from "./abi-helpers/well-known-abi-nodes.js";
+import {ContainerRef, JigRef} from "./jig-ref.js"
+import {ExecutionError, IvariantBroken} from "./errors.js"
+import {OpenLock} from "./locks/open-lock.js"
+import {AuthCheck, WasmContainer} from "./wasm-container.js";
+import {Address, base16, BufReader, BufWriter, Lock as CoreLock, LockType, Output, Pointer} from '@aldea/core';
+import {COIN_CLS_PTR, outputTypeNode} from "./memory/well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
-import {TxContext} from "./tx-context/tx-context.js";
+import {ExecContext} from "./tx-context/exec-context.js";
 import {PkgData} from "./storage.js";
-import {ExecFuncInstruction} from "@aldea/core/instructions";
+import {JigData} from "./memory/lower-value.js";
+import {Option} from "./support/option.js";
+import {WasmWord} from "./wasm-word.js";
+import {AbiType} from "./memory/abi-helpers/abi-type.js";
+import {serializeOutput, serializePointer} from "./memory/serialize-output.js";
+import {fromCoreLock} from "./locks/from-core-lock.js";
+import {AddressLock} from "./locks/address-lock.js";
+import {FrozenLock} from "./locks/frozen-lock.js";
+import {AbiMethod} from "./memory/abi-helpers/abi-method.js";
+import {JigInitParams} from "./jig-init-params.js";
+import {ArgsTranslator} from "./args-translator.js";
+import {CodeKind} from "@aldea/core/abi";
+import {AbiArg} from "./memory/abi-helpers/abi-arg.js";
 
-const COIN_CLASS_PTR = Pointer.fromBytes(new Uint8Array(34))
-
-const MIN_FUND_AMOUNT = 100
+export const MIN_FUND_AMOUNT = 100
 
 class TxExecution {
-  txContext: TxContext;
+  execContext: ExecContext;
   private jigs: JigRef[];
-  private wasms: Map<string, WasmInstance>;
+  private wasms: Map<string, WasmContainer>;
   private readonly stack: Pointer[];
   deployments: PkgData[];
   statements: StatementResult[]
   private fundAmount: number;
   private affectedJigs: JigRef[]
-  private inputs: Output[]
+  private nextOrigin: Option<Pointer>
 
-  constructor(context: TxContext) {
-    this.txContext = context
+  constructor (context: ExecContext) {
+    this.execContext = context
     this.jigs = []
     this.wasms = new Map()
     this.stack = []
@@ -41,34 +44,43 @@ class TxExecution {
     this.fundAmount = 0
     this.deployments = []
     this.affectedJigs = []
-    this.inputs = []
+    this.nextOrigin = Option.none()
   }
 
-  finalize(): ExecutionResult {
-    const result = new ExecutionResult(this.txContext.tx)
+  finalize (): ExecutionResult {
+    const result = new ExecutionResult(this.execContext.txId())
     if (this.fundAmount < MIN_FUND_AMOUNT) {
       throw new ExecutionError(`Not enough funding. Provided: ${this.fundAmount}. Needed: ${MIN_FUND_AMOUNT}`)
     }
-    this.jigs.forEach(jigRef => {
-      if (jigRef.lock.isOpen()) {
-        throw new PermissionError(`Finishing tx with unlocked jig (${jigRef.className()}): ${jigRef.origin}`)
+    // this.jigs.forEach(jigRef => {
+    //   if (jigRef.lock.isOpen()) {
+    //     throw new PermissionError(`Finishing tx with unlocked jig (${jigRef.className()}): ${jigRef.origin}`)
+    //   }
+    // })
+    //
+    this.affectedJigs.forEach((jigRef, index) => {
+      const origin = jigRef.origin
+      const location = new Pointer(this.execContext.txHash(), index)
+      const jigProps = jigRef.extractProps()
+      const jigState = new Output(
+        origin,
+        location,
+        jigRef.classPtr(),
+        jigRef.lock.coreLock(),
+        jigProps,
+        jigRef.ref.container.abi.abi
+      )
+      result.addOutput(jigState)
+
+      if (!jigRef.isNew) {
+        result.addSpend(this.execContext.inputByOrigin(jigRef.origin))
       }
     })
 
-    this.affectedJigs.forEach((jigRef, index) => {
-      const origin = jigRef.origin
-      const location = new Pointer(this.txContext.txHash(), index)
-      const serialized = this.serializeJig(jigRef)
-      const jigState = new JigState(
-        origin,
-        location,
-        jigRef.classIdx,
-        serialized,
-        jigRef.package.id,
-        jigRef.lock.serialize(),
-        this.txContext.now().unix()
-      )
-      result.addOutput(jigState)
+    this.jigs.forEach(jig => {
+      if (!this.affectedJigs.includes(jig)) {
+        result.addRead(this.execContext.inputByOrigin(jig.origin))
+      }
     })
 
     this.deployments.forEach(pkgData => {
@@ -81,218 +93,30 @@ class TxExecution {
       ))
     })
 
+    for (const wasm of this.wasms.values()) {
+      wasm.clearExecution()
+    }
     this.wasms = new Map()
     this.jigs = []
     this.statements = []
-    result.finish(this.txContext.now())
+    result.finish()
     return result
   }
 
-  private serializeJig(jig: JigRef): Uint8Array {
-    return jig.package.extractState(jig.ref, jig.classIdx)
-  }
+  /**
+   * Opcodes
+   */
 
-  loadModule(moduleId: Uint8Array): WasmInstance {
-    const existing = this.wasms.get(base16.encode(moduleId))
-    if (existing) {
-      return existing
-    }
-    const wasmInstance = this.txContext.wasmFromPkgId(moduleId)
-    wasmInstance.setExecution(this)
-    this.wasms.set(base16.encode(moduleId), wasmInstance)
-    return wasmInstance
-  }
-
-  getLoadedModule(pkgId: string): WasmInstance {
-    const wasm = this.wasms.get(pkgId)
-    if (!wasm) {
-      throw new Error(`Package with id ${pkgId} was expected to be loaded but it's not.`)
-    }
-    return wasm
-  }
-
-  findRemoteUtxoHandler(origin: ArrayBuffer): JigRef {
-    const jigRef = this.jigs.find(j => Buffer.from(j.originBuf).equals(Buffer.from(origin)))
-    if (!jigRef) {
-      throw new Error('should exist')
-    }
-    return jigRef
-  }
-
-  remoteCallHandler(callerInstance: WasmInstance, targetOrigin: Pointer, methodName: string, argBuff: Uint8Array): WasmValue {
-    let targetJig = this.jigs.find(j => j.origin.equals(targetOrigin))
-    if (!targetJig) {
-      targetJig = this.findJigByOrigin(targetOrigin)
-    }
-
-    const klassNode = targetJig.package.abi.classByIndex(targetJig.classIdx)
-    const method = klassNode.methodByName(methodName)
-
-    const args = callerInstance.liftArguments(argBuff, method.args)
-    this.localCallStartHandler(targetJig, method.name)
-    const result = targetJig.package.instanceCall(targetJig, method, args);
-    this.localCallEndHandler()
-    return result
-  }
-
-  remoteStaticExecHandler(srcModule: WasmInstance, targetModId: Uint8Array, fnStr: string, argBuffer: Uint8Array): WasmValue {
-    const targetMod = this.loadModule(targetModId)
-
-    const [className, methodName] = fnStr.split('_')
-
-    const obj = targetMod.abi.classByName(className)
-    const method = obj.methodByName(methodName)
-
-    const argValues = srcModule.liftArguments(argBuffer, method.args)
-
-    return targetMod.staticCall(method, argValues)
-  }
-
-  getPropHandler(origin: Pointer, propName: string): Prop {
-    let jig = this.jigs.find(j => j.origin.equals(origin))
-    if (!jig) {
-      jig = this.findJigByOrigin(origin)
-    }
-    return jig.package.getPropValue(jig.ref, jig.classIdx, propName)
-  }
-
-  remoteLockHandler(childOrigin: Pointer, type: LockType, extraArg: ArrayBuffer): void {
-    const childJigRef = this.getJigRefByOrigin(childOrigin)
-    if (!childJigRef.lock.canBeChangedBy(this)) {
-      throw new PermissionError('lock cannot be changed')
-    }
-    if (type === LockType.CALLER) {
-      const parentJigOrigin = this.stack[this.stack.length - 1]
-      childJigRef.changeLock(new JigLock(parentJigOrigin))
-    } else if (type === LockType.NONE) {
-      childJigRef.changeLock(new NoLock())
-    } else if (type === LockType.PUBKEY) {
-      childJigRef.changeLock(new UserLock(new Address(new Uint8Array(extraArg))))
-    } else if (type === LockType.ANYONE) {
-      if (!this.stackTop().equals(childJigRef.origin)) {
-        throw new ExecutionError('cannot make another jig public')
-      }
-      childJigRef.changeLock(new PublicLock())
-    } else if (type === LockType.FROZEN) {
-      childJigRef.changeLock(new FrozenLock())
-    } else {
-      throw new Error('not implemented yet')
-    }
-    this.marKJigAsAffected(childJigRef)
-  }
-
-  localCallStartHandler(targetJig: JigRef, fnName: string) {
-    if (!targetJig.lock.acceptsExecution(this)) {
-      const stackTop = this.stackTop()
-      if (stackTop) {
-        throw new PermissionError(`jig ${targetJig.origin.toString()} is not allowed to exec "${fnName}" called from ${this.stackTop().toString()}${targetJig.lock.constructor === FrozenLock ? " because it's frozen" : ""}`)
-      } else {
-        throw new PermissionError(`jig ${targetJig.origin.toString()} is not allowed to exec "${fnName}"${targetJig.lock.constructor === FrozenLock ? " because it's frozen" : ""}`)
-      }
-    }
-    this.marKJigAsAffected(targetJig)
-    this.stack.push(targetJig.origin)
-  }
-
-  localCallEndHandler() {
-    this.stack.pop()
-  }
-
-
-  remoteAuthCheckHandler(callerOrigin: Pointer, check: AuthCheck): boolean {
-    const jigRef = this.jigs.find(jigR => jigR.origin.equals(callerOrigin))
-    if (!jigRef) {
-      throw new Error('jig ref should exists')
-    }
-    if (check === AuthCheck.CALL) {
-      return jigRef.lock.acceptsExecution(this)
-    } else {
-      return jigRef.lock.acceptsChangeFrom(callerOrigin, this)
-    }
-  }
-
-  getJigRefByOrigin(origin: Pointer): JigRef {
-    const jigRef = this.jigs.find(jr => jr.origin.equals(origin));
-    if (!jigRef) {
-      throw new Error('does not exists')
-    }
-    return jigRef
-  }
-
-  addNewJigRef(jigRef: JigRef): JigRef {
-    this.jigs.push(jigRef)
-    return jigRef
-  }
-
-  linkJig(jigRef: JigRef): void {
-    this.addNewJigRef(jigRef)
-    this.marKJigAsAffected(jigRef)
-  }
-
-  async run(): Promise<ExecutionResult> {
-    await this.txContext.forEachInstruction(async baseInst => {
-      if (baseInst.opcode === OpCode.IMPORT) {
-        const inst = baseInst as instructions.ImportInstruction
-        this.importModule(inst.pkgId)
-      } else if (baseInst.opcode === OpCode.NEW) {
-        const inst = baseInst as instructions.NewInstruction
-        const abi = 
-        this.instantiateByIndex(inst.idx, inst.exportIdx, inst.argsBuf)
-      } else if (baseInst.opcode === OpCode.CALL) {
-        const inst = baseInst as instructions.CallInstruction
-        this.callInstanceMethodByIndex(inst.idx, inst.methodIdx, inst.argsBuf)
-      } else if (baseInst.opcode === OpCode.EXEC) {
-        const inst = baseInst as instructions.ExecInstruction
-        const wasm = this.getStatementResult(inst.idx).asInstance
-        const exportNode = wasm.abi.exports[inst.exportIdx]
-        if (exportNode.kind !== CodeKind.CLASS) {
-          throw new Error('not a class')
-        }
-        const klassNode = exportNode.code as ClassNode
-        const methodNode = klassNode.methods[inst.methodIdx]
-        this.execStaticMethodByIndex(inst.idx, exportNode.code.name, methodNode.name, inst.argsBuf)
-      } else if (baseInst.opcode === OpCode.EXECFUNC) {
-        const inst = baseInst as ExecFuncInstruction
-        this.execExportedFnByIndex(inst.idx, inst.exportIdx, inst.argsBuf)
-      } else if (baseInst.opcode === OpCode.LOCK) {
-        const inst = baseInst as instructions.LockInstruction
-        this.lockJigToUserByIndex(inst.idx, new Address(inst.pubkeyHash))
-      } else if (baseInst.opcode === OpCode.LOAD) {
-        const inst = baseInst as instructions.LoadInstruction
-        this.loadJigByOutputId(inst.outputId)
-      } else if (baseInst.opcode === OpCode.LOADBYORIGIN) {
-        const inst = baseInst as instructions.LoadByOriginInstruction
-        this.loadJigByOrigin(Pointer.fromBytes(inst.origin))
-      } else if (baseInst.opcode === OpCode.SIGN) {
-        // const inst = baseInst as instructions.SignInstruction
-        this.statements.push(new EmptyStatementResult(this.statements.length))
-      } else if (baseInst.opcode === OpCode.SIGNTO) {
-        // const inst = baseInst as instructions.SignToInstruction
-        this.statements.push(new EmptyStatementResult(this.statements.length))
-      } else if (baseInst.opcode === OpCode.DEPLOY) {
-        const inst = baseInst as instructions.DeployInstruction
-        const [entries, sources] = BCS.pkg.decode(inst.pkgBuf)
-        await this.deployPackage(entries, sources)
-      } else if (baseInst.opcode === OpCode.FUND) {
-        const inst = baseInst as instructions.FundInstruction
-        this.fundByIndex(inst.idx)
-      } else {
-        throw new ExecutionError(`unknown instruction: ${baseInst.opcode}`)
-      }
-    })
-    return this.finalize()
-  }
-
-  fundByIndex(coinIdx: number): StatementResult {
-    const coinJig = this.getStatementResult(coinIdx).asJig()
-    if (!coinJig.lock.canBeChangedBy(this)) {
-      throw new PermissionError(`no permission to remove lock from jig ${coinJig.origin}`)
-    }
-    if (!coinJig.classPtr().equals(COIN_CLASS_PTR) ) {
+  fund (coinIdx: number): StatementResult {
+    const coinJig = this.jigAt(coinIdx)
+    if (!coinJig.classPtr().equals(COIN_CLS_PTR)) {
       throw new ExecutionError(`Not a coin: ${coinJig.origin}`)
     }
-    const amount = coinJig.package.getPropValue(coinJig.ref, coinJig.classIdx, 'motos').value
-    this.fundAmount += Number(amount)
+
+    coinJig.lock.assertOpen(this)
+
+    const amount = coinJig.getPropValue('amount').ptr
+    this.fundAmount += amount.toUInt()
     coinJig.changeLock(new FrozenLock())
     const stmt = new EmptyStatementResult(this.statements.length)
     this.statements.push(stmt)
@@ -300,213 +124,156 @@ class TxExecution {
     return stmt
   }
 
-  findJigByOutputId(outputId: Uint8Array): JigRef {
-    const jigState = this.txContext.stateByOutputId(outputId)
-    const existing = this.jigs.find(j => j.origin.equals(jigState.origin))
-    if (existing) {
-      return existing
-    }
-    return this.hydrateJigState(jigState)
+  call (jigIdx: number, methodIdx: number, argsBuf: Uint8Array): StatementResult {
+    const jig = this.jigAt(jigIdx)
+    jig.lock.assertOpen(this)
+    const abiClass = jig.classAbi();
+    const method = abiClass.methodByIdx(methodIdx).get()
+
+    const wasm = jig.ref.container;
+    const args = this.lowerArgs(wasm, method.args, argsBuf);
+
+    this.marKJigAsAffected(jig)
+    const res = this.performMethodCall(jig, method, args)
+
+    let stmt: StatementResult = res.map<StatementResult>(ref => {
+      return new ValueStatementResult(this.statements.length, ref.ty, ref.ptr, ref.container)
+    }).orElse(() => new EmptyStatementResult(this.statements.length))
+
+    this.statements.push(stmt)
+    return stmt
   }
 
-  findJigByOrigin(origin: Pointer): JigRef {
-    const existing = this.jigs.find(j => j.origin.equals(origin))
-    if (existing) {
-      return existing
-    }
-    const jigState = this.txContext.stateByOrigin(origin)
-    return this.hydrateJigState(jigState)
-  }
+  load (outputId: Uint8Array): StatementResult {
+    const output = this.execContext.stateByOutputId(outputId)
+    const jigRef = this.hydrate(output)
 
-  private hydrateJigState(state: JigState): JigRef {
-    this.inputs.push(state.toOutput())
-    const module = this.loadModule(state.packageId)
-    const ref = module.hidrate(state.classIdx, state)
-    const lock = this.hydrateLock(state.serializedLock)
-    const jigRef = new JigRef(ref, state.classIdx, module, state.origin, state.currentLocation, lock)
-    this.addNewJigRef(jigRef)
-    return jigRef
-  }
-
-  loadJigByOutputId(outputId: Uint8Array): StatementResult {
-    const jigRef = this.findJigByOutputId(outputId)
-    const typeNode = emptyTn(jigRef.className())
-    const ret = new ValueStatementResult(this.statements.length, typeNode, jigRef, jigRef.package);
+    const ret = new ValueStatementResult(this.statements.length, jigRef.ref.ty.proxy(), jigRef.ref.ptr, jigRef.ref.container);
     this.statements.push(ret)
     return ret
   }
 
-  loadJigByOrigin(origin: Pointer): StatementResult {
-    const jigRef = this.findJigByOrigin(origin)
-    const typeNode = emptyTn(jigRef.className())
-    const ret = new ValueStatementResult(this.statements.length, typeNode, jigRef, jigRef.package);
-    this.statements.push(ret)
-    return ret
+  loadByOrigin (originBytes: Uint8Array): StatementResult {
+    const origin = Pointer.fromBytes(originBytes)
+    const output = this.execContext.inputByOrigin(origin)
+    const jigRef = this.hydrate(output)
+    const stmt = new ValueStatementResult(this.statements.length, jigRef.ref.ty.proxy(), jigRef.ref.ptr, jigRef.ref.container)
+    this.statements.push(stmt)
+    return stmt
   }
 
-  private hydrateLock(frozenLock: any): Lock {
-    if (frozenLock.type === LockType.PUBKEY) {
-      return new UserLock(new Address(frozenLock.data))
-    } else if (frozenLock.type === LockType.CALLER) {
-      return new JigLock(Pointer.fromBytes(frozenLock.data))
-    } else if (frozenLock.type === LockType.ANYONE) {
-      return new PublicLock()
-    } else if (frozenLock.type === LockType.FROZEN) {
-      return new FrozenLock()
-    } else {
-      throw new Error(`unknown lock type: ${frozenLock.type}`)
-    }
-  }
+  instantiate (statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
+    const statement = this.statements[statementIndex]
+    const wasm = statement.asContainer()
 
-  instantiate(wasm: WasmInstance, className: string, args: any[]): WasmValue {
-    const method =  wasm.abi.classByName(className).methodByName('constructor')
-    this.stack.push(this.createNextOrigin())
-    const result = wasm.staticCall(method, args)
+    const classNode = wasm.abi.exportedByIdx(classIdx).get().toAbiClass()
+
+    const method = wasm.abi.exportedByName(classNode.name).get().toAbiClass().constructorDef()
+    const callArgs = this.lowerArgs(wasm, method.args, argsBuf)
+
+    const nextOrigin = this.createNextOrigin()
+    this.nextOrigin = Option.some(nextOrigin)
+    this.stack.push(nextOrigin)
+    const result = wasm
+      .callFn(method.callName(), callArgs, method.args.map(arg => arg.type))
+      .get()
     this.stack.pop()
-    const jigRef = this.jigs.find(j => j.package === wasm && j.ref.ptr === result.value.ptr)
+
+    const jigRef = this.jigs.find(j => j.package === wasm && j.ref.ptr.equals(result))
     if (!jigRef) {
       throw new Error('jig should had been created created')
     }
-    this.marKJigAsAffected(jigRef)
-    return {
-      ...result,
-      node: emptyTn(className),
-      value: jigRef
-    }
 
-    //
-    // const ret = new ValueStatementResult(result.node, jigRef, result.mod);
-    // this.statementResults.push(ret)
-    // return ret
-  }
-
-  instantiateByIndex(statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
-    const statement = this.statements[statementIndex]
-    const instance = statement.asInstance
-    const classNode = instance.abi.classByIndex(classIdx)
-    const bcs = new BCS(instance.abi.abi)
-    const args = bcs.decode(`${classNode.name}_constructor`, argsBuf)
-    const wasmValue = this.instantiate(instance, classNode.name, args)
-
-    const ret = new ValueStatementResult(this.statements.length, wasmValue.node, wasmValue.value, wasmValue.mod);
+    const ret = new ValueStatementResult(this.statements.length, method.rtype, result, wasm);
     this.statements.push(ret)
     return ret
   }
 
-  instantiateByClassName(wasm: WasmInstance, className: string, args: any[]): StatementResult {
-    const knownWasm = this.wasms.get(base16.encode(wasm.id))
-    if (wasm !== knownWasm) {
-      throw new Error('wasm instance does not belong to current execution')
-    }
+  exec (wasmIdx: number, fnIdx: number, argsBuf: Uint8Array): StatementResult {
+    const wasm = this.statements[wasmIdx].asContainer()
+    const fn = wasm.abi.exportedByIdx(fnIdx).get().toAbiFunction()
+    const args = this.lowerArgs(wasm, fn.args, argsBuf)
 
-    const wasmValue = this.instantiate(wasm, className, args)
+    const value = wasm.callFn(fn.name, args, fn.args.map(a => a.type))
 
-    const ret = new ValueStatementResult(this.statements.length, wasmValue.node, wasmValue.value, wasmValue.mod);
-    this.statements.push(ret)
-    return ret
+    const stmt = value.map<StatementResult>(ptr =>
+      new ValueStatementResult(this.statements.length, fn.rtype, ptr, wasm)
+    ).orDefault(new EmptyStatementResult(this.statements.length))
+
+    this.statements.push(stmt)
+
+    return stmt
   }
 
-  callInstanceMethod(jig: JigRef, methodName: string, args: any[]): StatementResult {
-    if (!this.jigs.includes(jig)) {
-      throw new ExecutionError(`the jig does not belong to the current tx`)
-    }
-    const method = jig.classAbi().methodByName(methodName)
-
-    this.localCallStartHandler(jig, methodName)
-    const methodResult = jig.package.instanceCall(jig, method, args);
-    this.localCallEndHandler()
-    const ret = new ValueStatementResult(this.statements.length, methodResult.node, methodResult.value, methodResult.mod)
-    this.statements.push(ret)
-    return ret
+  sign (_sig: Uint8Array, _pubKey: Uint8Array): StatementResult {
+    const stmt = new EmptyStatementResult(this.statements.length);
+    this.statements.push(stmt)
+    return stmt
   }
 
-  callInstanceMethodByIndex(jigIndex: number, methodIdx: number, argsBuf: Uint8Array): StatementResult {
-    const jigRef = this.getStatementResult(jigIndex).asJig()
-    const method = jigRef.classAbi().methodByIdx(methodIdx)
-    const bcs = new BCS(jigRef.package.abi.abi)
-    const args = bcs.decode(`${jigRef.className()}$${method.name}`, argsBuf)
-    this.localCallStartHandler(jigRef, method.name)
-    const methodResult = jigRef.package.instanceCall(jigRef, method, args)
-    this.localCallEndHandler()
-    const ret = new ValueStatementResult(this.statements.length, methodResult.node, methodResult.value, methodResult.mod)
-    this.statements.push(ret)
-    return ret
+  signTo (_sig: Uint8Array, _pubKey: Uint8Array): StatementResult {
+    const stmt = new EmptyStatementResult(this.statements.length);
+    this.statements.push(stmt)
+    return stmt
   }
 
-  execStaticMethod(wasm: WasmInstance, className: string, methodName: string, args: any[]): ValueStatementResult {
-    const method = wasm.abi.classByName(className).methodByName(methodName)
+  private hydrate (output: Output): JigRef {
+    const existing = this.jigs.find(j => j.origin.equals(output.origin))
+    if (existing) return existing
 
-    let {node, value, mod} = wasm.staticCall(method, args)
-    const ret = new ValueStatementResult(
-      this.statements.length,
-      node,
-      value,
-      mod
+    const container = this.assertContainer(output.classPtr.id)
+    const classAbi = container.abi.exportedByIdx(output.classPtr.idx).get().toAbiClass()
+
+    const ptr = container.low.lower(serializeOutput(output), classAbi.ownTy())
+
+    const newJigRef = new JigRef(
+      new ContainerRef(
+        ptr,
+        classAbi.ownTy(),
+        container
+      ),
+      output.classPtr.idx,
+      output.origin,
+      output.location,
+      fromCoreLock(output.lock),
+      false
     )
 
-    this.statements.push(ret)
-    return ret
+    this.jigs.push(newJigRef)
+    return newJigRef
   }
 
-  execStaticMethodByIndex(moduleIndex: number, className: string, methodName: string, argsBuf: Uint8Array): number {
-    const wasm = this.getStatementResult(moduleIndex).asInstance
-    const bcs = new BCS(wasm.abi.abi)
-    const args = bcs.decode(`${className}_${methodName}`, argsBuf)
-    this.execStaticMethod(wasm, className, methodName, args)
-    return this.statements.length - 1
+  private lowerArgs (wasm: WasmContainer, args: AbiArg[], rawArgs: Uint8Array): WasmWord[] {
+    const fixer = new ArgsTranslator(this, wasm.abi)
+    const argsBuf = fixer.fix(rawArgs, args)
+
+    const reader = new BufReader(argsBuf)
+
+    return args.map((arg) => {
+      return wasm.low.lowerFromReader(reader, arg.type)
+    })
   }
 
-  execExportedFnByIndex(moduleIndex: number, fnIdx: number, args: Uint8Array): StatementResult {
-    const wasm = this.getStatementResult(moduleIndex).asInstance
-    const fnNode = wasm.abi.functionByIdx(fnIdx)
-
-    const bcs = new BCS(wasm.abi.abi)
-    let {node, value, mod} = wasm.functionCall(fnNode, bcs.decode(fnNode.name, args))
-
-    const ret = new ValueStatementResult(
-      this.statements.length,
-      node,
-      value,
-      mod
+  private performMethodCall (jig: JigRef, method: AbiMethod, loweredArgs: WasmWord[]): Option<ContainerRef> {
+    const wasm = jig.ref.container
+    const abiClass = jig.classAbi()
+    this.stack.push(jig.origin)
+    const res = wasm.callFn(
+      method.callName(),
+      [jig.ref.ptr, ...loweredArgs],
+      [abiClass.ownTy(), ...method.args.map(a => a.type)]
     )
-
-    this.statements.push(ret)
-    return ret
+    this.stack.pop()
+    return res.map((ptr) => {
+      return new ContainerRef(ptr, method.rtype, wasm)
+    })
   }
 
-  execExportedFnByName(wasm: WasmInstance, fnName: string, args: any[]): StatementResult {
-    const fnNode = wasm.abi.functionByName(fnName)
-    let {node, value, mod} = wasm.functionCall(fnNode, args)
-
-    const ret = new ValueStatementResult(
-      this.statements.length,
-      node,
-      value,
-      mod
-    )
-
-    this.statements.push(ret)
-    return ret
+  createNextOrigin () {
+    return new Pointer(this.execContext.txHash(), this.affectedJigs.length)
   }
 
-
-  createNextOrigin() {
-    return new Pointer(this.txContext.txHash(), this.affectedJigs.length)
-  }
-
-  stackTop() {
-    return this.stack[this.stack.length - 1]
-  }
-
-  stackPreviousToTop(): null | Pointer {
-    if (this.stack.length < 2) {
-      return null
-    }
-    return this.stack[this.stack.length - 2]
-  }
-
-
-  getStatementResult(index: number): StatementResult {
+  stmtAt (index: number): StatementResult {
     const result = this.statements[index]
     if (!result) {
       throw new ExecutionError(`undefined index: ${index}`)
@@ -514,58 +281,399 @@ class TxExecution {
     return result
   }
 
-  lockJigToUser(jigRef: JigRef, address: Address): StatementResult {
-    if (!jigRef.lock.canBeChangedBy(this)) {
-      throw new PermissionError(`no permission to remove lock from jig ${jigRef.origin}`)
-    }
-    jigRef.changeLock(new UserLock(address))
-    jigRef.writeField('$lock', {origin: jigRef.origin.toBytes(), ...jigRef.lock.serialize()})
+  private lockJigToUser (jigRef: JigRef, address: Address): StatementResult {
+    jigRef.lock.assertOpen(this)
     this.marKJigAsAffected(jigRef)
-
+    jigRef.changeLock(new AddressLock(address))
     const ret = new EmptyStatementResult(this.statements.length);
     this.statements.push(ret)
     return ret
   }
 
-  lockJigToUserByIndex(jigIndex: number, address: Address): StatementResult {
-    const jigRef = this.getStatementResult(jigIndex).asJig()
+  private jigAt (jigIndex: number): JigRef {
+    const ref = this.stmtAt(jigIndex).asValue()
+    ref.container.abi.exportedByName(ref.ty.name)
+      .filter(e => e.kind === CodeKind.CLASS)
+      .map(e => e.toAbiClass())
+      .expect(new ExecutionError(`index ${jigIndex} is not a jig`))
+
+    const lifted = Pointer.fromBytes(ref.lift())
+
+    return Option.fromNullable(this.jigs.find(j => j.origin.equals(lifted)))
+      .expect(new IvariantBroken('Lowered jig is not in jig list'))
+  }
+
+  lockJig (jigIndex: number, address: Address): StatementResult {
+    const jigRef = this.jigAt(jigIndex)
     return this.lockJigToUser(jigRef, address)
   }
 
-  importModule(modId: Uint8Array): StatementResult {
-    const instance = this.loadModule(modId)
-    const ret = new WasmStatementResult(this.statements.length, instance);
-    this.statements.push(ret)
-    return ret
-  }
-
-  async deployPackage(entryPoint: string[], sources: Map<string, string>): Promise<StatementResult> {
-    const pkgData = await this.txContext.compile(entryPoint, sources)
+  async deploy (entryPoint: string[], sources: Map<string, string>): Promise<StatementResult> {
+    const pkgData = await this.execContext.compile(entryPoint, sources)
     this.deployments.push(pkgData)
-    const wasm = new WasmInstance(pkgData.mod, pkgData.abi, pkgData.id)
+    const wasm = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
     wasm.setExecution(this)
-    this.wasms.set(base16.encode(wasm.id), wasm)
+    this.wasms.set(base16.encode(wasm.hash), wasm)
     const ret = new WasmStatementResult(this.statements.length, wasm)
     this.statements.push(ret)
     return ret
   }
 
-  markAsFunded() {
-    this.fundAmount += MIN_FUND_AMOUNT
+  private assertContainer (modId: string): WasmContainer {
+    const existing = this.wasms.get(modId)
+    if (existing) {
+      return existing
+    }
+
+    const container = this.execContext.wasmFromPkgId(modId)
+    container.setExecution(this)
+    this.wasms.set(container.id, container)
+    return container
   }
 
-  signedBy(addr: Address) {
-    return this.txContext.tx.isSignedBy(addr, this.execLength())
+  import (modId: Uint8Array): StatementResult {
+    const instance = this.assertContainer(base16.encode(modId))
+    const ret = new WasmStatementResult(this.statements.length, instance);
+    this.statements.push(ret)
+    return ret
   }
 
-  private execLength() {
+  signedBy (addr: Address): boolean {
+    return this.execContext.signers()
+      .some(s => s.toAddress().equals(addr))
+  }
+
+  execLength () {
     return this.statements.length
   }
 
-  private marKJigAsAffected(jig: JigRef): void {
+  private marKJigAsAffected (jig: JigRef): void {
     const exists = this.affectedJigs.find(affectedJig => affectedJig.origin.equals(jig.origin))
     if (!exists) {
       this.affectedJigs.push(jig)
+    }
+  }
+
+  getJigData (p: Pointer): Option<JigData> {
+    const existing = this.jigs.find(j => j.origin.equals(p))
+    if (existing) {
+      return Option.some({
+        origin: existing.origin,
+        location: existing.latestLocation,
+        classPtr: existing.classPtr(),
+        lock: existing.lock
+      })
+    }
+
+
+    const output = this.execContext.inputByOrigin(p)
+
+    return Option.some({
+      origin: output.origin,
+      location: output.location,
+      classPtr: output.classPtr,
+      lock: fromCoreLock(output.lock)
+    })
+  }
+
+  private assertJig (origin: Pointer) {
+    return Option.fromNullable(
+      this.jigs.find(j => j.origin.equals(origin))
+    ).orElse(() => {
+      const output = this.execContext.inputByOrigin(origin)
+      return this.hydrate(output)
+    })
+  }
+
+  private liftArgs (from: WasmContainer, ptr: WasmWord, argDef: AbiArg[]): Uint8Array {
+    const w = new BufWriter()
+    w.writeU8(0)
+
+    const argsBuf = new BufReader(from.liftBuf(ptr))
+
+    for (const arg of argDef) {
+      const ptr = WasmWord.fromReader(argsBuf, arg.type)
+      const lifted = from.lifter.lift(ptr, arg.type)
+      w.writeFixedBytes(lifted)
+    }
+
+    return w.data
+  }
+
+  stackFromTop (n: number): Option<Pointer> {
+    return Option.fromNullable(this.stack[this.stack.length - n])
+  }
+
+
+  /*
+   * Callbacks
+   */
+
+  vmJigInit (from: WasmContainer): WasmWord {
+    const nextOrigin = this.nextOrigin.get()
+    const jigInitParams = new JigInitParams(
+      nextOrigin,
+      nextOrigin,
+      new Pointer(new Uint8Array(32).fill(0xff), 0xffff),
+      new OpenLock()
+    )
+    return jigInitParams.lowerInto(from)
+  }
+
+  vmJigLink (from: WasmContainer, jigPtr: WasmWord, rtId: number): WasmWord {
+    const nextOrigin = this.nextOrigin.get()
+    let rtIdNode = from.abi.rtIdById(rtId)
+      .expect(new Error(`Runtime id "${rtId}" not found in ${base16.encode(from.hash)}`))
+    const abiClass = from.abi.exportedByName(rtIdNode.name).map(e => e.toAbiClass())
+      .expect(new Error(`Class named "${rtIdNode.name}" not found in ${base16.encode(from.hash)}`))
+
+    const newJigRef = new JigRef(
+      new ContainerRef(
+        jigPtr,
+        abiClass.ownTy(),
+        from
+      ),
+      abiClass.idx,
+      nextOrigin,
+      nextOrigin,
+      new OpenLock(),
+      true
+    )
+
+    this.jigs.push(newJigRef)
+    this.marKJigAsAffected(newJigRef)
+
+    return from
+      .low
+      .lower(
+        serializePointer(new Pointer(from.hash, abiClass.idx)),
+        AbiType.fromName('ArrayBuffer')
+      )
+  }
+
+  vmCallMethod (from: WasmContainer, targetPtr: WasmWord, methodNamePtr: WasmWord, argsPtr: WasmWord): WasmWord {
+    const targetOrigin = Pointer.fromBytes(from.liftBuf(targetPtr))
+    const methodName = from.liftString(methodNamePtr)
+
+    const jig = this.assertJig(targetOrigin)
+    jig.lock.assertOpen(this)
+
+    const method = jig.classAbi().methodByName(methodName).get()
+
+    // Move args
+    const argBuf = this.liftArgs(from, argsPtr, method.args)
+    const loweredArgs = this.lowerArgs(jig.ref.container, method.args, argBuf)
+    // const argsReader = new BufReader(argBuf)
+    // const loweredArgs = method.args.map(arg => {
+    //   return jig.ref.container.low.lowerFromReader(argsReader, arg.type)
+    // })
+
+    const methodRes = this.performMethodCall(jig, method, loweredArgs)
+    this.marKJigAsAffected(jig)
+
+    return methodRes.map(value => {
+      const lifted = value.lift()
+      return from.low.lower(lifted, method.rtype)
+    }).orElse(() => WasmWord.fromNumber(0))
+  }
+
+  vmGetProp (from: WasmContainer, originPtr: WasmWord, propNamePtr: WasmWord) {
+    const targetOrigin = Pointer.fromBytes(from.liftBuf(originPtr));
+    const propName = from.liftString(propNamePtr)
+    const jig = this.assertJig(targetOrigin)
+
+    const propTarget = jig.getPropValue(propName)
+    const lifted = propTarget.lift()
+    return from.low.lower(lifted, propTarget.ty)
+  }
+
+  vmJigLock (from: WasmContainer, targetOriginPtr: WasmWord, lockType: LockType, argsPtr: WasmWord): void {
+    const origin = Pointer.fromBytes(from.liftBuf(targetOriginPtr))
+
+    const jig = this.assertJig(origin)
+    jig.lock.assertOpen(this)
+
+    let lockData: Uint8Array
+    switch (lockType) {
+      case LockType.ADDRESS:
+        lockData = from.liftBuf(argsPtr)
+        break
+      case LockType.JIG:
+        lockData = this.stackFromTop(1).get().toBytes()
+        break
+      case LockType.FROZEN:
+      case LockType.PUBLIC:
+      case LockType.NONE:
+        lockData = new Uint8Array(0)
+        break
+      default:
+        throw new Error(`Unknown locktype: ${lockType}`)
+    }
+
+    const lock = fromCoreLock(new CoreLock(lockType, lockData))
+
+    jig.changeLock(lock)
+    this.marKJigAsAffected(jig)
+  }
+
+  vmConstructorLocal (from: WasmContainer, clsNamePtr: WasmWord, argsPtr: WasmWord): WasmWord {
+    const clsName = from.liftString(clsNamePtr)
+
+    const method = from.abi.exportedByName(clsName).get()
+      .toAbiClass()
+      .constructorDef()
+    // Move args
+    const argBuf = this.liftArgs(from, argsPtr, method.args)
+    const loweredArgs = this.lowerArgs(from, method.args, argBuf)
+
+    const nextOrigin = this.createNextOrigin()
+    this.nextOrigin = Option.some(nextOrigin)
+    this.stack.push(nextOrigin)
+    from.callFn(method.callName(), loweredArgs, method.args.map(arg => arg.type)) // Result is ignored because jigs are saved in local state.
+    this.stack.pop()
+
+    const createdJig = this.jigs.find(ref => ref.origin.equals(nextOrigin))
+    if (!createdJig) {
+      throw new ExecutionError(`[line=${this.execLength()}]Jig was not created`)
+    }
+
+    const initParams = new JigInitParams(
+      createdJig.origin,
+      createdJig.latestLocation,
+      createdJig.classPtr(),
+      createdJig.lock
+    )
+
+    return initParams.lowerInto(from)
+  }
+
+  vmCallFunction (from: WasmContainer, pkgIdPtr: WasmWord, fnNamePtr: WasmWord, argsBufPtr: WasmWord): WasmWord {
+    const pkgId = from.liftString(pkgIdPtr)
+    const fnName = from.liftString(fnNamePtr)
+    const wasm = this.assertContainer(pkgId)
+    const fn = wasm.abi.exportedByName(fnName).get().toAbiFunction()
+    const argsBuf = this.liftArgs(from, argsBufPtr, fn.args)
+    const args = this.lowerArgs(wasm, fn.args, argsBuf)
+
+    const res = wasm.callFn(fnName, args, fn.args.map(arg => arg.type))
+
+    return res.orDefault(WasmWord.null());
+  }
+
+  vmConstructorRemote (from: WasmContainer, pkgIdStrPtr: WasmWord, namePtr: WasmWord, argBufPtr: WasmWord): WasmWord {
+    const pkgId = from.liftString(pkgIdStrPtr)
+    const clsName = from.liftString(namePtr)
+
+    const targetContainer = this.assertContainer(pkgId)
+    const abiClass = targetContainer.abi.exportedByName(clsName).get().toAbiClass()
+    const constructorDef = abiClass.constructorDef()
+
+    const argsBuf = this.liftArgs(from, argBufPtr, constructorDef.args)
+
+    const argsRead = new BufReader(argsBuf)
+    const args = constructorDef.args.map(arg => {
+      return targetContainer.low.lowerFromReader(argsRead, arg.type)
+    })
+
+    const nextOrigin = this.createNextOrigin()
+    this.nextOrigin = Option.some(nextOrigin)
+    this.stack.push(nextOrigin)
+    targetContainer.callFn(constructorDef.callName(), args, constructorDef.args.map(args => args.type))
+    this.stack.pop()
+
+    const jig = this.jigs.find(j => j.origin.equals(nextOrigin))
+    if (!jig) {
+      throw new Error('jig should exist')
+    }
+
+    const initParams = new JigInitParams(
+      nextOrigin,
+      nextOrigin,
+      jig.classPtr(),
+      jig.lock
+    )
+
+    return initParams.lowerInto(from);
+  }
+
+  vmCallerTypeCheck (from: WasmContainer, rtIdToCheck: number, exact: boolean): boolean {
+    const maybeOrigin = this.stackFromTop(2)
+    if (maybeOrigin.isAbsent()) {
+      return false
+    }
+    const callerOrigin = maybeOrigin.get()
+
+    const jig = this.assertJig(callerOrigin)
+
+    // const wasm = jig.ref.container
+    const fromAbi = from.abi
+    // const callerAbi = wasm.abi
+
+    const fromRtidNode = fromAbi.rtIdById(rtIdToCheck).get()
+
+    if (exact) {
+      if (jig.ref.ty.proxy().name !== fromRtidNode.name) {
+        return false
+      }
+    } else {
+      if (!jig.classAbi().hierarchyNames().includes(fromRtidNode.name)) {
+        return false
+      }
+    }
+
+    return true
+  }
+
+  vmCallerOutputCheck () {
+    return this.stackFromTop(2).isPresent();
+  }
+
+  vmCallerOutput (from: WasmContainer): WasmWord {
+    const callerOrigin = this.stackFromTop(2).get();
+    const callerJig = this.assertJig(callerOrigin)
+
+    const buf = new BufWriter()
+    buf.writeBytes(callerJig.origin.toBytes())
+    buf.writeBytes(callerJig.latestLocation.toBytes())
+    buf.writeBytes(callerJig.classPtr().toBytes())
+
+    return from.low.lower(buf.data, new AbiType(outputTypeNode));
+  }
+
+  vmCallerOutputVal (from: WasmContainer, keyPtr: WasmWord): WasmWord {
+    const callerOrigin = this.stackFromTop(2).get();
+    const key = from.liftString(keyPtr)
+    const callerJig = this.assertJig(callerOrigin)
+
+    const buf = new BufWriter()
+
+    switch (key) {
+      case 'origin':
+        buf.writeBytes(callerJig.origin.toBytes())
+        break
+      case 'location':
+        buf.writeBytes(callerJig.latestLocation.toBytes())
+        break
+      case 'class':
+        buf.writeBytes(callerJig.classPtr().toBytes())
+        break
+      default:
+        throw new Error(`unknown vmCallerOutputVal key: ${key}`)
+    }
+
+    return from.low.lower(buf.data, AbiType.fromName('ArrayBuffer'))
+  }
+
+  vmJigAuthCheck (from: WasmContainer, targetOriginPtr: WasmWord, check: AuthCheck): boolean {
+    const origin = Pointer.fromBytes(from.liftBuf(targetOriginPtr))
+    const jig = this.assertJig(origin)
+
+    if (check === AuthCheck.LOCK) {
+      return jig.lock.canBeChanged(this)
+    } else if (check === AuthCheck.CALL) {
+      return jig.lock.canReceiveCalls(this)
+    } else {
+      throw new Error(`unknown auth check: ${check}`)
     }
   }
 }

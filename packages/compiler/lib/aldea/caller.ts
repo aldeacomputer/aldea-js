@@ -1,8 +1,8 @@
 import {
-  vm_caller_typecheck,
-  vm_caller_outputcheck,
-  vm_caller_output,
-  vm_caller_output_val,
+  __vm_caller_typecheck,
+  __vm_caller_outputcheck,
+  __vm_caller_output,
+  __vm_caller_output_val,
 } from './imports'
 
 import { Output } from './output'
@@ -18,14 +18,14 @@ export namespace caller {
    */
   export function is<T>(exact: bool = false): bool {
     const rtid = idof<T>()
-    return vm_caller_typecheck(rtid, exact)
+    return __vm_caller_typecheck(rtid, exact)
   }
 
   /**
    * Returns true if the caller has an output.
    */
   export function hasOutput(): bool {
-    return vm_caller_outputcheck()
+    return __vm_caller_outputcheck()
   }
 
   /**
@@ -33,7 +33,7 @@ export namespace caller {
    * has no output.
    */
   export function getOutputOrFail(): Output {
-    return vm_caller_output()
+    return __vm_caller_output()
   }
 
   /**
@@ -41,7 +41,7 @@ export namespace caller {
    * has no output.
    */
   export function getOriginOrFail(): ArrayBuffer {
-    return vm_caller_output_val('origin')
+    return __vm_caller_output_val('origin')
   }
 
   /**
@@ -49,7 +49,7 @@ export namespace caller {
    * caller has no output.
    */
   export function getLocationOrFail(): ArrayBuffer {
-    return vm_caller_output_val('location')
+    return __vm_caller_output_val('location')
   }
 
   /**
@@ -57,6 +57,6 @@ export namespace caller {
    * the caller has no output.
    */
   export function getClassOrFail(): ArrayBuffer {
-    return vm_caller_output_val('class')
+    return __vm_caller_output_val('class')
   }
 }

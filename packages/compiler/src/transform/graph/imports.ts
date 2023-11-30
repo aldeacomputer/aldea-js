@@ -2,6 +2,7 @@ import {
   DeclarationStatement,
   ImportDeclaration,
   ImportStatement,
+  NodeKind,
 } from 'assemblyscript'
 
 import {
@@ -16,6 +17,7 @@ import {
   isImportStatement,
   getLegacyImportPkgId,
 } from './helpers.js'
+import { CodeDef, CodeKind, ImportCode, ObjectNode } from '@aldea/core/abi';
 
 export class ImportNode {
   path?: string;
@@ -55,6 +57,7 @@ export class ImportEdge {
   name: string;
   foreignName: string;
   pkgId?: string;
+  #abiNode?: ImportCode;
 
   constructor(
     public ctx: ImportNode,
@@ -71,6 +74,31 @@ export class ImportEdge {
       this.foreignName = node.name.text
       this.pkgId = getLegacyImportPkgId(node.decorators![0])
     }
+  }
+
+  get abiCodeKind(): CodeKind {
+    switch(this.code.node.kind) {
+      case NodeKind.ClassDeclaration:
+        return this.code.isObj ? CodeKind.OBJECT : CodeKind.PROXY_CLASS
+      case NodeKind.FunctionDeclaration: return CodeKind.PROXY_FUNCTION
+      case NodeKind.InterfaceDeclaration: return CodeKind.PROXY_INTERFACE
+      default:
+        throw new Error(`unrecognised import kind: ${this.code.node.kind}`)
+    }
+  }
+
+  get abiNode(): ImportCode {
+    if (this.abiCodeKind === CodeKind.OBJECT) {
+      return this.code.abiNode as ObjectNode
+    }
+    if (!this.#abiNode) {
+      this.#abiNode = {
+        kind: this.abiCodeKind,
+        name: this.code.name,
+        pkg: this.pkgId!,
+      } as ImportCode
+    }
+    return this.#abiNode
   }
 
   get code(): CodeNode {

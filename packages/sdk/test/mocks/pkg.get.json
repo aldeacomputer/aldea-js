@@ -1,28 +1,26 @@
 {
   "version": 1,
-  "exports": [
+  "exports": [0],
+  "imports": [],
+  "defs": [
     {
       "kind": 1,
-      "code": {
-        "name": "helloWorld",
-        "args": [
-          {
-            "name": "msg",
-            "type": {
-              "name": "string",
-              "args": []
-            }
+      "name": "helloWorld",
+      "args": [
+        {
+          "name": "msg",
+          "type": {
+            "name": "string",
+            "args": []
           }
-        ],
-        "rtype": {
-          "name": "string",
-          "args": []
         }
+      ],
+      "rtype": {
+        "name": "string",
+        "args": []
       }
     }
   ],
-  "imports": [],
-  "objects": [],
   "typeIds": {
     "string": 1
   }

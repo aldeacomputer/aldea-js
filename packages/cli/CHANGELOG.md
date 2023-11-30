@@ -1,5 +1,35 @@
 # @aldea/cli
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @aldea/sdk@0.7.1
+  - @aldea/wallet-lib@0.3.1
+
+## 0.4.0
+
+### Minor Changes
+
+- 2cec12c: Improvements to support new ABI and jig model.
+
+### Patch Changes
+
+- Updated dependencies [2cec12c]
+- Updated dependencies [2cec12c]
+  - @aldea/wallet-lib@0.3.0
+  - @aldea/compiler@0.5.0
+  - @aldea/sdk@0.7.0
+
+## 0.3.4
+
+### Patch Changes
+
+- Updated dependencies [ec8aeca]
+  - @aldea/sdk@0.6.1
+  - @aldea/wallet-lib@0.2.11
+
 ## 0.3.3
 
 ### Patch Changes

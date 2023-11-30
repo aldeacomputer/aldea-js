@@ -1,4 +1,5 @@
 import { Abi, ClassNode } from './abi/types.js'
+import { AbiQuery } from './abi/query.js'
 import { validateAbi } from './abi/validations.js'
 import { base16 } from './support/base.js'
 import { hash } from './support/blake3.js'
@@ -108,8 +109,7 @@ export class Output {
     } else if (validateAbi(abi)) {
       this.#abi = abi
       this.#bcs = new BCS(abi)
-      const exp = abi.exports[this.classPtr.idx]
-      if (exp) { this.#classNode = exp.code as ClassNode }
+      this.#classNode = new AbiQuery(abi).fromExports().byIndex(this.classPtr.idx).getClass()
     }
   }
 

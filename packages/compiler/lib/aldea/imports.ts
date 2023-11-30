@@ -1,5 +1,5 @@
 import { AuthCheck } from './auth'
-import {_RemoteJig, Jig, JigInitParams} from './jig'
+import { Jig, JigInitParams, __ProxyJig } from './jig'
 import { LockType } from './lock'
 import { Output } from './output'
 
@@ -7,63 +7,63 @@ import { Output } from './output'
 // * ================
 
 // @ts-ignore
-@external("vm", "vm_jig_init")
-export declare function vm_jig_init(): JigInitParams;
+@external("vm", "jig_init")
+export declare function __vm_jig_init(): JigInitParams;
 // @ts-ignore
-@external("vm", "vm_jig_link")
-export declare function vm_jig_link(jig: Jig, rtid: i32): ArrayBuffer;
+@external("vm", "jig_link")
+export declare function __vm_jig_link(jig: Jig, rtid: i32): ArrayBuffer;
 
 // @ts-ignore
-@external("vm", "vm_proxy_link")
-export declare function vm_proxy_link(jig: _RemoteJig, origin: ArrayBuffer): void;
+@external("vm", "proxy_link")
+export declare function __vm_proxy_link(jig: __ProxyJig, origin: ArrayBuffer): void;
 
 // Jig auth
 // * ======
 
 // @ts-ignore
-@external("vm", "vm_jig_lock")
-export declare function vm_jig_lock(origin: ArrayBuffer, type: LockType, args: ArrayBuffer): ArrayBuffer;
+@external("vm", "jig_lock")
+export declare function __vm_jig_lock(origin: ArrayBuffer, type: LockType, args: ArrayBuffer): ArrayBuffer;
 // @ts-ignore
-@external("vm", "vm_jig_authcheck")
-export declare function vm_jig_authcheck(origin: ArrayBuffer, check: AuthCheck): bool;
+@external("vm", "jig_authcheck")
+export declare function __vm_jig_authcheck(origin: ArrayBuffer, check: AuthCheck): bool;
 
 // Method calls
 // * ==========
 
 // @ts-ignore
-@external("vm", "vm_constructor_local")
-export declare function vm_constructor_local(name: string, args: ArrayBuffer): JigInitParams;
+@external("vm", "constructor_local")
+export declare function __vm_constructor_local(name: string, args: ArrayBuffer): JigInitParams;
 // @ts-ignore
-@external("vm", "vm_constructor_remote")
-export declare function vm_constructor_remote(pkgId: string, name: string, args: ArrayBuffer): JigInitParams;
+@external("vm", "constructor_remote")
+export declare function __vm_constructor_remote(pkgId: string, name: string, args: ArrayBuffer): JigInitParams;
 // @ts-ignore
-@external("vm", "vm_call_method")
-export declare function vm_call_method<T>(origin: ArrayBuffer, fn: string, args: ArrayBuffer): T;
+@external("vm", "call_method")
+export declare function __vm_call_method<T>(origin: ArrayBuffer, fn: string, args: ArrayBuffer): T;
 // @ts-ignore
-@external("vm", "vm_call_static")
-export declare function vm_call_static<T>(pkgId: string, fn: string, args: ArrayBuffer): T;
+@external("vm", "call_function")
+export declare function __vm_call_function<T>(pkgId: string, fn: string, args: ArrayBuffer): T;
 // @ts-ignore
-@external("vm", "vm_call_function")
-export declare function vm_call_function<T>(pkgId: string, fn: string, args: ArrayBuffer): T;
-// @ts-ignore
-@external("vm", "vm_get_prop")
-export declare function vm_get_prop<T>(origin: ArrayBuffer, prop: string): T;
+@external("vm", "get_prop")
+export declare function __vm_get_prop<T>(origin: ArrayBuffer, prop: string): T;
 
 // Caller hooks
 // * ==========
 
 // @ts-ignore
-@external("vm", "vm_caller_typecheck")
-export declare function vm_caller_typecheck(rtid: i32, exact: bool): bool;
+@external("vm", "caller_typecheck")
+export declare function __vm_caller_typecheck(rtid: i32, exact: bool): bool;
 // @ts-ignore
-@external("vm", "vm_caller_outputcheck")
-export declare function vm_caller_outputcheck(): bool;
+@external("vm", "caller_outputcheck")
+export declare function __vm_caller_outputcheck(): bool;
 // @ts-ignore
-@external("vm", "vm_caller_output")
-export declare function vm_caller_output(): Output;
+@external("vm", "caller_output")
+export declare function __vm_caller_output(): Output;
 // @ts-ignore
-@external("vm", "vm_caller_output_val")
-export declare function vm_caller_output_val(key: string): ArrayBuffer;
+@external("vm", "caller_output_val")
+export declare function __vm_caller_output_val(key: string): ArrayBuffer;
+
+// Special dubug tools
+
 // @ts-ignore
-@external("vm", "vm_debug_str")
-export declare function vm_debug_str(msg: string): void;
+@external("vm", "debug_str")
+export declare function __vm_debug_str(msg: string): void;

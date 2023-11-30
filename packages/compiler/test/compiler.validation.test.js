@@ -32,7 +32,7 @@ function importedClassMbrCode(code) {
 // template for adding class members with plain object
 function classMbrWithDepCode(code) {
   return `
-  declare class A { foo: u8; }
+  export declare class A { foo: u8; }
   export class Test extends Jig {
     ${code}
   }
@@ -316,4 +316,150 @@ test('throws if non Jig descendent is exported', async t => {
   const e = await t.throwsAsync(() => compile(src))
   t.regex(e.stderr.toString(), /Invalid class/)
   t.regex(e.stderr.toString(), /export class C extends B {}/)
+})
+
+test('throws if exposed object is not exported', async t => {
+  const src = `
+  declare class A { name: string }
+  export class Test extends Jig {
+    a: A;
+    constructor(name: string) {
+      super()
+      this.a = { name }
+    }
+  }
+  `.trim()
+  const e = await t.throwsAsync(() => compile(src))
+  // TODO - should be better error about exporting plain objects
+  t.regex(e.stderr.toString(), /Invalid type/)
+})
+
+test('should not be able to name a class Jig', async t => {
+  const src = `
+  export class Jig extends Jig {}
+  `
+
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Invalid class/)
+})
+
+test('export class cannot have circular dependency', async t => {
+  const src = `
+  export class A extends B {}
+  export class B extends A {}
+  `
+
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Invalid class/)
+})
+
+test('sidekick classes cannot make circular dependency', async t => {
+  const src = `
+  export function test(): void {
+    const a = new A()
+  }
+
+  class A extends B {}
+  class B extends A {}
+  `
+
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /TS2506/)
+})
+
+test('implementing a different method signature should fail', async t => {
+  const src = `
+  export interface A {
+    m(): void;
+  }
+
+  export class B extends Jig implements A {
+    m(n: u8): void {}
+  }
+  `
+  
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Types of property `m` are incompatible./)
+})
+
+test('implementing a different method signature from nested interfaces should fail', async t => {
+  const src = `
+  export interface A {
+    m1(): void;
+  }
+
+  export interface B extends A {
+    m2(): void;
+  }
+
+  export interface C extends B {
+    m3(): void;
+  }
+
+  export class D extends Jig implements C {
+    m1(n: u8): void {}
+    m2(): void {}
+    m3(): void {}
+  }
+  `
+  
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Types of property `m1` are incompatible./)
+})
+
+test('implementing a different method signature with compatible types should pass', async t => {
+  const src = `
+  export interface A {
+    m1(): A;
+  }
+
+  export interface B extends A {
+    m2(): B;
+  }
+
+  export class C extends Jig implements A {
+    m1(): C { return this };
+  }
+
+  export class D extends Jig implements B {
+    m1(): D { return this };
+    m2(): B { return this };
+  }
+  `
+  
+  await t.notThrowsAsync(() => compile(src))
+})
+
+test('extending a different method signature should fail', async t => {
+  const src = `
+  export interface A {
+    m(): void;
+  }
+
+  export interface B extends A {
+    m(n: u8): void;
+  }
+  `
+  
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Types of property `m` are incompatible./)
+})
+
+test('extending a different method signature from nested interfaces should fail', async t => {
+  const src = `
+  export interface A {
+    m1(): void;
+  }
+
+  export interface B extends A {
+    m2(): void;
+  }
+
+  export interface C extends B {
+    m1(n: u8): void;
+  }
+  `
+  
+  const e = await t.throwsAsync(() => compile(src))
+  t.regex(e.stderr.toString(), /Types of property `m1` are incompatible./)
 })

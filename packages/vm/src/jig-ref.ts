@@ -1,24 +1,46 @@
-import {WasmInstance} from './wasm-instance.js';
+import {WasmContainer} from './wasm-container.js';
 import {Lock} from "./locks/lock.js";
-import {Externref, getObjectMemLayout, getTypedArrayForPtr, Internref} from "./memory.js";
 import {Pointer} from "@aldea/core";
-import {ClassNodeWrapper} from "./abi-helpers/class-node-wrapper.js";
+import {AbiClass} from "./memory/abi-helpers/abi-class.js";
+import {WasmWord} from "./wasm-word.js";
+import {AbiType} from "./memory/abi-helpers/abi-type.js";
 
-export class JigRef  {
-  ref: Internref;
+export class ContainerRef {
+  ptr: WasmWord
+  ty: AbiType
+  container: WasmContainer
+
+  constructor (ptr: WasmWord, ty: AbiType, container: WasmContainer) {
+    this.ptr = ptr
+    this.ty = ty
+    this.container = container
+  }
+
+  lift (): Uint8Array {
+    return this.container.lifter.lift(this.ptr, this.ty)
+  }
+
+  equals (ref: ContainerRef) {
+    return this.container.hash === ref.container.hash &&
+        this.ptr.equals(ref.ptr)
+  }
+}
+
+export class JigRef {
+  ref: ContainerRef
   classIdx: number;
-  package: WasmInstance;
   origin: Pointer;
   latestLocation: Pointer;
   lock: Lock;
+  readonly isNew: boolean;
 
-  constructor (ref: Internref, classIdx: number, module: WasmInstance, origin: Pointer, latestLocation: Pointer, lock: Lock) {
+  constructor (ref: ContainerRef, classIdx: number, origin: Pointer, latestLocation: Pointer, lock: Lock, isNew: boolean) {
     this.ref = ref
     this.classIdx = classIdx
-    this.package = module
     this.origin = origin
     this.latestLocation = latestLocation
     this.lock = lock
+    this.isNew = isNew
   }
 
   get originBuf (): ArrayBuffer {
@@ -26,22 +48,18 @@ export class JigRef  {
   }
 
   changeLock (newLock: Lock) {
+    const container = this.ref.container
+    const lockTy = AbiType.fromName('Lock');
+    const ptr = container.low.lower(newLock.serialize(this.origin.toBytes()), lockTy)
+    container.mem.write(this.ref.ptr.plus(4), ptr.serialize(lockTy))
     this.lock = newLock
   }
 
-  className(): string {
-    return this.package.abi.exports[this.classIdx].code.name
+  className (): string {
+    return this.classAbi().name
   }
 
-  asChildRef(): Uint8Array {
-    return this.origin.toBytes()
-  }
-
-  asExtRef() {
-    return new Externref(this.className(), this.origin.toBytes());
-  }
-
-  outputObject(): any {
+  outputObject (): any {
     return {
       origin: this.origin.toBytes(),
       location: this.latestLocation.toBytes(),
@@ -49,35 +67,34 @@ export class JigRef  {
     }
   }
 
-  classPtr(): Pointer {
-    return new Pointer(this.package.id, this.classIdx)
+  classPtr (): Pointer {
+    return new Pointer(this.ref.container.hash, this.classIdx)
   }
 
-  lockObject() {
-    return {
-      origin: this.origin.toBytes(),
-      type: this.lock.typeNumber(),
-      data: this.lock.data()
-    }
+
+  get package (): WasmContainer {
+    return this.ref.container
   }
 
-  writeField(fieldName: string, propValue: any) {
-    const abiNode = this.package.abi.classByName(this.className())
-    const fieldNode = abiNode.fieldByName(fieldName)
-    const layout = getObjectMemLayout(abiNode)
-    const TypedArray = getTypedArrayForPtr(fieldNode.type)
-    const mem32 = new TypedArray(this.package.memory.buffer, this.ref.ptr)
-    const { align, offset } = layout[fieldName]
-
-    mem32[offset >>> align] = this.package.insertValue(propValue, fieldNode.type)
+  classAbi (): AbiClass {
+    return this.ref.container.abi.exportedByIdx(this.classIdx).get().toAbiClass()
   }
 
-  classAbi(): ClassNodeWrapper {
-    return this.package.abi.classByName(this.className())
-  }
-
-  static isJigRef(obj: Object): boolean {
+  static isJigRef (obj: Object): boolean {
     // This is a little hack to avoid having issues when 2 different builds are used at the same time.
     return obj instanceof JigRef || obj.constructor.name === 'JigRef'
+  }
+
+  extractProps (): Uint8Array {
+    const wasm = this.ref.container
+    return wasm.lifter.lift(this.ref.ptr, this.ref.ty)
+  }
+
+  getPropValue (propName: string): ContainerRef {
+    const container = this.ref.container
+    const abiClass = container.abi.exportedByIdx(this.classIdx).get().toAbiClass()
+    const field = abiClass.fieldByName(propName).get()
+    const buf = container.mem.extract(this.ref.ptr.plus(field.offset), field.type.ownSize())
+    return new ContainerRef(new WasmWord(buf), field.type, container)
   }
 }

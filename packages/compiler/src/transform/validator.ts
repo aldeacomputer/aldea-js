@@ -11,7 +11,6 @@ import {
   LiteralExpression,
   LiteralKind,
   MethodDeclaration,
-  NamedTypeNode,
   NewExpression,
   Node,
   NodeKind,
@@ -23,13 +22,16 @@ import {
 } from 'assemblyscript'
 
 import {
+  AbiQuery,
   ClassNode,
+  CodeKind,
   FunctionNode,
   InterfaceNode,
   MethodKind,
   MethodNode,
   ObjectNode,
-  normalizeTypeName
+  TypeNode,
+  normalizeTypeName,
 } from '@aldea/core/abi'
 
 import { AldeaDiagnosticCode, createDiagnosticMessage } from './diagnostics.js'
@@ -57,10 +59,6 @@ const blacklist = {
     'changetype', 'idof', 'offsetof',
     'load', 'store',
     'unchecked', 'call_indirect',
-    'vm_local_call_start', 'vm_local_call_end',
-    'vm_remote_call_i', 'vm_remote_call_s', 'vm_remote_prop',
-    'vm_local_authcheck', 'vm_local_state', 'vm_local_lock',
-    'vm_remote_authcheck', 'vm_remote_state', 'vm_remote_lock',
   ],
   patterns: <{[key: string]: string[]}>{
     i32: [
@@ -97,7 +95,9 @@ const whitelist = {
     'Int8Array', 'Int16Array', 'Int32Array', 'Int64Array',
     'Uint8Array', 'Uint16Array', 'Uint32Array', 'Uint64Array',
     'Array', 'StaticArray',
-    'Map', 'Set', 'Coin', 'Jig'
+    'Map', 'Set',
+    'BigInt',
+    'Jig', 'Coin', 'Fungible',
   ]
 }
 
@@ -135,14 +135,13 @@ export class Validator {
     return this.cache.get<Array<ClassNode | InterfaceNode | ObjectNode>>('exposedClasses', () => {
       const classes: Array<ClassNode | InterfaceNode | ObjectNode> = []
       this.ctx.exports.map(ex => ex.code).forEach(code => {
-        if (isClass(code.node))     { classes.push(code.abiNode as ClassNode) }
+        if (isClass(code.node))     { classes.push(code.abiNode as ClassNode | ObjectNode) }
         if (isInterface(code.node)) { classes.push(code.abiNode as InterfaceNode) }
       })
       this.ctx.imports.map(im => im.code).forEach(code => {
-        if (isClass(code.node))     { classes.push(code.abiNode as ClassNode) }
+        if (isClass(code.node))     { classes.push(code.abiNode as ClassNode | ObjectNode) }
         if (isInterface(code.node)) { classes.push(code.abiNode as InterfaceNode) }
       })
-      classes.push(...this.ctx.objects.map(o => o.abiNode as ObjectNode))
       return classes
     })
   }
@@ -166,19 +165,21 @@ export class Validator {
     })
 
     this.ctx.exports.forEach(ex => {
-      switch (ex.code.node.kind) {
-        case NodeKind.ClassDeclaration:
+      switch (ex.code.abiCodeKind) {
+        case CodeKind.CLASS:
+          this.validateJigImpl(ex.code as CodeNode<ClassDeclaration>)
           this.validateJigInheritance(ex.code as CodeNode<ClassDeclaration>)
           this.validateJigMembers(ex.code as CodeNode<ClassDeclaration>)
-          this.validatePrivateMembers(ex.code as CodeNode<ClassDeclaration>, true)
           this.validateClassTypes(ex.code as CodeNode<ClassDeclaration>)
           break
-        case NodeKind.FunctionDeclaration:
+        case CodeKind.FUNCTION:
           this.validateFunctionArgTypes(ex.code as CodeNode<FunctionDeclaration>)
           this.validateFunctionReturnType(ex.code as CodeNode<FunctionDeclaration>)
           break
-        case NodeKind.InterfaceDeclaration:
-          //this.validateInterfaceInheritance(code as InterfaceNode)
+        case CodeKind.INTERFACE:
+          this.validateInterfaceInheritance(ex.code as CodeNode<InterfaceDeclaration>)
+          break
+        case CodeKind.OBJECT:
           break
       }
     })
@@ -187,27 +188,22 @@ export class Validator {
       this.validatePackageId(im)
       this.validateImportedCode(im)
 
-      switch (im.code.node.kind) {
-        case NodeKind.ClassDeclaration:
-          // must not export from entry
-          this.validateJigInheritance(im.code as CodeNode<ClassDeclaration>)
+      switch (im.abiCodeKind) {
+        case CodeKind.PROXY_CLASS:
+          //this.validateJigInheritance(im.code as CodeNode<ClassDeclaration>)
           this.validateJigMembers(im.code as CodeNode<ClassDeclaration>)
           this.validatePrivateMembers(im.code as CodeNode<ClassDeclaration>)
           this.validateClassTypes(im.code as CodeNode<ClassDeclaration>)
           break
-        case NodeKind.FunctionDeclaration:
-          // must not export from entry
+        case CodeKind.PROXY_FUNCTION:
           this.validateFunctionArgTypes(im.code as CodeNode<FunctionDeclaration>)
           this.validateFunctionReturnType(im.code as CodeNode<FunctionDeclaration>)
           break
-        case NodeKind.InterfaceDeclaration:
+        case CodeKind.PROXY_INTERFACE:
+          break
+        case CodeKind.OBJECT:
           break
       }
-    })
-
-    this.ctx.objects.forEach(code => {
-      // must not export from entry
-      this.validateFieldTypes(code as CodeNode<ClassDeclaration>)
     })
 
     this.ctx.sources.forEach(src => {
@@ -247,7 +243,14 @@ export class Validator {
 
   private validateCodeDeclaration(code: CodeNode): void {
     if (code.node.kind === NodeKind.ClassDeclaration) {
-      const abiNode = code.abiNode as ClassNode
+      if (code.isJig && (<ClassDeclaration>code.node).members.some(n => isStatic(n.flags))) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.Error,
+          AldeaDiagnosticCode.Invalid_class_member,
+          ['Static members'],
+          code.node.range
+        ))
+      }
 
       if (code.isJig && !(
         this.exportedClassNodes.some(n => code.node === n) ||
@@ -261,7 +264,7 @@ export class Validator {
         ))
       }
 
-      if (!code.isJig && this.exportedClassNodes.some(n => code.node === n)) {
+      if (!code.isJig && !code.isObj && this.exportedClassNodes.some(n => code.node === n)) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
           DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_class,
@@ -298,19 +301,27 @@ export class Validator {
   }
 
   private validateClassDeclarationNode(node: ClassDeclaration): void {
-    // Ensures class is not ambient and exported from entry
-    if (
-      isExported(node.flags) &&
-      isAmbient(node.flags) &&
-      node.range.source.sourceKind === SourceKind.UserEntry
-    ) {
+    if (node.name.text === 'Jig') {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.Error,
-        AldeaDiagnosticCode.Invalid_export,
-        ['Ambient classes'],
+        AldeaDiagnosticCode.Invalid_class,
+        ['Class cannot be named `Jig`.'],
         node.range
       ))
     }
+    // Ensures class is not ambient and exported from entry
+    //if (
+    //  isExported(node.flags) &&
+    //  isAmbient(node.flags) &&
+    //  node.range.source.sourceKind === SourceKind.UserEntry
+    //) {
+    //  this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+    //    DiagnosticCategory.Error,
+    //    AldeaDiagnosticCode.Invalid_export,
+    //    ['Ambient classes'],
+    //    node.range
+    //  ))
+    //}
 
     // Ensures sidekick code is not exported from entry
     if (
@@ -355,12 +366,12 @@ export class Validator {
     //}
 
     node.members.forEach(n => {
-      // Ensure no static properties
-      if (n.kind === NodeKind.FieldDeclaration && isStatic(n.flags)) {
+      // Ensure no static properties or methods
+      if (isStatic(n.flags)) {
         this.ctx.parser.diagnostics.push(createDiagnosticMessage(
           DiagnosticCategory.Error,
           AldeaDiagnosticCode.Invalid_class_member,
-          ['Static properties'],
+          ['Static members'],
           n.range
         ))
       }
@@ -460,10 +471,8 @@ export class Validator {
       ))
     }
 
-    // Ensure no renaming of imports - unless dependency import
-    else if (
-      !ex.edges.every(n => n.name === n.exportedName)
-    ) {
+    // Ensure no renaming of exports
+    else if (!ex.edges.every(n => n.name === n.exportedName)) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
         DiagnosticCategory.Error,
         AldeaDiagnosticCode.Illegal_export,
@@ -538,10 +547,6 @@ export class Validator {
     }
   }
 
-  private validateInterfaceInheritance(obj: InterfaceNode): void {
-
-  }
-
   private validatePackageId(im: ImportEdge): void {
     if (!im.pkgId || !/^[a-f0-9]{64}$/i.test(im.pkgId)) {
       this.ctx.parser.diagnostics.push(createDiagnosticMessage(
@@ -553,16 +558,113 @@ export class Validator {
     }
   }
 
+  private validateJigImpl(code: CodeNode<ClassDeclaration>): void {
+    if (code.isJig && code.node.implementsTypes?.length) {
+      const abi = code.src.ctx.toABI()
+      const query = new AbiQuery(abi).fromExports().byName(code.name)
+      const fullCode = query.getClassFull()
+
+      // get interface abi nodes from the source, rather than the abi
+      // as it could be imported and the abi only includes proxy details
+      const interfaces = fullCode.implements.reduce((map, name) => {
+        const int = code.src.findCode(name)!
+        const children = int.findAllParents().map(i => i.abiNode as InterfaceNode)
+        map.set(int.abiNode as InterfaceNode, children.reverse())
+        return map
+      }, new Map<InterfaceNode, InterfaceNode[]>())
+
+      interfaces.forEach((children, parent) => {
+        [...children, parent].forEach(int => {
+          int.fields.forEach(t => {
+            const f = fullCode.fields.find(f => f.name === t.name)!
+            if (!isCompatibleTypes(f.type, t.type, code)) {
+              this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+                DiagnosticCategory.Error,
+                AldeaDiagnosticCode.Invalid_implementation,
+                [fullCode.name, parent.name, f.name],
+                code.node.range,
+              ))
+            }
+          })
+          int.methods.forEach(t => {
+            const m = fullCode.methods.find(f => f.name === t.name)!
+            if (!(
+              t.args.length === m.args.length &&
+              t.args.every((a, i) => isCompatibleTypes(m.args[i].type, a.type, code)) &&
+              isCompatibleTypes(m.rtype, t.rtype, code)
+            )) {
+              this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+                DiagnosticCategory.Error,
+                AldeaDiagnosticCode.Invalid_implementation,
+                [fullCode.name, parent.name, m.name],
+                code.node.range,
+              ))
+            }
+          })
+        })
+      })
+    }
+  }
+
+  private validateInterfaceInheritance(code: CodeNode<InterfaceDeclaration>): void {
+    if (code.node.implementsTypes?.length) {
+      const fullCode = code.abiNode as InterfaceNode
+
+      // get interface abi nodes from the source, rather than the abi
+      // as it could be imported and the abi only includes proxy details
+      const interfaces = fullCode.extends.reduce((map, name) => {
+        const int = code.src.findCode(name)!
+        const children = int.findAllParents().map(i => i.abiNode as InterfaceNode)
+        map.set(int.abiNode as InterfaceNode, children.reverse())
+        return map
+      }, new Map<InterfaceNode, InterfaceNode[]>())
+
+      interfaces.forEach((children, parent) => {
+        [...children, parent].forEach(int => {
+          int.fields.forEach(t => {
+            const f = fullCode.fields.find(f => f.name === t.name)!
+            if (!isCompatibleTypes(f.type, t.type, code)) {
+              this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+                DiagnosticCategory.Error,
+                AldeaDiagnosticCode.Invalid_interface_inheritance,
+                [fullCode.name, parent.name, f.name],
+                code.node.range,
+              ))
+            }
+          })
+          int.methods.forEach(t => {
+            const m = fullCode.methods.find(f => f.name === t.name)
+            if (m && !(
+              t.args.length === m.args.length &&
+              t.args.every((a, i) => isCompatibleTypes(m.args[i].type, a.type, code)) &&
+              isCompatibleTypes(m.rtype, t.rtype, code)
+            )) {
+              this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+                DiagnosticCategory.Error,
+                AldeaDiagnosticCode.Invalid_interface_inheritance,
+                [fullCode.name, parent.name, m.name],
+                code.node.range,
+              ))
+            }
+          })
+        })
+      })
+    }
+  }
+
   private validateJigInheritance(code: CodeNode<ClassDeclaration>): void {
-    // Ensure imported or exported object inherits from Jig
-    //if (!code.isJig) {
-    //  this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-    //    DiagnosticCategory.Error,
-    //    AldeaDiagnosticCode.Invalid_jig_class,
-    //    [code.name, 'must inherit from `Jig`'],
-    //    code.node.range
-    //  ))
-    //}
+    if (
+      code.isJig &&
+      code.node.extendsType?.name.identifier.text !== 'Jig' &&
+      !code.node.members.some(n => n.kind === NodeKind.MethodDeclaration && isConstructor(n.flags))
+    ) {
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.Error,
+          AldeaDiagnosticCode.Invalid_class,
+          ['Constructor method required for child Jig class.'],
+          code.node.range
+        ))
+    }
   }
 
   private validateJigMembers(code: CodeNode<ClassDeclaration>): void {
@@ -594,24 +696,15 @@ export class Validator {
     })
   }
 
-  private validatePrivateMembers(code: CodeNode<ClassDeclaration>, warn: boolean = false): void {
+  private validatePrivateMembers(code: CodeNode<ClassDeclaration>): void {
     code.node.members.forEach(n => {
       if (isPrivate(n.flags) || isProtected(n.flags)) {
-        if (warn) {
-          this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-            DiagnosticCategory.Warning,
-            AldeaDiagnosticCode.Private_member_warn,
-            [],
-            n.range
-          ))
-        } else {
-          this.ctx.parser.diagnostics.push(createDiagnosticMessage(
-            DiagnosticCategory.Error,
-            AldeaDiagnosticCode.Private_member,
-            [],
-            n.range
-          ))
-        }
+        this.ctx.parser.diagnostics.push(createDiagnosticMessage(
+          DiagnosticCategory.Error,
+          AldeaDiagnosticCode.Private_member,
+          [],
+          n.range
+        ))
       }
     })
   }
@@ -621,7 +714,7 @@ export class Validator {
     abiNode.methods.forEach(m => {
       const node = code.node.members.find(n => {
         return n.kind === NodeKind.MethodDeclaration &&
-          nodeHasMethodFlags(n as MethodDeclaration, m.kind) &&
+          nodeHasMethodFlags(n as MethodDeclaration, m.kind!) &&
           n.name.text === m.name
       })!
       this.validateArgTypes(m, node as MethodDeclaration)
@@ -767,7 +860,7 @@ class SimpleCache {
 }
 
 // Returns true if node kind is a safe literal
-function isAllowedLiteral(node: Expression | null): Boolean {
+function isAllowedLiteral(node: Expression | null): boolean {
   if (!node) return false
   return node.kind === NodeKind.Literal && [
     LiteralKind.Float,
@@ -779,7 +872,7 @@ function isAllowedLiteral(node: Expression | null): Boolean {
 }
 
 // Returns true if node kind is a safe literal other
-function isAllowedLiteralOther(node: Expression | null): Boolean {
+function isAllowedLiteralOther(node: Expression | null): boolean {
   if (!node) return false
   return [
     NodeKind.True,
@@ -788,13 +881,41 @@ function isAllowedLiteralOther(node: Expression | null): Boolean {
   ].includes(node.kind)
 }
 
+// Checks if the subject type is compatible with the target type
+function isCompatibleTypes(subject: TypeNode | null, target: TypeNode | null, context: CodeNode): boolean {
+  if (
+    normalizeTypeName(subject) === normalizeTypeName(target) ||
+    normalizeTypeName(subject) === context.name
+  ) {
+    return true
+  }
+
+  if (subject!.args.length > 0 && subject!.args.length === target?.args.length) {
+    return subject!.args.every((_a, i) => isCompatibleTypes(subject!.args[i], target!.args[i], context))
+  }
+
+  const code = context.src.findCode(normalizeTypeName(subject))
+  if (
+    code && code.node.kind === NodeKind.ClassDeclaration &&
+    (<ClassNode>code.abiNode).implements.includes(normalizeTypeName(target))
+  ) {
+    return true
+  }
+
+  if (
+    code && code.node.kind === NodeKind.InterfaceDeclaration &&
+    code.findAllParents().map(c => c.name).includes(normalizeTypeName(target))
+  ) {
+    return true
+  }
+
+  return false
+}
+
 // Returns true if node has flags for given method kind
 function nodeHasMethodFlags(node: MethodDeclaration, kind: MethodKind): boolean {
   switch (kind) {
-    case MethodKind.STATIC: return isStatic(node.flags)
-    case MethodKind.CONSTRUCTOR: return isConstructor(node.flags)
-    case MethodKind.INSTANCE: return isInstance(node.flags)
-    case MethodKind.PRIVATE: return isPrivate(node.flags)
+    case MethodKind.PUBLIC: return isConstructor(node.flags) || isInstance(node.flags)
     case MethodKind.PROTECTED: return isProtected(node.flags)
     default: return false
   }

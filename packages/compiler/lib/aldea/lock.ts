@@ -1,4 +1,4 @@
-import { vm_jig_lock } from './imports'
+import { __vm_jig_lock } from './imports'
 
 /**
  * Lock Types
@@ -47,7 +47,7 @@ export class Lock {
     }
 
     this.type = type
-    this.data = vm_jig_lock(this.origin, type, data)
+    this.data = __vm_jig_lock(this.origin, type, data)
   }
 
   changeToAddressLock(pubkeyHash: ArrayBuffer): void {

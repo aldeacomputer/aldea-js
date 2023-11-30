@@ -1,4 +1,4 @@
-import { canCall } from 'aldea/auth'
+import {canCall} from 'aldea/auth'
 
 export class SheepCounter extends Jig {
   sheepCount: u32;
@@ -74,14 +74,6 @@ export class Shepherd extends Jig {
     return `Flock with size: ${this.flock.size}`
   }
 
-  growFlockUsingInternalTools (): void {
-    InternalFlockOperations.growFlock(this.flock)
-  }
-
-  growFlockUsingExternalTools (): void {
-    ExternalFlockOperations.growFlock(this.flock)
-  }
-
   myClassPtr (): ArrayBuffer {
     return this.$output.classPtr
   }
@@ -98,22 +90,14 @@ export class Shepherd extends Jig {
     return this.flock.$output.location
   }
 
-  static returnAFlock (someFlock: Flock): Flock {
-    return someFlock
-  }
-
   breedANewFlock(size: u32): Flock {
     const newFlock = new Flock()
-    for (let i: u32 = 0; i++; i < size) {
+    let i: u32 = 0;
+    while (i < size) {
       newFlock.grow()
+      i++;
     }
     return this.replace(newFlock)
-  }
-}
-
-export class ExternalFlockOperations extends Jig  {
-  static growFlock (aFlock: Flock): void {
-    aFlock.grow()
   }
 }
 
@@ -124,17 +108,11 @@ export function buildSomeSheepCounter (): SheepCounter {
 
 
 // @ts-ignore
-@imported('a6ab705aab2865a323f2dac53f7427dc6b2c9ebef697965e1bef392e4bbad8a4')
+@imported('02aa22e6df49ebc7254b011b77dfedcf1b8ce7287f8f6af8f7e64c2c50a13696')
 declare class Flock extends Jig {
   constructor();
   size: u32;
   legCount (): u32;
   grow (): void;
-}
-
-// @ts-ignore
-@imported('a6ab705aab2865a323f2dac53f7427dc6b2c9ebef697965e1bef392e4bbad8a4')
-declare class InternalFlockOperations extends Jig {
-  static growFlock (aFlock: Flock): void
 }
 

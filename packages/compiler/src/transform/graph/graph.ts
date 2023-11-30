@@ -1,7 +1,5 @@
 import {
   Class,
-  ClassDeclaration,
-  DeclarationStatement,
   NodeKind,
   Parser,
   Program,
@@ -21,6 +19,7 @@ import {
   normalizeTypeName,
   CodeKind,
   MethodKind,
+  CodeDef,
 } from '@aldea/core/abi';
 
 import {
@@ -48,8 +47,6 @@ export class TransformGraph {
   entries: SourceNode[];
   imports: ImportEdge[];
   exports: ExportEdge[];
-
-  objects: CodeNode[];
   exposedTypes = new Map<string, TypeNode>();
 
   program?: Program;
@@ -76,22 +73,18 @@ export class TransformGraph {
     this.exports = this.entries
       .flatMap(s => s.exports.flatMap(n => n.edges))
 
-    this.objects = this.sources
-      .flatMap(s => s.codes)
-      .filter(n => isClass(n.node) && isAmbient(n.node.flags))
-      .filter(n => !this.imports.some(im => im.code === n))
-      .filter(n => this.exports.some(ex => isExposed(ex.code, n)))
-
     this.collectExposedTypes()
     this.validate()
   }
 
   toABI(): abi.Abi {
+    const defs = this.getOrderedDefs()
+    
     return {
       version: ABI_VERSION,
-      imports: this.imports.map(toAbiImport),
-      exports: this.exports.map(toAbiExport),
-      objects: this.objects.map(o => o.abiNode as ObjectNode),
+      imports: this.imports.map(im => defs.indexOf(im.abiNode)),
+      exports: this.exports.map(im => defs.indexOf(im.abiNode)),
+      defs,
       typeIds: this.mapTypeIds()
     }
   }
@@ -106,6 +99,18 @@ export class TransformGraph {
     new Validator(this).validate()
   }
 
+  private getOrderedDefs(): CodeDef[] {
+    return [...this.imports, ...this.exports]
+      .sort((a, b) => {
+        if (a.code.src.idx === b.code.src.idx) {
+          return a.code.idx - b.code.idx
+        } else {
+          return a.code.src.idx - b.code.src.idx
+        }
+      })
+      .map(edge => edge.abiNode)
+  }
+
   private collectExposedTypes(): void {
     const setType = (type: TypeNode) => {
       this.exposedTypes.set(normalizeTypeName(type), type)
@@ -114,7 +119,7 @@ export class TransformGraph {
     const applyClass = (obj: ClassNode | ObjectNode | InterfaceNode) => {
       obj.fields.forEach(n => setType(n.type))
       if ("methods" in obj) {
-        obj.methods.forEach(n => applyFunction(n as MethodNode))
+        obj.methods.forEach(n => applyFunction(n))
       }
     }
   
@@ -139,7 +144,6 @@ export class TransformGraph {
   
     this.exports.forEach(ex => applyCode(ex.code))
     this.imports.forEach(im => applyCode(im.code))
-    this.objects.forEach(applyCode)
   }
 
   private mapTypeIds(): TypeIdNode[] {
@@ -147,7 +151,13 @@ export class TransformGraph {
     if (!this.#typeIds) {
 
       // Build whitelist
-      const whitelist = ['JigInitParams', 'Output', 'Lock', 'Coin']
+      const whitelist = [
+        'JigInitParams', 'Output', 'Lock', 'Coin',
+        'BigInt', 'Uint32Array',
+      ]
+      this.exports
+        .filter(ex => ex.code.isObj)
+        .forEach(ex => whitelist.push(ex.name))
       this.imports
         .filter(im => im.code.node.kind === NodeKind.ClassDeclaration)
         .forEach(im => whitelist.push(im.name))
@@ -160,10 +170,13 @@ export class TransformGraph {
 
       this.exposedTypes.forEach(whiteListType)
 
+      // Build blacklist
+      const blacklist = ['Jig', 'Fungible']
+
       // Build export list
       const exportList: string[] = []
       this.exports
-        .filter(ex => ex.code.node.kind === NodeKind.ClassDeclaration)
+        .filter(ex => ex.code.isJig)
         .forEach(ex => exportList.push(ex.name))
       
       // Building interface list
@@ -181,29 +194,33 @@ export class TransformGraph {
         // whitelisted names go in as they are
         if (
           whitelist.includes(name) &&
-          name !== 'Jig' &&
+          !blacklist.includes(name) &&
           !exportList.includes(name) &&
           !interfaceList.includes(name)
         ) {
           arr.push({ id, name })
         }
         // the basejig is simply known as... Jig
-        if (name === '_BaseJig') {
+        if (name === '__BaseJig') {
           arr.push({ id, name: 'Jig' })
         }
         // for local jigs we rename to the original with $ prefix
-        if (/^_Local/.test(name)) {
-          const lname = name.replace(/^_Local/, '')
+        if (/^__Local/.test(name)) {
+          const lname = name.replace(/^__Local/, '')
           if (exportList.includes(lname)) {
-            arr.push({ id, name: `$${lname}` })
+            arr.push({ id, name: `*${lname}` })
           }
         }
         // for remote jigs and interfaces we rename to the original
-        if (/^_Remote/.test(name)) {
-          const rname = name.replace(/^_Remote/, '')
-          if (exportList.includes(rname) || interfaceList.includes(rname)) {
-            arr.push({ id, name: rname })
+        if (/^__Proxy/.test(name)) {
+          const pname = name.replace(/^__Proxy/, '')
+          if (exportList.includes(pname) || interfaceList.includes(pname)) {
+            arr.push({ id, name: pname })
           }
+        }
+        // special rule to ensure the proxy fungible id is inserted if fungible is used
+        if (name === '__ProxyFungible' && this.exposedTypes.has('Fungible')) {
+          arr.push({ id, name: 'Fungible' })
         }
         return arr
       }, []).sort((a, b) => a.id - b.id)
@@ -213,62 +230,21 @@ export class TransformGraph {
 }
 
 function isExposed(code: CodeNode, obj: CodeNode): boolean {
-  let abiNode: ClassNode | FunctionNode | InterfaceNode
-  switch (code.node.kind) {
-    case NodeKind.ClassDeclaration:
-    case NodeKind.InterfaceDeclaration:
-      abiNode = code.abiNode as ClassNode | InterfaceNode
-      return abiNode.fields.some(f => f.type.name === obj.name) ||
-        abiNode.methods.some(m => m.args.some(a => a.type.name === obj.name)) ||
-        abiNode.methods.some(m => m.rtype?.name === obj.name)
-    case NodeKind.FunctionDeclaration:
-      abiNode = code.abiNode as FunctionNode
-      return abiNode.args.some(a => a.type.name === obj.name) || abiNode.rtype.name === obj.name
+  switch (code.abiCodeKind) {
+    case CodeKind.CLASS:
+    case CodeKind.INTERFACE:
+      type T = ClassNode | InterfaceNode
+      return (<T>code.abiNode).fields.some(f => f.type.name === obj.name) ||
+        (<T>code.abiNode).methods.some(m => m.args.some(a => a.type.name === obj.name)) ||
+        (<T>code.abiNode).methods.some(m => m.rtype?.name === obj.name)
+    case CodeKind.FUNCTION:
+      return (<FunctionNode>code.abiNode).args.some(a => a.type.name === obj.name) ||
+        (<FunctionNode>code.abiNode).rtype.name === obj.name
+    case CodeKind.OBJECT:
+      return (<ObjectNode>code.abiNode).fields.some(f => f.type.name === obj.name)
     default:
       return false
   }
-}
-
-function toAbiImport(im: ImportEdge): abi.ImportNode {
-  return {
-    kind: toAbiCodeKind(im.code.node),
-    name: im.code.name,
-    pkg: im.pkgId!,
-  }
-}
-
-function toAbiExport(ex: ExportEdge): abi.ExportNode {
-  const kind = toAbiCodeKind(ex.code.node)
-  return {
-    kind,
-    code: kind === CodeKind.CLASS ?
-      toAbiClass(ex.code.abiNode as ClassNode) :
-      ex.code.abiNode as FunctionNode | InterfaceNode
-  }
-}
-
-function toAbiCodeKind(node: DeclarationStatement): abi.CodeKind {
-  switch(node.kind) {
-    case NodeKind.ClassDeclaration: return abi.CodeKind.CLASS
-    case NodeKind.FunctionDeclaration: return abi.CodeKind.FUNCTION
-    case NodeKind.InterfaceDeclaration: return abi.CodeKind.INTERFACE
-    default:
-      throw new Error(`unrecognised code kind: ${node.kind}`)
-  }
-}
-
-function toAbiClass(abiNode: ClassNode): ClassNode {
-  const methods = abiNode.methods
-    .filter(m => ![MethodKind.PRIVATE, MethodKind.PROTECTED].includes(m.kind))
-  if (!methods.some(m => m.kind === MethodKind.CONSTRUCTOR)) {
-    methods.unshift({
-      kind: MethodKind.CONSTRUCTOR,
-      name: 'constructor',
-      args: [],
-      rtype: null,
-    })
-  }
-  return { ...abiNode, methods }
 }
 
 // Normalizes class name to match normalized type name

@@ -54,16 +54,16 @@ test('encodes and decodes jig state with nested pointer', t => {
 test('encodes and decodes method args', t => {
   const bcs = new BCS(abi1)
   const args = ['test']
-  const data = bcs.encode('Foo$setA', args)
-  const res = bcs.decode('Foo$setA', data)
+  const data = bcs.encode('Foo_setA', args)
+  const res = bcs.decode('Foo_setA', data)
   t.deepEqual(res, args)
 })
 
 test('encodes and decodes method args with instruction ref', t => {
   const bcs = new BCS(abi1)
   const args = [ref(11)]
-  const data = bcs.encode('Bar$setB', args)
-  const res = bcs.decode('Bar$setB', data)
+  const data = bcs.encode('Bar_setB', args)
+  const res = bcs.decode('Bar_setB', data)
   t.deepEqual(res, args)
 })
 

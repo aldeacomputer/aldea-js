@@ -27,6 +27,7 @@ export class SourceNode {
   imports: ImportNode[];
   exports: ExportNode[];
   codes: CodeNode[];
+  #idx?: number;
 
   constructor(
     public ctx: TransformGraph,
@@ -60,19 +61,27 @@ export class SourceNode {
     })
   }
 
+  get idx(): number {
+    if (typeof this.#idx === 'undefined') {
+      // for some bizaro reason, indexOf is unreliable here
+      this.#idx = this.ctx.sources.findIndex(src => src.internalPath === this.internalPath)
+    }
+    return this.#idx
+  }
+
   findCode(name: string): CodeNode | undefined {
     const code = this.codes.find(c => c.name === name)
     if (code) { return code }
-
-    const exported = this.exports
-      .flatMap(n => n.edges)
-      .find(n => n.exportedName === name)
-    if (exported) { return exported.code }
 
     const imported = this.imports
       .flatMap(n => n.edges)
       .find(n => n.name === name)
     if (imported) { return imported.code }
+
+    const exported = this.exports
+      .flatMap(n => n.edges)
+      .find(n => n.exportedName === name)
+    if (exported) { return exported.code }
   }
 }
 
