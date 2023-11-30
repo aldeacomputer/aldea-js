@@ -163,7 +163,7 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
       res.status(200).send(abiToJson(data.abi))
     } else if (format === 'bin') {
       res.set('content-type', 'application/octet-stream')
-      res.status(200).send(abiToBin(data.abi))
+      res.status(200).send(Buffer.from(abiToBin(data.abi)))
     } else {
       throw new Error(`unknown format: ${format}`)
     }
