@@ -1,27 +1,24 @@
 import test from 'ava'
-import { mockAldea  } from './test-helpers.js'
-import {
-  Aldea,
-  Address,
-  KeyPair,
-  OpCode,
-  Output,
-  Pointer,
-  Tx,
-  base16,
-  PrivKey,
-  BCS
-} from '../dist/index.js'
+import { mockAldea } from './test-helpers.js'
+import { Address, Aldea, base16, BCS, KeyPair, OpCode, Output, Pointer, PrivKey, Tx } from '../dist/index.js'
+import { readFileSync } from 'fs'
+import { abiFromJson, abiToBin } from "@aldea/core"
 
 function decodeArgs(abi, name, buf) {
   return new BCS(abi).decode(name, buf)
 }
 
+function loadAbi(fileName) {
+  const file = readFileSync(fileName)
+  const abi = abiFromJson(file.toString())
+  return Buffer.from(abiToBin(abi))
+}
+
 test('Builds a tx with every opcode and encodes/decodes consistently', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/package/a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701/abi.json', { file: 'test/mocks/txb.pkg.json', format: 'string' })
-    mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
+    mock.get('http://localhost/package/a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701/abi.bin', { body: loadAbi('test/mocks/txb.pkg.json'), format: 'bin' })
+    mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.bin', { body: loadAbi('test/mocks/pkg.coin.json'), format: 'bin' })
     mock.get('http://localhost/output/df4cf424923ad248766251066fa4a408930faf94fff66c77657e79f604d3120d', { file: 'test/mocks/txb.coin.json', format: 'string' })
     mock.get('http://localhost/output-by-origin/675d72e2d567cbe2cb9ef3230cbc4c85e42bcd56ba537f6b65a51b9c6c855281_1', { file: 'test/mocks/txb.jig.json', format: 'string' })
   })
@@ -242,7 +239,7 @@ test('Aldea.getOutputByOrigin() throws error if invalid pointer', async t => {
 test('Aldea.getPackageAbi() returns an ABI json object if exists', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/package/29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69/abi.json', { file: 'test/mocks/pkg.get.json', format: 'string' })
+    mock.get('http://localhost/package/29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69/abi.bin', { body: loadAbi('test/mocks/pkg.get.json'), format: 'bin' })
   })
   const res = await aldea.getPackageAbi('29a2a5a72ae09bab014063c32b740478c8619cfd639277f931af7937a7bbee69')
   t.true(typeof res.version === 'number')
@@ -255,7 +252,7 @@ test('Aldea.getPackageAbi() returns an ABI json object if exists', async t => {
 test('Aldea.getPackageAbi() throws error if notfound', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/package/0000/abi.json', { file: 'test/mocks/pkg.404.json', format: 'string', status: 404 })
+    mock.get('http://localhost/package/0000/abi.bin', { file: 'test/mocks/pkg.404.json', format: 'string', status: 404 })
   })
   const err = await t.throwsAsync(() => aldea.getPackageAbi('0000'))
   const body = await err.response.json()
@@ -309,7 +306,7 @@ test('Aldea.loadOutput() returns an Output json object if exists', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/output/eb1a5706276e030e0518ab4b09e11bf0f30e195b31634abc4eeb2c9e3657ebaa', { file: 'test/mocks/output.get.json', format: 'string' })
-    mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
+    mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.bin', { body: loadAbi('test/mocks/pkg.coin.json'), format: 'string' })
   })
   const res = await aldea.loadOutput('eb1a5706276e030e0518ab4b09e11bf0f30e195b31634abc4eeb2c9e3657ebaa')
   t.true(res instanceof Output)
@@ -321,7 +318,7 @@ test('Aldea.loadOutputByOrigin() returns an Output json object if exists', async
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/output-by-origin/b010448235a7b4ab082435b9c497ba38e8b85e5c0717b91b5b3ae9c1e10b7551_1', { file: 'test/mocks/output.get.json', format: 'string' })
-    mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
+    mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.bin', { body: loadAbi('test/mocks/pkg.coin.json') , format: 'bin' })
   })
   const res = await aldea.loadOutputByOrigin('b010448235a7b4ab082435b9c497ba38e8b85e5c0717b91b5b3ae9c1e10b7551_1')
   t.true(res instanceof Output)
@@ -344,7 +341,7 @@ test('Aldea.loadOutput() throws error if invalid ID', async t => {
   const aldea = new Aldea('http://localhost')
   mockAldea(aldea, mock => {
     mock.get('http://localhost/output/ff283ad569e6ddc4b0ba9b18f70600d14183a0bfd9d3d14f20c4e366b453bbee', { file: 'test/mocks/output.invalid.json', format: 'string' })
-    mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
+    mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.bin', { body: loadAbi('test/mocks/pkg.coin.json'), format: 'bin' })
   })
   const err = await t.throwsAsync(() => aldea.loadOutput('ff283ad569e6ddc4b0ba9b18f70600d14183a0bfd9d3d14f20c4e366b453bbee'))
   t.regex(err.message, /^invalid id/)

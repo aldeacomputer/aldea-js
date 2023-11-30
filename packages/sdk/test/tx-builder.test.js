@@ -2,15 +2,23 @@ import test from 'ava'
 import { mockAldea  } from './test-helpers.js'
 
 import { Aldea, Address, BCS, KeyPair, OpCode, ref, TxBuilder } from '../dist/index.js'
+import { readFileSync } from "fs"
+import { abiFromJson, abiToBin } from "@aldea/core"
+
+function loadAbi(fileName) {
+  const file = readFileSync(fileName)
+  const abi = abiFromJson(file.toString())
+  return Buffer.from(abiToBin(abi))
+}
 
 test.before(t => {
   const aldea = new Aldea('http://localhost')
   const keys = KeyPair.fromRandom()
   mockAldea(aldea, mock => {
-    mock.get('http://localhost/package/a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701/abi.json', { file: 'test/mocks/txb.pkg.json', format: 'string' })
-    mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.json', { file: 'test/mocks/pkg.coin.json', format: 'string' })
-    mock.get('http://localhost/package/7af6e8a506ec7a9809a2d36d644da7ba0d01b1c98d54971e369401aaaffc57c9/abi.json', { file: 'test/mocks/pkg.exp-int.json', format: 'string' })
-    mock.get('http://localhost/package/4926568f20945add633b82aa6b78081967e61522ca08968def58dd588e3362e9/abi.json', { file: 'test/mocks/pkg.imp-int.json', format: 'string' })
+    mock.get('http://localhost/package/a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701/abi.bin', { body: loadAbi('test/mocks/txb.pkg.json'), format: 'bin' })
+    mock.get('http://localhost/package/0000000000000000000000000000000000000000000000000000000000000000/abi.bin', { body: loadAbi('test/mocks/pkg.coin.json'), format: 'bin' })
+    mock.get('http://localhost/package/7af6e8a506ec7a9809a2d36d644da7ba0d01b1c98d54971e369401aaaffc57c9/abi.bin', { body: loadAbi('test/mocks/pkg.exp-int.json'), format: 'bin' })
+    mock.get('http://localhost/package/4926568f20945add633b82aa6b78081967e61522ca08968def58dd588e3362e9/abi.bin', { body: loadAbi('test/mocks/pkg.imp-int.json'), format: 'bin' })
     mock.get('http://localhost/output/df4cf424923ad248766251066fa4a408930faf94fff66c77657e79f604d3120d', { file: 'test/mocks/txb.coin.json', format: 'string' })
     mock.get('http://localhost/output-by-origin/675d72e2d567cbe2cb9ef3230cbc4c85e42bcd56ba537f6b65a51b9c6c855281_1', { file: 'test/mocks/txb.jig.json', format: 'string' })
   })

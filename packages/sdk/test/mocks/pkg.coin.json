@@ -13,6 +13,7 @@
           "name": "amount",
           "type": {
             "name": "u64",
+            "nullable": false,
             "args": []
           }
         }
@@ -26,6 +27,7 @@
               "name": "amount",
               "type": {
                 "name": "u64",
+                "nullable": false,
                 "args": []
               }
             }
@@ -40,6 +42,7 @@
               "name": "amount",
               "type": {
                 "name": "u64",
+                "nullable": false,
                 "args": []
               }
             },
@@ -47,12 +50,14 @@
               "name": "newOwner",
               "type": {
                 "name": "Uint8Array",
+                "nullable": false,
                 "args": []
               }
             }
           ],
           "rtype": {
             "name": "Coin",
+            "nullable": false,
             "args": []
           }
         },
@@ -64,9 +69,11 @@
               "name": "coins",
               "type": {
                 "name": "Array",
+                "nullable": false,
                 "args": [
                   {
                     "name": "Coin",
+                    "nullable": false,
                     "args": []
                   }
                 ]
@@ -75,6 +82,7 @@
           ],
           "rtype": {
             "name": "Coin",
+            "nullable": false,
             "args": []
           }
         }

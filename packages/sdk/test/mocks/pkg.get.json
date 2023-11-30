@@ -11,17 +11,22 @@
           "name": "msg",
           "type": {
             "name": "string",
+            "nullable": false,
             "args": []
           }
         }
       ],
       "rtype": {
         "name": "string",
+        "nullable": false,
         "args": []
       }
     }
   ],
-  "typeIds": {
-    "string": 1
-  }
+  "typeIds": [
+    {
+      "name": "helloWorld",
+      "id": 1
+    }
+  ]
 }

@@ -1,6 +1,9 @@
 {
   "version": 1,
-  "exports": [0, 1],
+  "exports": [
+    0,
+    1
+  ],
   "imports": [],
   "defs": [
     {
@@ -25,11 +28,7 @@
       "name": "AnotherImplementation",
       "extends": "Jig",
       "implements": [
-        {
-          "name": "Interface1",
-          "nullable": false,
-          "args": []
-        }
+        "Interface1"
       ],
       "fields": [],
       "methods": [

@@ -7,11 +7,13 @@
       "kind": 0,
       "name": "Badge",
       "extends": "Jig",
+      "implements": [],
       "fields": [
         {
           "name": "name",
           "type": {
             "name": "string",
+            "nullable": false,
             "args": []
           }
         }
@@ -25,12 +27,14 @@
               "name": "name",
               "type": {
                 "name": "string",
+                "nullable": false,
                 "args": []
               }
             }
           ],
           "rtype": {
-            "name": "",
+            "name": "void",
+            "nullable": false,
             "args": []
           }
         },
@@ -42,12 +46,14 @@
               "name": "name",
               "type": {
                 "name": "string",
+                "nullable": false,
                 "args": []
               }
             }
           ],
           "rtype": {
             "name": "void",
+            "nullable": false,
             "args": []
           }
         }
@@ -61,18 +67,26 @@
           "name": "msg",
           "type": {
             "name": "string",
+            "nullable": false,
             "args": []
           }
         }
       ],
       "rtype": {
         "name": "string",
+        "nullable": false,
         "args": []
       }
     }
   ],
-  "typeIds": {
-    "Jig": 4,
-    "string": 1
-  }
+  "typeIds": [
+    {
+      "name": "*Jig",
+      "id": 1
+    },
+    {
+      "name": "Jig",
+      "id": 2
+    }
+  ]
 }
