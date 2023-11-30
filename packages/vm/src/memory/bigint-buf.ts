@@ -13,17 +13,19 @@ function abs(b: bigint): bigint {
 
 export function bigIntToDigits(originalVal: bigint): WasmBigIntData {
   let val = abs(originalVal)
-  const d = new Uint32Array(5);
+  const dNumbers: number[] = [];
   let i = 0;
   while (val != 0n) {
-    d[i++] = Number(val & digitMask);
+    dNumbers[i++] = Number(val & digitMask);
     val >>= bigIntP;
   }
   let n = i;
 
-  while (n > 0 && d[n - 1] == 0) {
+  while (n > 0 && dNumbers[n - 1] == 0) {
     n--;
   }
+
+  const d = new Uint32Array(dNumbers)
 
   return {
     d,

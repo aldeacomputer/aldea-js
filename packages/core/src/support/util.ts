@@ -21,12 +21,25 @@ export function bnToBytes(num: bigint, len: number = 32): Uint8Array {
   return buf
 }
 
+export function bnToShortestBytes(num: bigint): Uint8Array {
+  const nums: number[] = []
+  let next = num > 0n ? num : -num
+  while (next > 0) {
+    nums.push(Number(next % 256n))
+    next = next >> 8n
+  }
+  nums.reverse()
+  return new Uint8Array(nums)
+}
+
 /**
  * Decodes the given Uint8Array as a little-endian bigint. 
  */
-export function bytesToBn(data: Uint8Array): bigint {
+export function bytesToBn(data: Uint8Array, reverse = true): bigint {
   const buf = new Uint8Array(data)
-  buf.reverse()
+  if (reverse) {
+    buf.reverse()
+  }
   return BigInt(`0x${base16.encode(buf)}`)
 }
 

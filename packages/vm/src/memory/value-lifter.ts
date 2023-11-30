@@ -1,12 +1,14 @@
 import {WasmContainer} from "../wasm-container.js";
 import {WasmWord} from "../wasm-word.js";
-import {BufWriter} from "@aldea/core";
+import {base16, BufReader, BufWriter} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
 import {AbiPlainObject} from "./abi-helpers/abi-plain-object.js";
 import {AbiClass} from "./abi-helpers/abi-class.js";
 import {BUF_RTID} from "./well-known-abi-nodes.js";
 import {ExecutionError} from "../errors.js";
 import {CodeKind} from "@aldea/core/abi";
+import {digitsToBigInt} from "./bigint-buf.js";
+
 
 export class ValueLifter {
   private container: WasmContainer;
@@ -62,6 +64,9 @@ export class ValueLifter {
       case 'f64':
         writer.writeF64(ptr.toFloat())
         break
+      case 'BigInt':
+        this.liftBigInt(ptr, writer)
+        break
       case 'Array':
         this.liftArray(ptr, ty, writer)
         break
@@ -96,6 +101,36 @@ export class ValueLifter {
         this.liftCompoundType(ptr, ty, writer)
         break
     }
+  }
+
+  private liftBigInt(ptr: WasmWord, writer: BufWriter) {
+    const dPtr = new WasmWord(this.container.mem.extract(ptr, AbiType.u32().ownSize()))
+    const n = new WasmWord(this.container.mem.extract(ptr.plus(4), AbiType.u32().ownSize())).toUInt()
+    const isNeg = new WasmWord(this.container.mem.extract(ptr.plus(8), 1)).toBool()
+
+
+    const dWriter = new BufWriter()
+    this.liftTypedArray(dPtr, dWriter)
+    const dBytes = new BufReader(dWriter.data).readBytes()
+    const d = new Uint32Array(new Uint8Array(dBytes).buffer)
+
+
+    const big = digitsToBigInt(d, n, isNeg)
+
+    writer.writeBool(big < 0n)
+    const bigBytes = this.bigIntToBuf(big)
+    writer.writeBytes(bigBytes)
+  }
+
+  private bigIntToBuf (n: bigint): Uint8Array {
+    const nums: number[] = []
+    let next = n > 0n ? n : -n
+    while (next > 0) {
+      nums.push(Number(next % 256n))
+      next = next >> 8n
+    }
+    nums.reverse()
+    return new Uint8Array(nums)
   }
 
   private liftNullable(ptr: WasmWord, ty: AbiType, writer: BufWriter) {
