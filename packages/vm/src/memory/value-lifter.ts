@@ -8,6 +8,7 @@ import {BUF_RTID} from "./well-known-abi-nodes.js";
 import {ExecutionError} from "../errors.js";
 import {CodeKind} from "@aldea/core/abi";
 import {digitsToBigInt} from "./bigint-buf.js";
+import {bnToShortestBytes} from "@aldea/core/support/util";
 
 
 export class ValueLifter {
@@ -118,19 +119,8 @@ export class ValueLifter {
     const big = digitsToBigInt(d, n, isNeg)
 
     writer.writeBool(big < 0n)
-    const bigBytes = this.bigIntToBuf(big)
+    const bigBytes = bnToShortestBytes(big)
     writer.writeBytes(bigBytes)
-  }
-
-  private bigIntToBuf (n: bigint): Uint8Array {
-    const nums: number[] = []
-    let next = n > 0n ? n : -n
-    while (next > 0) {
-      nums.push(Number(next % 256n))
-      next = next >> 8n
-    }
-    nums.reverse()
-    return new Uint8Array(nums)
   }
 
   private liftNullable(ptr: WasmWord, ty: AbiType, writer: BufWriter) {

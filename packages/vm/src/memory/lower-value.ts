@@ -13,6 +13,7 @@ import {ProxyDef} from "./abi-helpers/proxy-def.js";
 import {blake3} from "@noble/hashes/blake3";
 import {bytesToHex as toHex} from "@noble/hashes/utils";
 import {bigIntToDigits} from "./bigint-buf.js";
+import {bytesToBn} from "@aldea/core/support/util";
 
 export type JigData = {
   origin: Pointer,
@@ -101,7 +102,7 @@ export class LowerValue {
   private lowerBigInt(reader: BufReader, ty: AbiType): WasmWord {
     const isNeg = reader.readBool()
     const bytes = reader.readBytes()
-    const abs = BigInt(`0x${base16.encode(bytes)}`)
+    const abs = bytesToBn(bytes)
     const val = isNeg ? abs * -1n : abs
     const { d: d32Array, n } = bigIntToDigits(val)
     const dWriter = new BufWriter()
@@ -128,12 +129,6 @@ export class LowerValue {
       return WasmWord.null()
     }
   }
-
-  // private lowerBigInt(reader: BufReader): WasmWord {
-  //   const dBytes = reader.readBytes()
-  //   const n = reader.readI32()
-  //   const isNeg = reader.readBool()
-  // }
 
   private lowerArray(reader: BufReader, ty: AbiType): WasmWord {
     const rtId = this.container.abi.rtidFromTypeNode(ty).get()

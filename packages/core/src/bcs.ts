@@ -388,7 +388,7 @@ export class BCS {
       decode: (reader) => {
         const isNeg = reader.readBool()
         const bytes = reader.readBytes()
-        const bigInt = bytesToBn(bytes, false)
+        const bigInt = bytesToBn(bytes)
         return isNeg ? bigInt * -1n : bigInt
       },
       encode: (writer, val) => {

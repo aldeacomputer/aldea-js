@@ -708,7 +708,7 @@ describe('execute txs', () => {
 
       let pkgStmt = exec.import(pkgHash)
       const bcs = new BCS(pkgAbi);
-      const value = (1n << 100n) - 1n
+      const value = (1n << 100n)
       const buf = bcs.encode('BigInt', value)
       const jigStmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, ...buf]))
       exec.call(jigStmt.idx, 0, new Uint8Array([0]))
