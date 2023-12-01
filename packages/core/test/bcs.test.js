@@ -172,7 +172,7 @@ test('encodes and decodes a full abi document', t => {
 })
 
 test('encodes and decodes a package tuple', t => {
-  const pkg = [['index.ts'], new Map([['index.ts', 'exports function foo(): void {}']])]
+  const pkg = [['index.js'], new Map([['index.js', 'exports function foo(): void {}']])]
   const bcs = new BCS({ addPkgTypes: true })
   const dat = bcs.encode('pkg', pkg)
   const res = bcs.decode('pkg', dat)

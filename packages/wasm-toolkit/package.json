@@ -1,0 +1,11 @@
+{
+  "name": "@aldea/wasm-toolkit",
+  "packageManager": "yarn@3.5.1",
+  "type": "module",
+  "main": "src/index.js",
+  "dependencies": {
+    "buffer-pipe": "^0.0.5",
+    "leb128": "^0.0.5",
+    "safe-buffer": "^5.2.1"
+  }
+}

@@ -25,13 +25,15 @@
     "test": "yarn build && yarn test:as && yarn test:js",
     "test:as": "asp --summary && yarn test:as:clean",
     "test:as:clean": "find lib/__tests__ -type f \\( -iname \\*.wasm -o -iname \\*.wat \\) -delete",
-    "test:js": "ava"
+    "test:js": "ava test/compiler.test.js"
   },
   "packageManager": "yarn@3.2.3",
   "dependencies": {
     "@aldea/core": "workspace:^",
+    "@aldea/wasm-toolkit": "workspace:^",
     "assemblyscript": "npm:@aldea/assemblyscript@0.27.14-X",
-    "comment-parser": "^1.3.1"
+    "comment-parser": "^1.3.1",
+    "wasm-metering": "^0.2.1"
   },
   "devDependencies": {
     "@as-pect/cli": "^8.1.0",

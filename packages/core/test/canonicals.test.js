@@ -59,7 +59,7 @@ const TX = {
     [OpCode.FUND, 1],
     [OpCode.LOCK, 2, base16.decode('f8be00b23c9c1c30720e862d00082121d83c4ff3')],
     [OpCode.LOCK, 3, base16.decode('f8be00b23c9c1c30720e862d00082121d83c4ff3')],
-    [OpCode.DEPLOY, BCS.pkg.encode([['index.ts'], new Map([['index.ts', 'export function helloWorld(msg: string): string { return `Hello ${msg}!` }']])])],
+    [OpCode.DEPLOY, BCS.pkg.encode([['index.js'], new Map([['index.js', 'export function helloWorld(msg: string): string { return `Hello ${msg}!` }']])])],
     [OpCode.SIGN, base16.decode('a19bb50358e253e3ded9910ce69088a327f701a4c85b7f444b6f4f6e63bbb961')],
     [OpCode.SIGNTO, base16.decode('a19bb50358e253e3ded9910ce69088a327f701a4c85b7f444b6f4f6e63bbb961')],
   ]

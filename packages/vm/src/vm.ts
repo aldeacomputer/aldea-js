@@ -135,8 +135,8 @@ export class VM {
 
   addPreCompiled (wasmBin: Uint8Array, sourceStr: string, abiBin: Uint8Array, docs: Uint8Array, defaultId: Uint8Array | null = null): Uint8Array {
     const sources = new Map<string, string>()
-    sources.set('index.ts',sourceStr.toString())
-    const entries = ['index.ts'];
+    sources.set('index.js',sourceStr.toString())
+    const entries = ['index.js'];
     const id = defaultId
       ? defaultId
       : calculatePackageId(entries, sources)

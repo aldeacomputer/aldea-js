@@ -2,7 +2,7 @@ import esbuild from 'esbuild'
 
 // ESM bundle general
 esbuild.build({
-  entryPoints: ['src/index.ts'],
+  entryPoints: ['src/index.js'],
   outfile: 'dist/aldea-c.fat.js',
   bundle: true,
   format: 'esm',

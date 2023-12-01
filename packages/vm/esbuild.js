@@ -1,7 +1,7 @@
 import * as esbuild from 'esbuild'
 
 await esbuild.build({
-  entryPoints: ['src/index.ts'],
+  entryPoints: ['src/index.js'],
   outfile: 'dist/vm.bundle.mjs',
   bundle: true,
   format: 'esm',

@@ -7,6 +7,8 @@ import { Parser } from 'assemblyscript'
 import { PackageParser } from './package/parser.js'
 import { TransformGraph } from './transform/graph/graph.js'
 import { createDocs, Docs } from './transform/docs.js'
+import {wasm2json, json2wasm} from "@aldea/wasm-toolkit";
+import {meterJSON} from "wasm-metering";
 
 export { PackageParser }
 export { writeDependency } from './package/code-helpers.js'
@@ -115,6 +117,12 @@ export async function compile(
   })
 
   if (!error) {
+    if (output.wasm) {
+      const json = wasm2json(output.wasm, {})
+      const metered = meterJSON(json, { meterType: 'i64' })
+      output.wasm = json2wasm(metered, {})
+    }
+
     return {
       output: output as CompiledOutput,
       stats,

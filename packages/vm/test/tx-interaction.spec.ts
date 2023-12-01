@@ -284,9 +284,9 @@
 //     `
 //
 //     const sources = new Map<string, string>()
-//     sources.set('index.ts', sourceCode)
+//     sources.set('index.js', sourceCode)
 //     const tx = new TxBuilder()
-//       .deploy('index.ts', sources)
+//       .deploy('index.js', sources)
 //       .fundWith(getLatestCoinLocation(), fundPriv, fundAddr)
 //       .build()
 //

@@ -37,5 +37,5 @@ export function saveDepFile(pkgId: string, abi: Abi) {
   const path = join(env.codeDir, '.packages', pkgId)
   if (!fs.existsSync(path)) { fs.mkdirSync(path, { recursive: true }) }
   fs.writeFileSync(join(path, 'abi.json'), abiToJson(abi, 2))
-  fs.writeFileSync(join(path, 'index.ts'), writeDependency(abi))
+  fs.writeFileSync(join(path, 'index.js'), writeDependency(abi))
 }

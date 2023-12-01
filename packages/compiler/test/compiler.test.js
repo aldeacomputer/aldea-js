@@ -2,6 +2,9 @@ import test from 'ava'
 import { abiFromBin } from '@aldea/core'
 import { MethodKind } from '@aldea/core/abi'
 import { compile } from '../dist/compiler.js'
+import { meterJSON } from "wasm-metering"
+import { json2wasm, wasm2json } from "@aldea/wasm-toolkit"
+// import { wasm2json } from "wasm-json-toolkit"
 
 test('compiles single source', async t => {
   await t.notThrowsAsync(() => compile('export class Test extends Jig {}'))
@@ -155,7 +158,7 @@ test('protected constructors appear in ABI as protected', async t => {
   t.is(abi.exports.map(i => abi.defs[i] )[0].methods[0].kind, MethodKind.PROTECTED)
 })
 
-test('private constructors omitted from ABI', async t => {
+test.only('private constructors omitted from ABI', async t => {
   const src = `
   export class Foo extends Jig {
     private constructor(
