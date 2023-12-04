@@ -5,11 +5,12 @@ import {Abi} from '@aldea/core/abi';
 import {ArgsBuilder, buildVm, fundedExecFactoryFactory, parseOutput} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
-import {ExecOpts, TxExecution} from "../src/tx-execution.js";
+import {TxExecution} from "../src/tx-execution.js";
 import {StatementResult} from "../src/statement-result.js";
 import {ExecutionResult} from "../src/index.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import {randomBytes} from "@aldea/core/support/util";
+import {ExecOpts} from "../src/export-opts.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -747,44 +748,48 @@ describe('execute txs', () => {
 
   describe('for a while true', () => {
     let pkgHash: Uint8Array
+    let args: ArgsBuilder
     beforeEach(async () => {
       let src = `
         export class NeverEnds extends Jig {
-          m1(): void {
-            let i: u64 = 9999;
+          m1(loops: u64): void {
+            let i: u64 = loops;
             while (i > 0) {
               i--;
             }
           }
         }
       `
-      const { pkgHash: hash } = await withPackage(src)
+      const { pkgHash: hash, pkgAbi } = await withPackage(src)
       pkgHash = hash
+      args = new ArgsBuilder(pkgAbi)
     })
 
     it('ends with an error when gas usage goes over config.', () => {
       const opts = ExecOpts.default()
-      opts.maxWasmExecution = 10000n
+      opts.wasmExecutionMaxHydros = 1n
+      opts.wasmExecutionHydroSize = 10000n
       const { exec } = fundedExec([], opts)
 
       let pkgStmt = exec.import(pkgHash)
       const jig = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
 
       expect(() =>
-          exec.call(jig.idx, 0, new Uint8Array([0]))
-      ).to.throw(ExecutionError, 'out of gas')
+          exec.call(jig.idx, ...args.method('NeverEnds', 'm1', [10000n]))
+      ).to.throw(ExecutionError, 'Max hydros for Raw Execution (1) was over passed')
     })
 
     it('does not throw when gas usage is big enough.', () => {
       const opts = ExecOpts.default()
-      opts.maxWasmExecution = 1000000n
+      opts.wasmExecutionMaxHydros = 2n
+      opts.wasmExecutionHydroSize = 1000000n
       const { exec } = fundedExec([], opts)
 
       let pkgStmt = exec.import(pkgHash)
       const jig = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
 
       expect(() =>
-          exec.call(jig.idx, 0, new Uint8Array([0]))
+          exec.call(jig.idx, ...args.method('NeverEnds', 'm1', [1000n]))
       ).not.to.throw()
     })
   })
@@ -804,7 +809,7 @@ describe('execute txs', () => {
     expect(result.hydrosUsed).to.eql(5) // Implicit fund output
   })
 
-  describe('exec measure', () => {
+  describe('move data limits', () => {
     let receiverHash: Uint8Array
     let senderHash: Uint8Array
     let senderArgs: ArgsBuilder
@@ -847,7 +852,8 @@ describe('execute txs', () => {
 
     it('throws if data transfer is bigger than conf limit', () => {
       const opts = ExecOpts.default();
-      opts.maxDataMoved = 2000n // 2k is not enogh because data has to be lifted and lowered
+      opts.moveDataMaxHydros = 1n
+      opts.moveDataHydroSize = 2000n // 2k is not enogh because data has to be lifted and lowered
       const {exec} = fundedExec([], opts)
       const receiverCont = exec.import(receiverHash)
       const senderCont =  exec.import(senderHash)
@@ -856,13 +862,13 @@ describe('execute txs', () => {
 
       expect(() =>
           exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1001]))
-      ).to.throw(ExecutionError, 'too much data moved')
+      ).to.throw(ExecutionError, 'Max hydros for Moved Data (1) was over passed')
 
     })
 
     it('works if transfer is big enough', () => {
       const opts = ExecOpts.default();
-      opts.maxDataMoved = 2050n // It needs at least 2k because data has to be lifted and lowered
+      opts.moveDataMaxHydros = 2050n // It needs at least 2k because data has to be lifted and lowered
       const {exec} = fundedExec([], opts)
       const receiverCont = exec.import(receiverHash)
       const senderCont =  exec.import(senderHash)
@@ -872,7 +878,20 @@ describe('execute txs', () => {
       expect(() =>
           exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1000]))
       ).not.to.throw()
+    })
 
+    it('adds hidros according to the data transfered', () => {
+      const opts = ExecOpts.default();
+      opts.moveDataHydroSize = 100n;
+      const {exec} = fundedExec([], opts)
+      const receiverCont = exec.import(receiverHash)
+      const senderCont =  exec.import(senderHash)
+      const receiver = exec.instantiate(receiverCont.idx, 0, new Uint8Array([0]))
+      const sender = exec.instantiate(senderCont.idx, 0, new Uint8Array([0]))
+
+      exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1000]))
+      const result = exec.finalize()
+      expect(result.hydrosUsed).to.within(20, 25)
     })
   });
 

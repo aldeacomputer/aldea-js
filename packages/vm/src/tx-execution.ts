@@ -21,27 +21,62 @@ import {JigInitParams} from "./jig-init-params.js";
 import {ArgsTranslator} from "./args-translator.js";
 import {CodeKind} from "@aldea/core/abi";
 import {AbiArg} from "./memory/abi-helpers/abi-arg.js";
+import {ExecOpts} from "./export-opts.js";
 
 export const MIN_FUND_AMOUNT = 100
 
-export class ExecOpts {
-  maxWasmExecution: bigint
-  maxDataMoved: bigint
+export class DiscretCounter {
+  private tag: string;
+  private total: bigint
+  private count: bigint
+  private hydroSize: bigint
+  hydros: bigint
+  private maxHydros: bigint;
 
-  constructor (maxWasmExecution: bigint, maxDataTransfered: bigint) {
-    this.maxWasmExecution = maxWasmExecution
-    this.maxDataMoved = maxDataTransfered
+  constructor (tag: string, hydroSize: bigint, maxHydros: bigint) {
+    this.tag = tag
+    this.total = 0n
+    this.count = 0n
+    this.hydros = 1n
+    this.hydroSize = hydroSize
+    this.maxHydros = maxHydros
   }
 
-  static default() {
-    return new this(
-        this.defaultMaxWasmExecution,
-        this.defaultMaxDataMoved
-    )
+  add(amount: bigint) {
+    this.total += amount
+    this.count += amount
+    const newHydros = this.count / this.hydroSize
+    this.hydros += newHydros
+    this.count = this.count % this.hydroSize
+
+    if (this.hydros > this.maxHydros) {
+      throw new ExecutionError(`Max hydros for ${this.tag} (${this.maxHydros}) was over passed`)
+    }
   }
 
-  static defaultMaxWasmExecution: bigint = 99999999n
-  static defaultMaxDataMoved: bigint = 64n * 1024n * 1024n // 64mb is the max data by default
+  clear () {
+    this.total = 0n
+    this.count = 0n
+    this.hydros = 0n
+  }
+}
+
+
+export class Measurements {
+  movedData: DiscretCounter;
+  wasmExecuted: DiscretCounter;
+  constructor (opts: ExecOpts) {
+    this.movedData = new DiscretCounter('Moved Data', opts.moveDataHydroSize, opts.moveDataMaxHydros)
+    this.wasmExecuted = new DiscretCounter('Raw Execution', opts.wasmExecutionHydroSize, opts.wasmExecutionMaxHydros)
+  }
+
+  clear () {
+    this.movedData.clear()
+  }
+
+  allHydros () {
+    return 3 + Number(this.movedData.hydros) + Number(this.wasmExecuted.hydros);
+  }
 }
 
 class TxExecution {
@@ -54,11 +89,10 @@ class TxExecution {
   private fundAmount: number;
   private affectedJigs: JigRef[]
   private nextOrigin: Option<Pointer>
-  private gasUsed: bigint
   private opts: ExecOpts
-  private movedData: bigint;
+  private measurements: Measurements;
 
-  constructor (context: ExecContext, execOpts: ExecOpts) {
+  constructor (context: ExecContext, opts: ExecOpts) {
     this.execContext = context
     this.jigs = []
     this.wasms = new Map()
@@ -68,9 +102,8 @@ class TxExecution {
     this.deployments = []
     this.affectedJigs = []
     this.nextOrigin = Option.none()
-    this.gasUsed = 0n
-    this.movedData = 0n
-    this.opts = execOpts
+    this.opts = opts
+    this.measurements = new Measurements(opts)
   }
 
   finalize (): ExecutionResult {
@@ -125,8 +158,8 @@ class TxExecution {
     this.wasms = new Map()
     this.jigs = []
     this.statements = []
-    this.gasUsed = 0n
-    result.setHydrosUsed(5)
+    result.setHydrosUsed(this.measurements.allHydros())
+    this.measurements.clear()
     result.finish()
     return result
   }
@@ -439,11 +472,8 @@ class TxExecution {
 
   // Metering callbacks
 
-  onDatamoved (size: number) {
-    this.movedData += BigInt(size)
-    if (this.movedData > this.opts.maxDataMoved) {
-      throw new ExecutionError('too much data moved')
-    }
+  onDataMoved (size: number) {
+    this.measurements.movedData.add(BigInt(size))
   }
 
   // Assemblyscrypt callbacks
@@ -717,10 +747,7 @@ class TxExecution {
   }
 
   vmMeter (gasUsed: bigint) {
-    this.gasUsed += gasUsed
-    if (this.gasUsed > this.opts.maxWasmExecution) {
-      throw new ExecutionError('out of gas')
-    }
+    this.measurements.wasmExecuted.add(gasUsed)
   }
 }
 

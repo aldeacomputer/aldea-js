@@ -1,6 +1,6 @@
 import {Storage, VM} from "../src/index.js";
 import {base16, BCS, Output, PrivKey} from "@aldea/core";
-import {ExecOpts, TxExecution} from "../src/tx-execution.js";
+import {TxExecution} from "../src/tx-execution.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import fs from "fs";
 import {fileURLToPath} from "url";
@@ -9,6 +9,7 @@ import {randomBytes} from "@aldea/core/support/util";
 import {Abi, AbiQuery} from "@aldea/core/abi";
 import {AbiAccess} from "../src/memory/abi-helpers/abi-access.js";
 import {expect} from "chai";
+import {ExecOpts} from "../src/export-opts.js";
 
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 

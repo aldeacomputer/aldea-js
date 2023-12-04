@@ -10,7 +10,7 @@ import {data as rawSource} from './builtins/coin.source.js'
 import {AddressLock} from "./locks/address-lock.js";
 import {ExecutionResult} from "./execution-result.js";
 import {StorageTxContext} from "./tx-context/storage-tx-context.js";
-import {ExecOpts, TxExecution} from "./tx-execution.js";
+import {TxExecution} from "./tx-execution.js";
 import {
   CallInstruction,
   ImportInstruction,
@@ -19,6 +19,7 @@ import {
   NewInstruction,
   ExecInstruction, FundInstruction, LockInstruction, DeployInstruction, SignInstruction, SignToInstruction
 } from "@aldea/core/instructions";
+import {ExecOpts} from "./export-opts.js";
 
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([
