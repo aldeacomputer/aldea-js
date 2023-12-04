@@ -27,7 +27,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
   const addr = Address.fromPubKey(keys.pubKey)
 
   const pkg = new Map([
-    ['index.js', 'export function helloWorld(msg: string): string { return `Hello ${msg}!` }']
+    ['index.ts', 'export function helloWorld(msg: string): string { return `Hello ${msg}!` }']
   ])
 
   const pkgId = 'a0b07c4143ae6f105ea79cff5d21d2d1cd09351cf66e41c3e43bfb3bddb1a701'
@@ -105,7 +105,7 @@ test('Builds a tx with every opcode and encodes/decodes consistently', async t =
   t.deepEqual(tx2.instructions[9].pubkeyHash, addr.hash)
 
   t.is(tx2.instructions[10].opcode, OpCode.DEPLOY)
-  t.deepEqual(BCS.pkg.decode(tx2.instructions[10].pkgBuf), [['index.js'], pkg])
+  t.deepEqual(BCS.pkg.decode(tx2.instructions[10].pkgBuf), [['index.ts'], pkg])
 
   t.is(tx2.instructions[11].opcode, OpCode.SIGN)
   t.is(tx2.instructions[11].sig.length, 64)

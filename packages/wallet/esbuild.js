@@ -10,7 +10,7 @@ const makeAllPackagesExternalPlugin = {
 
 // ESM bundle
 await esbuild.build({
-  entryPoints: ['src/index.js'],
+  entryPoints: ['src/index.ts'],
   outfile: 'dist/wallet-lib.bundle.mjs',
   bundle: true,
   format: 'esm',
@@ -26,7 +26,7 @@ await esbuild.build({
 
 // ESM bundle browser
 await esbuild.build({
-  entryPoints: ['src/index.js'],
+  entryPoints: ['src/index.ts'],
   outfile: 'dist/wallet-lib.bundle.browser.mjs',
   bundle: true,
   format: 'esm',
@@ -42,7 +42,7 @@ await esbuild.build({
 
 // CJS bundle
 esbuild.build({
-  entryPoints: ['src/index.js'],
+  entryPoints: ['src/index.ts'],
   outfile: 'dist/wallet-lib.bundle.cjs',
   bundle: true,
   format: 'cjs',
@@ -58,7 +58,7 @@ esbuild.build({
 
 // Browser build
 esbuild.build({
-  entryPoints: ['src/index.js'],
+  entryPoints: ['src/index.ts'],
   outfile: 'dist/wallet-lib.bundle.min.js',
   globalName: 'AldeaWalletLib',
   bundle: true,
@@ -72,7 +72,7 @@ esbuild.build({
 
 // Wallet Ui build
 esbuild.build({
-  entryPoints: ['src/index.js'],
+  entryPoints: ['src/index.ts'],
   outfile: 'dist/wallet-lib.browser.bundle.mjs',
   bundle: true,
   format: 'esm',

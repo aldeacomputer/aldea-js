@@ -12,8 +12,8 @@ if(!filePath) {
 const content = fs.readFileSync(filePath)
 
 const map = new Map()
-map.set('index.js', content.toString())
+map.set('index.ts', content.toString())
 
-const id = calculatePackageId(['index.js'], map)
+const id = calculatePackageId(['index.ts'], map)
 
 console.log(base16.encode(id))

@@ -38,7 +38,7 @@ test('builds, serialized and parses a kitchen sink tx', async ({ page }) => {
     const addr = Address.fromPubKey(keys.pubKey)
 
     const pkg = new Map([
-      ['index.js', 'export function helloWorld(msg: string): string { return `Hello ${msg}!` }']
+      ['index.ts', 'export function helloWorld(msg: string): string { return `Hello ${msg}!` }']
     ])
 
     return { aldea, addr, keys, pkg }
@@ -130,7 +130,7 @@ test('builds, serialized and parses a kitchen sink tx', async ({ page }) => {
   expect(tx.instructions[9].pubkeyHash).toEqual(addr.hash)
 
   expect(tx.instructions[10].opcode).toBe(OpCode.DEPLOY)
-  expect(BCS.pkg.decode(tx.instructions[10].pkgBuf)).toEqual([['index.js'], pkg])
+  expect(BCS.pkg.decode(tx.instructions[10].pkgBuf)).toEqual([['index.ts'], pkg])
 
   expect(tx.instructions[11].opcode).toBe(OpCode.SIGN)
   expect(tx.instructions[11].sig.length).toBe(64)
