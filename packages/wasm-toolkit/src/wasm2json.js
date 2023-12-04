@@ -259,7 +259,8 @@ const SECTION_IDS = wasm2json.SECTION_IDS = {
     8: 'start',
     9: 'element',
     10: 'code',
-    11: 'data'
+    11: 'data',
+    12: 'datacount'
 }
 
 wasm2json.immediataryParsers = {
