@@ -44,11 +44,11 @@ describe('execute txs', () => {
     abiFor = (key: string) => storage.getPkg(base16.encode(modIdFor(key))).get().abi
     abiForCoin = () => storage.getPkg(COIN_CLS_PTR.id).get().abi
     modIdFor = data.modIdFor
-    flockArgs = new ArgsBuilder('flock', abiFor)
-    ctrArgs = new ArgsBuilder('sheep-counter', abiFor)
-    antArgs = new ArgsBuilder('ant', abiFor)
-    sheepArgs = new ArgsBuilder('sheep', abiFor)
-    coinEaterArgs = new ArgsBuilder('coin-eater', abiFor)
+    flockArgs = new ArgsBuilder(abiFor('flock'))
+    ctrArgs = new ArgsBuilder(abiFor('sheep-counter'))
+    antArgs = new ArgsBuilder(abiFor('ant'))
+    sheepArgs = new ArgsBuilder(abiFor('sheep'))
+    coinEaterArgs = new ArgsBuilder(abiFor('coin-eater'))
   })
 
   const fundedExec = fundedExecFactoryFactory(() => storage, () => vm)
@@ -734,9 +734,19 @@ describe('execute txs', () => {
     })
   })
 
+  type WithPackageResult = { pkgHash: Uint8Array, pkgAbi: Abi  }
+  async function withPackage(src: string): Promise<WithPackageResult> {
+    const {exec: exec1} = fundedExec()
+    await exec1.deploy(['a.ts'], new Map([['a.ts', src]]))
+    const res = exec1.finalize()
+    storage.persistExecResult(res)
+
+    return {pkgHash: res.deploys[0].hash, pkgAbi: res.deploys[0].abi}
+
+  }
+
   describe('for a while true', () => {
     let pkgHash: Uint8Array
-    let pkgAbi: Abi
     beforeEach(async () => {
       let src = `
         export class NeverEnds extends Jig {
@@ -748,18 +758,13 @@ describe('execute txs', () => {
           }
         }
       `
-
-      const {exec: exec1} = fundedExec()
-      await exec1.deploy(['a.ts'], new Map([['a.ts', src]]))
-      const res = exec1.finalize()
-      pkgHash = res.deploys[0].hash
-      pkgAbi = res.deploys[0].abi
-
-      storage.persistExecResult(res)
+      const { pkgHash: hash } = await withPackage(src)
+      pkgHash = hash
     })
 
     it('ends with an error when gas usage goes over config.', () => {
-      const opts = new ExecOpts(10000n)
+      const opts = ExecOpts.default()
+      opts.maxWasmExecution = 10000n
       const { exec } = fundedExec([], opts)
 
       let pkgStmt = exec.import(pkgHash)
@@ -770,8 +775,9 @@ describe('execute txs', () => {
       ).to.throw(ExecutionError, 'out of gas')
     })
 
-    it('does not throw when gas usage is big enoug.', () => {
-      const opts = new ExecOpts(1000000n)
+    it('does not throw when gas usage is big enough.', () => {
+      const opts = ExecOpts.default()
+      opts.maxWasmExecution = 1000000n
       const { exec } = fundedExec([], opts)
 
       let pkgStmt = exec.import(pkgHash)
@@ -782,6 +788,93 @@ describe('execute txs', () => {
       ).not.to.throw()
     })
   })
+
+  it('a basic execution uses 5 hydros ', () => {
+    // 1 container
+    // 1 signature
+    // 1 unit of data moved
+    // 1 unit of raw execution
+    // 1 new output created
+
+    const {exec, txHash} = fundedExec()
+    const mod = exec.import(modIdFor('flock'))
+    const instanceIndex = exec.instantiate(mod.idx, 0, new Uint8Array([0]))
+    exec.lockJig(instanceIndex.idx, userAddr)
+    const result = exec.finalize()
+    expect(result.hydrosUsed).to.eql(5) // Implicit fund output
+  })
+
+  describe('exec measure', () => {
+    let receiverHash: Uint8Array
+    let senderHash: Uint8Array
+    let senderArgs: ArgsBuilder
+    beforeEach(async () => {
+      const receiverSrc = `
+        export class Receiver extends Jig {
+          count: u32 = 0;
+          m1(buf: Uint8Array): u32 {
+            this.count = buf.length
+            return this.count
+          }
+        }
+      `
+
+      const { pkgHash: hash1 } = await withPackage(receiverSrc)
+      receiverHash = hash1
+
+
+      const senderSrc = `
+        export class Sender extends Jig {
+          res: u32 = 0;
+          m1(receiver: Receiver, length: u32): u32 {
+            const buf = new Uint8Array(length);
+            buf.fill(1);
+            const res = receiver.m1(buf)
+            this.res = res
+            return res
+          }
+        }
+        
+        @imported('${base16.encode(receiverHash)}')
+        declare class Receiver {
+          m1(buf: Uint8Array): u32
+        }
+      `
+      const { pkgHash: hash2, pkgAbi: abi } = await withPackage(senderSrc)
+      senderHash = hash2
+      senderArgs = new ArgsBuilder(abi)
+    })
+
+    it('throws if data transfer is bigger than conf limit', () => {
+      const opts = ExecOpts.default();
+      opts.maxDataMoved = 2000n // 2k is not enogh because data has to be lifted and lowered
+      const {exec} = fundedExec([], opts)
+      const receiverCont = exec.import(receiverHash)
+      const senderCont =  exec.import(senderHash)
+      const receiver = exec.instantiate(receiverCont.idx, 0, new Uint8Array([0]))
+      const sender = exec.instantiate(senderCont.idx, 0, new Uint8Array([0]))
+
+      expect(() =>
+          exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1001]))
+      ).to.throw(ExecutionError, 'too much data moved')
+
+    })
+
+    it('works if transfer is big enough', () => {
+      const opts = ExecOpts.default();
+      opts.maxDataMoved = 2050n // It needs at least 2k because data has to be lifted and lowered
+      const {exec} = fundedExec([], opts)
+      const receiverCont = exec.import(receiverHash)
+      const senderCont =  exec.import(senderHash)
+      const receiver = exec.instantiate(receiverCont.idx, 0, new Uint8Array([0]))
+      const sender = exec.instantiate(senderCont.idx, 0, new Uint8Array([0]))
+
+      expect(() =>
+          exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1000]))
+      ).not.to.throw()
+
+    })
+  });
 
   // it('receives right amount from properties of foreign jigs', () => {
   //   const flockPkg = exec.importModule(modIdFor('flock')).asInstance

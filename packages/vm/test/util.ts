@@ -66,20 +66,17 @@ export type CallData = [
   Uint8Array
 ]
 export class ArgsBuilder {
-  private readonly pkgName: string;
-  private readonly abiFor: (key: string) => Abi;
-  constructor (pkgName: string, abiFor: (key: string) => Abi) {
-    this.pkgName = pkgName
-    this.abiFor = abiFor
+  private readonly abi: Abi;
+  constructor (abi: Abi) {
+    this.abi = abi
   }
 
   method(className: string, methodName: string, args: any[]): CallData {
-    const abi = this.abiFor(this.pkgName)
-    const abiAccess = new AbiAccess(abi)
+    const abiAccess = new AbiAccess(this.abi)
 
     const cls = abiAccess.exportedByName(className).get().toAbiClass()
     const method = cls.methodByName(methodName).get()
-    const bcs = new BCS(abi)
+    const bcs = new BCS(this.abi)
     return [
       method.idx,
       bcs.encode(`${className}_${methodName}`, args)
@@ -87,11 +84,10 @@ export class ArgsBuilder {
   }
 
   constr(className: string, args: any[]): CallData {
-    const abi = this.abiFor(this.pkgName)
-    const abiAccess = new AbiAccess(abi)
+    const abiAccess = new AbiAccess(this.abi)
     const abiClass = abiAccess.exportedByName(className).get().toAbiClass()
 
-    const bcs = new BCS(abi)
+    const bcs = new BCS(this.abi)
 
     return [
       abiClass.idx,
@@ -100,9 +96,8 @@ export class ArgsBuilder {
   }
 
   exec(fnName: string, args: any[]): CallData {
-    const abi = this.abiFor(this.pkgName);
-    const bcs = new BCS(abi)
-    const query = new AbiQuery(abi)
+    const bcs = new BCS(this.abi)
+    const query = new AbiQuery(this.abi)
     const idx = query.fromExports().allCode().findIndex(c => c.name === fnName)
 
     return [idx, bcs.encode(fnName, args)]

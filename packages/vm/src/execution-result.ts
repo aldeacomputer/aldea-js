@@ -47,7 +47,7 @@ export class ExecutionResult {
   deploys: PackageDeploy[]
   private finished: boolean
   txId: string
-  private _executedAt: Option<moment.Moment>
+  hydrosUsed: number
 
   constructor(txId: string) {
     this.outputs = []
@@ -56,7 +56,7 @@ export class ExecutionResult {
     this.reads = []
     this.finished = false
     this.txId = txId
-    this._executedAt = Option.none()
+    this.hydrosUsed = 0
   }
 
   addOutput(output: Output) {
@@ -75,6 +75,10 @@ export class ExecutionResult {
       throw new ExecutionError('Execution already finished')
     }
     this.deploys.push(deploy)
+  }
+
+  setHydrosUsed(hydros: number) {
+    this.hydrosUsed = hydros
   }
 
   finish() {

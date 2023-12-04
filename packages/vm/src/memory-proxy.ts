@@ -1,14 +1,19 @@
 import {WasmWord} from "./wasm-word.js";
 import {BufReader} from "@aldea/core";
 
-export class NewMemory {
-  _mem: WebAssembly.Memory
+export type TransferFn = (size: number) => void
 
-  constructor (mem: WebAssembly.Memory) {
+export class MemoryProxy {
+  _mem: WebAssembly.Memory
+  private onDataMoved: TransferFn;
+
+  constructor (mem: WebAssembly.Memory, registerTransfer: TransferFn) {
     this._mem = mem
+    this.onDataMoved = registerTransfer
   }
 
   write(ptr: WasmWord, data: Uint8Array) {
+    this.onDataMoved(data.byteLength)
     let start = ptr.toInt()
     if (start < 0) {
       throw new Error('Memory ptr should never be less than 0')
@@ -27,6 +32,7 @@ export class NewMemory {
   }
 
   extract(ptr: WasmWord, length: number): Uint8Array {
+    this.onDataMoved(length)
     let start = ptr.toInt()
     if (start < 0) {
       throw new Error('Memory ptr should never be less than 0')
@@ -42,6 +48,7 @@ export class NewMemory {
   }
 
   read(ptr: WasmWord, length: number): BufReader {
+    this.onDataMoved(length)
     return new BufReader(this.extract(ptr, length))
   }
 

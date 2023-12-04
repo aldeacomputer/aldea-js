@@ -26,18 +26,22 @@ export const MIN_FUND_AMOUNT = 100
 
 export class ExecOpts {
   maxWasmExecution: bigint
+  maxDataMoved: bigint
 
-  constructor (maxWasmExecution: bigint) {
+  constructor (maxWasmExecution: bigint, maxDataTransfered: bigint) {
     this.maxWasmExecution = maxWasmExecution
+    this.maxDataMoved = maxDataTransfered
   }
 
   static default() {
     return new this(
-        this.defaultMaxWasmExecution
+        this.defaultMaxWasmExecution,
+        this.defaultMaxDataMoved
     )
   }
 
   static defaultMaxWasmExecution: bigint = 99999999n
+  static defaultMaxDataMoved: bigint = 64n * 1024n * 1024n // 64mb is the max data by default
 }
 
 class TxExecution {
@@ -52,6 +56,7 @@ class TxExecution {
   private nextOrigin: Option<Pointer>
   private gasUsed: bigint
   private opts: ExecOpts
+  private movedData: bigint;
 
   constructor (context: ExecContext, execOpts: ExecOpts) {
     this.execContext = context
@@ -64,6 +69,7 @@ class TxExecution {
     this.affectedJigs = []
     this.nextOrigin = Option.none()
     this.gasUsed = 0n
+    this.movedData = 0n
     this.opts = execOpts
   }
 
@@ -120,6 +126,7 @@ class TxExecution {
     this.jigs = []
     this.statements = []
     this.gasUsed = 0n
+    result.setHydrosUsed(5)
     result.finish()
     return result
   }
@@ -426,9 +433,20 @@ class TxExecution {
   }
 
 
-  /*
-   * Callbacks
-   */
+  // =========
+  // Callbacks
+  // =========
+
+  // Metering callbacks
+
+  onDatamoved (size: number) {
+    this.movedData += BigInt(size)
+    if (this.movedData > this.opts.maxDataMoved) {
+      throw new ExecutionError('too much data moved')
+    }
+  }
+
+  // Assemblyscrypt callbacks
 
   vmJigInit (from: WasmContainer): WasmWord {
     const nextOrigin = this.nextOrigin.get()
