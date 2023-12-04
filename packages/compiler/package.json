@@ -25,7 +25,7 @@
     "test": "yarn build && yarn test:as && yarn test:js",
     "test:as": "asp --summary && yarn test:as:clean",
     "test:as:clean": "find lib/__tests__ -type f \\( -iname \\*.wasm -o -iname \\*.wat \\) -delete",
-    "test:js": "ava test/compiler.test.js"
+    "test:js": "ava"
   },
   "packageManager": "yarn@3.2.3",
   "dependencies": {
