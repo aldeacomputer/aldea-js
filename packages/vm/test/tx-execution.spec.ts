@@ -733,6 +733,43 @@ describe('execute txs', () => {
       expect(parsed[1]).to.eql(value + 1n)
     })
   })
+
+  describe('for a while true', () => {
+    let pkgHash: Uint8Array
+    let pkgAbi: Abi
+    beforeEach(async () => {
+      let src = `
+        export class NeverEnds extends Jig {
+          m1(): void {
+            let i: u64 = 99999999;
+            while (i > 0) {
+              i--;
+            }
+          }
+        }
+      `
+
+      const {exec: exec1} = fundedExec()
+      await exec1.deploy(['a.ts'], new Map([['a.ts', src]]))
+      const res = exec1.finalize()
+      pkgHash = res.deploys[0].hash
+      pkgAbi = res.deploys[0].abi
+
+      storage.persistExecResult(res)
+    })
+
+    it('ends with an error', () => {
+      const { exec } = fundedExec()
+
+      let pkgStmt = exec.import(pkgHash)
+      const jig = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+
+      expect(() =>
+          exec.call(jig.idx, 0, new Uint8Array([0]))
+      ).to.throw(ExecutionError, 'out of gas')
+    })
+  })
+
   // it('receives right amount from properties of foreign jigs', () => {
   //   const flockPkg = exec.importModule(modIdFor('flock')).asInstance
   //   const sheepCountPkg = exec.importModule(modIdFor('sheep-counter')).asInstance
