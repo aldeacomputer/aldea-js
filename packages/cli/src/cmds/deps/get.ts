@@ -32,7 +32,7 @@ async function getDeps(entries: string[]) {
   const pkg = await PackageParser.create(entries, {
     getSrc: (fileName) => fs.readFileSync(join(env.codeDir, fileName), 'utf8'),
     getDep: (pkgId) => {
-      const path = join(env.codeDir, '.packages', pkgId, 'index.js')
+      const path = join(env.codeDir, '.packages', pkgId, 'index.ts')
       if (fs.existsSync(path)) { return fs.readFileSync(path, 'utf8') }
     }
   })

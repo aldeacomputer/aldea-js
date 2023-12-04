@@ -42,7 +42,7 @@ async function compileCode(entries: string[], opts: Opts) {
       return fs.readFileSync(srcPath, 'utf8')
     },
     getDep: (pkgId) => {
-      const srcPath = join(env.codeDir, '.packages', pkgId, 'index.js')
+      const srcPath = join(env.codeDir, '.packages', pkgId, 'index.ts')
       return fs.readFileSync(srcPath, 'utf8')
     },
   })
