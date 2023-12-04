@@ -10,7 +10,7 @@ import {data as rawSource} from './builtins/coin.source.js'
 import {AddressLock} from "./locks/address-lock.js";
 import {ExecutionResult} from "./execution-result.js";
 import {StorageTxContext} from "./tx-context/storage-tx-context.js";
-import {TxExecution} from "./tx-execution.js";
+import {ExecOpts, TxExecution} from "./tx-execution.js";
 import {
   CallInstruction,
   ImportInstruction,
@@ -42,7 +42,7 @@ export class VM {
 
   async execTx(tx: Tx): Promise<ExecutionResult> {
     const context = new StorageTxContext(tx.hash, tx.signers(), this.storage, this)
-    const currentExec = new TxExecution(context)
+    const currentExec = new TxExecution(context, ExecOpts.default())
 
     for (const inst of tx.instructions) {
       switch (inst.opcode) {

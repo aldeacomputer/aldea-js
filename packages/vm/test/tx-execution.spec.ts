@@ -2,10 +2,10 @@ import {Storage, VM} from '../src/index.js'
 import {expect} from 'chai'
 import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, PubKey, ref} from "@aldea/core";
 import {Abi} from '@aldea/core/abi';
-import {ArgsBuilder, buildVm, emptyExecFactoryFactory, parseOutput} from "./util.js";
+import {ArgsBuilder, buildVm, fundedExecFactoryFactory, parseOutput} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
-import {TxExecution} from "../src/tx-execution.js";
+import {ExecOpts, TxExecution} from "../src/tx-execution.js";
 import {StatementResult} from "../src/statement-result.js";
 import {ExecutionResult} from "../src/index.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
@@ -51,11 +51,11 @@ describe('execute txs', () => {
     coinEaterArgs = new ArgsBuilder('coin-eater', abiFor)
   })
 
-  const fundedExec = emptyExecFactoryFactory(() => storage, () => vm)
+  const fundedExec = fundedExecFactoryFactory(() => storage, () => vm)
   const emptyExec = (pubKeys: PubKey[] = []) => {
     const txHash = randomBytes(32)
     const context = new StorageTxContext(txHash, pubKeys, storage, vm)
-    return new TxExecution(context)
+    return new TxExecution(context, ExecOpts.default())
   }
 
 
@@ -512,7 +512,7 @@ describe('execute txs', () => {
   it('fails if not enough fees there', () => {
     const txHash = new Uint8Array(32).fill(10)
     const context = new StorageTxContext(txHash, [userPriv.toPubKey()], storage, vm)
-    const exec = new TxExecution(context)
+    const exec = new TxExecution(context, ExecOpts.default())
     const coin = vm.mint(userAddr, 10)
     const stmt = exec.load(coin.hash)
     exec.fund(stmt.idx)
@@ -741,7 +741,7 @@ describe('execute txs', () => {
       let src = `
         export class NeverEnds extends Jig {
           m1(): void {
-            let i: u64 = 99999999;
+            let i: u64 = 9999;
             while (i > 0) {
               i--;
             }
@@ -758,8 +758,9 @@ describe('execute txs', () => {
       storage.persistExecResult(res)
     })
 
-    it('ends with an error', () => {
-      const { exec } = fundedExec()
+    it('ends with an error when gas usage goes over config.', () => {
+      const opts = new ExecOpts(10000n)
+      const { exec } = fundedExec([], opts)
 
       let pkgStmt = exec.import(pkgHash)
       const jig = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
@@ -767,6 +768,18 @@ describe('execute txs', () => {
       expect(() =>
           exec.call(jig.idx, 0, new Uint8Array([0]))
       ).to.throw(ExecutionError, 'out of gas')
+    })
+
+    it('does not throw when gas usage is big enoug.', () => {
+      const opts = new ExecOpts(1000000n)
+      const { exec } = fundedExec([], opts)
+
+      let pkgStmt = exec.import(pkgHash)
+      const jig = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+
+      expect(() =>
+          exec.call(jig.idx, 0, new Uint8Array([0]))
+      ).not.to.throw()
     })
   })
 

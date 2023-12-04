@@ -5,7 +5,7 @@ import {
 import {expect} from 'chai'
 import {base16, BufReader, ref} from "@aldea/core";
 // @ts-ignore
-import {emptyExecFactoryFactory, buildVm, ArgsBuilder, parseOutput} from './util.js';
+import {fundedExecFactoryFactory, buildVm, ArgsBuilder, parseOutput} from './util.js';
 
 describe('execute txs', () => {
   let storage: Storage
@@ -23,12 +23,12 @@ describe('execute txs', () => {
     args = new ArgsBuilder('caller-test-code', abiFor)
   })
 
-  const emptyExec = emptyExecFactoryFactory(() => storage, () => vm)
+  const fundedExec = fundedExecFactoryFactory(() => storage, () => vm)
 
   describe('#is<T>', function () {
     describe('when exact is true', function () {
       it('returns true when the caller is the right caller', () => {
-        const {exec} = emptyExec()
+        const {exec} = fundedExec()
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         const sender = exec.instantiate(pkg.idx, ...args.constr('RightCaller', []))
@@ -40,7 +40,7 @@ describe('execute txs', () => {
       })
 
       it('returns false when the caller is not the right caller', () => {
-        const {exec} = emptyExec()
+        const {exec} = fundedExec()
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         const sender = exec.instantiate(pkg.idx, ...args.constr('AnotherCaller', []))
@@ -52,7 +52,7 @@ describe('execute txs', () => {
       })
 
       it('returns false when the caller is at top level', () => {
-        const {exec} = emptyExec()
+        const {exec} = fundedExec()
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         exec.call(receiver.idx, ...args.method('Receiver', 'checkCallerType', []))
@@ -66,7 +66,7 @@ describe('execute txs', () => {
       //   it('returns true for when an external class is the right one')
       //
       it('returns false when called from subclass', () => {
-        const {exec} = emptyExec()
+        const {exec} = fundedExec()
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         const sender = exec.instantiate(pkg.idx, ...args.constr('SubclassCaller', []))

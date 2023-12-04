@@ -24,6 +24,22 @@ import {AbiArg} from "./memory/abi-helpers/abi-arg.js";
 
 export const MIN_FUND_AMOUNT = 100
 
+export class ExecOpts {
+  maxWasmExecution: bigint
+
+  constructor (maxWasmExecution: bigint) {
+    this.maxWasmExecution = maxWasmExecution
+  }
+
+  static default() {
+    return new this(
+        this.defaultMaxWasmExecution
+    )
+  }
+
+  static defaultMaxWasmExecution: bigint = 99999999n
+}
+
 class TxExecution {
   execContext: ExecContext;
   private jigs: JigRef[];
@@ -35,8 +51,9 @@ class TxExecution {
   private affectedJigs: JigRef[]
   private nextOrigin: Option<Pointer>
   private gasUsed: bigint
+  private opts: ExecOpts
 
-  constructor (context: ExecContext) {
+  constructor (context: ExecContext, execOpts: ExecOpts) {
     this.execContext = context
     this.jigs = []
     this.wasms = new Map()
@@ -47,6 +64,7 @@ class TxExecution {
     this.affectedJigs = []
     this.nextOrigin = Option.none()
     this.gasUsed = 0n
+    this.opts = execOpts
   }
 
   finalize (): ExecutionResult {
@@ -682,7 +700,7 @@ class TxExecution {
 
   vmMeter (gasUsed: bigint) {
     this.gasUsed += gasUsed
-    if (this.gasUsed > 99999999) {
+    if (this.gasUsed > this.opts.maxWasmExecution) {
       throw new ExecutionError('out of gas')
     }
   }
