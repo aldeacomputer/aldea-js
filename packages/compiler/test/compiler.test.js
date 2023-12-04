@@ -2,9 +2,6 @@ import test from 'ava'
 import { abiFromBin } from '@aldea/core'
 import { MethodKind } from '@aldea/core/abi'
 import { compile } from '../dist/compiler.js'
-import { meterWasm } from "@aldea/wasm-toolkit"
-import { meterWASM } from "wasm-metering"
-
 
 test('compiles single source', async t => {
   await t.notThrowsAsync(() => compile('export class Test extends Jig {}'))

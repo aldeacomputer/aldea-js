@@ -41,7 +41,7 @@ class MockProgram {
 
     // Parse runtime first then user src
     this.parser.parseFile(libraryFiles['rt/index-stub'], libraryPrefix + 'rt/index-stub.ts', true)
-    this.parser.parseFile(srcCode, './index.js', true)
+    this.parser.parseFile(srcCode, './index.ts', true)
   }
 
   get source() {
