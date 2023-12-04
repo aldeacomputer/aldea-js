@@ -34,6 +34,7 @@ class TxExecution {
   private fundAmount: number;
   private affectedJigs: JigRef[]
   private nextOrigin: Option<Pointer>
+  private gasUsed: bigint
 
   constructor (context: ExecContext) {
     this.execContext = context
@@ -45,6 +46,7 @@ class TxExecution {
     this.deployments = []
     this.affectedJigs = []
     this.nextOrigin = Option.none()
+    this.gasUsed = 0n
   }
 
   finalize (): ExecutionResult {
@@ -99,6 +101,7 @@ class TxExecution {
     this.wasms = new Map()
     this.jigs = []
     this.statements = []
+    this.gasUsed = 0n
     result.finish()
     return result
   }
@@ -674,6 +677,13 @@ class TxExecution {
       return jig.lock.canReceiveCalls(this)
     } else {
       throw new Error(`unknown auth check: ${check}`)
+    }
+  }
+
+  vmMeter (gasUsed: bigint) {
+    this.gasUsed += gasUsed
+    if (this.gasUsed > 99999999) {
+      throw new ExecutionError('out of gas')
     }
   }
 }

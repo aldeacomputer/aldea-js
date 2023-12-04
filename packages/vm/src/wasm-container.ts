@@ -119,6 +119,9 @@ export class WasmContainer {
           ).toUInt()
         },
         proxy_link: () => {},
+        meter: (gasUsed: bigint) => {
+          return this._currentExec.ifPresent(vm => vm.vmMeter(gasUsed))
+        },
         debug_str: (strPtr: number): void => {
           const msg = this.lifter.lift(WasmWord.fromNumber(strPtr), AbiType.fromName('string'))
           const buf = Buffer.from(new BufReader(msg).readBytes())

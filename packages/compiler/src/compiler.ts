@@ -3,11 +3,10 @@ import { dirname, join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import asc from 'assemblyscript/asc'
 import { AscTransform, Transform } from './transform.js'
-import { Parser } from 'assemblyscript'
 import { PackageParser } from './package/parser.js'
 import { TransformGraph } from './transform/graph/graph.js'
 import { createDocs, Docs } from './transform/docs.js'
-
+import { meterWasm } from '@aldea/wasm-toolkit'
 export { PackageParser }
 export { writeDependency } from './package/code-helpers.js'
 
@@ -20,7 +19,7 @@ const baseOpts = [
   '--debug', // delete eventually
   '-Ospeed',
   '--runtime', 'stub',
-  '--enable', 'simd',
+  '--disable', 'bulk-memory',
   '--importMemory',
   '--exportRuntime',
   '--exportStart',
@@ -115,6 +114,11 @@ export async function compile(
   })
 
   if (!error) {
+    if (!output.wasm) {
+      throw new Error('misssing wasm')
+    }
+    output.wasm = meterWasm(output.wasm)
+
     return {
       output: output as CompiledOutput,
       stats,
