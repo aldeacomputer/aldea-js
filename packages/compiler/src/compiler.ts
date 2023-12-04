@@ -19,7 +19,7 @@ const baseOpts = [
   '--debug', // delete eventually
   '-Ospeed',
   '--runtime', 'stub',
-  '--enable', 'simd',
+  '--disable', 'bulk-memory',
   '--importMemory',
   '--exportRuntime',
   '--exportStart',

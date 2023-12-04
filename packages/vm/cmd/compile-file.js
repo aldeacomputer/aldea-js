@@ -19,6 +19,10 @@ export async function compileFile (file, outDir) {
     }
   } catch (e) {
     console.warn(`error compiling ${file}:`)
-    console.error(e.stderr.toString())
+    if (e.stderr) {
+      console.error(e.stderr.toString())
+    } else {
+      console.error(e)
+    }
   }
 }
