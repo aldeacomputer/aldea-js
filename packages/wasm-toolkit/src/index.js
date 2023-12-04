@@ -4,7 +4,7 @@ import { meterJSON } from 'warp-wasm-metering'
 
 const meterWasm = (wasm) => {
     const json = wasm2json(wasm)
-    const metered = meterJSON(wasm, { meterType: 'i64', moduleStr: 'vm', fieldStr: 'meter' })
+    const metered = meterJSON(json, { meterType: 'i64', moduleStr: 'vm', fieldStr: 'meter' })
     return json2wasm(metered)
 }
 
