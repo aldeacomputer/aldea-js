@@ -239,10 +239,12 @@ const OPCODES = wasm2json.OPCODES = {
     0xbe: 'f32.reinterpret/i32',
     0xbf: 'f64.reinterpret/i64',
 
-    // Table
-    0x25: 'table.get',
-    0x26: 'table.set',
-    0xFC: 'complex'
+    // Narrow-Width Integer Sign Extension
+    0xc0: 'i32.extend8_s',
+    0xc1: 'i32.extend16_s',
+    0xc2: 'i64.extend8_s',
+    0xc3: 'i64.extend16_s',
+    0xc4: 'i64.extend32_s'
 }
 
 const SECTION_IDS = wasm2json.SECTION_IDS = {
@@ -257,8 +259,7 @@ const SECTION_IDS = wasm2json.SECTION_IDS = {
     8: 'start',
     9: 'element',
     10: 'code',
-    11: 'data',
-    12: 'datacount'
+    11: 'data'
 }
 
 wasm2json.immediataryParsers = {
@@ -589,12 +590,7 @@ const sectionParsers = wasm2json.sectionParsers = {
         return json
     },
     'datacount': (stream) => {
-        const numberOfEntries = leb.unsigned.readBn(stream).toNumber()
-        console.log('numberOfEntries', numberOfEntries)
-        // for (let i = 0; i < numberOfEntries; i++) {
-        //     const readed = stream.read(4)
-        //     console.log(readed)
-        // }
+        const _numberOfEntries = leb.unsigned.readBn(stream).toNumber()
         return null
     }
 }
@@ -603,9 +599,6 @@ wasm2json.parseOp = (stream) => {
     const json = {}
     const op = stream.read(1)[0]
     const fullName = OPCODES[op]
-    if (complex) {
-
-    }
     let [type, name] = fullName.split('.')
 
     if (name === undefined) {
@@ -630,7 +623,7 @@ wasm2json.parse = (stream, filter) => {
     while (!stream.end) {
         const header = wasm2json.parseSectionHeader(stream)
         const element = sectionParsers[header.name](stream, header)
-        if (element) {
+        if (element !== null) {
             json.push(element)
         }
     }

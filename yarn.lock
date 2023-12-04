@@ -243,6 +243,8 @@ __metadata:
     buffer-pipe: ^0.0.5
     leb128: ^0.0.5
     safe-buffer: ^5.2.1
+    warp-isomorphic: ^1.0.7
+    warp-wasm-metering: ^1.0.1
   languageName: unknown
   linkType: soft
 
@@ -1196,6 +1198,13 @@ __metadata:
   version: 8.48.0
   resolution: "@eslint/js@npm:8.48.0"
   checksum: b2755f9c0ee810c886eba3c50dcacb184ba5a5cd1cbc01988ee506ad7340653cae0bd55f1d95c64b56dfc6d25c2caa7825335ffd2c50165bae9996fe0f396851
+  languageName: node
+  linkType: hard
+
+"@fastify/busboy@npm:^2.0.0":
+  version: 2.1.0
+  resolution: "@fastify/busboy@npm:2.1.0"
+  checksum: 3233abd10f73e50668cb4bb278a79b7b3fadd30215ac6458299b0e5a09a29c3586ec07597aae6bd93f5cbedfcef43a8aeea51829cd28fc13850cdbcd324c28d5
   languageName: node
   linkType: hard
 
@@ -15862,6 +15871,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"undici@npm:^5.19.1, undici@npm:^5.8.0":
+  version: 5.28.2
+  resolution: "undici@npm:5.28.2"
+  dependencies:
+    "@fastify/busboy": ^2.0.0
+  checksum: f9e9335803f962fff07c3c11c6d50bbc76248bacf97035047155adb29c3622a65bd6bff23a22218189740133149d22e63b68131d8c40e78ac6cb4b6d686a6dfa
+  languageName: node
+  linkType: hard
+
 "unified@npm:^10.0.0":
   version: 10.1.2
   resolution: "unified@npm:10.1.2"
@@ -16305,6 +16323,52 @@ __metadata:
   dependencies:
     loose-envify: ^1.0.0
   checksum: 4f2cb6a9575e4faf71ddad9ad1ae7a00d0a75d24521c193fa464f30e6b04027bd97aa5d9546b0e13d3a150ab402eda216d59c1d0f2d6ca60124d96cd40dfa35c
+  languageName: node
+  linkType: hard
+
+"warp-isomorphic@npm:1.0.0":
+  version: 1.0.0
+  resolution: "warp-isomorphic@npm:1.0.0"
+  dependencies:
+    buffer: ^6.0.3
+    undici: ^5.8.0
+  checksum: e593eea4eba28b5e87157aca8e2ff35576f41df0953cd7adb06064b087abb52b2c4778dee6f8100e3a1deaf416270f5d212e34231d2b013340cc1f8af5f0590c
+  languageName: node
+  linkType: hard
+
+"warp-isomorphic@npm:^1.0.7":
+  version: 1.0.7
+  resolution: "warp-isomorphic@npm:1.0.7"
+  dependencies:
+    buffer: ^6.0.3
+    undici: ^5.19.1
+  checksum: 7e089dff97ebf98d910e638cae17630858ab3a67beb5b595b7dcc7d1456a7249a55317b261a2e5624dca4ba249f316953233bfabff2ee3100d3e7e388308a8ec
+  languageName: node
+  linkType: hard
+
+"warp-wasm-json-toolkit@npm:1.0.2":
+  version: 1.0.2
+  resolution: "warp-wasm-json-toolkit@npm:1.0.2"
+  dependencies:
+    buffer-pipe: 0.0.3
+    leb128: 0.0.4
+    warp-isomorphic: 1.0.0
+  bin:
+    json2wasm: bin/json2wasm
+    wasm2json: bin/wasm2json
+  checksum: 87dee2af1e66221651487fcfa6f8df822b51789eaba7eec90af7e01d2ecbf77b46600630b2eb6db624aa3ec0a24718c5c609b28f34f5a2540c506fca3fd6b1b3
+  languageName: node
+  linkType: hard
+
+"warp-wasm-metering@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "warp-wasm-metering@npm:1.0.1"
+  dependencies:
+    leb128: ^0.0.4
+    warp-wasm-json-toolkit: 1.0.2
+  bin:
+    wasm-meter: bin/wasm-meter
+  checksum: 446fa90476ca9c619773c30eba4e306b7b4f4140471775f1cb169f10d67d12497d2a55dcac5dfe3e7221138a6b85c720c9b16475a7479b1e0162ba7972eca921
   languageName: node
   linkType: hard
 

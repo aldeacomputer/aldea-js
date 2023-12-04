@@ -3,9 +3,12 @@
   "packageManager": "yarn@3.5.1",
   "type": "module",
   "main": "src/index.js",
+  "types": "types/index.d.ts",
   "dependencies": {
     "buffer-pipe": "^0.0.5",
     "leb128": "^0.0.5",
-    "safe-buffer": "^5.2.1"
+    "safe-buffer": "^5.2.1",
+    "warp-isomorphic": "^1.0.7",
+    "warp-wasm-metering": "^1.0.1"
   }
 }

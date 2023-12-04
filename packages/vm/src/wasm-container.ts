@@ -80,7 +80,6 @@ export class WasmContainer {
             WasmWord.fromNumber(argsBufPtr)
           ).toUInt()
         },
-
         get_prop: (targetOriginPtr: number, propNamePtr: number): number => {
           return this._currentExec.get().vmGetProp(this, WasmWord.fromNumber(targetOriginPtr), WasmWord.fromNumber(propNamePtr)).toUInt()
         },
