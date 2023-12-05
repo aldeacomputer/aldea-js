@@ -19,6 +19,10 @@ export class ExecOpts {
   originCheckHydroSize: bigint;
   originCheckMaxHydros: bigint;
 
+  // Number of new outputs
+  newJigHydroSize: bigint;
+  newJigMaxHydros: bigint;
+
   // Deploy cost
   deployHydroCost: bigint;
 
@@ -33,7 +37,9 @@ export class ExecOpts {
       numSigsMaxHydros: bigint,
       originCheckHydroSize: bigint,
       originCheckMaxHydros: bigint,
-      deployHydroCost: bigint
+      deployHydroCost: bigint,
+      newJigHydroSize: bigint,
+      newJigMaxHydros: bigint
   ) {
     this.wasmExecutionHydroSize = wasmExecutionHydroSize
     this.wasmExecutionMaxHydros = wasmExecutionMaxHydros
@@ -46,6 +52,8 @@ export class ExecOpts {
     this.originCheckHydroSize = originCheckHydroSize
     this.originCheckMaxHydros = originCheckMaxHydros
     this.deployHydroCost = deployHydroCost
+    this.newJigHydroSize = newJigHydroSize
+    this.newJigMaxHydros = newJigMaxHydros
   }
 
   static default () {
@@ -60,7 +68,9 @@ export class ExecOpts {
         this.defaultNumSigsMaxHydros,
         this.defaultOriginCheckHydroSize,
         this.defaultOriginCheckMaxHydros,
-        this.defaultDeployHydroCost
+        this.defaultDeployHydroCost,
+        this.defaultNewJigHydroSize,
+        this.defaultNewJigMaxHydros
     )
   }
 
@@ -78,6 +88,9 @@ export class ExecOpts {
 
   static defaultOriginCheckHydroSize: bigint = 1n;
   static defaultOriginCheckMaxHydros: bigint = 1000000n;
+
+  static defaultNewJigHydroSize: bigint = 1n
+  static defaultNewJigMaxHydros: bigint = 10000000n;
 
   static defaultDeployHydroCost: bigint = 1000n;
 }

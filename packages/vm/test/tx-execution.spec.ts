@@ -941,6 +941,25 @@ describe('execute txs', () => {
     expect(res.hydrosUsed).to.eql(504)
   })
 
+  it('count hydros for new ouputs', async () => {
+    const {exec: exec1} = fundedExec([])
+    const pkgStmt = exec1.import(modIdFor('flock'))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    const result1 = exec1.finalize();
+    expect(result1.hydrosUsed).to.eql(8)
+    storage.persistExecResult(result1)
+
+    const {exec: exec2} = fundedExec([])
+
+    exec2.load(result1.outputs[1].hash)
+    exec2.load(result1.outputs[2].hash)
+    exec2.load(result1.outputs[3].hash)
+    const result2 = exec2.finalize()
+    expect(result2.hydrosUsed).to.eql(5)
+  })
+
   // it('receives right amount from properties of foreign jigs', () => {
   //   const flockPkg = exec.importModule(modIdFor('flock')).asInstance
   //   const sheepCountPkg = exec.importModule(modIdFor('sheep-counter')).asInstance

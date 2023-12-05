@@ -64,6 +64,10 @@ export class DiscretCounter {
     this.hydros = 0n
     return res
   }
+
+  inc () {
+    this.add(1n)
+  }
 }
 
 
@@ -73,6 +77,7 @@ export class Measurements {
   numContainers: DiscretCounter;
   numSigs: DiscretCounter;
   originChecks: DiscretCounter;
+  newJigs: DiscretCounter;
   deploys: DiscretCounter;
 
   constructor (opts: ExecOpts) {
@@ -81,6 +86,7 @@ export class Measurements {
     this.numContainers = new DiscretCounter('Num Containers', opts.numContHydroSize, opts.numContMaxHydros)
     this.numSigs = new DiscretCounter('Num Sigs', opts.numSigsHydroSize, opts.numSigsMaxHydros)
     this.originChecks = new DiscretCounter('Load By Origin', opts.originCheckHydroSize, opts.originCheckMaxHydros)
+    this.newJigs = new DiscretCounter('New Jigs', opts.newJigHydroSize, opts.newJigMaxHydros)
     this.deploys = new DiscretCounter('Deploys', 1n, 30000n)
   }
 
@@ -90,6 +96,7 @@ export class Measurements {
         this.numContainers.clear() +
         this.numSigs.clear() +
         this.originChecks.clear() +
+        this.newJigs.clear() +
         this.deploys.clear();
   }
 }
@@ -230,7 +237,7 @@ class TxExecution {
   }
 
   loadByOrigin (originBytes: Uint8Array): StatementResult {
-    this.measurements.originChecks.add(1n)
+    this.measurements.originChecks.inc()
     const origin = Pointer.fromBytes(originBytes)
     const output = this.execContext.inputByOrigin(origin)
     const jigRef = this.hydrate(output)
@@ -406,7 +413,7 @@ class TxExecution {
     const container = this.execContext.wasmFromPkgId(modId)
     container.setExecution(this)
     this.wasms.set(container.id, container)
-    this.measurements.numContainers.add(1n)
+    this.measurements.numContainers.inc()
     return container
   }
 
@@ -497,6 +504,7 @@ class TxExecution {
   // Assemblyscrypt callbacks
 
   vmJigInit (from: WasmContainer): WasmWord {
+    this.measurements.newJigs.inc()
     const nextOrigin = this.nextOrigin.get()
     const jigInitParams = new JigInitParams(
       nextOrigin,
