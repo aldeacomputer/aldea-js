@@ -932,6 +932,15 @@ describe('execute txs', () => {
     expect(result2.hydrosUsed).to.eql(8)
   })
 
+  it('count hydros for compile', async () => {
+    const opts = ExecOpts.default()
+    opts.deployHydroCost = 500n
+    const {exec} = fundedExec([], opts)
+    await exec.deploy(['index.ts'], new Map([['index.ts', 'export class A extends Jig {}']]))
+    const res = exec.finalize()
+    expect(res.hydrosUsed).to.eql(504)
+  })
+
   // it('receives right amount from properties of foreign jigs', () => {
   //   const flockPkg = exec.importModule(modIdFor('flock')).asInstance
   //   const sheepCountPkg = exec.importModule(modIdFor('sheep-counter')).asInstance

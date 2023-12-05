@@ -72,7 +72,8 @@ export class Measurements {
   wasmExecuted: DiscretCounter;
   numContainers: DiscretCounter;
   numSigs: DiscretCounter;
-  originChecks: DiscretCounter
+  originChecks: DiscretCounter;
+  deploys: DiscretCounter;
 
   constructor (opts: ExecOpts) {
     this.movedData = new DiscretCounter('Moved Data', opts.moveDataHydroSize, opts.moveDataMaxHydros)
@@ -80,6 +81,7 @@ export class Measurements {
     this.numContainers = new DiscretCounter('Num Containers', opts.numContHydroSize, opts.numContMaxHydros)
     this.numSigs = new DiscretCounter('Num Sigs', opts.numSigsHydroSize, opts.numSigsMaxHydros)
     this.originChecks = new DiscretCounter('Load By Origin', opts.originCheckHydroSize, opts.originCheckMaxHydros)
+    this.deploys = new DiscretCounter('Deploys', 1n, 30000n)
   }
 
   clear () {
@@ -87,7 +89,8 @@ export class Measurements {
         this.wasmExecuted.clear() +
         this.numContainers.clear() +
         this.numSigs.clear() +
-        this.originChecks.clear();
+        this.originChecks.clear() +
+        this.deploys.clear();
   }
 }
 
@@ -101,7 +104,7 @@ class TxExecution {
   private fundAmount: number;
   private affectedJigs: JigRef[]
   private nextOrigin: Option<Pointer>
-  // private opts: ExecOpts
+  private opts: ExecOpts
   private measurements: Measurements;
 
   constructor (context: ExecContext, opts: ExecOpts) {
@@ -114,7 +117,7 @@ class TxExecution {
     this.deployments = []
     this.affectedJigs = []
     this.nextOrigin = Option.none()
-    // this.opts = opts
+    this.opts = opts
     this.measurements = new Measurements(opts)
     this.measurements.numSigs.add(BigInt(this.execContext.signers().length))
   }
@@ -383,6 +386,7 @@ class TxExecution {
   }
 
   async deploy (entryPoint: string[], sources: Map<string, string>): Promise<StatementResult> {
+    this.measurements.deploys.add(this.opts.deployHydroCost)
     const pkgData = await this.execContext.compile(entryPoint, sources)
     this.deployments.push(pkgData)
     const wasm = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
