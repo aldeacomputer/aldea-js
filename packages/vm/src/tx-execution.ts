@@ -37,7 +37,7 @@ export class DiscretCounter {
     this.tag = tag
     this.total = 0n
     this.count = 0n
-    this.hydros = 1n
+    this.hydros = 0n
     this.hydroSize = hydroSize
     this.maxHydros = maxHydros
   }
@@ -54,10 +54,15 @@ export class DiscretCounter {
     }
   }
 
-  clear () {
+  clear (): number {
+    let res = Number(this.hydros)
+    if (this.count > 0n) {
+      res +=1
+    }
     this.total = 0n
     this.count = 0n
     this.hydros = 0n
+    return res
   }
 }
 
@@ -65,17 +70,24 @@ export class DiscretCounter {
 export class Measurements {
   movedData: DiscretCounter;
   wasmExecuted: DiscretCounter;
+  numContainers: DiscretCounter;
+  numSigs: DiscretCounter;
+  originChecks: DiscretCounter
+
   constructor (opts: ExecOpts) {
     this.movedData = new DiscretCounter('Moved Data', opts.moveDataHydroSize, opts.moveDataMaxHydros)
     this.wasmExecuted = new DiscretCounter('Raw Execution', opts.wasmExecutionHydroSize, opts.wasmExecutionMaxHydros)
+    this.numContainers = new DiscretCounter('Num Containers', opts.numContHydroSize, opts.numContMaxHydros)
+    this.numSigs = new DiscretCounter('Num Sigs', opts.numSigsHydroSize, opts.numSigsMaxHydros)
+    this.originChecks = new DiscretCounter('Load By Origin', opts.originCheckHydroSize, opts.originCheckMaxHydros)
   }
 
   clear () {
-    this.movedData.clear()
-  }
-
-  allHydros () {
-    return 3 + Number(this.movedData.hydros) + Number(this.wasmExecuted.hydros);
+    return this.movedData.clear() +
+        this.wasmExecuted.clear() +
+        this.numContainers.clear() +
+        this.numSigs.clear() +
+        this.originChecks.clear();
   }
 }
 
@@ -89,7 +101,7 @@ class TxExecution {
   private fundAmount: number;
   private affectedJigs: JigRef[]
   private nextOrigin: Option<Pointer>
-  private opts: ExecOpts
+  // private opts: ExecOpts
   private measurements: Measurements;
 
   constructor (context: ExecContext, opts: ExecOpts) {
@@ -102,8 +114,9 @@ class TxExecution {
     this.deployments = []
     this.affectedJigs = []
     this.nextOrigin = Option.none()
-    this.opts = opts
+    // this.opts = opts
     this.measurements = new Measurements(opts)
+    this.measurements.numSigs.add(BigInt(this.execContext.signers().length))
   }
 
   finalize (): ExecutionResult {
@@ -158,8 +171,7 @@ class TxExecution {
     this.wasms = new Map()
     this.jigs = []
     this.statements = []
-    result.setHydrosUsed(this.measurements.allHydros())
-    this.measurements.clear()
+    result.setHydrosUsed(this.measurements.clear())
     result.finish()
     return result
   }
@@ -215,6 +227,7 @@ class TxExecution {
   }
 
   loadByOrigin (originBytes: Uint8Array): StatementResult {
+    this.measurements.originChecks.add(1n)
     const origin = Pointer.fromBytes(originBytes)
     const output = this.execContext.inputByOrigin(origin)
     const jigRef = this.hydrate(output)
@@ -389,6 +402,7 @@ class TxExecution {
     const container = this.execContext.wasmFromPkgId(modId)
     container.setExecution(this)
     this.wasms.set(container.id, container)
+    this.measurements.numContainers.add(1n)
     return container
   }
 

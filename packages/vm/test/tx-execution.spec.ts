@@ -801,7 +801,7 @@ describe('execute txs', () => {
     // 1 unit of raw execution
     // 1 new output created
 
-    const {exec, txHash} = fundedExec()
+    const {exec} = fundedExec()
     const mod = exec.import(modIdFor('flock'))
     const instanceIndex = exec.instantiate(mod.idx, 0, new Uint8Array([0]))
     exec.lockJig(instanceIndex.idx, userAddr)
@@ -852,8 +852,8 @@ describe('execute txs', () => {
 
     it('throws if data transfer is bigger than conf limit', () => {
       const opts = ExecOpts.default();
-      opts.moveDataMaxHydros = 1n
-      opts.moveDataHydroSize = 2000n // 2k is not enogh because data has to be lifted and lowered
+      opts.moveDataMaxHydros = 3n
+      opts.moveDataHydroSize = 500n // 1.5k is not enough because data is lifted and lowered
       const {exec} = fundedExec([], opts)
       const receiverCont = exec.import(receiverHash)
       const senderCont =  exec.import(senderHash)
@@ -862,8 +862,7 @@ describe('execute txs', () => {
 
       expect(() =>
           exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1001]))
-      ).to.throw(ExecutionError, 'Max hydros for Moved Data (1) was over passed')
-
+      ).to.throw(ExecutionError, 'Max hydros for Moved Data (3) was over passed')
     })
 
     it('works if transfer is big enough', () => {
@@ -891,9 +890,47 @@ describe('execute txs', () => {
 
       exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1000]))
       const result = exec.finalize()
-      expect(result.hydrosUsed).to.within(20, 25)
+      expect(result.hydrosUsed).to.within(25, 30)
     })
   });
+
+  it('adds hydros based on each container created', () => {
+    const {exec} = fundedExec()
+    exec.import(modIdFor('flock'))
+    exec.import(modIdFor('sheep'))
+    const result = exec.finalize()
+    expect(result.hydrosUsed).to.eql(6)
+  })
+
+  it('adds hydros based on each signer', () => {
+    const key1 = PrivKey.fromRandom()
+    const key2 = PrivKey.fromRandom()
+    const key3 = PrivKey.fromRandom()
+    const {exec} = fundedExec([key1, key2, key3])
+    exec.sign(new Uint8Array(), new Uint8Array)
+    exec.sign(new Uint8Array(), new Uint8Array)
+    exec.sign(new Uint8Array(), new Uint8Array)
+    const result = exec.finalize()
+    expect(result.hydrosUsed).to.eql(7)
+  })
+
+  it('adds hydros based on each load by origin', () => {
+    const {exec: exec1} = fundedExec([])
+    const pkgStmt = exec1.import(modIdFor('flock'))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    const result1 = exec1.finalize();
+    storage.persistExecResult(result1)
+
+    const {exec: exec2} = fundedExec([])
+
+    exec2.loadByOrigin(result1.outputs[1].origin.toBytes())
+    exec2.loadByOrigin(result1.outputs[2].origin.toBytes())
+    exec2.loadByOrigin(result1.outputs[3].origin.toBytes())
+    const result2 = exec2.finalize()
+    expect(result2.hydrosUsed).to.eql(8)
+  })
 
   // it('receives right amount from properties of foreign jigs', () => {
   //   const flockPkg = exec.importModule(modIdFor('flock')).asInstance
