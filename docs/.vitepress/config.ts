@@ -40,7 +40,6 @@ export default defineConfig({
             { text: 'Jigs', link: '/learn/jigs' },
             { text: 'Packages', link: '/learn/packages' },
             { text: 'Transactions', link: '/learn/transactions' },
-            { text: 'Blocks', link: '/learn/blocks' },
           ]
         },
       ],
