@@ -1,7 +1,7 @@
 import {Abi} from "@aldea/core/abi";
 import {TxExecution} from "./tx-execution.js";
 import {AbiAccess} from "./memory/abi-helpers/abi-access.js";
-import {NewMemory} from "./new-memory.js";
+import {MemoryProxy} from "./memory-proxy.js";
 import {WasmWord} from "./wasm-word.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {Option} from "./support/option.js";
@@ -25,7 +25,7 @@ export class WasmContainer {
   private module: WebAssembly.Module;
   private instance: WebAssembly.Instance;
   abi: AbiAccess;
-  private newMemory: NewMemory;
+  private _mem: MemoryProxy;
   lifter: ValueLifter
   low: LowerValue
 
@@ -34,7 +34,7 @@ export class WasmContainer {
     this.abi = new AbiAccess(abi)
     const wasmMemory = new WebAssembly.Memory({initial: 1, maximum: 1})
     this._currentExec = Option.none()
-    this.newMemory = new NewMemory(wasmMemory)
+    this._mem = new MemoryProxy(wasmMemory, (size) => this.onDataMoved(size))
 
     this.lifter = new ValueLifter(this)
     this.low = new LowerValue(this, (p) => this._currentExec.get().getJigData(p))
@@ -136,12 +136,16 @@ export class WasmContainer {
     this.memory = wasmMemory
   }
 
+  private onDataMoved(size: number): void {
+    this._currentExec.get().onDataMoved(size)
+  }
+
   get id (): string {
     return base16.encode(this.hash)
   }
 
-  get mem (): NewMemory {
-    return this.newMemory
+  get mem (): MemoryProxy {
+    return this._mem
   }
 
   get currentExec (): Option<TxExecution> {

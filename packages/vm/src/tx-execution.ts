@@ -21,8 +21,85 @@ import {JigInitParams} from "./jig-init-params.js";
 import {ArgsTranslator} from "./args-translator.js";
 import {CodeKind} from "@aldea/core/abi";
 import {AbiArg} from "./memory/abi-helpers/abi-arg.js";
+import {ExecOpts} from "./export-opts.js";
 
 export const MIN_FUND_AMOUNT = 100
+
+export class DiscretCounter {
+  private tag: string;
+  private total: bigint
+  private count: bigint
+  private hydroSize: bigint
+  hydros: bigint
+  private maxHydros: bigint;
+
+  constructor (tag: string, hydroSize: bigint, maxHydros: bigint) {
+    this.tag = tag
+    this.total = 0n
+    this.count = 0n
+    this.hydros = 0n
+    this.hydroSize = hydroSize
+    this.maxHydros = maxHydros
+  }
+
+  add(amount: bigint) {
+    this.total += amount
+    this.count += amount
+    const newHydros = this.count / this.hydroSize
+    this.hydros += newHydros
+    this.count = this.count % this.hydroSize
+
+    if (this.hydros > this.maxHydros) {
+      throw new ExecutionError(`Max hydros for ${this.tag} (${this.maxHydros}) was over passed`)
+    }
+  }
+
+  clear (): number {
+    let res = Number(this.hydros)
+    if (this.count > 0n) {
+      res +=1
+    }
+    this.total = 0n
+    this.count = 0n
+    this.hydros = 0n
+    return res
+  }
+
+  inc () {
+    this.add(1n)
+  }
+}
+
+
+export class Measurements {
+  movedData: DiscretCounter;
+  wasmExecuted: DiscretCounter;
+  numContainers: DiscretCounter;
+  numSigs: DiscretCounter;
+  originChecks: DiscretCounter;
+  newJigs: DiscretCounter;
+  deploys: DiscretCounter;
+
+  constructor (opts: ExecOpts) {
+    this.movedData = new DiscretCounter('Moved Data', opts.moveDataHydroSize, opts.moveDataMaxHydros)
+    this.wasmExecuted = new DiscretCounter('Raw Execution', opts.wasmExecutionHydroSize, opts.wasmExecutionMaxHydros)
+    this.numContainers = new DiscretCounter('Num Containers', opts.numContHydroSize, opts.numContMaxHydros)
+    this.numSigs = new DiscretCounter('Num Sigs', opts.numSigsHydroSize, opts.numSigsMaxHydros)
+    this.originChecks = new DiscretCounter('Load By Origin', opts.originCheckHydroSize, opts.originCheckMaxHydros)
+    this.newJigs = new DiscretCounter('New Jigs', opts.newJigHydroSize, opts.newJigMaxHydros)
+    this.deploys = new DiscretCounter('Deploys', 1n, 30000n)
+  }
+
+  clear () {
+    return this.movedData.clear() +
+        this.wasmExecuted.clear() +
+        this.numContainers.clear() +
+        this.numSigs.clear() +
+        this.originChecks.clear() +
+        this.newJigs.clear() +
+        this.deploys.clear();
+  }
+}
 
 class TxExecution {
   execContext: ExecContext;
@@ -34,9 +111,10 @@ class TxExecution {
   private fundAmount: number;
   private affectedJigs: JigRef[]
   private nextOrigin: Option<Pointer>
-  private gasUsed: bigint
+  private opts: ExecOpts
+  private measurements: Measurements;
 
-  constructor (context: ExecContext) {
+  constructor (context: ExecContext, opts: ExecOpts) {
     this.execContext = context
     this.jigs = []
     this.wasms = new Map()
@@ -46,7 +124,9 @@ class TxExecution {
     this.deployments = []
     this.affectedJigs = []
     this.nextOrigin = Option.none()
-    this.gasUsed = 0n
+    this.opts = opts
+    this.measurements = new Measurements(opts)
+    this.measurements.numSigs.add(BigInt(this.execContext.signers().length))
   }
 
   finalize (): ExecutionResult {
@@ -101,7 +181,7 @@ class TxExecution {
     this.wasms = new Map()
     this.jigs = []
     this.statements = []
-    this.gasUsed = 0n
+    result.setHydrosUsed(this.measurements.clear())
     result.finish()
     return result
   }
@@ -157,6 +237,7 @@ class TxExecution {
   }
 
   loadByOrigin (originBytes: Uint8Array): StatementResult {
+    this.measurements.originChecks.inc()
     const origin = Pointer.fromBytes(originBytes)
     const output = this.execContext.inputByOrigin(origin)
     const jigRef = this.hydrate(output)
@@ -312,6 +393,7 @@ class TxExecution {
   }
 
   async deploy (entryPoint: string[], sources: Map<string, string>): Promise<StatementResult> {
+    this.measurements.deploys.add(this.opts.deployHydroCost)
     const pkgData = await this.execContext.compile(entryPoint, sources)
     this.deployments.push(pkgData)
     const wasm = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
@@ -331,6 +413,7 @@ class TxExecution {
     const container = this.execContext.wasmFromPkgId(modId)
     container.setExecution(this)
     this.wasms.set(container.id, container)
+    this.measurements.numContainers.inc()
     return container
   }
 
@@ -408,11 +491,20 @@ class TxExecution {
   }
 
 
-  /*
-   * Callbacks
-   */
+  // =========
+  // Callbacks
+  // =========
+
+  // Metering callbacks
+
+  onDataMoved (size: number) {
+    this.measurements.movedData.add(BigInt(size))
+  }
+
+  // Assemblyscrypt callbacks
 
   vmJigInit (from: WasmContainer): WasmWord {
+    this.measurements.newJigs.inc()
     const nextOrigin = this.nextOrigin.get()
     const jigInitParams = new JigInitParams(
       nextOrigin,
@@ -681,10 +773,7 @@ class TxExecution {
   }
 
   vmMeter (gasUsed: bigint) {
-    this.gasUsed += gasUsed
-    if (this.gasUsed > 99999999) {
-      throw new ExecutionError('out of gas')
-    }
+    this.measurements.wasmExecuted.add(gasUsed)
   }
 }
 

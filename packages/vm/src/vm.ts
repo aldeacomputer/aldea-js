@@ -19,6 +19,7 @@ import {
   NewInstruction,
   ExecInstruction, FundInstruction, LockInstruction, DeployInstruction, SignInstruction, SignToInstruction
 } from "@aldea/core/instructions";
+import {ExecOpts} from "./export-opts.js";
 
 // Magic Coin Pkg ID
 const COIN_PKG_ID = new Uint8Array([
@@ -42,7 +43,7 @@ export class VM {
 
   async execTx(tx: Tx): Promise<ExecutionResult> {
     const context = new StorageTxContext(tx.hash, tx.signers(), this.storage, this)
-    const currentExec = new TxExecution(context)
+    const currentExec = new TxExecution(context, ExecOpts.default())
 
     for (const inst of tx.instructions) {
       switch (inst.opcode) {

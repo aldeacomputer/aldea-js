@@ -9,10 +9,11 @@ import {randomBytes} from "@aldea/core/support/util";
 import {Abi, AbiQuery} from "@aldea/core/abi";
 import {AbiAccess} from "../src/memory/abi-helpers/abi-access.js";
 import {expect} from "chai";
+import {ExecOpts} from "../src/export-opts.js";
 
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 
-export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () => VM) => (privKeys: PrivKey[] = []) => {
+export const fundedExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () => VM) => (privKeys: PrivKey[] = [], opts: ExecOpts = ExecOpts.default()) => {
   const storage = lazyStorage()
   const vm = lazyVm()
   const txHash = randomBytes(32)
@@ -21,7 +22,7 @@ export const emptyExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () =
   const pubKeys = [coinPriv, ...privKeys].map(p => p.toPubKey())
 
   const context = new StorageTxContext(txHash, pubKeys, storage, vm)
-  const exec = new TxExecution(context)
+  const exec = new TxExecution(context, opts)
   const output = vm.mint(pubKeys[0].toAddress(), 100, new Uint8Array(32).fill(1))
 
   const stmt =  exec.load(output.hash)
@@ -66,20 +67,17 @@ export type CallData = [
   Uint8Array
 ]
 export class ArgsBuilder {
-  private readonly pkgName: string;
-  private readonly abiFor: (key: string) => Abi;
-  constructor (pkgName: string, abiFor: (key: string) => Abi) {
-    this.pkgName = pkgName
-    this.abiFor = abiFor
+  private readonly abi: Abi;
+  constructor (abi: Abi) {
+    this.abi = abi
   }
 
   method(className: string, methodName: string, args: any[]): CallData {
-    const abi = this.abiFor(this.pkgName)
-    const abiAccess = new AbiAccess(abi)
+    const abiAccess = new AbiAccess(this.abi)
 
     const cls = abiAccess.exportedByName(className).get().toAbiClass()
     const method = cls.methodByName(methodName).get()
-    const bcs = new BCS(abi)
+    const bcs = new BCS(this.abi)
     return [
       method.idx,
       bcs.encode(`${className}_${methodName}`, args)
@@ -87,11 +85,10 @@ export class ArgsBuilder {
   }
 
   constr(className: string, args: any[]): CallData {
-    const abi = this.abiFor(this.pkgName)
-    const abiAccess = new AbiAccess(abi)
+    const abiAccess = new AbiAccess(this.abi)
     const abiClass = abiAccess.exportedByName(className).get().toAbiClass()
 
-    const bcs = new BCS(abi)
+    const bcs = new BCS(this.abi)
 
     return [
       abiClass.idx,
@@ -100,9 +97,8 @@ export class ArgsBuilder {
   }
 
   exec(fnName: string, args: any[]): CallData {
-    const abi = this.abiFor(this.pkgName);
-    const bcs = new BCS(abi)
-    const query = new AbiQuery(abi)
+    const bcs = new BCS(this.abi)
+    const query = new AbiQuery(this.abi)
     const idx = query.fromExports().allCode().findIndex(c => c.name === fnName)
 
     return [idx, bcs.encode(fnName, args)]

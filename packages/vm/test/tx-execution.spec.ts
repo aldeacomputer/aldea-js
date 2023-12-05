@@ -2,7 +2,7 @@ import {Storage, VM} from '../src/index.js'
 import {expect} from 'chai'
 import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, PubKey, ref} from "@aldea/core";
 import {Abi} from '@aldea/core/abi';
-import {ArgsBuilder, buildVm, emptyExecFactoryFactory, parseOutput} from "./util.js";
+import {ArgsBuilder, buildVm, fundedExecFactoryFactory, parseOutput} from "./util.js";
 import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {TxExecution} from "../src/tx-execution.js";
@@ -10,6 +10,7 @@ import {StatementResult} from "../src/statement-result.js";
 import {ExecutionResult} from "../src/index.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import {randomBytes} from "@aldea/core/support/util";
+import {ExecOpts} from "../src/export-opts.js";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -44,18 +45,18 @@ describe('execute txs', () => {
     abiFor = (key: string) => storage.getPkg(base16.encode(modIdFor(key))).get().abi
     abiForCoin = () => storage.getPkg(COIN_CLS_PTR.id).get().abi
     modIdFor = data.modIdFor
-    flockArgs = new ArgsBuilder('flock', abiFor)
-    ctrArgs = new ArgsBuilder('sheep-counter', abiFor)
-    antArgs = new ArgsBuilder('ant', abiFor)
-    sheepArgs = new ArgsBuilder('sheep', abiFor)
-    coinEaterArgs = new ArgsBuilder('coin-eater', abiFor)
+    flockArgs = new ArgsBuilder(abiFor('flock'))
+    ctrArgs = new ArgsBuilder(abiFor('sheep-counter'))
+    antArgs = new ArgsBuilder(abiFor('ant'))
+    sheepArgs = new ArgsBuilder(abiFor('sheep'))
+    coinEaterArgs = new ArgsBuilder(abiFor('coin-eater'))
   })
 
-  const fundedExec = emptyExecFactoryFactory(() => storage, () => vm)
+  const fundedExec = fundedExecFactoryFactory(() => storage, () => vm)
   const emptyExec = (pubKeys: PubKey[] = []) => {
     const txHash = randomBytes(32)
     const context = new StorageTxContext(txHash, pubKeys, storage, vm)
-    return new TxExecution(context)
+    return new TxExecution(context, ExecOpts.default())
   }
 
 
@@ -512,7 +513,7 @@ describe('execute txs', () => {
   it('fails if not enough fees there', () => {
     const txHash = new Uint8Array(32).fill(10)
     const context = new StorageTxContext(txHash, [userPriv.toPubKey()], storage, vm)
-    const exec = new TxExecution(context)
+    const exec = new TxExecution(context, ExecOpts.default())
     const coin = vm.mint(userAddr, 10)
     const stmt = exec.load(coin.hash)
     exec.fund(stmt.idx)
@@ -734,40 +735,229 @@ describe('execute txs', () => {
     })
   })
 
+  type WithPackageResult = { pkgHash: Uint8Array, pkgAbi: Abi  }
+  async function withPackage(src: string): Promise<WithPackageResult> {
+    const {exec: exec1} = fundedExec()
+    await exec1.deploy(['a.ts'], new Map([['a.ts', src]]))
+    const res = exec1.finalize()
+    storage.persistExecResult(res)
+
+    return {pkgHash: res.deploys[0].hash, pkgAbi: res.deploys[0].abi}
+
+  }
+
   describe('for a while true', () => {
     let pkgHash: Uint8Array
-    let pkgAbi: Abi
+    let args: ArgsBuilder
     beforeEach(async () => {
       let src = `
         export class NeverEnds extends Jig {
-          m1(): void {
-            let i: u64 = 99999999;
+          m1(loops: u64): void {
+            let i: u64 = loops;
             while (i > 0) {
               i--;
             }
           }
         }
       `
-
-      const {exec: exec1} = fundedExec()
-      await exec1.deploy(['a.ts'], new Map([['a.ts', src]]))
-      const res = exec1.finalize()
-      pkgHash = res.deploys[0].hash
-      pkgAbi = res.deploys[0].abi
-
-      storage.persistExecResult(res)
+      const { pkgHash: hash, pkgAbi } = await withPackage(src)
+      pkgHash = hash
+      args = new ArgsBuilder(pkgAbi)
     })
 
-    it('ends with an error', () => {
-      const { exec } = fundedExec()
+    it('ends with an error when gas usage goes over config.', () => {
+      const opts = ExecOpts.default()
+      opts.wasmExecutionMaxHydros = 1n
+      opts.wasmExecutionHydroSize = 10000n
+      const { exec } = fundedExec([], opts)
 
       let pkgStmt = exec.import(pkgHash)
       const jig = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
 
       expect(() =>
-          exec.call(jig.idx, 0, new Uint8Array([0]))
-      ).to.throw(ExecutionError, 'out of gas')
+          exec.call(jig.idx, ...args.method('NeverEnds', 'm1', [10000n]))
+      ).to.throw(ExecutionError, 'Max hydros for Raw Execution (1) was over passed')
     })
+
+    it('does not throw when gas usage is big enough.', () => {
+      const opts = ExecOpts.default()
+      opts.wasmExecutionMaxHydros = 2n
+      opts.wasmExecutionHydroSize = 1000000n
+      const { exec } = fundedExec([], opts)
+
+      let pkgStmt = exec.import(pkgHash)
+      const jig = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+
+      expect(() =>
+          exec.call(jig.idx, ...args.method('NeverEnds', 'm1', [1000n]))
+      ).not.to.throw()
+    })
+  })
+
+  it('a basic execution uses 5 hydros ', () => {
+    // 1 container
+    // 1 signature
+    // 1 unit of data moved
+    // 1 unit of raw execution
+    // 1 new output created
+
+    const {exec} = fundedExec()
+    const mod = exec.import(modIdFor('flock'))
+    const instanceIndex = exec.instantiate(mod.idx, 0, new Uint8Array([0]))
+    exec.lockJig(instanceIndex.idx, userAddr)
+    const result = exec.finalize()
+    expect(result.hydrosUsed).to.eql(5) // Implicit fund output
+  })
+
+  describe('move data limits', () => {
+    let receiverHash: Uint8Array
+    let senderHash: Uint8Array
+    let senderArgs: ArgsBuilder
+    beforeEach(async () => {
+      const receiverSrc = `
+        export class Receiver extends Jig {
+          count: u32 = 0;
+          m1(buf: Uint8Array): u32 {
+            this.count = buf.length
+            return this.count
+          }
+        }
+      `
+
+      const { pkgHash: hash1 } = await withPackage(receiverSrc)
+      receiverHash = hash1
+
+
+      const senderSrc = `
+        export class Sender extends Jig {
+          res: u32 = 0;
+          m1(receiver: Receiver, length: u32): u32 {
+            const buf = new Uint8Array(length);
+            buf.fill(1);
+            const res = receiver.m1(buf)
+            this.res = res
+            return res
+          }
+        }
+        
+        @imported('${base16.encode(receiverHash)}')
+        declare class Receiver {
+          m1(buf: Uint8Array): u32
+        }
+      `
+      const { pkgHash: hash2, pkgAbi: abi } = await withPackage(senderSrc)
+      senderHash = hash2
+      senderArgs = new ArgsBuilder(abi)
+    })
+
+    it('throws if data transfer is bigger than conf limit', () => {
+      const opts = ExecOpts.default();
+      opts.moveDataMaxHydros = 3n
+      opts.moveDataHydroSize = 500n // 1.5k is not enough because data is lifted and lowered
+      const {exec} = fundedExec([], opts)
+      const receiverCont = exec.import(receiverHash)
+      const senderCont =  exec.import(senderHash)
+      const receiver = exec.instantiate(receiverCont.idx, 0, new Uint8Array([0]))
+      const sender = exec.instantiate(senderCont.idx, 0, new Uint8Array([0]))
+
+      expect(() =>
+          exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1001]))
+      ).to.throw(ExecutionError, 'Max hydros for Moved Data (3) was over passed')
+    })
+
+    it('works if transfer is big enough', () => {
+      const opts = ExecOpts.default();
+      opts.moveDataMaxHydros = 2050n // It needs at least 2k because data has to be lifted and lowered
+      const {exec} = fundedExec([], opts)
+      const receiverCont = exec.import(receiverHash)
+      const senderCont =  exec.import(senderHash)
+      const receiver = exec.instantiate(receiverCont.idx, 0, new Uint8Array([0]))
+      const sender = exec.instantiate(senderCont.idx, 0, new Uint8Array([0]))
+
+      expect(() =>
+          exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1000]))
+      ).not.to.throw()
+    })
+
+    it('adds hidros according to the data transfered', () => {
+      const opts = ExecOpts.default();
+      opts.moveDataHydroSize = 100n;
+      const {exec} = fundedExec([], opts)
+      const receiverCont = exec.import(receiverHash)
+      const senderCont =  exec.import(senderHash)
+      const receiver = exec.instantiate(receiverCont.idx, 0, new Uint8Array([0]))
+      const sender = exec.instantiate(senderCont.idx, 0, new Uint8Array([0]))
+
+      exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1000]))
+      const result = exec.finalize()
+      expect(result.hydrosUsed).to.within(25, 30)
+    })
+  });
+
+  it('adds hydros based on each container created', () => {
+    const {exec} = fundedExec()
+    exec.import(modIdFor('flock'))
+    exec.import(modIdFor('sheep'))
+    const result = exec.finalize()
+    expect(result.hydrosUsed).to.eql(6)
+  })
+
+  it('adds hydros based on each signer', () => {
+    const key1 = PrivKey.fromRandom()
+    const key2 = PrivKey.fromRandom()
+    const key3 = PrivKey.fromRandom()
+    const {exec} = fundedExec([key1, key2, key3])
+    exec.sign(new Uint8Array(), new Uint8Array)
+    exec.sign(new Uint8Array(), new Uint8Array)
+    exec.sign(new Uint8Array(), new Uint8Array)
+    const result = exec.finalize()
+    expect(result.hydrosUsed).to.eql(7)
+  })
+
+  it('adds hydros based on each load by origin', () => {
+    const {exec: exec1} = fundedExec([])
+    const pkgStmt = exec1.import(modIdFor('flock'))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    const result1 = exec1.finalize();
+    storage.persistExecResult(result1)
+
+    const {exec: exec2} = fundedExec([])
+
+    exec2.loadByOrigin(result1.outputs[1].origin.toBytes())
+    exec2.loadByOrigin(result1.outputs[2].origin.toBytes())
+    exec2.loadByOrigin(result1.outputs[3].origin.toBytes())
+    const result2 = exec2.finalize()
+    expect(result2.hydrosUsed).to.eql(8)
+  })
+
+  it('count hydros for compile', async () => {
+    const opts = ExecOpts.default()
+    opts.deployHydroCost = 500n
+    const {exec} = fundedExec([], opts)
+    await exec.deploy(['index.ts'], new Map([['index.ts', 'export class A extends Jig {}']]))
+    const res = exec.finalize()
+    expect(res.hydrosUsed).to.eql(504)
+  })
+
+  it('count hydros for new ouputs', async () => {
+    const {exec: exec1} = fundedExec([])
+    const pkgStmt = exec1.import(modIdFor('flock'))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    const result1 = exec1.finalize();
+    expect(result1.hydrosUsed).to.eql(8)
+    storage.persistExecResult(result1)
+
+    const {exec: exec2} = fundedExec([])
+
+    exec2.load(result1.outputs[1].hash)
+    exec2.load(result1.outputs[2].hash)
+    exec2.load(result1.outputs[3].hash)
+    const result2 = exec2.finalize()
+    expect(result2.hydrosUsed).to.eql(5)
   })
 
   // it('receives right amount from properties of foreign jigs', () => {
