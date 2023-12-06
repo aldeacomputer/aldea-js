@@ -1,5 +1,5 @@
 import test from 'ava'
-import { compile } from '../dist/compiler.js'
+import { compile } from '@aldea/compiler'
 
 // template for adding root level statements
 function stmtCode(code) {

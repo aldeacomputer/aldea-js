@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<script type="module">
+  import { compile } from './dist/compiler.bundle.js'
+  const pkg = 'export class Test extends Jig {}'
+  console.log('starting compile')
+  console.log('compiling:', pkg)
+  try {
+    const res = await compile(pkg)
+    console.log(res.stdout.toString())
+  } catch(e) {
+    console.log(e.stderr.toString())
+  }
+  console.log('compile success')
+</script>
+
+</html>

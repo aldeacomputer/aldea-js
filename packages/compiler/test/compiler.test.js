@@ -1,7 +1,7 @@
 import test from 'ava'
 import { abiFromBin } from '@aldea/core'
 import { MethodKind } from '@aldea/core/abi'
-import { compile } from '../dist/compiler.js'
+import { compile } from '@aldea/compiler'
 
 test('compiles single source', async t => {
   await t.notThrowsAsync(() => compile('export class Test extends Jig {}'))
