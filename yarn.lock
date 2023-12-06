@@ -75,7 +75,7 @@ __metadata:
   resolution: "@aldea/compiler@workspace:packages/compiler"
   dependencies:
     "@aldea/core": "workspace:^"
-    "@aldea/wasm-toolkit": "workspace:^"
+    "@aldea/wasm-metering": "workspace:^"
     "@as-pect/cli": ^8.1.0
     "@assemblyscript/loader": 0.27.5
     "@types/node": ^20.1.5
@@ -242,9 +242,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@aldea/wasm-toolkit@workspace:^, @aldea/wasm-toolkit@workspace:packages/wasm-toolkit":
+"@aldea/wasm-metering@workspace:^, @aldea/wasm-metering@workspace:packages/wasm-metering":
   version: 0.0.0-use.local
-  resolution: "@aldea/wasm-toolkit@workspace:packages/wasm-toolkit"
+  resolution: "@aldea/wasm-metering@workspace:packages/wasm-metering"
   dependencies:
     buffer-pipe: ^0.0.5
     leb128: ^0.0.5

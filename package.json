@@ -7,8 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "yarn workspaces foreach -ptv run build",
-    "ci": "yarn workspaces foreach -pv run ci",
+    "build": "yarn workspaces foreach -ptv --exclude @aldea/docs run build",
+    "ci": "yarn workspaces foreach -pv --exclude @aldea/docs run ci",
     "publish": "node scripts/publish.js"
   },
   "packageManager": "yarn@3.5.1",

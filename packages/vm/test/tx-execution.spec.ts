@@ -806,7 +806,7 @@ describe('execute txs', () => {
     const instanceIndex = exec.instantiate(mod.idx, 0, new Uint8Array([0]))
     exec.lockJig(instanceIndex.idx, userAddr)
     const result = exec.finalize()
-    expect(result.hydrosUsed).to.eql(5) // Implicit fund output
+    expect(result.hydrosUsed).to.eql(6) // Implicit fund output and 1 output being created
   })
 
   describe('move data limits', () => {

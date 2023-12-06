@@ -137,7 +137,7 @@ export class WasmContainer {
   }
 
   private onDataMoved(size: number): void {
-    this._currentExec.get().onDataMoved(size)
+    this._currentExec.ifPresent(exec => exec.onDataMoved(size))
   }
 
   get id (): string {

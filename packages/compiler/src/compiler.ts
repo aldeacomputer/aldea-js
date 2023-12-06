@@ -6,7 +6,7 @@ import { AscTransform, Transform } from './transform.js'
 import { PackageParser } from './package/parser.js'
 import { TransformGraph } from './transform/graph/graph.js'
 import { createDocs, Docs } from './transform/docs.js'
-import { meterWasm } from '@aldea/wasm-toolkit'
+import { meterWasm } from '@aldea/wasm-metering'
 export { PackageParser }
 export { writeDependency } from './package/code-helpers.js'
 
