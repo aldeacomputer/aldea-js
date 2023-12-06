@@ -1,5 +1,6 @@
 {
   "name": "@aldea/wasm-metering",
+  "description": "Simple wasm metering library.",
   "version": "0.1.0",
   "packageManager": "yarn@3.5.1",
   "type": "module",
