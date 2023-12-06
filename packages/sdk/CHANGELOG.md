@@ -1,5 +1,13 @@
 # @aldea/sdk
 
+## 0.7.2
+
+### Patch Changes
+
+- 2a9d63c: Improved validations to check field types and method signatures of interface implementations.
+- Updated dependencies [50b769f]
+  - @aldea/core@0.7.2
+
 ## 0.7.1
 
 ### Patch Changes

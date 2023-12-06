@@ -1,5 +1,11 @@
 # @aldea/core
 
+## 0.7.2
+
+### Patch Changes
+
+- 50b769f: Added support for native aldea BigInt
+
 ## 0.7.0
 
 ### Minor Changes

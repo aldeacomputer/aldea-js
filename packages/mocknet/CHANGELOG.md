@@ -1,5 +1,15 @@
 # @aldea/mocknet
 
+## 0.7.2
+
+### Patch Changes
+
+- 50b769f: Added inputs to exec-tx response
+- Updated dependencies [50b769f]
+- Updated dependencies [50b769f]
+  - @aldea/vm@0.7.2
+  - @aldea/core@0.7.2
+
 ## 0.7.0
 
 ### Minor Changes

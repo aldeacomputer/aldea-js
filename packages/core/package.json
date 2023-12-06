@@ -1,7 +1,7 @@
 {
   "name": "@aldea/core",
   "description": "Core Aldea data structures and cryptographic functions.",
-  "version": "0.7.0",
+  "version": "0.7.2",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {

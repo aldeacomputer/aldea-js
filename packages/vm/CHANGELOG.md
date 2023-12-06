@@ -1,5 +1,18 @@
 # @aldea/vm
 
+## 0.7.2
+
+### Patch Changes
+
+- 50b769f: Added inputs to exec-tx response
+- 50b769f: Added support for native aldea BigInt
+- Updated dependencies [aa2e656]
+- Updated dependencies [50b769f]
+- Updated dependencies [2a9d63c]
+- Updated dependencies [50b769f]
+  - @aldea/compiler@0.6.0
+  - @aldea/core@0.7.2
+
 ## 0.7.0
 
 ### Minor Changes

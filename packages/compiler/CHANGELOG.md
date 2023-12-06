@@ -1,5 +1,20 @@
 # @aldea/compiler
 
+## 0.6.0
+
+### Minor Changes
+
+- 50b769f: Added metering step at the end of compilation
+- 2a9d63c: Improved validations to check field types and method signatures of interface implementations.
+
+### Patch Changes
+
+- aa2e656: Fixes issue where in some cases a local jig definition does not have a runtime id.
+- Updated dependencies [50b769f]
+- Updated dependencies [50b769f]
+  - @aldea/wasm-metering@0.1.0
+  - @aldea/core@0.7.2
+
 ## 0.5.0
 
 ### Minor Changes
