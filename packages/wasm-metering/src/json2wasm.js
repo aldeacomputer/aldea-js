@@ -1,3 +1,8 @@
+/**
+ * This code is an adaptation over https://github.com/warp-contracts/warp-wasm-json-toolkit/blob/main/json2wasm.js.
+ * 
+ * License: MPL-2.0
+ */
 import { Buffer } from 'warp-isomorphic';
 import leb from 'leb128';
 import Stream from 'buffer-pipe';

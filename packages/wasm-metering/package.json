@@ -1,9 +1,10 @@
 {
-  "name": "@aldea/wasm-toolkit",
+  "name": "@aldea/wasm-metering",
   "packageManager": "yarn@3.5.1",
   "type": "module",
   "main": "src/index.js",
   "types": "types/index.d.ts",
+  "license": "MPL-2.0",
   "dependencies": {
     "buffer-pipe": "^0.0.5",
     "leb128": "^0.0.5",

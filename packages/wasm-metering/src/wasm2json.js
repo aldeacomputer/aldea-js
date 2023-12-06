@@ -1,3 +1,8 @@
+/**
+ * This code is an adaptation over https://github.com/warp-contracts/warp-wasm-json-toolkit/blob/main/wasm2json.js.
+ * 
+ * License: MPL-2.0
+ */
 import leb from 'leb128'
 import Stream from 'buffer-pipe'
 import { OP_IMMEDIATES } from './immediates.js'
