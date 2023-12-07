@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CaChevronLeft, CaChevronRight } from '@kalimahapps/vue-icons'
+import { CaChevronLeft, CaChevronRight } from '../../icons'
 
 const props = defineProps<{
   link?: string;

@@ -1,8 +1,6 @@
-import { computed, ref, shallowRef, toRaw, watch } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
-import loader from '@monaco-editor/loader'
 import type * as  monaco from 'monaco-editor'
-import { FileNode, DirectoryNode, FileSystemTree } from '@webcontainer/api'
 import { useWebContainer } from './container'
 import type { TypeLib } from '../../types/shared'
 import { data as aldeaTypes } from '../../types/aldea.data'
@@ -22,76 +20,61 @@ export const useMonaco = defineStore('monaco', () => {
   }
 
   const ready = new Promise<typeof monaco>(async resolve => {
-    monacoRef.value = await loader.init()
+    if (!import.meta.env.SSR) {
+      const loader = await import('@monaco-editor/loader')
+      monacoRef.value = await loader.default.init() as typeof monaco
 
-    monacoRef.value.editor.defineTheme('aldea', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [],
-      colors: {
-        'editor.background': '#161618',
-      },
-    })
-
-
-    monacoRef.value.languages.typescript.typescriptDefaults.setCompilerOptions({
-      strict: true,
-      alwaysStrict: true,
-      allowNonTsExtensions: true,
-      noImplicitAny: true,
-      noImplicitReturns: true,
-      noImplicitThis: true,
-      noEmitOnError: true,
-      strictNullChecks: true,
-      experimentalDecorators: true,
-      preserveConstEnums: false,
-      downlevelIteration: true,
-    
-      target: monacoRef.value.languages.typescript.ScriptTarget.ESNext,
-      module: monacoRef.value.languages.typescript.ModuleKind.CommonJS,
-      //noLib: true,
-      allowJs: false,
-    
-      //typeRoots: ["types"],
-      //types: ["aldea"],
-      //typeRoots: ['./node_modules/@aldea/compiler/types'],
-      //types: ['aldea'],
-    
-      baseUrl: ".",
-      //paths: {
-      //  "*": [
-      //    "./assembly/*"
-      //  ]
-      //}
-      //paths: {
-      //  "pkg://*": [".packages/*"]
-      //}
-    })
-
-    loadTypes(aldeaTypes)
-    loadTypes(ascTypes)
-
-    //container.ready.then(() => {
-    //  Object.entries(container.files).forEach(([name, node]) => traverseFileTree('', name, node))
-    //  
-    //})
-    resolve(monacoRef.value!)
+      monacoRef.value.editor.defineTheme('aldea', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [],
+        colors: {
+          'editor.background': '#161618',
+        },
+      })
+  
+      monacoRef.value.languages.typescript.typescriptDefaults.setCompilerOptions({
+        strict: true,
+        alwaysStrict: true,
+        allowNonTsExtensions: true,
+        noImplicitAny: true,
+        noImplicitReturns: true,
+        noImplicitThis: true,
+        noEmitOnError: true,
+        strictNullChecks: true,
+        experimentalDecorators: true,
+        preserveConstEnums: false,
+        downlevelIteration: true,
+      
+        target: monacoRef.value.languages.typescript.ScriptTarget.ESNext,
+        module: monacoRef.value.languages.typescript.ModuleKind.CommonJS,
+        //noLib: true,
+        allowJs: false,
+      
+        //typeRoots: ["types"],
+        //types: ["aldea"],
+        //typeRoots: ['./node_modules/@aldea/compiler/types'],
+        //types: ['aldea'],
+      
+        baseUrl: ".",
+        //paths: {
+        //  "*": [
+        //    "./assembly/*"
+        //  ]
+        //}
+        //paths: {
+        //  "pkg://*": [".packages/*"]
+        //}
+      })
+  
+      loadTypes(aldeaTypes)
+      loadTypes(ascTypes)
+      resolve(monacoRef.value!)
+    }
   })
 
-  //function traverseFileTree(base: string, name: string, node: FileNode | DirectoryNode): void {
-  //  const path = [base, name].join('/').replace(/^\//, '')
-  //  if ('directory' in node) {
-  //    return Object.entries(node.directory).forEach(([name, node]) => traverseFileTree(path, name, node))
-  //  } else {
-  //    const modelType = path.endsWith('.json') ? 'json' : 'typescript'
-  //    const modelUrl = monacoRef.value!.Uri.parse(`file:///${path}`)
-  //    const model = monacoRef.value!.editor.createModel(node.file.contents as string, modelType, modelUrl)
-  //    models.value.push(model)
-  //  }
-  //}  
-
   function mountEditor(el: HTMLElement) {
-    editor.value = monacoRef.value!.editor.create(el, {
+    editor.value = monacoRef.value?.editor.create(el, {
       automaticLayout: true,
       fontFamily: "'IBM Plex Mono', monospace",
       fontSize: 14,

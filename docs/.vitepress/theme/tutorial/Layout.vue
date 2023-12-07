@@ -10,14 +10,16 @@
         </div>
         <Pager />
       </article>
-      <div class="flex flex-col w-3/5 grow-0 bg-dark-alt">
-        <div class="flex h-3/5 grow-0 border-b border-gray-800">
-          <FileDrawer class="w-52 border-r border-gray-800" />
-          <Editor class="flex-auto" />
+      <ClientOnly>
+        <div class="flex flex-col w-3/5 grow-0 bg-dark-alt">
+          <div class="flex h-3/5 grow-0 border-b border-gray-800">
+            <FileDrawer class="w-52 border-r border-gray-800" />
+            <Editor class="flex-auto" />
+          </div>
+          <Terminal class="terminal overflow-hidden" />
+          <StatusBar />
         </div>
-        <Terminal class="terminal overflow-hidden" />
-        <StatusBar />
-      </div>
+      </ClientOnly>
     </main>
   </div>
 </template>

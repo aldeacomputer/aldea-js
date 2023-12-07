@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useData, useRoute } from 'vitepress'
-import { CaClose, CaMenu } from '@kalimahapps/vue-icons'
+import { CaClose, CaMenu } from '../../icons'
 import { getSidebar, getSidebarGroups } from 'vitepress/dist/client/theme-default/support/sidebar'
 import VPSidebarItem from 'vitepress/dist/client/theme-default/components/VPSidebarItem.vue'
 

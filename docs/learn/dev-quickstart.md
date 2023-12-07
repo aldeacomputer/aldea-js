@@ -2,7 +2,7 @@
 
 Starting your development journey with Aldea doesn't have to feel like rocket science. Our programming model and developer tooling are designed to help you forget about the complexities of blockchain and focus on doing what you do best, crafting excellent great products.
 
-Our [interactive tutorials](/tutorial) are the perfect launch pad. They provide a full Aldea developer environment within your web browser. Once you're ready, you can install the Aldea SDK and Command Line Interface (CLI) locally to power up your development.
+Our [interactive tutorials](/tutorial/basics/introduction) are the perfect launch pad. They provide a full Aldea developer environment within your web browser. Once you're ready, you can install the Aldea SDK and Command Line Interface (CLI) locally to power up your development.
 
 ## Local dev environment
 
@@ -49,7 +49,7 @@ The Aldea CLI is an essential part of every Aldea developer's toolbelt. The foll
 
 Initializes a development wallet for your project. Used to fund transactions for deploying code.
 
-```text
+```txt
 Usage: aldea wallet.init|wi [options]
 
 Create a new wallet in the current directory
@@ -64,7 +64,7 @@ Options:
 
 Used to check the current balance of your development wallet.
 
-```text
+```txt
 Usage: aldea wallet.balance|wb [options]
 
 Show your wallet balance
@@ -77,7 +77,7 @@ Options:
 
 Allows you to top up your development wallet.
 
-```text
+```txt
 Usage: aldea wallet.topup|wt [options]
 
 Topup your wallet with minted coins from the faucet
@@ -91,7 +91,7 @@ Options:
 
 Installs dependencies to your Aldea project by their package ID.
 
-```text
+```txt
 Usage: aldea deps.add|da [options] <pkg...>
 
 Add dependency by package ID
@@ -107,7 +107,7 @@ Options:
 
 Scans the source code and installs all of the project's dependencies.
 
-```text
+```txt
 Usage: aldea deps.get|dg [options] [entry...]
 
 Fetch all package dependencies
@@ -123,7 +123,7 @@ Options:
 
 Lists all the dependencies of your project.
 
-```text
+```txt
 Usage: aldea deps.list|dl [options] [entry...]
 
 List all package dependencies
@@ -139,7 +139,7 @@ Options:
 
 Removes specific dependencies from your project.
 
-```text
+```txt
 Usage: aldea deps.remove|dr [options] <pkg...>
 
 Remove dependency by package ID
@@ -155,7 +155,7 @@ Options:
 
 Compiles your code into an Aldea package. It's useful to compile locally using `--dry-run` to spot any problems before deploying.
 
-```text
+```txt
 Usage: aldea compile|c [options] [entry...]
 
 Compile a code package
@@ -177,7 +177,7 @@ Options:
 
 Deploys your compiled code to the Aldea Computer.
 
-```text
+```txt
 Usage: aldea deploy|d [options] <source...>
 
 Deploy a code package
@@ -189,4 +189,4 @@ Options:
   -h, --help  display help for command
 ```
 
-Remember, tools and platforms should simplify your tasks, not complicate them. If you've familiarised yourself with Aldea's programming model through our [interactive tutorial](/tutorial), using the starter kit and CLI will be plain sailing. Happy coding!
+Remember, tools and platforms should simplify your tasks, not complicate them. If you've familiarised yourself with Aldea's programming model through our [interactive tutorial](/tutorial/basics/introduction), using the starter kit and CLI will be plain sailing. Happy coding!

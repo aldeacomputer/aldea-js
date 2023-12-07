@@ -4,6 +4,10 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "Aldea Docs",
   description: "Learn how to use Aldea",
+  ignoreDeadLinks: [
+    /^\/api/
+  ],
+
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
@@ -84,6 +88,12 @@ export default defineConfig({
   },
 
   vite: {
+    server: {
+      headers: {
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Opener-Policy': 'same-origin',
+      }
+    },
     plugins: [{
       name: 'WebContainer Headers',
       configureServer(server) {
@@ -93,6 +103,10 @@ export default defineConfig({
           next()
         })
       }
-    }]
+    }],
+
+    ssr: {
+      noExternal: ['@kalimahapps/vue-icons']
+    }
   }
 })

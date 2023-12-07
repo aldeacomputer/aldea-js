@@ -1,29 +1,38 @@
-import { computed, ref, shallowRef } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
-import { SpawnOptions, WebContainer, WebContainerProcess } from '@webcontainer/api'
-import { Terminal } from 'xterm'
-import { FitAddon } from 'xterm-addon-fit'
+import type { SpawnOptions, WebContainer, WebContainerProcess } from '@webcontainer/api'
+import type { Terminal } from 'xterm'
+import type { FitAddon } from 'xterm-addon-fit'
 import { FileListNode, baseFiles, fmToFileSystemTree, fsToFileList } from './files'
 
 export const useWebContainer = defineStore('web-container', () => {
   const containerRef = shallowRef<WebContainer>()
-  const terminal = new Terminal({ convertEol: true })
-  const fitAddon = new FitAddon()
-  terminal.loadAddon(fitAddon)
+  const terminalRef = shallowRef<Terminal>()
+  const fitAddonRef = shallowRef<FitAddon>()
 
   const ready = new Promise<WebContainer>(async resolve => {
-    containerRef.value = await WebContainer.boot({ workdirName: 'tutorial' })
-    await containerRef.value.mount(baseFiles)
-    // resolve
-    resolve(containerRef.value)
-    // continue some async stuff
-    const installProc = await exec('npm', ['install'])
-    await installProc.exit
-    const shellProc = await exec('jsh', {
-      terminal: { cols: terminal.cols, rows: terminal.rows }
-    })
-    const input = shellProc.input.getWriter()
-    terminal.onData(data => input.write(data))
+    if (!import.meta.env.SSR) {
+      const { WebContainer } = await import('@webcontainer/api')
+      const { Terminal } = await import('xterm')
+      const { FitAddon } = await import('xterm-addon-fit')
+
+      containerRef.value = await WebContainer.boot({ workdirName: 'tutorial' })
+      terminalRef.value = new Terminal({ convertEol: true })
+      fitAddonRef.value = new FitAddon()
+      terminalRef.value.loadAddon(fitAddonRef.value)
+      await containerRef.value.mount(baseFiles)
+      // resolve
+      resolve(containerRef.value)
+
+      // continue some async stuff
+      const installProc = await exec('npm', ['install'])
+      await installProc.exit
+      const shellProc = await exec('jsh', {
+        terminal: { cols: terminalRef.value.cols, rows: terminalRef.value.rows }
+      })
+      const input = shellProc.input.getWriter()
+      terminalRef.value.onData(data => input.write(data))
+    }
   })
 
   const files = ref<FileListNode[]>([])
@@ -36,7 +45,7 @@ export const useWebContainer = defineStore('web-container', () => {
       await containerRef.value!.spawn(cmd, args)
 
     proc.output.pipeTo(new WritableStream({
-      write: (data) => terminal.write(data)
+      write: (data) => terminalRef.value!.write(data)
     }))
 
     proc.exit.then(code => {
@@ -63,13 +72,12 @@ export const useWebContainer = defineStore('web-container', () => {
         .concat(fsToFileList(baseFiles))
         .sort((a, b) => a.name.localeCompare(b.name))
     }
-    
   }
 
   async function mountTerminal(el: HTMLElement) {
-    terminal.open(el)
-    fitAddon.fit()
+    terminalRef.value?.open(el)
+    fitAddonRef.value?.fit()
   }
 
-  return { ready, files, terminal, exec, execAll, mountTerminal, loadFiles }
+  return { ready, files, terminalRef, exec, execAll, mountTerminal, loadFiles }
 })
