@@ -51,6 +51,17 @@ wasm2json.parseSectionHeader = (stream) => {
     }
 }
 
+export const TRUNCATION_CODES = {
+  0: 'i32.trunc_sat_f32_s',
+  1: 'i32.trunc_sat_f32_u',
+  2: 'i32.trunc_sat_f64_s',
+  3: 'i32.trunc_sat_f64_u',
+  4: 'i64.trunc_sat_f32_s',
+  5: 'i64.trunc_sat_f32_u',
+  6: 'i64.trunc_sat_f64_s',
+  7: 'i64.trunc_sat_f64_u'
+}
+
 const OPCODES = wasm2json.OPCODES = {
     // flow control
     0x0: 'unreachable',
@@ -249,7 +260,10 @@ const OPCODES = wasm2json.OPCODES = {
     0xc1: 'i32.extend16_s',
     0xc2: 'i64.extend8_s',
     0xc3: 'i64.extend16_s',
-    0xc4: 'i64.extend32_s'
+    0xc4: 'i64.extend32_s',
+
+    // saturating truncation instructions
+    0xfc: 'truncation'
 }
 
 const SECTION_IDS = wasm2json.SECTION_IDS = {
@@ -601,10 +615,19 @@ const sectionParsers = wasm2json.sectionParsers = {
     }
 }
 
+
+
 wasm2json.parseOp = (stream) => {
     const json = {}
     const op = stream.read(1)[0]
-    const fullName = OPCODES[op]
+    let fullName = OPCODES[op]
+    if (fullName === 'truncation') {
+      const truncation_type =  leb.unsigned.readBn(stream) // Buffer.from(stream.read(4)).readUInt32LE()
+      if (!TRUNCATION_CODES[truncation_type]) {
+        throw new Error(`unknown truncation type: ${truncation_type}`)
+      }
+      fullName = TRUNCATION_CODES[truncation_type]
+    }
     let [type, name] = fullName.split('.')
 
     if (name === undefined) {
