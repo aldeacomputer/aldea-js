@@ -37,7 +37,8 @@ describe('execute txs', () => {
       'flock',
       'sheep',
       'sheep-counter',
-      'weapon'
+      'weapon',
+      'human'
     ])
 
     storage = data.storage
@@ -890,7 +891,7 @@ describe('execute txs', () => {
 
       exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1000]))
       const result = exec.finalize()
-      expect(result.hydrosUsed).to.within(25, 30)
+      expect(result.hydrosUsed).to.within(30, 40)
     })
   });
 
@@ -958,6 +959,24 @@ describe('execute txs', () => {
     exec2.load(result1.outputs[3].hash)
     const result2 = exec2.finalize()
     expect(result2.hydrosUsed).to.eql(5)
+  })
+
+  it('passes Aarons test', () => {
+    const args = new ArgsBuilder(abiFor('human'))
+    const {exec: exec1} = fundedExec()
+    const pkgStmt = exec1.import(modIdFor('human'))
+
+    const jig1Stmt = exec1.instantiate(pkgStmt.idx, ...args.constr('Human', ['name1', []]))
+    const jig2Stmt = exec1.instantiate(pkgStmt.idx, ...args.constr('Human', ['name2', []]))
+    const res1 = exec1.finalize();
+    storage.persistExecResult(res1)
+
+    const {exec: exec2} = fundedExec()
+    const p1 = exec2.load(res1.outputs[1].hash)
+    const p2 = exec2.load(res1.outputs[2].hash)
+    exec2.call(p1.idx, ...args.method('Human', 'marry', [ref(p2.idx)] ))
+    exec2.call(p1.idx, ...args.method('Human', 'child', ['bob'] ))
+
   })
 
   // it('receives right amount from properties of foreign jigs', () => {

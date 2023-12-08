@@ -214,7 +214,7 @@ class TxExecution {
     const method = abiClass.methodByIdx(methodIdx).get()
 
     const wasm = jig.ref.container;
-    const args = this.lowerArgs(wasm, method.args, argsBuf);
+    const args = this.translateAndLowerArgs(wasm, method.args, argsBuf);
 
     this.marKJigAsAffected(jig)
     const res = this.performMethodCall(jig, method, args)
@@ -253,7 +253,7 @@ class TxExecution {
     const classNode = wasm.abi.exportedByIdx(classIdx).get().toAbiClass()
 
     const method = wasm.abi.exportedByName(classNode.name).get().toAbiClass().constructorDef()
-    const callArgs = this.lowerArgs(wasm, method.args, argsBuf)
+    const callArgs = this.translateAndLowerArgs(wasm, method.args, argsBuf)
 
     const nextOrigin = this.createNextOrigin()
     this.nextOrigin = Option.some(nextOrigin)
@@ -276,7 +276,7 @@ class TxExecution {
   exec (wasmIdx: number, fnIdx: number, argsBuf: Uint8Array): StatementResult {
     const wasm = this.statements[wasmIdx].asContainer()
     const fn = wasm.abi.exportedByIdx(fnIdx).get().toAbiFunction()
-    const args = this.lowerArgs(wasm, fn.args, argsBuf)
+    const args = this.translateAndLowerArgs(wasm, fn.args, argsBuf)
 
     const value = wasm.callFn(fn.name, args, fn.args.map(a => a.type))
 
@@ -327,10 +327,15 @@ class TxExecution {
     return newJigRef
   }
 
-  private lowerArgs (wasm: WasmContainer, args: AbiArg[], rawArgs: Uint8Array): WasmWord[] {
+  private translateAndLowerArgs (wasm: WasmContainer, args: AbiArg[], rawArgs: Uint8Array): WasmWord[] {
     const fixer = new ArgsTranslator(this, wasm.abi)
     const argsBuf = fixer.fix(rawArgs, args)
 
+
+    return this.lowerArgs(wasm, args, argsBuf)
+  }
+
+  private lowerArgs(wasm: WasmContainer, args: AbiArg[], argsBuf: Uint8Array) {
     const reader = new BufReader(argsBuf)
 
     return args.map((arg) => {
@@ -473,7 +478,6 @@ class TxExecution {
 
   private liftArgs (from: WasmContainer, ptr: WasmWord, argDef: AbiArg[]): Uint8Array {
     const w = new BufWriter()
-    w.writeU8(0)
 
     const argsBuf = new BufReader(from.liftBuf(ptr))
 
@@ -646,10 +650,10 @@ class TxExecution {
     const pkgId = from.liftString(pkgIdPtr)
     const fnName = from.liftString(fnNamePtr)
     const wasm = this.assertContainer(pkgId)
+
     const fn = wasm.abi.exportedByName(fnName).get().toAbiFunction()
     const argsBuf = this.liftArgs(from, argsBufPtr, fn.args)
     const args = this.lowerArgs(wasm, fn.args, argsBuf)
-
     const res = wasm.callFn(fnName, args, fn.args.map(arg => arg.type))
 
     return res.orDefault(WasmWord.null());
