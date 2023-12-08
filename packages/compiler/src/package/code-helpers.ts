@@ -80,9 +80,10 @@ export declare class ${code.name} extends ${code.extends}${impl} {
 function writeInterface(code: InterfaceNode): string {
   const fields = code.fields.map(writeField)
   const methods = code.methods.map(writeMethod)
+  const extendsFrom = code.extends.length ? `extends ${ code.extends.join(', ') }` : ''
 
   return `
-export declare interface ${code.name} extends ${code.extends} {
+export declare interface ${code.name} ${extendsFrom} {
   ${fields.join('\n  ')}
   ${methods.join('\n  ')}
 }

@@ -463,3 +463,25 @@ test('extending a different method signature from nested interfaces should fail'
   const e = await t.throwsAsync(() => compile(src))
   t.regex(e.stderr.toString(), /Types of property `m1` are incompatible./)
 })
+
+test('implementing a different field type with compatible types should pass', async t => {
+  const src = `
+  export interface A {
+    a: A;
+    b: A | null;
+  }
+
+  export class B extends Jig implements A {
+    a: B;
+    b: B | null;
+
+    constructor(a: B, b: B) {
+      super()
+      this.a = a
+      this.b = b
+    }
+  }
+  `
+  
+  await t.notThrowsAsync(() => compile(src))
+})

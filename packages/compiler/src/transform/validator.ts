@@ -894,19 +894,21 @@ function isCompatibleTypes(subject: TypeNode | null, target: TypeNode | null, co
     return subject!.args.every((_a, i) => isCompatibleTypes(subject!.args[i], target!.args[i], context))
   }
 
-  const code = context.src.findCode(normalizeTypeName(subject))
-  if (
-    code && code.node.kind === NodeKind.ClassDeclaration &&
-    (<ClassNode>code.abiNode).implements.includes(normalizeTypeName(target))
-  ) {
-    return true
-  }
+  if (subject !== null && target !== null) {
+    const code = context.src.findCode(subject.name)
+    if (
+      code && code.node.kind === NodeKind.ClassDeclaration &&
+      (<ClassNode>code.abiNode).implements.includes(target.name)
+    ) {
+      return true
+    }
 
-  if (
-    code && code.node.kind === NodeKind.InterfaceDeclaration &&
-    code.findAllParents().map(c => c.name).includes(normalizeTypeName(target))
-  ) {
-    return true
+    if (
+      code && code.node.kind === NodeKind.InterfaceDeclaration &&
+      code.findAllParents().map(c => c.name).includes(target.name)
+    ) {
+      return true
+    }
   }
 
   return false
