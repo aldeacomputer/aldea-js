@@ -1,7 +1,7 @@
 import { createCommand } from 'commander'
 import { bold, dim,  lightBlue } from 'kolorist'
 import { Pointer } from '@aldea/sdk'
-import { log } from '../../log.js'
+import { err, log } from '../../log.js'
 import { env } from '../../globals.js'
 
 const COIN_PTR = Pointer.fromString('0000000000000000000000000000000000000000000000000000000000000000_0')
@@ -18,7 +18,11 @@ async function walletBalance() {
   log()
 
   await env.loadWallet()
-  await env.wallet.sync()
+  try {
+    await env.wallet.sync()
+  } catch(_e) {
+    err('unable to sync wallet')
+  }
 
   const outputs = await env.wallet.getInventory()
   const motos = outputs
