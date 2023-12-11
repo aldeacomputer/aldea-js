@@ -1,5 +1,13 @@
 # @aldea/vm
 
+## 0.7.3
+
+### Patch Changes
+
+- e19f45d: Fixed bug lifting and lowering inbetween packages
+- Updated dependencies [7ab2e7a]
+  - @aldea/compiler@0.6.1
+
 ## 0.7.2
 
 ### Patch Changes

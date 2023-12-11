@@ -1,5 +1,14 @@
 # @aldea/cli
 
+## 0.4.3
+
+### Patch Changes
+
+- 7ab2e7a: Fix to prevent crash when wallet tries to sync with devnet node
+- Updated dependencies [7ab2e7a]
+  - @aldea/compiler@0.6.1
+  - @aldea/wallet-lib@0.3.2
+
 ## 0.4.2
 
 ### Patch Changes

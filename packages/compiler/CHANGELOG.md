@@ -1,5 +1,12 @@
 # @aldea/compiler
 
+## 0.6.1
+
+### Patch Changes
+
+- 7ab2e7a: Fixed a bug where compiler code writer for dependencies created malformed interfaces.
+  Improved compiler compatible type checks when type is nullable.
+
 ## 0.6.0
 
 ### Minor Changes
