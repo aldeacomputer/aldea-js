@@ -1,5 +1,5 @@
 import test from 'ava'
-import { compileDocs } from '../dist/compiler.js'
+import { compileDocs } from '@aldea/compiler'
 
 const codeWithDocs = `
 /**

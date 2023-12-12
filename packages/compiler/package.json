@@ -5,10 +5,10 @@
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
-    ".": "./dist/compiler.js",
+    ".": "./dist/compiler.node.js",
     "./assembly.json": "./assembly.json"
   },
-  "main": "./dist/compiler.js",
+  "main": "./dist/compiler.node.js",
   "types": "./dist/compiler.d.ts",
   "files": [
     "dist/**/*",
@@ -18,8 +18,10 @@
     "assembly.json"
   ],
   "scripts": {
-    "build": "run-s clean build:ts",
-    "build:ts": "tsc && node scripts/build-dts.js",
+    "build": "run-s clean build:esb build:tsc build:dts",
+    "build:esb": "node esbuild.js",
+    "build:tsc": "tsc",
+    "build:dts": "node scripts/build-dts.js",
     "clean": "rimraf dist/* || true",
     "ci": "yarn test:js",
     "test": "yarn build && yarn test:as && yarn test:js",
@@ -42,6 +44,10 @@
     "ava": "^5.2.0",
     "concat": "^1.0.3",
     "dts-generator": "^3.0.0",
+    "esbuild": "^0.19.8",
+    "esbuild-plugin-polyfill-node": "^0.3.0",
+    "fast-text-encoding": "^1.0.6",
+    "glob": "^10.3.10",
     "npm-run-all": "^4.1.5",
     "rimraf": "^5.0.0",
     "typescript": "^5.0.4"

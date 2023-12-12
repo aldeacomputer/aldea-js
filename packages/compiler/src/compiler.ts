@@ -1,22 +1,17 @@
-import fs from 'fs'
-import { dirname, join, resolve } from 'path'
-import { fileURLToPath } from 'url'
 import asc from 'assemblyscript/asc'
 import { AscTransform, Transform } from './transform.js'
 import { PackageParser } from './package/parser.js'
 import { TransformGraph } from './transform/graph/graph.js'
 import { createDocs, Docs } from './transform/docs.js'
 import { meterWasm } from '@aldea/wasm-metering'
+
 export { PackageParser }
 export { writeDependency } from './package/code-helpers.js'
 
-const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-
-const extension = '.ts'
-const extension_re_except_d = new RegExp('^(?!.*\\.d\\' + extension + '$).*\\' + extension + '$')
+import { aldeaLib } from '../lib/generated.js'
 
 const baseOpts = [
-  '--debug', // delete eventually
+  '--debug', // TODO delete eventually
   '-Ospeed',
   '--runtime', 'stub',
   '--disable', 'bulk-memory',
@@ -24,7 +19,7 @@ const baseOpts = [
   '--exportRuntime',
   '--exportStart',
   '--allowRestarts',
-  '--lib', join(rootDir, 'lib'),
+  '--lib', '$ALDEA',
 ]
 
 export interface CompiledOutput {
@@ -71,18 +66,19 @@ export async function compile(
     '--textFile', 'wat',
   ]).concat(baseOpts)
 
-  function readFile(filename: string, baseDir: string): string | null {
+  function readFile(filename: string, _baseDir: string): string | null {
     if (src.has(filename)) { return src.get(filename)! }
     const m = filename.match(/^(pkg:\/\/([a-f0-9]{2})+).ts/)
     if (m && deps.has(m[1])) { return deps.get(m[1])! }
-    try { return fs.readFileSync(join(baseDir, filename), 'utf8') }
-    catch(e) { return null } 
+    return aldeaLib[filename]
   }
 
-  function listFiles(dirname: string, baseDir: string): string[] {
-    return fs.readdirSync(resolve(baseDir, dirname)).filter(file => {
-      return extension_re_except_d.test(file)
-    })
+  function listFiles(dirname: string, _baseDir: string): string[] {
+    if (dirname === '$ALDEA') {
+      return Object.keys(aldeaLib)
+    } else {
+      return []
+    }
   }
 
   function writeFile(filename: string, content: string | Uint8Array): void {
