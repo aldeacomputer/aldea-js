@@ -5,7 +5,10 @@
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
-    ".": "./dist/compiler.node.js",
+    ".": {
+      "import": "./dist/compiler.node.js",
+      "types": "./dist/compiler.d.ts"
+    },
     "./assembly.json": "./assembly.json"
   },
   "main": "./dist/compiler.node.js",
