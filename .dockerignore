@@ -1,5 +1,8 @@
-node_modules
 dokku
+
+node_modules
+docs/node_modules
+packages/*/node_modules
 
 .yarn/*
 !.yarn/patches

@@ -30,6 +30,6 @@
   },
   "devDependencies": {
     "@types/columnify": "^1.5.1",
-    "typescript": "^5.0.4"
+    "typescript": "^5.3.3"
   }
 }

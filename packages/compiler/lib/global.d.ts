@@ -25,11 +25,8 @@ declare class Coin extends Jig implements Fungible {
 declare const caller: typeof import('aldea/caller').caller;
 
 /** BigInt */
-type BigInt = import('vendor/big-int').BigInt
+//type BigInt = import('vendor/big-int').BigInt
 declare const BigInt: typeof import('vendor/big-int').BigInt;
 
-// declare namespace console {
 /** Debug */
-function debug(msg: string): void;
-// }
-
+declare function debug(msg: string): void;

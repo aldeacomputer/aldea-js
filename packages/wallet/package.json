@@ -45,7 +45,7 @@
     "@ava/get-port": "^2.0.0",
     "ava": "^5.2.0",
     "esbuild": "^0.17.19",
-    "typescript": "^5.0.4"
+    "typescript": "^5.3.3"
   },
   "ava": {
     "concurrency": 4,
