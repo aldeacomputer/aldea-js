@@ -1,7 +1,7 @@
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {BufReader, BufWriter} from "@aldea/core";
 
-type WasmArg = number | bigint
+export type WasmArg = number | bigint
 
 export class WasmWord {
   private value: ArrayBuffer;

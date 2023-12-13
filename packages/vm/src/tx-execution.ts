@@ -10,7 +10,7 @@ import {ExecContext} from "./tx-context/exec-context.js";
 import {PkgData} from "./storage.js";
 import {JigData} from "./memory/lower-value.js";
 import {Option} from "./support/option.js";
-import {WasmWord} from "./wasm-word.js";
+import {WasmArg, WasmWord} from "./wasm-word.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {serializeOutput, serializePointer} from "./memory/serialize-output.js";
 import {fromCoreLock} from "./locks/from-core-lock.js";
@@ -507,7 +507,7 @@ class TxExecution {
 
   // Assemblyscrypt callbacks
 
-  vmJigInit (from: WasmContainer): WasmWord {
+  vmJigInit (from: WasmContainer): WasmArg {
     this.measurements.newJigs.inc()
     const nextOrigin = this.nextOrigin.get()
     const jigInitParams = new JigInitParams(
@@ -516,10 +516,10 @@ class TxExecution {
       new Pointer(new Uint8Array(32).fill(0xff), 0xffff),
       new OpenLock()
     )
-    return jigInitParams.lowerInto(from)
+    return jigInitParams.lowerInto(from).toWasmArg(AbiType.u32())
   }
 
-  vmJigLink (from: WasmContainer, jigPtr: WasmWord, rtId: number): WasmWord {
+  vmJigLink (from: WasmContainer, jigPtr: WasmWord, rtId: number): WasmArg {
     const nextOrigin = this.nextOrigin.get()
     let rtIdNode = from.abi.rtIdById(rtId)
       .expect(new Error(`Runtime id "${rtId}" not found in ${base16.encode(from.hash)}`))
@@ -547,10 +547,10 @@ class TxExecution {
       .lower(
         serializePointer(new Pointer(from.hash, abiClass.idx)),
         AbiType.fromName('ArrayBuffer')
-      )
+      ).toWasmArg(AbiType.u32())
   }
 
-  vmCallMethod (from: WasmContainer, targetPtr: WasmWord, methodNamePtr: WasmWord, argsPtr: WasmWord): WasmWord {
+  vmCallMethod (from: WasmContainer, targetPtr: WasmWord, methodNamePtr: WasmWord, argsPtr: WasmWord): WasmArg {
     const targetOrigin = Pointer.fromBytes(from.liftBuf(targetPtr))
     const methodName = from.liftString(methodNamePtr)
 
@@ -573,17 +573,18 @@ class TxExecution {
     return methodRes.map(value => {
       const lifted = value.lift()
       return from.low.lower(lifted, method.rtype)
-    }).orElse(() => WasmWord.fromNumber(0))
+    }).orElse(() => WasmWord.fromNumber(0)).toWasmArg(method.rtype)
   }
 
-  vmGetProp (from: WasmContainer, originPtr: WasmWord, propNamePtr: WasmWord) {
+  vmGetProp (from: WasmContainer, originPtr: WasmWord, propNamePtr: WasmWord): WasmArg {
     const targetOrigin = Pointer.fromBytes(from.liftBuf(originPtr));
     const propName = from.liftString(propNamePtr)
     const jig = this.assertJig(targetOrigin)
 
     const propTarget = jig.getPropValue(propName)
     const lifted = propTarget.lift()
-    return from.low.lower(lifted, propTarget.ty)
+    const word = from.low.lower(lifted, propTarget.ty);
+    return word.toWasmArg(propTarget.ty)
   }
 
   vmJigLock (from: WasmContainer, targetOriginPtr: WasmWord, lockType: LockType, argsPtr: WasmWord): void {
@@ -646,7 +647,7 @@ class TxExecution {
     return initParams.lowerInto(from)
   }
 
-  vmCallFunction (from: WasmContainer, pkgIdPtr: WasmWord, fnNamePtr: WasmWord, argsBufPtr: WasmWord): WasmWord {
+  vmCallFunction (from: WasmContainer, pkgIdPtr: WasmWord, fnNamePtr: WasmWord, argsBufPtr: WasmWord): WasmArg {
     const pkgId = from.liftString(pkgIdPtr)
     const fnName = from.liftString(fnNamePtr)
     const wasm = this.assertContainer(pkgId)
@@ -656,10 +657,10 @@ class TxExecution {
     const args = this.lowerArgs(wasm, fn.args, argsBuf)
     const res = wasm.callFn(fnName, args, fn.args.map(arg => arg.type))
 
-    return res.orDefault(WasmWord.null());
+    return res.orDefault(WasmWord.null()).toWasmArg(fn.rtype);
   }
 
-  vmConstructorRemote (from: WasmContainer, pkgIdStrPtr: WasmWord, namePtr: WasmWord, argBufPtr: WasmWord): WasmWord {
+  vmConstructorRemote (from: WasmContainer, pkgIdStrPtr: WasmWord, namePtr: WasmWord, argBufPtr: WasmWord): WasmArg {
     const pkgId = from.liftString(pkgIdStrPtr)
     const clsName = from.liftString(namePtr)
 
@@ -692,7 +693,7 @@ class TxExecution {
       jig.lock
     )
 
-    return initParams.lowerInto(from);
+    return initParams.lowerInto(from).toWasmArg(AbiType.u32());
   }
 
   vmCallerTypeCheck (from: WasmContainer, rtIdToCheck: number, exact: boolean): boolean {

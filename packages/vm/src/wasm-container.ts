@@ -2,15 +2,13 @@ import {Abi} from "@aldea/core/abi";
 import {TxExecution} from "./tx-execution.js";
 import {AbiAccess} from "./memory/abi-helpers/abi-access.js";
 import {MemoryProxy} from "./memory-proxy.js";
-import {WasmWord} from "./wasm-word.js";
+import {WasmArg, WasmWord} from "./wasm-word.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {Option} from "./support/option.js";
 import {ValueLifter} from "./memory/value-lifter.js";
 import {LowerValue} from "./memory/lower-value.js";
 import {base16, BCS, BufReader} from "@aldea/core";
 import {ExecutionError} from "./errors.js";
-
-export type WasmPointer = number | bigint
 
 export enum AuthCheck {
   CALL,
@@ -54,35 +52,35 @@ export class WasmContainer {
         }
       },
       vm: {
-        jig_init: (): WasmPointer => {
-          return this._currentExec.get().vmJigInit(this).toUInt()
+        jig_init: (): WasmArg => {
+          return this._currentExec.get().vmJigInit(this)
         },
-        jig_link: (jigPtr: number, rtid: number): WasmPointer => {
-          return this._currentExec.get().vmJigLink(this, WasmWord.fromNumber(jigPtr), rtid).toUInt()
+        jig_link: (jigPtr: number, rtid: number): WasmArg => {
+          return this._currentExec.get().vmJigLink(this, WasmWord.fromNumber(jigPtr), rtid)
         },
         jig_authcheck: (callerOriginPtr: number, check: AuthCheck): boolean => {
           return this._currentExec.get().vmJigAuthCheck(this, WasmWord.fromNumber(callerOriginPtr), check)
         },
-        call_method: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number): number => {
+        call_method: (targetOriginPtr: number, fnNamePtr: number, argsPtr: number): WasmArg => {
           return this._currentExec.get()
             .vmCallMethod(
               this,
               WasmWord.fromNumber(targetOriginPtr),
               WasmWord.fromNumber(fnNamePtr),
               WasmWord.fromNumber(argsPtr)
-            ).toUInt();
+            );
         },
-        call_function: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): WasmPointer => {
+        call_function: (pkgIdStrPtr: number, fnNamePtr: number, argsBufPtr: number): WasmArg => {
           return this._currentExec.get().vmCallFunction(
             this,
             WasmWord.fromNumber(pkgIdStrPtr),
             WasmWord.fromNumber(fnNamePtr),
             WasmWord.fromNumber(argsBufPtr)
-          ).toUInt()
+          )
         },
 
-        get_prop: (targetOriginPtr: number, propNamePtr: number): number => {
-          return this._currentExec.get().vmGetProp(this, WasmWord.fromNumber(targetOriginPtr), WasmWord.fromNumber(propNamePtr)).toUInt()
+        get_prop: (targetOriginPtr: number, propNamePtr: number): WasmArg => {
+          return this._currentExec.get().vmGetProp(this, WasmWord.fromNumber(targetOriginPtr), WasmWord.fromNumber(propNamePtr))
         },
         jig_lock: (originPtr: number, type: number, argsPtr: number) => {
           this._currentExec.get().vmJigLock(this, WasmWord.fromNumber(originPtr), type, WasmWord.fromNumber(argsPtr))
@@ -97,26 +95,26 @@ export class WasmContainer {
         caller_outputcheck: (): boolean => {
           return this._currentExec.get().vmCallerOutputCheck()
         },
-        caller_output: (): WasmPointer => {
+        caller_output: (): WasmArg => {
           return this._currentExec.get().vmCallerOutput(this).toUInt()
         },
-        caller_output_val: (keyPtr: number): WasmPointer => {
+        caller_output_val: (keyPtr: number): WasmArg => {
           return this._currentExec.get().vmCallerOutputVal(this, WasmWord.fromNumber(keyPtr)).toUInt()
         },
-        constructor_local: (classNamePtr: number, argsPtr: number): WasmPointer => {
+        constructor_local: (classNamePtr: number, argsPtr: number): WasmArg => {
           return this._currentExec.get().vmConstructorLocal(
             this,
             WasmWord.fromNumber(classNamePtr),
             WasmWord.fromNumber(argsPtr)
           ).toUInt()
         },
-        constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): WasmPointer => {
+        constructor_remote: (pkgIdStrPtr: number, namePtr: number, argBufPtr: number): WasmArg => {
           return this._currentExec.get().vmConstructorRemote(
             this,
             WasmWord.fromNumber(pkgIdStrPtr),
             WasmWord.fromNumber(namePtr),
             WasmWord.fromNumber(argBufPtr)
-          ).toUInt()
+          )
         },
         proxy_link: () => {},
         meter: (gasUsed: bigint) => {
