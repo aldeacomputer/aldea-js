@@ -4,11 +4,13 @@ import { PackageParser } from './package/parser.js'
 import { TransformGraph } from './transform/graph/graph.js'
 import { createDocs, Docs } from './transform/docs.js'
 import { meterWasm } from '@aldea/wasm-metering'
+import { writeDependency  } from './compiler.js'
 
 export { PackageParser }
 export { writeDependency } from './package/code-helpers.js'
 
 import { aldeaLib } from '../lib/generated.js'
+import { abiFromBin } from '@aldea/core'
 
 const baseOpts = [
   '--debug', // TODO delete eventually
@@ -38,11 +40,20 @@ export interface CompilerResult {
 export async function compileFromRust(
   entry: string,
   src: [string, string][] = [],
-  deps: [string, string][] = [],
+  deps: [string, Uint8Array][] = [],
 ): Promise<CompilerResult> {
   const srcMap = new Map<string, string>(src)
-  const depsMap = new Map<string, string>(deps)
-  return compile(entry, srcMap, depsMap)
+
+  let srcMapWithEntry = new Map<string, string>(src)
+  srcMapWithEntry.set('main.js', entry)
+  const parser = new PackageParser(['main.js'], {
+    getSrc: (fileName) => srcMapWithEntry.get(fileName),
+    getDep: (pkgId) => writeDependency(abiFromBin(deps.find(([id]) => id === pkgId)![1])),
+  })
+
+  await parser.parse()
+
+  return compile(entry, srcMap, parser.deps)
 }
 
 /**
