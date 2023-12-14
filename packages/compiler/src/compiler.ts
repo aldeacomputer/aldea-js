@@ -35,11 +35,19 @@ export interface CompilerResult {
   stdout: asc.OutputStream;
 }
 
+export async function compileFromRust(
+  entry: string,
+  src: [string, string][] = [],
+  deps: [string, string][] = [],
+): Promise<CompilerResult> {
+  const srcMap = new Map<string, string>(src)
+  const depsMap = new Map<string, string>(deps)
+  return compile(entry, srcMap, depsMap)
+}
+
 /**
  * Compiles the given AssemblyScript code string into a WASM binary.
  */
-export async function compile(src: string | Map<string, string>): Promise<CompilerResult>;
-export async function compile(entry: string[], src: Map<string, string>, deps: Map<string, string>): Promise<CompilerResult>;
 export async function compile(
   entry: string | string[] | Map<string, string>,
   src: Map<string, string> = new Map(),
