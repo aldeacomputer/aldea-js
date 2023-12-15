@@ -38,22 +38,20 @@ export interface CompilerResult {
 }
 
 export async function compileFromRust(
-  entry: string,
+  entries: [string],
   src: [string, string][] = [],
   deps: [string, Uint8Array][] = [],
 ): Promise<CompilerResult> {
   const srcMap = new Map<string, string>(src)
 
-  let srcMapWithEntry = new Map<string, string>(src)
-  srcMapWithEntry.set('main.js', entry)
-  const parser = new PackageParser(['main.js'], {
-    getSrc: (fileName) => srcMapWithEntry.get(fileName),
+  const parser = new PackageParser(entries, {
+    getSrc: (fileName) => srcMap.get(fileName),
     getDep: (pkgId) => writeDependency(abiFromBin(deps.find(([id]) => id === pkgId)![1])),
   })
 
   await parser.parse()
 
-  return compile(entry, srcMap, parser.deps)
+  return compile(entries, srcMap, parser.deps)
 }
 
 /**
