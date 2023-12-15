@@ -4,11 +4,13 @@ import { PackageParser } from './package/parser.js'
 import { TransformGraph } from './transform/graph/graph.js'
 import { createDocs, Docs } from './transform/docs.js'
 import { meterWasm } from '@aldea/wasm-metering'
+import { writeDependency  } from './compiler.js'
 
 export { PackageParser }
 export { writeDependency } from './package/code-helpers.js'
 
 import { aldeaLib } from '../lib/generated.js'
+import { abiFromBin } from '@aldea/core'
 
 const baseOpts = [
   '--debug', // TODO delete eventually
@@ -35,11 +37,26 @@ export interface CompilerResult {
   stdout: asc.OutputStream;
 }
 
+export async function compileFromRust(
+  entries: [string],
+  src: [string, string][] = [],
+  deps: [string, Uint8Array][] = [],
+): Promise<CompilerResult> {
+  const srcMap = new Map<string, string>(src)
+
+  const parser = new PackageParser(entries, {
+    getSrc: (fileName) => srcMap.get(fileName),
+    getDep: (pkgId) => writeDependency(abiFromBin(deps.find(([id]) => id === pkgId)![1])),
+  })
+
+  await parser.parse()
+
+  return compile(entries, srcMap, parser.deps)
+}
+
 /**
  * Compiles the given AssemblyScript code string into a WASM binary.
  */
-export async function compile(src: string | Map<string, string>): Promise<CompilerResult>;
-export async function compile(entry: string[], src: Map<string, string>, deps: Map<string, string>): Promise<CompilerResult>;
 export async function compile(
   entry: string | string[] | Map<string, string>,
   src: Map<string, string> = new Map(),
