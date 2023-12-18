@@ -63,6 +63,10 @@ export class Lock {
     return buf.data
   }
 
+  toHex(): string {
+    return base16.encode(this.toBytes())
+  }
+
   toJson(): LockInterface {
     return { type: this.type, data: base16.encode(this.data) }
   }

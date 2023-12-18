@@ -127,6 +127,13 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
     )
   })
 
+  app.get('/outputs-by-lock/:lock', (req, res) => {
+    const lockHex = req.params.lock
+    res.send(
+      storage.utxosForLock(lockHex).map((u: Output) => serializeOutput(u))
+    )
+  })
+
   app.post('/mint', asyncHandler(async (req, res) => {
     const coinPkg = storage.getPkg('0000000000000000000000000000000000000000000000000000000000000000').get()
     const bcs = new BCS(coinPkg.abi)

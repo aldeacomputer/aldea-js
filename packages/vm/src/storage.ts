@@ -47,6 +47,7 @@ export class PkgData {
 export class Storage {
   private utxosByOid: Map<string, Output> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, Output[]> // address -> state. Only utxos
+  private utxosByLock: Map<string, Output[]> // address -> state. Only utxos
   private tips: Map<string, string> // origin -> latest output_id
   private origins: Map<string, string> // utxo -> origin. Only utxos
   private txs: Map<string, Tx>
@@ -63,6 +64,7 @@ export class Storage {
     this.packages = new Map()
     this.historicalUtxos = new Map()
     this.utxosByAddress = new Map()
+    this.utxosByLock = new Map()
   }
 
 
@@ -108,6 +110,10 @@ export class Storage {
             const filtered = list.filter(s => !s.origin.equals(oldOutput.origin))
             this.utxosByAddress.set(addr.toString(), filtered)
           })
+
+          const list = this.utxosForLock(oldOutput.lock.toHex())
+          const filtered = list.filter(s => !s.origin.equals(oldOutput.origin))
+          this.utxosByLock.set(oldOutput.lock.toHex(), filtered)
         }
       }
     }
@@ -125,6 +131,9 @@ export class Storage {
         this.utxosByAddress.set(address, [output])
       }
     }
+    const byLock = this.utxosForLock(output.lock.toHex())
+    byLock.push(output)
+    this.utxosByLock.set(output.lock.toHex(), byLock)
   }
 
   getJigStateByOrigin(origin: Pointer): Option<Output> {
@@ -173,6 +182,11 @@ export class Storage {
 
   utxosForAddress(userAddr: Address): Output[] {
     return Option.fromNullable(this.utxosByAddress.get(userAddr.toString()))
+      .orDefault([])
+  }
+
+  utxosForLock(lockHex: string): Output[] {
+    return Option.fromNullable(this.utxosByLock.get(lockHex))
       .orDefault([])
   }
 
