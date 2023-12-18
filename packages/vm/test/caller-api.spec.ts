@@ -3,7 +3,7 @@ import {
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
-import {base16, BufReader, ref} from "@aldea/core";
+import {base16, BufReader, PrivKey, ref} from "@aldea/core";
 // @ts-ignore
 import {fundedExecFactoryFactory, buildVm, ArgsBuilder, parseOutput} from './util.js';
 
@@ -12,6 +12,9 @@ describe('execute txs', () => {
   let vm: VM
 
   let modIdFor: (key: string) => Uint8Array
+
+  const userKey = PrivKey.fromRandom()
+  const userAddr = userKey.toPubKey().toAddress()
 
   let args: ArgsBuilder
   beforeEach(() => {
@@ -33,6 +36,9 @@ describe('execute txs', () => {
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         const sender = exec.instantiate(pkg.idx, ...args.constr('RightCaller', []))
         exec.call(sender.idx, ...args.method('RightCaller', 'doTheCall', [ref(receiver.idx)]))
+        exec.lockJig(receiver.idx, userAddr)
+        exec.lockJig(sender.idx, userAddr)
+
 
         const res = exec.finalize()
         const parsed = parseOutput(res.outputs[2])
@@ -45,6 +51,8 @@ describe('execute txs', () => {
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         const sender = exec.instantiate(pkg.idx, ...args.constr('AnotherCaller', []))
         exec.call(sender.idx, ...args.method('AnotherCaller', 'doTheCall', [ref(receiver.idx)]))
+        exec.lockJig(receiver.idx, userAddr)
+        exec.lockJig(sender.idx, userAddr)
 
         const res = exec.finalize()
         const parsed = parseOutput(res.outputs[2])
@@ -56,6 +64,7 @@ describe('execute txs', () => {
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         exec.call(receiver.idx, ...args.method('Receiver', 'checkCallerType', []))
+        exec.lockJig(receiver.idx, userAddr)
 
         const res = exec.finalize()
         const parsed = parseOutput(res.outputs[1])
@@ -71,6 +80,8 @@ describe('execute txs', () => {
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         const sender = exec.instantiate(pkg.idx, ...args.constr('SubclassCaller', []))
         exec.call(sender.idx, ...args.method('RightCaller', 'doTheCall', [ref(receiver.idx)]))
+        exec.lockJig(receiver.idx, userAddr)
+        exec.lockJig(sender.idx, userAddr)
 
         const res = exec.finalize()
         const reader = new BufReader(res.outputs[2].stateBuf)

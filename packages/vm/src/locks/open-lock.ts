@@ -18,4 +18,8 @@ export class OpenLock extends Lock {
   canBeChanged (_param: TxExecution): boolean {
     return true;
   }
+
+  isOpen (): boolean {
+    return true
+  }
 }

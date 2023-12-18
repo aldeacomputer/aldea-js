@@ -533,8 +533,11 @@ describe('execute txs', () => {
   })
 
   it('when call an external constructor a new jig is created a right proxy gets assigned', () => {
-    const {exec, shepherd} = shepherdExec([userPriv])
+    const {exec, flock, shepherd} = shepherdExec([userPriv])
     exec.call(shepherd.idx, ...ctrArgs.method('Shepherd', 'breedANewFlock', [5]))
+    exec.lockJig(flock.idx, userAddr)
+    exec.lockJig(shepherd.idx, userAddr)
+
     const res = exec.finalize()
 
     expect(res.outputs).to.have.length(4)
@@ -632,7 +635,8 @@ describe('execute txs', () => {
       const { exec } = fundedExec()
 
       let pkgStmt = exec.import(pkgHash)
-      exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 0]))
+      let stmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 0]))
+      exec.lockJig(stmt.idx, userAddr)
       const res = exec.finalize()
       expect(res.outputs[1].stateBuf).to.eql(new Uint8Array([0, 0]))
     })
@@ -641,7 +645,8 @@ describe('execute txs', () => {
       const { exec } = fundedExec()
 
       let pkgStmt = exec.import(pkgHash)
-      exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 1, 5, 104, 101, 108, 108, 111]))
+      let stmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 1, 5, 104, 101, 108, 108, 111]))
+      exec.lockJig(stmt.idx, userAddr)
       const res = exec.finalize()
       expect(res.outputs[1].stateBuf).to.eql(new Uint8Array([1, 5, 104, 101, 108, 108, 111, 0]))
     })
@@ -654,6 +659,8 @@ describe('execute txs', () => {
       const jig2 = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 0]))
       exec.call(jig1.idx, 0, new Uint8Array([0]))
       exec.call(jig2.idx, 0, new Uint8Array([0]))
+      exec.lockJig(jig1.idx, userAddr)
+      exec.lockJig(jig2.idx, userAddr)
 
       const res = exec.finalize()
       expect(res.outputs[1].stateBuf).to.eql(new Uint8Array([1, 5, 104, 101, 108, 108, 111, 2]))
@@ -699,6 +706,7 @@ describe('execute txs', () => {
       const buf = bcs.encode('BigInt', 10n)
       const jigStmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, ...buf]))
       exec.call(jigStmt.idx, 0, new Uint8Array([0]))
+      exec.lockJig(jigStmt.idx, userAddr)
       const res = exec.finalize()
       const parsed = bcs.decode('A', res.outputs[1].stateBuf)
       expect(parsed[0]).to.eql(10n)
@@ -714,6 +722,7 @@ describe('execute txs', () => {
       const buf = bcs.encode('BigInt', value)
       const jigStmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, ...buf]))
       exec.call(jigStmt.idx, 0, new Uint8Array([0]))
+      exec.lockJig(jigStmt.idx, userAddr)
       const res = exec.finalize()
       const parsed = bcs.decode('A', res.outputs[1].stateBuf)
       expect(parsed[0]).to.eql(value)
@@ -729,6 +738,7 @@ describe('execute txs', () => {
       const buf = bcs.encode('BigInt', value)
       const jigStmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, ...buf]))
       exec.call(jigStmt.idx, 0, new Uint8Array([0]))
+      exec.lockJig(jigStmt.idx, userAddr)
       const res = exec.finalize()
       const parsed = bcs.decode('A', res.outputs[1].stateBuf)
       expect(parsed[0]).to.eql(value)
@@ -890,8 +900,10 @@ describe('execute txs', () => {
       const sender = exec.instantiate(senderCont.idx, 0, new Uint8Array([0]))
 
       exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1000]))
+      exec.lockJig(receiver.idx, userAddr)
+      exec.lockJig(sender.idx, userAddr)
       const result = exec.finalize()
-      expect(result.hydrosUsed).to.within(30, 40)
+      expect(result.hydrosUsed).to.within(35, 45)
     })
   });
 
@@ -918,9 +930,13 @@ describe('execute txs', () => {
   it('adds hydros based on each load by origin', () => {
     const {exec: exec1} = fundedExec([])
     const pkgStmt = exec1.import(modIdFor('flock'))
+    const jig1Stmt = exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
     exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
     exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
-    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+    exec1.lockJig(jig1Stmt.idx, userAddr)
+    exec1.lockJig(jig1Stmt.idx + 1, userAddr)
+    exec1.lockJig(jig1Stmt.idx + 2, userAddr)
+
     const result1 = exec1.finalize();
     storage.persistExecResult(result1)
 
@@ -945,10 +961,13 @@ describe('execute txs', () => {
   it('count hydros for new ouputs', async () => {
     const {exec: exec1} = fundedExec([])
     const pkgStmt = exec1.import(modIdFor('flock'))
+    const jig1 = exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
     exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
     exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
-    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
-    const result1 = exec1.finalize();
+    exec1.lockJig(jig1.idx, userAddr)
+    exec1.lockJig(jig1.idx + 1, userAddr)
+    exec1.lockJig(jig1.idx + 2, userAddr)
+    const result1 = exec1.finalize()
     expect(result1.hydrosUsed).to.eql(8)
     storage.persistExecResult(result1)
 
@@ -968,15 +987,24 @@ describe('execute txs', () => {
 
     const jig1Stmt = exec1.instantiate(pkgStmt.idx, ...args.constr('Human', ['name1', []]))
     const jig2Stmt = exec1.instantiate(pkgStmt.idx, ...args.constr('Human', ['name2', []]))
+    exec1.lockJig(jig1Stmt.idx, userAddr)
+    exec1.lockJig(jig2Stmt.idx, userAddr)
     const res1 = exec1.finalize();
     storage.persistExecResult(res1)
 
-    const {exec: exec2} = fundedExec()
+    const {exec: exec2} = fundedExec([userPriv])
     const p1 = exec2.load(res1.outputs[1].hash)
     const p2 = exec2.load(res1.outputs[2].hash)
     exec2.call(p1.idx, ...args.method('Human', 'marry', [ref(p2.idx)] ))
     exec2.call(p1.idx, ...args.method('Human', 'child', ['bob'] ))
+  })
 
+  it('fails when a jig was not locked at the end of the tx', () => {
+    const {exec: exec1} = fundedExec([])
+    const pkgStmt = exec1.import(modIdFor('flock'))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+
+    expect(() => exec1.finalize()).to.throw(PermissionError)
   })
 
   // it('receives right amount from properties of foreign jigs', () => {

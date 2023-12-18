@@ -18,6 +18,10 @@ export abstract class Lock {
   abstract canBeChanged (param: TxExecution): boolean;
 
   abstract canReceiveCalls (param: TxExecution): boolean;
+
+  isOpen (): boolean {
+    return false
+  }
 }
 
 export { CoreLock }

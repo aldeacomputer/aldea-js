@@ -1,5 +1,5 @@
 import {ContainerRef, JigRef} from "./jig-ref.js"
-import {ExecutionError, IvariantBroken} from "./errors.js"
+import {ExecutionError, IvariantBroken, PermissionError} from "./errors.js"
 import {OpenLock} from "./locks/open-lock.js"
 import {AuthCheck, WasmContainer} from "./wasm-container.js";
 import {Address, base16, BufReader, BufWriter, Lock as CoreLock, LockType, Output, Pointer} from '@aldea/core';
@@ -134,12 +134,12 @@ class TxExecution {
     if (this.fundAmount < MIN_FUND_AMOUNT) {
       throw new ExecutionError(`Not enough funding. Provided: ${this.fundAmount}. Needed: ${MIN_FUND_AMOUNT}`)
     }
-    // this.jigs.forEach(jigRef => {
-    //   if (jigRef.lock.isOpen()) {
-    //     throw new PermissionError(`Finishing tx with unlocked jig (${jigRef.className()}): ${jigRef.origin}`)
-    //   }
-    // })
-    //
+    this.jigs.forEach(jigRef => {
+      if (jigRef.lock.isOpen()) {
+        throw new PermissionError(`Finishing tx with unlocked jig (${jigRef.className()}): ${jigRef.origin}`)
+      }
+    })
+
     this.affectedJigs.forEach((jigRef, index) => {
       const origin = jigRef.origin
       const location = new Pointer(this.execContext.txHash(), index)
