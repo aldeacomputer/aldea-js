@@ -26,6 +26,7 @@ import {
 } from "@aldea/core/instructions";
 import {ExecOpts} from "./export-opts.js";
 import {COIN_PKG_ID} from "./well-known-abi-nodes.js";
+import {ExecutionError} from "./errors.js";
 
 
 /**
@@ -34,16 +35,36 @@ import {COIN_PKG_ID} from "./well-known-abi-nodes.js";
  */
 export type CompileFn = (entry: string[], src: Map<string, string>, deps: Map<string, string>) => Promise<CompilerResult>;
 
+
+/**
+ * A class representing an Aldea virtual machine (VM).
+ *
+ * The VM takes and saves data to the `Storage`.
+ */
 export class VM {
   private readonly storage: Storage;
   private readonly compile: CompileFn;
 
+  /**
+   * Creates a new instance of the constructor.
+   *
+   * @param {Storage} storage - The storage object for retrieving storing data.
+   * @param {CompileFn} compile - The compile function to manaage deploys.
+   */
   constructor (storage: Storage, compile: CompileFn) {
     this.storage = storage
     this.compile = compile
     this.addPreCompiled(wasm, rawSource, rawAbi, rawDocs, COIN_PKG_ID)
   }
 
+  /**
+   * Executes an Aldea transaction. If the execution is correct it saves the result into the
+   * storage.
+   *
+   * @param {Tx} tx - Aldea transaction to execute.
+   * @return {Promise<ExecutionResult>} - The result of the execution.
+   * @throws {ExecutionError} - When an unknown opcode is encountered.
+   */
   async execTx(tx: Tx): Promise<ExecutionResult> {
     const context = new StorageTxContext(tx.hash, tx.signers(), this.storage, this)
     const currentExec = new TxExecution(context, ExecOpts.default())
@@ -96,7 +117,7 @@ export class VM {
           currentExec.signTo(signTo.sig, signTo.pubkey)
           break
         default:
-          throw new Error(`unknown opcode: ${inst.opcode}`)
+          throw new ExecutionError(`unknown opcode: ${inst.opcode}`)
       }
     }
     const result = currentExec.finalize()
@@ -105,14 +126,14 @@ export class VM {
     return result
   }
 
-  // async execTxFromInputs(exTx: ExtendedTx) {
-  //   const context = new ExTxExecContext(exTx, this.clock, this.pkgs, this)
-  //   const currentExecution = new TxExecution(context)
-  //   const result = await currentExecution.run()
-  //   this.storage.persist(result)
-  //   return result
-  // }
-
+  /**
+   * Compiles the given sources and returns package data. At this point the single line imports are resolved.
+   *
+   * @param entries - An array of entry points for the package.
+   * @param sources - A map of source code files, where the key is the file name and the value is the source code.
+   *
+   * @returns A Promise that resolves to a PkgData object containing all the data of the package.
+   */
   async compileSources (entries: string[], sources: Map<string, string>): Promise<PkgData> {
     const id = calculatePackageId(entries, sources)
 
@@ -137,6 +158,18 @@ export class VM {
     )
   }
 
+  /**
+   * Adds a pre-compiled module to the storage. This is useful to generate controlled environments or test
+   * very specific use cases, but it's not something that a real production node can do.
+   *
+   * @param {Uint8Array} wasmBin - The binary representation of the WebAssembly module.
+   * @param {string} sourceStr - The source code of the module in string format.
+   * @param {Uint8Array} abiBin - The binary representation of the module's ABI (Application Binary Interface).
+   * @param {Uint8Array} docs - The documentation of the module in binary format.
+   * @param {Uint8Array|null} [defaultId=null] - The default package ID. If not provided, it will be calculated based on the entries and sources.
+   *
+   * @returns {Uint8Array} - The package ID of the added module.
+   */
   addPreCompiled (wasmBin: Uint8Array, sourceStr: string, abiBin: Uint8Array, docs: Uint8Array, defaultId: Uint8Array | null = null): Uint8Array {
     const sources = new Map<string, string>()
     sources.set('index.ts',sourceStr.toString())
@@ -162,6 +195,16 @@ export class VM {
     return id
   }
 
+  /**
+   * Mint 1 coin with the given amount and locked to the given address. This method
+   * goes outside consensus and is meant to be used in development environments.
+   *
+   * @param {Address} address - The address to mint the output for.
+   * @param {number} [amount=1e6] - The amount of the output. Defaults to 1e6.
+   * @param {Uint8Array} [locBuf] - Optional location buffer to use. If not provided, a random location buffer will be generated.
+   *
+   * @return {Output} The minted output.
+   */
   mint (address: Address, amount: number = 1e6, locBuf?: Uint8Array): Output {
     const location = locBuf
       ? new Pointer(locBuf, 0)
