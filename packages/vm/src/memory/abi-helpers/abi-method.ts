@@ -1,6 +1,6 @@
 import {MethodNode} from "@aldea/core/abi";
 import {Option} from "../../support/option.js";
-import {emptyTn} from "../well-known-abi-nodes.js";
+import {emptyTn} from "../../well-known-abi-nodes.js";
 import {AbiType} from "./abi-type.js";
 import {AbiArg} from "./abi-arg.js";
 

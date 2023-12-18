@@ -3,7 +3,7 @@ import {expect} from 'chai'
 import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, PubKey, ref} from "@aldea/core";
 import {Abi} from '@aldea/core/abi';
 import {ArgsBuilder, buildVm, fundedExecFactoryFactory, parseOutput} from "./util.js";
-import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
+import {COIN_CLS_PTR} from "../src/well-known-abi-nodes.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {StatementResult} from "../src/statement-result.js";

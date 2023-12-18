@@ -9,7 +9,7 @@ import {
   jigInitParamsAbiNode,
   lockAbiNode,
   outputAbiNode
-} from "../well-known-abi-nodes.js";
+} from "../../well-known-abi-nodes.js";
 import {AbiType} from "./abi-type.js";
 import {AbiPlainObject} from "./abi-plain-object.js";
 

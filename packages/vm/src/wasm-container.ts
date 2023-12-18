@@ -121,7 +121,7 @@ export class WasmContainer {
           return this._currentExec.ifPresent(vm => vm.vmMeter(gasUsed))
         },
         debug_str: (strPtr: number): void => {
-          const msg = this.lifter.lift(WasmWord.fromNumber(strPtr), AbiType.fromName('string'))
+          const msg = this.lifter.lift(WasmWord.fromNumber(strPtr), AbiType.string())
           const buf = Buffer.from(new BufReader(msg).readBytes())
           console.log(`debug [pkg=${this.id.slice(0, 6)}...]: ${buf.toString()}`)
         }
@@ -159,12 +159,12 @@ export class WasmContainer {
   }
 
   liftString(ptr: WasmWord): string {
-    const buf = this.lifter.lift(ptr, AbiType.fromName('string'))
+    const buf = this.lifter.lift(ptr, AbiType.string())
     return Buffer.from(new BufReader(buf).readBytes()).toString()
   }
 
   liftBuf(ptr: WasmWord): Uint8Array {
-    const buf = this.lifter.lift(ptr, AbiType.fromName('ArrayBuffer'))
+    const buf = this.lifter.lift(ptr, AbiType.buffer())
     return new BufReader(buf).readBytes()
   }
 

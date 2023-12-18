@@ -1,5 +1,5 @@
 import {AbiField} from "./abi-plain-object.js";
-import {basicJigAbiNode} from "../well-known-abi-nodes.js";
+import {basicJigAbiNode} from "../../well-known-abi-nodes.js";
 
 export class ProxyDef {
   private _name: string;

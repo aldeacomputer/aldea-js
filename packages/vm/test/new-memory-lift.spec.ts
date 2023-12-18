@@ -6,7 +6,7 @@ import {expect} from "chai";
 import {AbiType} from "../src/memory/abi-helpers/abi-type.js";
 import {Option} from "../src/support/option.js";
 import {serializeOutput} from "../src/memory/serialize-output.js";
-import {emptyTn} from "../src/memory/well-known-abi-nodes.js";
+import {emptyTn} from "../src/well-known-abi-nodes.js";
 import {ValueLifter} from "../src/memory/value-lifter.js";
 import {JigData, LowerValue} from "../src/memory/lower-value.js";
 

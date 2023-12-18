@@ -13,22 +13,25 @@ import {StorageTxContext} from "./tx-context/storage-tx-context.js";
 import {TxExecution} from "./tx-execution.js";
 import {
   CallInstruction,
+  DeployInstruction,
+  ExecInstruction,
+  FundInstruction,
   ImportInstruction,
   LoadByOriginInstruction,
   LoadInstruction,
+  LockInstruction,
   NewInstruction,
-  ExecInstruction, FundInstruction, LockInstruction, DeployInstruction, SignInstruction, SignToInstruction
+  SignInstruction,
+  SignToInstruction
 } from "@aldea/core/instructions";
 import {ExecOpts} from "./export-opts.js";
+import {COIN_PKG_ID} from "./well-known-abi-nodes.js";
 
-// Magic Coin Pkg ID
-const COIN_PKG_ID = new Uint8Array([
-  0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0,
-])
 
+/**
+ * Type for compiling functions. This type follows
+ * the type of the basic compile function for @aldea/compiler
+ */
 export type CompileFn = (entry: string[], src: Map<string, string>, deps: Map<string, string>) => Promise<CompilerResult>;
 
 export class VM {

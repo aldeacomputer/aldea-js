@@ -1,6 +1,4 @@
 import {Abi, AbiQuery, assertProxy, CodeKind, ProxyNode} from "@aldea/core/abi";
-import {AbiField} from "./abi-plain-object.js";
-import {basicJigAbiNode} from "../well-known-abi-nodes.js";
 import {ProxyDef} from "./proxy-def.js";
 
 export class AbiImportedProxy {

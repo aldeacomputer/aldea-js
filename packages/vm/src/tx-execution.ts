@@ -3,7 +3,7 @@ import {ExecutionError, IvariantBroken} from "./errors.js"
 import {OpenLock} from "./locks/open-lock.js"
 import {AuthCheck, WasmContainer} from "./wasm-container.js";
 import {Address, base16, BufReader, BufWriter, Lock as CoreLock, LockType, Output, Pointer} from '@aldea/core';
-import {COIN_CLS_PTR, outputTypeNode} from "./memory/well-known-abi-nodes.js";
+import {COIN_CLS_PTR, outputTypeNode} from "./well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
 import {ExecContext} from "./tx-context/exec-context.js";
@@ -546,7 +546,7 @@ class TxExecution {
       .low
       .lower(
         serializePointer(new Pointer(from.hash, abiClass.idx)),
-        AbiType.fromName('ArrayBuffer')
+        AbiType.buffer()
       ).toWasmArg(AbiType.u32())
   }
 
@@ -761,7 +761,7 @@ class TxExecution {
         throw new Error(`unknown vmCallerOutputVal key: ${key}`)
     }
 
-    return from.low.lower(buf.data, AbiType.fromName('ArrayBuffer'))
+    return from.low.lower(buf.data, AbiType.buffer())
   }
 
   vmJigAuthCheck (from: WasmContainer, targetOriginPtr: WasmWord, check: AuthCheck): boolean {

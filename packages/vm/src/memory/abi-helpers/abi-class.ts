@@ -4,7 +4,7 @@ import {AbiType} from "./abi-type.js";
 import {AbiField} from "./abi-plain-object.js";
 import {WasmWord} from "../../wasm-word.js";
 import {AbiMethod} from "./abi-method.js";
-import {lockTypeNode, outputTypeNode} from "../well-known-abi-nodes.js";
+import {lockTypeNode, outputTypeNode} from "../../well-known-abi-nodes.js";
 import {ProxyDef} from "./proxy-def.js";
 
 const BASE_FIELDS = [{

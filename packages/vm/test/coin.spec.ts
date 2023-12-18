@@ -9,7 +9,7 @@ import {
   LockInstruction,
   SignInstruction
 } from "@aldea/core/instructions";
-import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
+import {COIN_CLS_PTR} from "../src/well-known-abi-nodes.js";
 
 describe('Coin', () => {
   let storage: Storage
