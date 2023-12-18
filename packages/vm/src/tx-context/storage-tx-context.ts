@@ -22,7 +22,7 @@ export class StorageTxContext implements ExecContext {
     return this._txHash
   }
 
-  stateByOutputId (id: Uint8Array): Output {
+  outputById (id: Uint8Array): Output {
     return this.storage.byOutputId(id).orElse(() => {
       throw new ExecutionError(`output not present in utxo set: ${base16.encode(id)}`)
     })
@@ -40,10 +40,6 @@ export class StorageTxContext implements ExecContext {
 
   compile (entries: string[], sources: Map<string, string>): Promise<PkgData> {
     return this.vm.compileSources(entries, sources)
-  }
-
-  txId (): string {
-    return base16.encode(this._txHash)
   }
 
   signers (): PubKey[] {

@@ -130,7 +130,7 @@ class TxExecution {
   }
 
   finalize (): ExecutionResult {
-    const result = new ExecutionResult(this.execContext.txId())
+    const result = new ExecutionResult(base16.encode(this.execContext.txHash()))
     if (this.fundAmount < MIN_FUND_AMOUNT) {
       throw new ExecutionError(`Not enough funding. Provided: ${this.fundAmount}. Needed: ${MIN_FUND_AMOUNT}`)
     }
@@ -228,7 +228,7 @@ class TxExecution {
   }
 
   load (outputId: Uint8Array): StatementResult {
-    const output = this.execContext.stateByOutputId(outputId)
+    const output = this.execContext.outputById(outputId)
     const jigRef = this.hydrate(output)
 
     const ret = new ValueStatementResult(this.statements.length, jigRef.ref.ty.proxy(), jigRef.ref.ptr, jigRef.ref.container);
