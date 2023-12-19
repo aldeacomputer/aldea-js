@@ -45,20 +45,18 @@ export class PkgData {
 }
 
 export class Storage {
-  private utxosByOid: Map<string, Output> // output_id -> state. Only utxos
+  private utxosByOutputId: Map<string, Output> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, Output[]> // address -> state. Only utxos
   private utxosByLock: Map<string, Output[]> // address -> state. Only utxos
   private tips: Map<string, string> // origin -> latest output_id
-  private origins: Map<string, string> // utxo -> origin. Only utxos
   private txs: Map<string, Tx>
   private execResults: Map<string, ExecutionResult> // txid -> transaction execution.
   private packages: Map<string, PkgData> // pkg_id -> pkg data
   private historicalUtxos: Map<string, Output>
 
   constructor() {
-    this.utxosByOid = new Map()
+    this.utxosByOutputId = new Map()
     this.tips = new Map()
-    this.origins = new Map()
     this.txs = new Map()
     this.execResults = new Map()
     this.packages = new Map()
@@ -68,90 +66,75 @@ export class Storage {
   }
 
 
-  persistTx(tx: Tx) {
+  /**
+   * Persists a transaction.
+   *
+   * @param {Tx} tx - The transaction to persist.
+   *
+   * @return {void}
+   */
+  async persistTx(tx: Tx): Promise<void> {
     this.txs.set(tx.id, tx)
   }
 
-  persistExecResult(txExecution: ExecutionResult) {
+  async persistExecResult(txExecution: ExecutionResult): Promise<void> {
     this.execResults.set(txExecution.txId, txExecution)
     txExecution.outputs.forEach((state) => this.addUtxo(state))
     txExecution.deploys.forEach(pkgDeploy => this.addPackage(pkgDeploy.hash, PkgData.fromPackageDeploy(pkgDeploy)))
   }
 
-  private isNew(o: Output): boolean {
-    return o.origin.equals(o.location)
-  }
-
-  private addressFor(o: Output): Option<Address> {
-    return Option.some(o)
-        .filter(o => o.lock.type === LockType.ADDRESS)
-        .map(o => new Address(o.lock.data))
-  }
-
   addUtxo(output: Output) {
-    const currentLocation = output.id;
+    const currentOutputId = output.id;
     const originStr = output.origin.toString();
+    const origin = Pointer.fromString(originStr)
 
-    if (!this.isNew(output)) {
-      const prevLocation = this.tips.get(originStr)
+    const prevOutput = this.tipFor(origin)
 
-      // if it's not new but there is not prev location that means that is a local client. It's fine.
-      if (prevLocation) {
-        const oldOutput = this.utxosByOid.get(prevLocation)
-        this.utxosByOid.delete(prevLocation)
-        this.tips.delete(originStr)
-        this.origins.delete(originStr)
-        if (oldOutput) {
-          this.addressFor(oldOutput).ifPresent((addr) => {
-            const list = this.utxosByAddress.get(addr.toString())
-            if (!list) {
-              throw new Error('error')
-            }
-            const filtered = list.filter(s => !s.origin.equals(oldOutput.origin))
-            this.utxosByAddress.set(addr.toString(), filtered)
-          })
+    prevOutput.ifPresent((prevOutputId) => {
+      const prevOutput = this.outputById(prevOutputId).get()
+      this.utxosByOutputId.delete(prevOutputId)
 
-          const list = this.utxosForLock(oldOutput.lock.toHex())
-          const filtered = list.filter(s => !s.origin.equals(oldOutput.origin))
-          this.utxosByLock.set(oldOutput.lock.toHex(), filtered)
-        }
+      if (prevOutput.lock.type === LockType.ADDRESS) {
+        const address = new Address(prevOutput.lock.data);
+        const previousByAddr = this.utxosForAddress(address)
+          .filter(o => o.id !== prevOutputId)
+        this.utxosByAddress.set(address.toString(), previousByAddr)
       }
+      const serializedLock = prevOutput.lock.toHex();
+      const previousByLock = this.utxosForLock(serializedLock)
+        .filter(o => o.id !== prevOutputId)
+      this.utxosByAddress.set(serializedLock, previousByLock)
+    })
+
+    if (output.lock.type !== LockType.FROZEN) {
+      this.utxosByOutputId.set(currentOutputId, output)
     }
 
-    this.utxosByOid.set(currentLocation, output)
-    this.historicalUtxos.set(currentLocation, output)
-    this.tips.set(originStr, currentLocation)
-    this.origins.set(currentLocation, originStr)
     if (output.lock.type === LockType.ADDRESS) {
-      const address = this.addressFor(output).map(a => a.toString()).get();
-      const previous = this.utxosByAddress.get(address)
-      if (previous) {
-        previous.push(output)
-      } else {
-        this.utxosByAddress.set(address, [output])
-      }
+      const address = new Address(output.lock.data);
+      const previousByAddr = this.utxosForAddress(address)
+      previousByAddr.push(output)
+      this.utxosByAddress.set(address.toString(), previousByAddr)
     }
-    const byLock = this.utxosForLock(output.lock.toHex())
-    byLock.push(output)
-    this.utxosByLock.set(output.lock.toHex(), byLock)
+
+    const serializedLock = output.lock.toHex();
+    const previousByLock = this.utxosForLock(serializedLock)
+    previousByLock.push(output)
+    this.utxosByAddress.set(serializedLock, previousByLock)
+
+    this.tips.set(originStr, currentOutputId)
+    this.historicalUtxos.set(currentOutputId, output)
   }
 
-  getJigStateByOrigin(origin: Pointer): Option<Output> {
-    const latestLocation = this.tips.get(origin.toString())
-    if (!latestLocation) return Option.none()
-    const ret = this.utxosByOid.get(latestLocation)
-    return Option.fromNullable(ret)
-  }
-
-  getJigStateByOutputId (outputId: Uint8Array): Option<Output> {
-    const state = this.utxosByOid.get(base16.encode(outputId))
-    return Option.fromNullable(state)
-  }
-
-  tipFor(origin: Pointer): Uint8Array {
+  /**
+   * Retrieves the output id of the tip of the jig with the given origin.
+   *
+   * @param {Pointer} origin - The origin to retrieve the tip for.
+   * @returns {Option<string>} - An option containing the tip if found, otherwise None.
+   */
+  tipFor(origin: Pointer): Option<string> {
     const tip = this.tips.get(origin.toString());
-    if (!tip) throw new Error('not found')
-    return base16.decode(tip)
+    return Option.fromNullable(tip)
   }
 
   getTx(txid: string): Option<Tx> {
@@ -171,10 +154,6 @@ export class Storage {
     return Option.fromNullable(pkg)
   }
 
-  hasModule(id: Uint8Array): boolean {
-    return this.packages.has(base16.encode(id));
-  }
-
   getHistoricalUtxo (outputId: Uint8Array): Option<Output> {
     const state = this.historicalUtxos.get(base16.encode(outputId))
     return Option.fromNullable(state)
@@ -190,12 +169,21 @@ export class Storage {
       .orDefault([])
   }
 
-  byOutputId(id: Uint8Array): Option<Output> {
-    return this.getJigStateByOutputId(id);
+  outputByHash(hash: Uint8Array): Option<Output> {
+    const id = base16.encode(hash)
+    return this.outputById(id)
   }
 
-  byOrigin(origin: Pointer): Option<Output> {
-    return this.getJigStateByOrigin(origin);
+  outputById(id: string): Option<Output> {
+    const state = this.utxosByOutputId.get(id)
+    return Option.fromNullable(state)
+  }
+
+  outputByOrigin(origin: Pointer): Option<Output> {
+    const latestLocation = this.tips.get(origin.toString())
+    if (!latestLocation) return Option.none()
+    const ret = this.utxosByOutputId.get(latestLocation)
+    return Option.fromNullable(ret)
   }
 
   wasmForPackageId(moduleId: string): Option<WasmContainer> {

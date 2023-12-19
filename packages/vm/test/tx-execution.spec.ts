@@ -1,6 +1,6 @@
-import {Storage, VM} from '../src/index.js'
+import {ExtendedTx, Storage, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, PubKey, ref} from "@aldea/core";
+import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, PubKey, ref, Tx} from "@aldea/core";
 import {Abi} from '@aldea/core/abi';
 import {ArgsBuilder, buildVm, fundedExecFactoryFactory, parseOutput} from "./util.js";
 import {COIN_CLS_PTR} from "../src/well-known-abi-nodes.js";
@@ -11,6 +11,9 @@ import {ExecutionResult} from "../src/index.js";
 import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
 import {randomBytes} from "@aldea/core/support/util";
 import {ExecOpts} from "../src/export-opts.js";
+import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
+import {SignInstruction} from "@aldea/core/instructions";
+import {compile} from "@aldea/compiler";
 
 describe('execute txs', () => {
   let storage: Storage
@@ -275,7 +278,19 @@ describe('execute txs', () => {
     })
 
     it('cannot be called methods', () => {
-      const {exec} = fundedExec()
+      const tx = new Tx()
+      tx.push(new SignInstruction(new Uint8Array(64).fill(0), userPub.toBytes()))
+      const container = storage.wasmForPackageId(frozenOutput.classPtr.id).get()
+
+      const exec = new TxExecution(
+        new ExTxExecContext(
+          new ExtendedTx(tx, [frozenOutput]),
+          [container],
+          compile
+        ),
+        ExecOpts.default()
+      )
+
       const jig = exec.load(frozenOutput.hash)
       expect(() => exec.call(jig.idx, ...flockArgs.method('Flock', 'grow', []))).to
         .throw(PermissionError,
@@ -283,7 +298,19 @@ describe('execute txs', () => {
     })
 
     it('cannot be locked', () => {
-      const {exec} = fundedExec()
+      const tx = new Tx()
+      tx.push(new SignInstruction(new Uint8Array(64).fill(0), userPub.toBytes()))
+      const container = storage.wasmForPackageId(frozenOutput.classPtr.id).get()
+
+      const exec = new TxExecution(
+        new ExTxExecContext(
+          new ExtendedTx(tx, [frozenOutput]),
+          [container],
+          compile
+        ),
+        ExecOpts.default()
+      )
+
       const jig = exec.load(frozenOutput.hash)
       expect(() => exec.lockJig(jig.idx, userAddr)).to
         .throw(PermissionError,

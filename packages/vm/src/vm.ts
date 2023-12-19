@@ -1,6 +1,6 @@
 import {PkgData, Storage} from "./storage.js";
 import {CompilerResult, PackageParser, writeDependency} from '@aldea/compiler'
-import {abiFromBin, Address, BCS, OpCode, Output, Pointer, Tx, util} from "@aldea/core";
+import {abiFromBin, Address, base16, BCS, OpCode, Output, Pointer, Tx, util} from "@aldea/core";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {Buffer} from "buffer";
 import {data as wasm} from './builtins/coin.wasm.js'
@@ -121,8 +121,8 @@ export class VM {
       }
     }
     const result = currentExec.finalize()
-    this.storage.persistTx(tx)
-    this.storage.persistExecResult(result)
+    await this.storage.persistTx(tx)
+    await this.storage.persistExecResult(result)
     return result
   }
 
@@ -174,25 +174,26 @@ export class VM {
     const sources = new Map<string, string>()
     sources.set('index.ts',sourceStr.toString())
     const entries = ['index.ts'];
-    const id = defaultId
+    const hash = defaultId
       ? defaultId
       : calculatePackageId(entries, sources)
-    if (this.storage.hasModule(id)) {
-      return id
+    const id = base16.encode(hash)
+    if (this.storage.getPkg(id).isPresent()) {
+      return hash
     }
 
     const abi = abiFromBin(abiBin)
 
-    this.storage.addPackage(id, new PkgData(
+    this.storage.addPackage(hash, new PkgData(
       abi,
       docs,
       entries,
-      id,
+      hash,
       new WebAssembly.Module(wasmBin),
       sources,
       wasmBin
     ))
-    return id
+    return hash
   }
 
   /**

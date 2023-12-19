@@ -23,7 +23,7 @@ export const fundedExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () 
 
   const context = new StorageTxContext(txHash, pubKeys, storage, vm)
   const exec = new TxExecution(context, opts)
-  const output = vm.mint(pubKeys[0].toAddress(), 100, new Uint8Array(32).fill(1))
+  const output = vm.mint(pubKeys[0].toAddress(), 100)
 
   const stmt =  exec.load(output.hash)
   exec.fund(stmt.idx)

@@ -29,7 +29,74 @@
 //   }
 // }
 //
-// export class ExTxExecContext implements ExecContext {
+import {ExecContext} from "./exec-context.js";
+import {PkgData} from "../storage.js";
+import {abiFromBin, base16, Output, Pointer, PubKey} from "@aldea/core";
+import {WasmContainer} from "../wasm-container.js";
+import {ExtendedTx} from "./extended-tx.js";
+import {CompileFn} from "../vm.js";
+import {ExecutionError} from "../errors.js";
+import {calculatePackageId} from "../calculate-package-id.js";
+import {Buffer} from "buffer";
+import {Option} from "../support/option.js";
+
+export class ExTxExecContext implements ExecContext {
+  exTx: ExtendedTx
+  private compileFn: CompileFn;
+  private containers: WasmContainer[];
+
+  constructor (exTx: ExtendedTx, containers: WasmContainer[], compileFn: CompileFn) {
+    this.exTx = exTx
+    this.containers = containers
+    this.compileFn = compileFn
+  }
+
+  async compile (entries: string[], sources: Map<string, string>): Promise<PkgData> {
+    const id = calculatePackageId(entries, sources)
+
+    const result = await this.compileFn(entries, sources, new Map())
+
+    return new PkgData(
+      abiFromBin(result.output.abi),
+      Buffer.from(result.output.docs || ''),
+      entries,
+      id,
+      new WebAssembly.Module(result.output.wasm),
+      sources,
+      result.output.wasm
+    )
+  }
+
+  inputByOrigin (origin: Pointer): Output {
+    const output = this.exTx.inputs.find(i => i.origin.equals(origin));
+    if (!output) {
+      throw new ExecutionError(`input not provided. Origin:${origin.toString()}`)
+    }
+    return output
+  }
+
+  outputById (hash: Uint8Array): Output {
+    let id = base16.encode(hash)
+    const output = this.exTx.inputs.find(i =>  i.id === id);
+    if (!output) {
+      throw new ExecutionError(`input not provided. id: ${id}`)
+    }
+    return output
+  }
+
+  signers (): PubKey[] {
+    return this.exTx.tx.signers();
+  }
+
+  txHash (): Uint8Array {
+    return this.exTx.tx.hash;
+  }
+
+  wasmFromPkgId (pkgId: string): WasmContainer {
+    return Option.fromNullable(this.containers.find(c => c.id === pkgId)).expect(
+      new ExecutionError(`Missing package: ${pkgId}`)
+    )
+  }
 //   private exTx: ExtendedTx
 //   private clock: Clock;
 //   private pkgs: PkgRepository
@@ -83,5 +150,4 @@
 //   wasmFromPkgId(pkgId: Uint8Array): WasmContainer {
 //     return this.pkgs.wasmForPackageId(pkgId);
 //   }
-// }
-//
+}

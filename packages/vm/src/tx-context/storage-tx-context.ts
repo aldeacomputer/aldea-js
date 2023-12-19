@@ -23,13 +23,13 @@ export class StorageTxContext implements ExecContext {
   }
 
   outputById (id: Uint8Array): Output {
-    return this.storage.byOutputId(id).orElse(() => {
+    return this.storage.outputByHash(id).orElse(() => {
       throw new ExecutionError(`output not present in utxo set: ${base16.encode(id)}`)
     })
   }
 
   inputByOrigin (origin: Pointer): Output {
-    return this.storage.byOrigin(origin).orElse(() => { throw new ExecutionError(`unknown jig: ${origin.toString()}`)})
+    return this.storage.outputByOrigin(origin).orElse(() => { throw new ExecutionError(`unknown jig: ${origin.toString()}`)})
   }
 
   wasmFromPkgId (pkgId: string): WasmContainer {
