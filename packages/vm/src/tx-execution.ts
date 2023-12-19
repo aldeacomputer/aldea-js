@@ -1,5 +1,5 @@
 import {ContainerRef, JigRef} from "./jig-ref.js"
-import {ExecutionError, IvariantBroken, PermissionError} from "./errors.js"
+import {ExecutionError, InvariantBroken, PermissionError} from "./errors.js"
 import {OpenLock} from "./locks/open-lock.js"
 import {AuthCheck, WasmContainer} from "./wasm-container.js";
 import {Address, base16, BufReader, BufWriter, Lock as CoreLock, LockType, Output, Pointer} from '@aldea/core';
@@ -542,7 +542,7 @@ class TxExecution {
     const lifted = Pointer.fromBytes(ref.lift())
 
     return Option.fromNullable(this.jigs.find(j => j.origin.equals(lifted)))
-      .expect(new IvariantBroken('Lowered jig is not in jig list'))
+      .expect(new InvariantBroken('Lowered jig is not in jig list'))
   }
 
 
@@ -616,7 +616,7 @@ class TxExecution {
    * @returns {Option<JigData>} - An Option container that may contain the JigData for the given Pointer.
    *                              If the JigData is found, it returns a JigData object, otherwise it returns None.
    */
-  private getJigData (p: Pointer): Option<JigData> {
+  getJigData (p: Pointer): Option<JigData> {
     const existing = this.jigs.find(j => j.origin.equals(p))
     if (existing) {
       return Option.some({
@@ -701,12 +701,26 @@ class TxExecution {
 
   // Metering callbacks
 
+  /**
+   * Callback used to keep track of the amount of data being
+   * moved in an out of wasm memory.
+   *
+   * @param {number} size - The size of the data that is moved.
+   *
+   * @return {void}
+   */
   onDataMoved (size: number) {
     this.measurements.movedData.add(BigInt(size))
   }
 
   // Assemblyscrypt callbacks
 
+  /**
+   * Callback used mainly to provide Origins to new jigs being created.
+   *
+   * @param {WasmContainer} from - Container where event was produced.
+   * @return {WasmArg} - Pointer to new jig data.
+   */
   vmJigInit (from: WasmContainer): WasmArg {
     this.measurements.newJigs.inc()
     const nextOrigin = this.nextOrigin.get()
@@ -719,6 +733,19 @@ class TxExecution {
     return jigInitParams.lowerInto(from).toWasmArg(AbiType.u32())
   }
 
+  /**
+   * Links a Jig to a runtime ID (rtId) in a WebAssembly container.
+   * This callback is used to associate an already initialized Jig with a specific class id.
+   * The new jig goes to the outputs of the transaction.
+   * The class pointer of the class of the new jig gets lowered into the container and that's
+   * the final result.
+   *
+   * @param {WasmContainer} from - The WebAssembly container where the class is defined.
+   * @param {WasmWord} jigPtr - The pointer to the Jig to be linked.
+   * @param {number} rtId - The runtime ID of the class in the WebAssembly module.
+   * @returns {WasmArg} - A serialized pointer to the class in the WebAssembly module.
+   * @throws {Error} If the runtime ID or class name is not found in the WebAssembly module.
+   */
   vmJigLink (from: WasmContainer, jigPtr: WasmWord, rtId: number): WasmArg {
     const nextOrigin = this.nextOrigin.get()
     let rtIdNode = from.abi.rtIdById(rtId)
@@ -750,6 +777,16 @@ class TxExecution {
       ).toWasmArg(AbiType.u32())
   }
 
+  /**
+   * Callback executed when a jig calls a method over a jig other than itself.
+   * The arguments are send to the target jig, and the response is routed back to the caller.
+   *
+   * @param {WasmContainer} from - The source WasmContainer.
+   * @param {WasmWord} targetPtr - The pointer to the target object in memory.
+   * @param {WasmWord} methodNamePtr - The pointer to the method name in memory.
+   * @param {WasmWord} argsPtr - The pointer to the arguments in memory.
+   * @returns {WasmArg} - Pointer to the lowered result in the source container.
+   */
   vmCallMethod (from: WasmContainer, targetPtr: WasmWord, methodNamePtr: WasmWord, argsPtr: WasmWord): WasmArg {
     const targetOrigin = Pointer.fromBytes(from.liftBuf(targetPtr))
     const methodName = from.liftString(methodNamePtr)
@@ -762,10 +799,6 @@ class TxExecution {
     // Move args
     const argBuf = this.liftArgs(from, argsPtr, method.args)
     const loweredArgs = this.lowerArgs(jig.ref.container, method.args, argBuf)
-    // const argsReader = new BufReader(argBuf)
-    // const loweredArgs = method.args.map(arg => {
-    //   return jig.ref.container.low.lowerFromReader(argsReader, arg.type)
-    // })
 
     const methodRes = this.performMethodCall(jig, method, loweredArgs)
     this.marKJigAsAffected(jig)
@@ -776,6 +809,16 @@ class TxExecution {
     }).orElse(() => WasmWord.fromNumber(0)).toWasmArg(method.rtype)
   }
 
+  /**
+   * Callback executed when a jig access to a property (fields) of a jig other
+   * than itself. The data is routed from the target container to the source
+   * container. The result is a pointer to the data.
+   *
+   * @param {WasmContainer} from - The object from which to retrieve the property.
+   * @param {WasmWord} originPtr - The pointer to the origin of the object.
+   * @param {WasmWord} propNamePtr - The pointer to the property name.
+   * @return {WasmArg} - The value of the retrieved property.
+   */
   vmGetProp (from: WasmContainer, originPtr: WasmWord, propNamePtr: WasmWord): WasmArg {
     const targetOrigin = Pointer.fromBytes(from.liftBuf(originPtr));
     const propName = from.liftString(propNamePtr)
@@ -787,6 +830,19 @@ class TxExecution {
     return word.toWasmArg(propTarget.ty)
   }
 
+
+  /**
+   * Callback used when a jig tries to lock another jig.
+   * The lock type can be one of the following: ADDRESS, JIG, FROZEN, PUBLIC, NONE.
+   * The data should follow the locktype, otherwise it's an error.
+   * The target jig is marked as affected.
+   *
+   * @param {WasmContainer} from - The WebAssembly container where the Jig is defined.
+   * @param {WasmWord} targetOriginPtr - The pointer to the origin of the Jig to be locked.
+   * @param {LockType} lockType - The type of the lock to be applied to the Jig.
+   * @param {WasmWord} argsPtr - The pointer to the arguments to be used for creating the lock.
+   * @throws {Error} If an unknown lock type is provided.
+   */
   vmJigLock (from: WasmContainer, targetOriginPtr: WasmWord, lockType: LockType, argsPtr: WasmWord): void {
     const origin = Pointer.fromBytes(from.liftBuf(targetOriginPtr))
 
@@ -816,6 +872,17 @@ class TxExecution {
     this.marKJigAsAffected(jig)
   }
 
+  /**
+   * Callback executeed when a jig uses a constructor defined on the same package.
+   * A new instance of the class is creted and the result is a pointer to the instance
+   * already initialized and ready.
+   *
+   * @param {WasmContainer} from - The container when the event was raised.
+   * @param {WasmWord} clsNamePtr - The memory pointer to the class name of the Jig to be initialized.
+   * @param {WasmWord} argsPtr - The memory pointer to the arguments for the Jig constructor.
+   * @returns {WasmWord} - Pointer to newly created jig.
+   * @throws {InvariantBroken} - If after calling the constructor the jig is not there.
+   */
   vmConstructorLocal (from: WasmContainer, clsNamePtr: WasmWord, argsPtr: WasmWord): WasmWord {
     const clsName = from.liftString(clsNamePtr)
 
@@ -834,7 +901,7 @@ class TxExecution {
 
     const createdJig = this.jigs.find(ref => ref.origin.equals(nextOrigin))
     if (!createdJig) {
-      throw new ExecutionError(`[line=${this.execLength()}]Jig was not created`)
+      throw new InvariantBroken(`[line=${this.execLength()}]Jig was not created`)
     }
 
     const initParams = new JigInitParams(
@@ -847,6 +914,18 @@ class TxExecution {
     return initParams.lowerInto(from)
   }
 
+  /**
+   * Callback executed when a jig uses an exported function from another package.
+   * Calling an exported function does not affect the permission stack.
+   * The result of the pointer is routed to the origin container. If it's a jig a proxy
+   * is going to be lowered in the source container.
+   *
+   * @param {WasmContainer} from - The WasmContainer instance.
+   * @param {WasmWord} pkgIdPtr - Pointer to the package ID string.
+   * @param {WasmWord} fnNamePtr - Pointer to the function name string.
+   * @param {WasmWord} argsBufPtr - Pointer to the arguments buffer.
+   * @return {WasmArg} - The result of the function call.
+   */
   vmCallFunction (from: WasmContainer, pkgIdPtr: WasmWord, fnNamePtr: WasmWord, argsBufPtr: WasmWord): WasmArg {
     const pkgId = from.liftString(pkgIdPtr)
     const fnName = from.liftString(fnNamePtr)
@@ -860,6 +939,18 @@ class TxExecution {
     return res.orDefault(WasmWord.null()).toWasmArg(fn.rtype);
   }
 
+  /**
+   * Callback executed when a jig uses a constructor defined in another package.
+   * A new instance of the class is created and the result is a pointer to the instance
+   * already initialized and ready.
+   *
+   * @param {WasmContainer} from - The container from which to create the instance.
+   * @param {WasmWord} pkgIdStrPtr - The pointer to the package ID string.
+   * @param {WasmWord} namePtr - The pointer to the class name.
+   * @param {WasmWord} argBufPtr - The pointer to the argument buffer.
+   * @return {WasmArg} - Pointer to a proxy to the newly created jig.
+   * @throws {InvariantBroken} - If after the constructor finishes the jig is not there.
+   */
   vmConstructorRemote (from: WasmContainer, pkgIdStrPtr: WasmWord, namePtr: WasmWord, argBufPtr: WasmWord): WasmArg {
     const pkgId = from.liftString(pkgIdStrPtr)
     const clsName = from.liftString(namePtr)
@@ -883,7 +974,7 @@ class TxExecution {
 
     const jig = this.jigs.find(j => j.origin.equals(nextOrigin))
     if (!jig) {
-      throw new Error('jig should exist')
+      throw new InvariantBroken(`[line=${this.execLength()}] created jig was not found`)
     }
 
     const initParams = new JigInitParams(
@@ -896,6 +987,16 @@ class TxExecution {
     return initParams.lowerInto(from).toWasmArg(AbiType.u32());
   }
 
+  /**
+   * Callback executed when a jig checks the type of the caller against a locally
+   * defined type.
+   *
+   * @param {WasmContainer} from - The caller's WasmContainer object.
+   * @param {number} rtIdToCheck - The runtime id to check against.
+   * @param {boolean} exact - Determines if the check should be exact or should check for parent classes.
+   *
+   * @return {boolean} - Returns true if the caller type matches the specified runtime id, otherwise returns false.
+   */
   vmCallerTypeCheck (from: WasmContainer, rtIdToCheck: number, exact: boolean): boolean {
     const maybeOrigin = this.stackFromTop(2)
     if (maybeOrigin.isAbsent()) {
@@ -924,10 +1025,21 @@ class TxExecution {
     return true
   }
 
-  vmCallerOutputCheck () {
+  /**
+   * Checks if the caller of the current method is a jig (has an output) or not.
+   *
+   * @return {boolean} Returns true if the caller has a valid output, otherwise false.
+   */
+  vmCallerOutputCheck (): boolean {
     return this.stackFromTop(2).isPresent();
   }
 
+  /**
+   * Callback executed when a jig tries to access the output of the caller.
+   * Throws an error if the caller is not a jig.
+   *
+   * @return {WasmWord} - Pointer to the caller's output.
+   */
   vmCallerOutput (from: WasmContainer): WasmWord {
     const callerOrigin = this.stackFromTop(2).get();
     const callerJig = this.assertJig(callerOrigin)
@@ -940,8 +1052,18 @@ class TxExecution {
     return from.low.lower(buf.data, new AbiType(outputTypeNode));
   }
 
+  /**
+   * Returns data from the output of the caller. The options are: origin, location, class.
+   * If there is not caller output it throws an error.
+   *
+   * @param {WasmContainer} from - The WasmContainer object.
+   * @param {WasmWord} keyPtr - The key pointer.
+   * @returns {WasmWord} - The output value.
+   * @throws {InvariantBroken} - Throws an error if the key is unknown.
+   * @throws {ExecutionError} - If there is no caller jig.
+   */
   vmCallerOutputVal (from: WasmContainer, keyPtr: WasmWord): WasmWord {
-    const callerOrigin = this.stackFromTop(2).get();
+    const callerOrigin = this.stackFromTop(2).expect(new ExecutionError('No caller'));
     const key = from.liftString(keyPtr)
     const callerJig = this.assertJig(callerOrigin)
 
@@ -958,12 +1080,24 @@ class TxExecution {
         buf.writeBytes(callerJig.classPtr().toBytes())
         break
       default:
-        throw new Error(`unknown vmCallerOutputVal key: ${key}`)
+        throw new InvariantBroken(`unknown vmCallerOutputVal key: ${key}`)
     }
 
     return from.low.lower(buf.data, AbiType.buffer())
   }
 
+  /**
+   * Callback executed when a jig checks permissions over another jig.
+   * The src jig is taken from the permission stack and the target is specified
+   * by parameter. The check can be one of the following: LOCK (change lock),
+   * CALL (receive method calls from the src jig).
+   *
+   * @param {WasmContainer} from - The source container.
+   * @param {WasmWord} targetOriginPtr - The pointer to the target origin.
+   * @param {AuthCheck} check - The type of authorization check to perform.
+   * @returns {boolean} - True if the operation is authorized, false otherwise.
+   * @throws {Error} - If the provided auth check is unknown.
+   */
   vmJigAuthCheck (from: WasmContainer, targetOriginPtr: WasmWord, check: AuthCheck): boolean {
     const origin = Pointer.fromBytes(from.liftBuf(targetOriginPtr))
     const jig = this.assertJig(origin)
@@ -977,6 +1111,13 @@ class TxExecution {
     }
   }
 
+  /**
+   * Takes the gas used by the last webassembly execution chunk and adds
+   * it to the total. This callback is called after every execution chunk.
+   *
+   * @param {bigint} gasUsed - The amount of gas used during the execution.
+   * @throws {ExecutionError} - If the gas used is greater than the gas limit.
+   */
   vmMeter (gasUsed: bigint) {
     this.measurements.wasmExecuted.add(gasUsed)
   }
