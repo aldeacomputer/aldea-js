@@ -1,4 +1,4 @@
-import {Storage} from "../src/index.js";
+import {MemStorage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
 import {base16, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
@@ -12,7 +12,7 @@ import {JigData, LowerValue} from "../src/memory/lower-value.js";
 
 describe('NewMemoryLower', () => {
   let modIdFor: (key: string) => Uint8Array
-  let storage: Storage;
+  let storage: MemStorage;
   let container: WasmContainer;
   let jigData: Map<string, JigData>
 

@@ -1,7 +1,7 @@
-import {Storage, VM} from "../src/index.js";
+import {MemStorage, VM} from "../src/index.js";
 import {base16, BCS, Output, PrivKey} from "@aldea/core";
 import {TxExecution} from "../src/tx-execution.js";
-import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
+import {StorageTxContext} from "../src/exec-context/storage-tx-context.js";
 import fs from "fs";
 import {fileURLToPath} from "url";
 import {compile} from "@aldea/compiler";
@@ -13,7 +13,7 @@ import {ExecOpts} from "../src/export-opts.js";
 
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 
-export const fundedExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () => VM) => (privKeys: PrivKey[] = [], opts: ExecOpts = ExecOpts.default()) => {
+export const fundedExecFactoryFactory = (lazyStorage: () => MemStorage, lazyVm: () => VM) => async (privKeys: PrivKey[] = [], opts: ExecOpts = ExecOpts.default()) => {
   const storage = lazyStorage()
   const vm = lazyVm()
   const txHash = randomBytes(32)
@@ -23,9 +23,9 @@ export const fundedExecFactoryFactory = (lazyStorage: () => Storage, lazyVm: () 
 
   const context = new StorageTxContext(txHash, pubKeys, storage, vm)
   const exec = new TxExecution(context, opts)
-  const output = vm.mint(pubKeys[0].toAddress(), 100)
+  const output = await vm.mint(pubKeys[0].toAddress(), 100)
 
-  const stmt =  exec.load(output.hash)
+  const stmt = exec.load(output.hash)
   exec.fund(stmt.idx)
   return { exec, txHash }
 }
@@ -41,7 +41,7 @@ export function addPreCompiled (vm: VM, src: string ): Uint8Array {
 
 export function buildVm(sources: string[]) {
   const moduleIds = new Map<string, string>()
-  const storage = new Storage()
+  const storage = new MemStorage()
   const vm = new VM(storage, compile)
 
   sources.forEach(src => {

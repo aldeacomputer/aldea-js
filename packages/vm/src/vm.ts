@@ -1,4 +1,4 @@
-import {PkgData, Storage} from "./storage.js";
+import {MemStorage} from "./storage/mem-storage.js";
 import {CompilerResult, PackageParser, writeDependency} from '@aldea/compiler'
 import {abiFromBin, Address, base16, BCS, OpCode, Output, Pointer, Tx, util} from "@aldea/core";
 import {calculatePackageId} from "./calculate-package-id.js";
@@ -9,7 +9,7 @@ import {data as rawDocs} from './builtins/coin.docs.json.js'
 import {data as rawSource} from './builtins/coin.source.js'
 import {AddressLock} from "./locks/address-lock.js";
 import {ExecutionResult} from "./execution-result.js";
-import {StorageTxContext} from "./tx-context/storage-tx-context.js";
+import {StorageTxContext} from "./exec-context/storage-tx-context.js";
 import {TxExecution} from "./tx-execution.js";
 import {
   CallInstruction,
@@ -27,6 +27,7 @@ import {
 import {ExecOpts} from "./export-opts.js";
 import {COIN_PKG_ID} from "./well-known-abi-nodes.js";
 import {ExecutionError} from "./errors.js";
+import {PkgData} from "./storage/pkg-data.js";
 
 
 /**
@@ -42,16 +43,16 @@ export type CompileFn = (entry: string[], src: Map<string, string>, deps: Map<st
  * The VM takes and saves data to the `Storage`.
  */
 export class VM {
-  private readonly storage: Storage;
+  private readonly storage: MemStorage;
   private readonly compile: CompileFn;
 
   /**
    * Creates a new instance of the constructor.
    *
-   * @param {Storage} storage - The storage object for retrieving storing data.
+   * @param {MemStorage} storage - The storage object for retrieving storing data.
    * @param {CompileFn} compile - The compile function to manaage deploys.
    */
-  constructor (storage: Storage, compile: CompileFn) {
+  constructor (storage: MemStorage, compile: CompileFn) {
     this.storage = storage
     this.compile = compile
     this.addPreCompiled(wasm, rawSource, rawAbi, rawDocs, COIN_PKG_ID)
@@ -206,7 +207,7 @@ export class VM {
    *
    * @return {Output} The minted output.
    */
-  mint (address: Address, amount: number = 1e6, locBuf?: Uint8Array): Output {
+  async mint (address: Address, amount: number = 1e6, locBuf?: Uint8Array): Promise<Output> {
     const location = locBuf
       ? new Pointer(locBuf, 0)
       : new Pointer(util.randomBytes(32), 0);
@@ -218,7 +219,7 @@ export class VM {
       new AddressLock(address).coreLock(),
       bcs.encode('u64', amount)
     )
-    this.storage.addUtxo(minted)
+    await this.storage.addUtxo(minted)
     return minted
   }
 }

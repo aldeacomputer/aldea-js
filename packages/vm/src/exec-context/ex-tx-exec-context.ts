@@ -30,7 +30,6 @@
 // }
 //
 import {ExecContext} from "./exec-context.js";
-import {PkgData} from "../storage.js";
 import {abiFromBin, base16, Output, Pointer, PubKey} from "@aldea/core";
 import {WasmContainer} from "../wasm-container.js";
 import {ExtendedTx} from "./extended-tx.js";
@@ -39,6 +38,7 @@ import {ExecutionError} from "../errors.js";
 import {calculatePackageId} from "../calculate-package-id.js";
 import {Buffer} from "buffer";
 import {Option} from "../support/option.js";
+import {PkgData} from "../storage/pkg-data.js";
 
 export class ExTxExecContext implements ExecContext {
   exTx: ExtendedTx

@@ -1,50 +1,11 @@
 import {Address, base16, LockType, Output, Pointer, Tx} from "@aldea/core";
-import {Abi} from "@aldea/core/abi";
-import {ExecutionResult, PackageDeploy} from "./execution-result.js";
-import {WasmContainer} from "./wasm-container.js";
-import {Option} from "./support/option.js";
+import {ExecutionResult} from "../execution-result.js";
+import {WasmContainer} from "../wasm-container.js";
+import {Option} from "../support/option.js";
+import {Storage} from "./generic-storage.js";
+import {PkgData} from "./pkg-data.js";
 
-export class PkgData {
-  abi: Abi
-  docs: Uint8Array
-  entries: string[]
-  id: Uint8Array
-  mod: WebAssembly.Module
-  sources: Map<string, string>
-  wasmBin: Uint8Array
-
-  constructor(
-    abi: Abi,
-    docs: Uint8Array,
-    entries: string[],
-    id: Uint8Array,
-    mod: WebAssembly.Module,
-    sources: Map<string, string>,
-    wasmBin: Uint8Array
-  ) {
-    this.abi = abi
-    this.docs = docs
-    this.entries = entries
-    this.id = id
-    this.mod = mod
-    this.sources = sources
-    this.wasmBin = wasmBin
-  }
-
-  static fromPackageDeploy(deploy: PackageDeploy) {
-    return new this(
-      deploy.abi,
-      deploy.docs,
-      deploy.entries,
-      deploy.hash,
-      new WebAssembly.Module(deploy.bytecode),
-      deploy.sources,
-      deploy.bytecode
-    )
-  }
-}
-
-export class Storage {
+export class MemStorage implements Storage {
   private utxosByOutputId: Map<string, Output> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, Output[]> // address -> state. Only utxos
   private utxosByLock: Map<string, Output[]> // address -> state. Only utxos
@@ -73,17 +34,17 @@ export class Storage {
    *
    * @return {void}
    */
-  async persistTx(tx: Tx): Promise<void> {
+  async persistTx (tx: Tx): Promise<void> {
     this.txs.set(tx.id, tx)
   }
 
-  async persistExecResult(txExecution: ExecutionResult): Promise<void> {
+  async persistExecResult (txExecution: ExecutionResult): Promise<void> {
     this.execResults.set(txExecution.txId, txExecution)
-    txExecution.outputs.forEach((state) => this.addUtxo(state))
+    await Promise.all(txExecution.outputs.map((state) => this.addUtxo(state)))
     txExecution.deploys.forEach(pkgDeploy => this.addPackage(pkgDeploy.hash, PkgData.fromPackageDeploy(pkgDeploy)))
   }
 
-  addUtxo(output: Output) {
+  async addUtxo (output: Output): Promise<void> {
     const currentOutputId = output.id;
     const originStr = output.origin.toString();
     const origin = Pointer.fromString(originStr)
@@ -132,25 +93,25 @@ export class Storage {
    * @param {Pointer} origin - The origin to retrieve the tip for.
    * @returns {Option<string>} - An option containing the tip if found, otherwise None.
    */
-  tipFor(origin: Pointer): Option<string> {
+  tipFor (origin: Pointer): Option<string> {
     const tip = this.tips.get(origin.toString());
     return Option.fromNullable(tip)
   }
 
-  getTx(txid: string): Option<Tx> {
+  getTx (txid: string): Option<Tx> {
     return Option.fromNullable(this.txs.get(txid))
   }
 
-  getExecResult(txid: string): Option<ExecutionResult> {
+  getExecResult (txid: string): Option<ExecutionResult> {
     return Option.fromNullable(this.execResults.get(txid))
   }
 
-  addPackage(id: Uint8Array, pkgData: PkgData): void {
+  addPackage (id: Uint8Array, pkgData: PkgData): void {
     this.packages.set(base16.encode(id), pkgData)
   }
 
   getPkg (id: string): Option<PkgData> {
-    const pkg =  this.packages.get(id)
+    const pkg = this.packages.get(id)
     return Option.fromNullable(pkg)
   }
 
@@ -159,35 +120,35 @@ export class Storage {
     return Option.fromNullable(state)
   }
 
-  utxosForAddress(userAddr: Address): Output[] {
+  utxosForAddress (userAddr: Address): Output[] {
     return Option.fromNullable(this.utxosByAddress.get(userAddr.toString()))
       .orDefault([])
   }
 
-  utxosForLock(lockHex: string): Output[] {
+  utxosForLock (lockHex: string): Output[] {
     return Option.fromNullable(this.utxosByLock.get(lockHex))
       .orDefault([])
   }
 
-  outputByHash(hash: Uint8Array): Option<Output> {
+  outputByHash (hash: Uint8Array): Option<Output> {
     const id = base16.encode(hash)
     return this.outputById(id)
   }
 
-  outputById(id: string): Option<Output> {
+  outputById (id: string): Option<Output> {
     const state = this.utxosByOutputId.get(id)
     return Option.fromNullable(state)
   }
 
-  outputByOrigin(origin: Pointer): Option<Output> {
+  outputByOrigin (origin: Pointer): Option<Output> {
     const latestLocation = this.tips.get(origin.toString())
     if (!latestLocation) return Option.none()
     const ret = this.utxosByOutputId.get(latestLocation)
     return Option.fromNullable(ret)
   }
 
-  wasmForPackageId(moduleId: string): Option<WasmContainer> {
-    return  this.getPkg(moduleId).map(pkg => {
+  wasmForPackageId (moduleId: string): Option<WasmContainer> {
+    return this.getPkg(moduleId).map(pkg => {
       return new WasmContainer(pkg.mod, pkg.abi, pkg.id);
     })
   }

@@ -1,4 +1,4 @@
-import {Storage} from "../src/index.js";
+import {MemStorage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
 import {Address, base16, BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
@@ -43,7 +43,7 @@ function checkLock (container: WasmContainer, lockPtr: WasmWord, extOrigin: Uint
 
 describe('NewMemoryLower', () => {
   let modIdFor: (key: string) => Uint8Array
-  let storage: Storage;
+  let storage: MemStorage;
   let container: WasmContainer;
   let jigData: Map<string, JigData>
 

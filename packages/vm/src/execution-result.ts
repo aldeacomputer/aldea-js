@@ -4,7 +4,8 @@ import {Abi} from "@aldea/core/abi";
 import {ExecutionError} from "./errors.js";
 import {calculatePackageId} from "./calculate-package-id.js";
 import {Option} from "./support/option.js";
-import {PkgData} from "./storage.js";
+
+import {PkgData} from "./storage/pkg-data.js";
 
 export class PackageDeploy {
   sources: Map<string, string>

@@ -1,4 +1,4 @@
-import {Storage, VM} from '../src/index.js'
+import {MemStorage, VM} from '../src/index.js'
 import {expect} from 'chai'
 import {BCS, BufReader, Output, PrivKey, Tx} from "@aldea/core";
 import {compile} from "@aldea/compiler";
@@ -12,7 +12,7 @@ import {
 import {COIN_CLS_PTR} from "../src/well-known-abi-nodes.js";
 
 describe('Coin', () => {
-  let storage: Storage
+  let storage: MemStorage
   let vm: VM
   // const userPriv = PrivKey.fromRandom()
   // const userPub = userPriv.toPubKey()
@@ -25,7 +25,7 @@ describe('Coin', () => {
 
 
   beforeEach(() => {
-    storage = new Storage()
+    storage = new MemStorage()
     vm = new VM(storage, compile)
   })
 
@@ -37,8 +37,8 @@ describe('Coin', () => {
     let coin: Output
     let bcs: BCS
 
-    beforeEach(() => {
-      coin = vm.mint(addr, 1000, new Uint8Array(32).fill(1))
+    beforeEach(async () => {
+      coin = await vm.mint(addr, 1000, new Uint8Array(32).fill(1))
       const coinPkg = storage.getPkg(COIN_CLS_PTR.id).get()
       bcs = new BCS(coinPkg.abi)
     })

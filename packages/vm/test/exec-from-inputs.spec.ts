@@ -3,7 +3,7 @@
 // import {buildVm} from "./util.js";
 // import {TxExecution} from "../src/tx-execution.js";
 // import {ExtendedTx} from "../src/index.js";
-// import {ExTxExecContext} from "../src/tx-context/ex-tx-exec-context.js";
+// import {ExTxExecContext} from "../src/exec-context/ex-tx-exec-context.js";
 // import {expect} from "chai";
 // import {WasmContainer} from "../src/wasm-container.js";
 // import {JigState} from "../src/jig-state.js";

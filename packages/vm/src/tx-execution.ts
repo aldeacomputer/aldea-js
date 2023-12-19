@@ -6,8 +6,7 @@ import {Address, base16, BufReader, BufWriter, Lock as CoreLock, LockType, Outpu
 import {COIN_CLS_PTR, outputTypeNode} from "./well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
-import {ExecContext} from "./tx-context/exec-context.js";
-import {PkgData} from "./storage.js";
+import {ExecContext} from "./exec-context/exec-context.js";
 import {JigData} from "./memory/lower-value.js";
 import {Option} from "./support/option.js";
 import {WasmArg, WasmWord} from "./wasm-word.js";
@@ -23,6 +22,7 @@ import {CodeKind} from "@aldea/core/abi";
 import {AbiArg} from "./memory/abi-helpers/abi-arg.js";
 import {ExecOpts} from "./export-opts.js";
 import {Measurements} from "./metering/measurements.js";
+import {PkgData} from "./storage/pkg-data.js";
 
 export const MIN_FUND_AMOUNT = 100
 

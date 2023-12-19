@@ -1,6 +1,7 @@
 import {Output, Pointer, PubKey} from "@aldea/core";
 import {WasmContainer} from "../wasm-container.js";
-import {PkgData} from "../storage.js";
+
+import {PkgData} from "../storage/pkg-data.js";
 
 /**
  * This interface represents everything that is needed for a VM
