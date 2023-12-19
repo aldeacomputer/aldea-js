@@ -17,10 +17,10 @@ import {AddressLock} from "./locks/address-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {AbiMethod} from "./memory/abi-helpers/abi-method.js";
 import {JigInitParams} from "./jig-init-params.js";
-import {ArgsTranslator} from "./args-translator.js";
+import {ArgumentsPreProcessor} from "./arguments-pre-processor.js";
 import {CodeKind} from "@aldea/core/abi";
 import {AbiArg} from "./memory/abi-helpers/abi-arg.js";
-import {ExecOpts} from "./export-opts.js";
+import {ExecOpts} from "./exec-opts.js";
 import {Measurements} from "./metering/measurements.js";
 import {PkgData} from "./storage/pkg-data.js";
 
@@ -446,8 +446,8 @@ class TxExecution {
    * @return {WasmWord[]} - The translated and lowered arguments as an array of WasmWord objects.
    */
   private translateAndLowerArgs (wasm: WasmContainer, args: AbiArg[], rawArgs: Uint8Array): WasmWord[] {
-    const fixer = new ArgsTranslator(this, wasm.abi)
-    const argsBuf = fixer.fix(rawArgs, args)
+    const fixer = new ArgumentsPreProcessor(this, wasm.abi)
+    const argsBuf = fixer.solveReferences(rawArgs, args)
 
 
     return this.lowerArgs(wasm, args, argsBuf)

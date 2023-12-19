@@ -1,5 +1,5 @@
 import {DiscretCounter} from "./discret-counter.js";
-import {ExecOpts} from "../export-opts.js";
+import {ExecOpts} from "../exec-opts.js";
 
 export class Measurements {
   movedData: DiscretCounter;

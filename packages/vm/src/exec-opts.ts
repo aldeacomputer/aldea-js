@@ -1,3 +1,6 @@
+/**
+ * Options to tune tx execution.
+ */
 export class ExecOpts {
   // Wasm execution
   wasmExecutionHydroSize: bigint

@@ -5,7 +5,11 @@ import {AbiAccess} from "./memory/abi-helpers/abi-access.js";
 
 import {AbiArg} from "./memory/abi-helpers/abi-arg.js";
 
-export class ArgsTranslator {
+/**
+ * Aldea transactions include arguments with indexes pointing to previous parts of the transaction.
+ * This class is in charge or solving and de referencing thos indexes.
+ */
+export class ArgumentsPreProcessor {
   exec: TxExecution
   private abi: AbiAccess;
 
@@ -14,7 +18,14 @@ export class ArgsTranslator {
     this.abi = abi
   }
 
-  fix(encoded: Uint8Array, args: AbiArg[]): Uint8Array {
+  /**
+   * Solves the references in the encoded data by replacing the references with their corresponding values.
+   *
+   * @param {Uint8Array} encoded - The encoded data with references.
+   * @param {AbiArg[]} args - The array of arguments with their types.
+   * @returns {Uint8Array} - The updated encoded data with solved references.
+   */
+  solveReferences (encoded: Uint8Array, args: AbiArg[]): Uint8Array {
     const reader = new BufReader(encoded)
     const indexes = reader.readSeq(r => r.readU8())
     const into = new BufWriter()
@@ -26,14 +37,14 @@ export class ArgsTranslator {
         const value = this.exec.stmtAt(idx).asValue()
         into.writeFixedBytes(value.lift())
       } else {
-        this.translateChunk(reader, ty, into)
+        this.derefChunk(reader, ty, into)
       }
     })
 
     return into.data
   }
 
-  translateChunk(from: BufReader, ty: AbiType, into: BufWriter): void {
+  private derefChunk (from: BufReader, ty: AbiType, into: BufWriter): void {
     if (ty.nullable) {
       return this.translateNullable(from, ty, into)
     }
@@ -80,19 +91,19 @@ export class ArgsTranslator {
         into.writeBytes(from.readBytes())
         break
       case 'Map':
-        this.translateMap(from, ty, into)
+        this.derefMap(from, ty, into)
         break
       default:
-        this.translateComplexType(from, ty, into)
+        this.derefComplexType(from, ty, into)
         break
     }
   }
 
-  private translateNullable(from: BufReader, ty: AbiType, into: BufWriter) {
+  private translateNullable (from: BufReader, ty: AbiType, into: BufWriter) {
     const flag = from.readU8()
     if (flag !== 0) {
       into.writeU8(1)
-      this.translateChunk(from, ty.toPresent(), into)
+      this.derefChunk(from, ty.toPresent(), into)
     } else {
       into.writeU8(0)
     }
@@ -102,25 +113,25 @@ export class ArgsTranslator {
     const length = from.readULEB()
     into.writeULEB(length)
     for (let i = 0; i < length; i++) {
-      this.translateChunk(from, ty.args[0], into)
+      this.derefChunk(from, ty.args[0], into)
     }
   }
 
-  private translateMap (from: BufReader, ty: AbiType, into: BufWriter) {
+  private derefMap (from: BufReader, ty: AbiType, into: BufWriter) {
     const length = from.readULEB()
     into.writeULEB(length)
     for (let i = 0; i < length; i++) {
-      this.translateChunk(from, ty.args[0], into)
-      this.translateChunk(from, ty.args[1], into)
+      this.derefChunk(from, ty.args[0], into)
+      this.derefChunk(from, ty.args[1], into)
     }
   }
 
-  private translateComplexType(from: BufReader, ty: AbiType, into: BufWriter) {
+  private derefComplexType (from: BufReader, ty: AbiType, into: BufWriter) {
     const objDef = this.abi.objectDef(ty.name)
 
     if (objDef.isPresent()) {
       for (const fieldTy of objDef.get().fields) {
-        this.translateChunk(from, fieldTy.type, into)
+        this.derefChunk(from, fieldTy.type, into)
       }
       return
     } else {
@@ -129,6 +140,5 @@ export class ArgsTranslator {
       const lifted = stmt.lift()
       into.writeFixedBytes(lifted)
     }
-
   }
 }

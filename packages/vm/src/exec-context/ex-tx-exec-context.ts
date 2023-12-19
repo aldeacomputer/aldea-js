@@ -35,7 +35,7 @@ import {WasmContainer} from "../wasm-container.js";
 import {ExtendedTx} from "./extended-tx.js";
 import {CompileFn} from "../vm.js";
 import {ExecutionError} from "../errors.js";
-import {calculatePackageId} from "../calculate-package-id.js";
+import {calculatePackageHash} from "../calculate-package-hash.js";
 import {Buffer} from "buffer";
 import {Option} from "../support/option.js";
 import {PkgData} from "../storage/pkg-data.js";
@@ -52,7 +52,7 @@ export class ExTxExecContext implements ExecContext {
   }
 
   async compile (entries: string[], sources: Map<string, string>): Promise<PkgData> {
-    const id = calculatePackageId(entries, sources)
+    const id = calculatePackageHash(entries, sources)
 
     const result = await this.compileFn(entries, sources, new Map())
 

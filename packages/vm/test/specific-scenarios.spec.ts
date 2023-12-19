@@ -5,7 +5,7 @@ import {ArgsBuilder, buildVm, fundedExecFactoryFactory, parseOutput} from "./uti
 import {TxExecution} from "../src/tx-execution.js";
 import {StorageTxContext} from "../src/exec-context/storage-tx-context.js";
 import {randomBytes} from "@aldea/core/support/util";
-import {ExecOpts} from "../src/export-opts.js";
+import {ExecOpts} from "../src/exec-opts.js";
 import { GAME, KITCHEN_SINK, SELL_OFFER } from './explorer-examples.js'
 
 describe('execute txs', () => {

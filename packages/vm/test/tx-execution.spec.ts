@@ -10,7 +10,7 @@ import {StatementResult} from "../src/statement-result.js";
 import {ExecutionResult} from "../src/index.js";
 import {StorageTxContext} from "../src/exec-context/storage-tx-context.js";
 import {randomBytes} from "@aldea/core/support/util";
-import {ExecOpts} from "../src/export-opts.js";
+import {ExecOpts} from "../src/exec-opts.js";
 import {ExTxExecContext} from "../src/exec-context/ex-tx-exec-context.js";
 import {SignInstruction} from "@aldea/core/instructions";
 import {compile} from "@aldea/compiler";

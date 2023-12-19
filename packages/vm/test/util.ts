@@ -9,7 +9,7 @@ import {randomBytes} from "@aldea/core/support/util";
 import {Abi, AbiQuery} from "@aldea/core/abi";
 import {AbiAccess} from "../src/memory/abi-helpers/abi-access.js";
 import {expect} from "chai";
-import {ExecOpts} from "../src/export-opts.js";
+import {ExecOpts} from "../src/exec-opts.js";
 
 const __dir = fileURLToPath(new URL('.', import.meta.url));
 

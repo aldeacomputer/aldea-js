@@ -1,7 +1,7 @@
 import {MemStorage} from "./storage/mem-storage.js";
 import {CompilerResult, PackageParser, writeDependency} from '@aldea/compiler'
 import {abiFromBin, Address, base16, BCS, OpCode, Output, Pointer, Tx, util} from "@aldea/core";
-import {calculatePackageId} from "./calculate-package-id.js";
+import {calculatePackageHash} from "./calculate-package-hash.js";
 import {Buffer} from "buffer";
 import {data as wasm} from './builtins/coin.wasm.js'
 import {data as rawAbi} from './builtins/coin.abi.bin.js'
@@ -24,7 +24,7 @@ import {
   SignInstruction,
   SignToInstruction
 } from "@aldea/core/instructions";
-import {ExecOpts} from "./export-opts.js";
+import {ExecOpts} from "./exec-opts.js";
 import {COIN_PKG_ID} from "./well-known-abi-nodes.js";
 import {ExecutionError} from "./errors.js";
 import {PkgData} from "./storage/pkg-data.js";
@@ -136,7 +136,7 @@ export class VM {
    * @returns A Promise that resolves to a PkgData object containing all the data of the package.
    */
   async compileSources (entries: string[], sources: Map<string, string>): Promise<PkgData> {
-    const id = calculatePackageId(entries, sources)
+    const id = calculatePackageHash(entries, sources)
 
     const pkg = await PackageParser.create(entries, {
       getSrc: (src) => sources.get(src),
@@ -177,7 +177,7 @@ export class VM {
     const entries = ['index.ts'];
     const hash = defaultId
       ? defaultId
-      : calculatePackageId(entries, sources)
+      : calculatePackageHash(entries, sources)
     const id = base16.encode(hash)
     if (this.storage.getPkg(id).isPresent()) {
       return hash
