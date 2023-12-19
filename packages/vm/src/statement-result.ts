@@ -4,6 +4,11 @@ import {WasmContainer} from "./wasm-container.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
 import {WasmWord} from "./wasm-word.js";
 
+/**
+ * Every opcode execution returns a statement result.
+ * This is the abstract class for all statement results.
+ * @abstract
+ */
 export abstract class StatementResult {
   private _idx: number
   constructor(idx: number) {
@@ -19,6 +24,11 @@ export abstract class StatementResult {
   }
 }
 
+/**
+ * A statement result for an `IMPORT` or `DEPLOY` statements.
+ * It contains a wasm instance.
+ * @extends StatementResult
+ */
 export class WasmStatementResult extends StatementResult {
   private readonly _instance: WasmContainer;
 
@@ -36,6 +46,17 @@ export class WasmStatementResult extends StatementResult {
   }
 }
 
+/**
+ * A statement result for:
+ * - `LOAD`
+ * - `LOAD_BY_ORIGIN`
+ * - `NEW`
+ * - `CALL`
+ * - `EXEC`
+ *
+ * It contains a pointer to a value inside a wasm instance.
+ * @extends StatementResult
+ */
 export class ValueStatementResult extends StatementResult {
   value: ContainerRef
 
@@ -58,6 +79,14 @@ export class ValueStatementResult extends StatementResult {
   }
 }
 
+/**
+ * Represents an empty statement result.
+ * This is the result for executing the following opcodes:
+ * - `LOCK`
+ * - `FUND`
+ * - `SIGN`
+ * - `SIGN_TO`
+ */
 export class EmptyStatementResult extends StatementResult {
   asContainer (): WasmContainer {
     throw new Error('not a container');
