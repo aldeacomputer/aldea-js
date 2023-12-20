@@ -19,7 +19,7 @@ export class ArgumentsPreProcessor {
   }
 
   /**
-   * Solves the references in the encoded data by replacing the references with their corresponding values.
+   * Solves the references in the encoded data by replacing them with their corresponding values.
    *
    * @param {Uint8Array} encoded - The encoded data with references.
    * @param {AbiArg[]} args - The array of arguments with their types.
