@@ -3,6 +3,9 @@ import {Lock} from "./lock.js";
 import {TxExecution} from "../tx-execution.js";
 import {PermissionError} from "../errors.js";
 
+/**
+ * A lock that can only be opened by an specific jig.
+ */
 export class JigLock extends Lock {
   private origin: Pointer;
 

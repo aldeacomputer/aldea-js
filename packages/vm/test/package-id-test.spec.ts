@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import {calculatePackageId} from "../src/index.js";
+import {calculatePackageHash} from "../src/index.js";
 
 describe('calculatePackageId', function () {
   const file1 = `
@@ -17,7 +17,7 @@ describe('calculatePackageId', function () {
 
     const sources2 = new Map()
     sources2.set(entries[0], file2)
-    expect(calculatePackageId(entries, sources1)).not.to.eql(calculatePackageId(entries, sources2))
+    expect(calculatePackageHash(entries, sources1)).not.to.eql(calculatePackageHash(entries, sources2))
   })
 
   it('returns different values for different entry points', () => {
@@ -27,7 +27,7 @@ describe('calculatePackageId', function () {
     sources.set(entries1[0], file1)
     sources.set(entries2[0], file1)
 
-    expect(calculatePackageId(entries1, sources)).not.to.eql(calculatePackageId(entries2, sources))
+    expect(calculatePackageHash(entries1, sources)).not.to.eql(calculatePackageHash(entries2, sources))
   })
 
   it('is not affected by entries order', () => {
@@ -37,7 +37,7 @@ describe('calculatePackageId', function () {
     sources.set(entries1[0], file1)
     sources.set(entries1[1], file1)
 
-    expect(calculatePackageId(entries1, sources)).to.eql(calculatePackageId(entries2, sources))
+    expect(calculatePackageHash(entries1, sources)).to.eql(calculatePackageHash(entries2, sources))
   })
 
   it('is not affected by source code adition order', () => {
@@ -50,6 +50,6 @@ describe('calculatePackageId', function () {
     sources2.set(entries[1], file1)
     sources2.set(entries[0], file1)
 
-    expect(calculatePackageId(entries, sources1)).to.eql(calculatePackageId(entries, sources2))
+    expect(calculatePackageHash(entries, sources1)).to.eql(calculatePackageHash(entries, sources2))
   })
 });

@@ -70,17 +70,9 @@ export const lockAbiNode: ObjectNode = {
   ]
 }
 
-export const voidNode = emptyTn('_void')
-
 export const coinNode: ImportCode = {
   name: 'Coin',
   pkg: new Array(32).fill('0').join(''),
-  kind: CodeKind.PROXY_CLASS
-}
-
-export const jigNode: ImportCode = {
-  name: 'Jig',
-  pkg: new Array(32).fill('1').join(''),
   kind: CodeKind.PROXY_CLASS
 }
 
@@ -129,8 +121,7 @@ export const BUF_RTID = 1
 export const STRING_RTID = 2
 export const ARR_HEADER_LENGTH = 16;
 export const TYPED_ARR_HEADER_LENGTH = 12;
-// export const PROXY_OBJ_LENGTH = 8;
-// export const OUTPUT_OBJ_LENGTH = 12;
-// export const LOCK_OBJ_LENGTH = 12;
 
 export const COIN_CLS_PTR = new Pointer(new Uint8Array(32), 0)
+// Magic Coin Pkg ID
+export const COIN_PKG_ID = new Uint8Array(32).fill(0)

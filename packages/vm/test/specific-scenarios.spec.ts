@@ -1,15 +1,15 @@
-import {Storage, VM} from '../src/index.js'
+import {MemStorage, VM} from '../src/index.js'
 import {expect} from 'chai'
 import {PrivKey, PubKey, ref} from "@aldea/core";
 import {ArgsBuilder, buildVm, fundedExecFactoryFactory, parseOutput} from "./util.js";
 import {TxExecution} from "../src/tx-execution.js";
-import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
+import {StorageTxContext} from "../src/exec-context/storage-tx-context.js";
 import {randomBytes} from "@aldea/core/support/util";
-import {ExecOpts} from "../src/export-opts.js";
+import {ExecOpts} from "../src/exec-opts.js";
 import { GAME, KITCHEN_SINK, SELL_OFFER } from './explorer-examples.js'
 
 describe('execute txs', () => {
-  let storage: Storage
+  let storage: MemStorage
   let vm: VM
   const userPriv = PrivKey.fromRandom()
   const userPub = userPriv.toPubKey()
@@ -43,21 +43,21 @@ describe('execute txs', () => {
 
 
     beforeEach(async () => {
-      const { exec: exec1 } = fundedExec()
+      const { exec: exec1 } = await fundedExec()
       await exec1.deploy(['entry.ts'], new Map([['entry.ts', gameSrc]]))
       const res1 = await exec1.finalize()
       storage.persistExecResult(res1)
       gameArgs = new ArgsBuilder(res1.deploys[0].abi)
       gamePkgId = res1.deploys[0].hash
 
-      const { exec: exec2 } = fundedExec()
+      const { exec: exec2 } = await fundedExec()
       await exec2.deploy(['entry.ts'], new Map([['entry.ts', kitchenSrc]]))
       const res2 = await exec2.finalize()
       storage.persistExecResult(res2)
       kitchenArgs = new ArgsBuilder(res2.deploys[0].abi)
       kitchenPkgId = res2.deploys[0].hash
 
-      const { exec: exec3 } = fundedExec()
+      const { exec: exec3 } = await fundedExec()
       await exec3.deploy(['entry.ts'], new Map([['entry.ts', sellOfferSrc]]))
       const res3 = await exec3.finalize()
       storage.persistExecResult(res3)
@@ -65,10 +65,10 @@ describe('execute txs', () => {
       sellPkgId = res3.deploys[0].hash
     })
 
-    it('works', () => {
-      const { exec } = fundedExec([userPriv])
-      const minted1 = vm.mint(userAddr, 100000)
-      const minted2 = vm.mint(userAddr, 10001)
+    it('works', async () => {
+      const { exec } = await fundedExec([userPriv])
+      const minted1 = await vm.mint(userAddr, 100000)
+      const minted2 = await vm.mint(userAddr, 10001)
 
       let gamePkg = exec.import(gamePkgId)
       exec.import(kitchenPkgId)

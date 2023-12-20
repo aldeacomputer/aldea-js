@@ -1,17 +1,20 @@
 import {
-  Storage,
+  MemStorage,
   VM
 } from '../src/index.js'
 import {expect} from 'chai'
-import {base16, BufReader, ref} from "@aldea/core";
+import {base16, BufReader, PrivKey, ref} from "@aldea/core";
 // @ts-ignore
 import {fundedExecFactoryFactory, buildVm, ArgsBuilder, parseOutput} from './util.js';
 
 describe('execute txs', () => {
-  let storage: Storage
+  let storage: MemStorage
   let vm: VM
 
   let modIdFor: (key: string) => Uint8Array
+
+  const userKey = PrivKey.fromRandom()
+  const userAddr = userKey.toPubKey().toAddress()
 
   let args: ArgsBuilder
   beforeEach(() => {
@@ -27,35 +30,41 @@ describe('execute txs', () => {
 
   describe('#is<T>', function () {
     describe('when exact is true', function () {
-      it('returns true when the caller is the right caller', () => {
-        const {exec} = fundedExec()
+      it('returns true when the caller is the right caller', async () => {
+        const {exec} = await fundedExec()
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         const sender = exec.instantiate(pkg.idx, ...args.constr('RightCaller', []))
         exec.call(sender.idx, ...args.method('RightCaller', 'doTheCall', [ref(receiver.idx)]))
+        exec.lockJig(receiver.idx, userAddr)
+        exec.lockJig(sender.idx, userAddr)
+
 
         const res = exec.finalize()
         const parsed = parseOutput(res.outputs[2])
         expect(parsed.lastCheck).to.eql("true")
       })
 
-      it('returns false when the caller is not the right caller', () => {
-        const {exec} = fundedExec()
+      it('returns false when the caller is not the right caller', async () => {
+        const {exec} = await fundedExec()
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         const sender = exec.instantiate(pkg.idx, ...args.constr('AnotherCaller', []))
         exec.call(sender.idx, ...args.method('AnotherCaller', 'doTheCall', [ref(receiver.idx)]))
+        exec.lockJig(receiver.idx, userAddr)
+        exec.lockJig(sender.idx, userAddr)
 
         const res = exec.finalize()
         const parsed = parseOutput(res.outputs[2])
         expect(parsed.lastCheck).to.eql("false")
       })
 
-      it('returns false when the caller is at top level', () => {
-        const {exec} = fundedExec()
+      it('returns false when the caller is at top level', async () => {
+        const {exec} = await fundedExec()
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         exec.call(receiver.idx, ...args.method('Receiver', 'checkCallerType', []))
+        exec.lockJig(receiver.idx, userAddr)
 
         const res = exec.finalize()
         const parsed = parseOutput(res.outputs[1])
@@ -65,12 +74,14 @@ describe('execute txs', () => {
       //   // This case makes no sense with no interfaces
       //   it('returns true for when an external class is the right one')
       //
-      it('returns false when called from subclass', () => {
-        const {exec} = fundedExec()
+      it('returns false when called from subclass', async () => {
+        const {exec} = await fundedExec()
         const pkg = exec.import(modIdFor('caller-test-code'))
         const receiver = exec.instantiate(pkg.idx, ...args.constr('Receiver', []))
         const sender = exec.instantiate(pkg.idx, ...args.constr('SubclassCaller', []))
         exec.call(sender.idx, ...args.method('RightCaller', 'doTheCall', [ref(receiver.idx)]))
+        exec.lockJig(receiver.idx, userAddr)
+        exec.lockJig(sender.idx, userAddr)
 
         const res = exec.finalize()
         const reader = new BufReader(res.outputs[2].stateBuf)

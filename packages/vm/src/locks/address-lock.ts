@@ -3,6 +3,9 @@ import {CoreLock, Lock} from './lock.js'
 import {TxExecution} from "../tx-execution.js";
 import {PermissionError} from "../errors.js";
 
+/**
+ * A lock that can only be opened with the right signature.
+ */
 export class AddressLock extends Lock {
   private addr: Address;
 

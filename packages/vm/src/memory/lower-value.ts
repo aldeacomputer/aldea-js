@@ -1,8 +1,8 @@
 import {WasmContainer} from "../wasm-container.js";
 import {WasmWord} from "../wasm-word.js";
-import {base16, BufReader, BufWriter, Pointer} from "@aldea/core";
+import {BufReader, BufWriter, Pointer} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
-import {ARR_HEADER_LENGTH, BUF_RTID, STRING_RTID, TYPED_ARR_HEADER_LENGTH} from "./well-known-abi-nodes.js";
+import {ARR_HEADER_LENGTH, BUF_RTID, STRING_RTID, TYPED_ARR_HEADER_LENGTH} from "../well-known-abi-nodes.js";
 import {CodeKind, normalizeTypeName} from "@aldea/core/abi";
 import {Option} from "../support/option.js";
 import {ExecutionError} from "../errors.js";

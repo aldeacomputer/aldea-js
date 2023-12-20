@@ -1,19 +1,22 @@
-import {Storage, VM} from '../src/index.js'
+import {ExtendedTx, MemStorage, VM} from '../src/index.js'
 import {expect} from 'chai'
-import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, PubKey, ref} from "@aldea/core";
+import {base16, BCS, BufReader, LockType, Output, Pointer, PrivKey, PubKey, ref, Tx} from "@aldea/core";
 import {Abi} from '@aldea/core/abi';
 import {ArgsBuilder, buildVm, fundedExecFactoryFactory, parseOutput} from "./util.js";
-import {COIN_CLS_PTR} from "../src/memory/well-known-abi-nodes.js";
+import {COIN_CLS_PTR} from "../src/well-known-abi-nodes.js";
 import {ExecutionError, PermissionError} from "../src/errors.js";
 import {TxExecution} from "../src/tx-execution.js";
 import {StatementResult} from "../src/statement-result.js";
 import {ExecutionResult} from "../src/index.js";
-import {StorageTxContext} from "../src/tx-context/storage-tx-context.js";
+import {StorageTxContext} from "../src/exec-context/storage-tx-context.js";
 import {randomBytes} from "@aldea/core/support/util";
-import {ExecOpts} from "../src/export-opts.js";
+import {ExecOpts} from "../src/exec-opts.js";
+import {ExTxExecContext} from "../src/exec-context/ex-tx-exec-context.js";
+import {SignInstruction} from "@aldea/core/instructions";
+import {compile} from "@aldea/compiler";
 
 describe('execute txs', () => {
-  let storage: Storage
+  let storage: MemStorage
   let vm: VM
   const userPriv = PrivKey.fromRandom()
   const userPub = userPriv.toPubKey()
@@ -61,8 +64,8 @@ describe('execute txs', () => {
   }
 
 
-  it('instantiate creates the right output', () => {
-    const {exec, txHash} = fundedExec()
+  it('instantiate creates the right output', async () => {
+    const {exec, txHash} = await fundedExec()
     const mod = exec.import(modIdFor('flock'))
     const instanceIndex = exec.instantiate(mod.idx, 0, new Uint8Array([0]))
     exec.lockJig(instanceIndex.idx, userAddr)
@@ -75,8 +78,8 @@ describe('execute txs', () => {
     expect(output.lock.data).to.eql(userAddr.hash)
   })
 
-  it('sends arguments to constructor properly.', () => {
-    const {exec} = fundedExec()
+  it('sends arguments to constructor properly.', async () => {
+    const {exec} = await fundedExec()
     const module = exec.import(modIdFor('weapon')) // index 0
     const bcs = new BCS(abiFor('weapon'));
     const argBuf = bcs.encode('Weapon_constructor', ['Sable Corvo de San Martín', 100000])
@@ -89,8 +92,8 @@ describe('execute txs', () => {
     expect(parsed[1]).to.eql(100000)
   })
 
-  it('can call methods on jigs', () => {
-    const {exec} = fundedExec()
+  it('can call methods on jigs', async () => {
+    const {exec} = await fundedExec()
     const importIndex = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(importIndex.idx, 0, new Uint8Array([0]))
     exec.call(flock.idx, 1, new Uint8Array([0]))
@@ -101,8 +104,8 @@ describe('execute txs', () => {
     expect(props['size']).to.eql(1)
   })
 
-  it('can make calls on jigs sending basic parameters', () => {
-    const {exec} = fundedExec()
+  it('can make calls on jigs sending basic parameters', async () => {
+    const {exec} = await fundedExec()
     const pkg = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(pkg.idx, 0, new Uint8Array([0]))
     exec.call(flock.idx, 2, new Uint8Array([0, 7, 0, 0, 0]))
@@ -114,8 +117,8 @@ describe('execute txs', () => {
   })
 
 
-  it('can make calls on jigs sending jigs as parameters', () => {
-    const {exec} = fundedExec()
+  it('can make calls on jigs sending jigs as parameters', async () => {
+    const {exec} = await fundedExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
     const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
@@ -133,8 +136,8 @@ describe('execute txs', () => {
     expect(o['legCount']).to.eql(8)
   })
 
-  it('after locking a jig in the code the state gets updated properly', () => {
-    const {exec} = fundedExec()
+  it('after locking a jig in the code the state gets updated properly', async () => {
+    const {exec} = await fundedExec()
     const flockMod = exec.import(modIdFor('flock'))
     const counterMod = exec.import(modIdFor('sheep-counter'))
     const flock = exec.instantiate(flockMod.idx, ...flockArgs.constr('Flock', []))
@@ -155,8 +158,8 @@ describe('execute txs', () => {
     shepherd: StatementResult
   }
 
-  function shepherdExec (privKeys: PrivKey[] = []): ShepExec {
-    const {exec} = fundedExec(privKeys)
+  async function shepherdExec (privKeys: PrivKey[] = []): Promise<ShepExec> {
+    const {exec} = await fundedExec(privKeys)
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
     const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
@@ -171,15 +174,15 @@ describe('execute txs', () => {
     }
   }
 
-  it('accessing class ptr works', () => {
+  it('accessing class ptr works', async () => {
     const {
       exec,
-    } = shepherdExec([userPriv])
+    } = await shepherdExec([userPriv])
 
     const result = exec.finalize()
-    storage.persistExecResult(result)
+    await storage.persistExecResult(result)
 
-    const {exec: exec2} = fundedExec([userPriv])
+    const {exec: exec2} = await fundedExec([userPriv])
     const loaded = exec2.load(result.outputs[2].hash)
     const classPtrStmt = exec2.call(loaded.idx, ...ctrArgs.method('Shepherd', 'myClassPtr', []))
     const flockClassPtrStmt = exec2.call(loaded.idx, ...ctrArgs.method('Shepherd', 'flockClassPtr', []))
@@ -191,8 +194,8 @@ describe('execute txs', () => {
     expect(r2.readBytes()).to.eql(new Pointer(modIdFor('flock'), 0).toBytes())
   })
 
-  it('fails if the tx is trying to lock an already locked jig', () => {
-    const {exec, flock, shepherd} = shepherdExec()
+  it('fails if the tx is trying to lock an already locked jig', async () => {
+    const {exec, flock, shepherd} = await shepherdExec()
 
     expect(() => {
       exec.lockJig(flock.idx, userAddr)
@@ -209,8 +212,8 @@ describe('execute txs', () => {
     )
   })
 
-  it('fails when a jig tries to lock a locked jig', () => {
-    const {exec} = fundedExec()
+  it('fails when a jig tries to lock a locked jig', async () => {
+    const {exec} = await fundedExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const counterWasm = exec.import(modIdFor('sheep-counter'))
     const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
@@ -231,8 +234,8 @@ describe('execute txs', () => {
     ant3: StatementResult
   }
 
-  function antExec (): AntExec {
-    const {exec} = fundedExec()
+  async function antExec (): Promise<AntExec> {
+    const {exec} = await fundedExec()
     const antWasm = exec.import(modIdFor('ant'))
     const ant1 = exec.instantiate(antWasm.idx, ...antArgs.constr('Ant', []))
     const ant2 = exec.instantiate(antWasm.idx, ...antArgs.constr('Ant', []))
@@ -245,37 +248,49 @@ describe('execute txs', () => {
     return {exec, ant1, ant2, ant3}
   }
 
-  it('fails when a jig tries to call a method on a jig of the same class with no permissions', () => {
-    const {exec, ant1} = antExec()
+  it('fails when a jig tries to call a method on a jig of the same class with no permissions', async () => {
+    const {exec, ant1} = await antExec()
 
     expect(() =>
       exec.call(ant1.idx, ...antArgs.method('Ant', 'forceAFriendToWork', [])) // calls public method on not owned jig
     ).to.throw(PermissionError)
   })
 
-  it('fails when a jig tries to call a protected method on another jig of the same module that does not own', () => {
-    const {exec, ant1} = antExec()
+  it('fails when a jig tries to call a protected method on another jig of the same module that does not own', async () => {
+    const {exec, ant1} = await antExec()
 
     expect(() =>
       exec.call(ant1.idx, ...antArgs.method('Ant', 'forceFriendsFamilyToWork', [])) // calls private method on not owned jig
     ).to.throw(PermissionError)
   })
 
-  describe('when there is a frozen jig', () => {
+  describe('when there is a frozen jig', async () => {
     let frozenOutput: Output
-    beforeEach(() => {
-      const {exec} = fundedExec()
+    beforeEach(async () => {
+      const {exec} = await fundedExec()
       const flockMod = exec.import(modIdFor('flock'))
       const flock = exec.instantiate(flockMod.idx, ...flockArgs.constr('Flock', []))
       exec.call(flock.idx, ...flockArgs.method('Flock', 'goToFridge', []))
       const res = exec.finalize()
       expect(res.outputs[1].lock.type).to.eql(LockType.FROZEN)
       frozenOutput = res.outputs[1]
-      storage.persistExecResult(res)
+      await storage.persistExecResult(res)
     })
 
     it('cannot be called methods', () => {
-      const {exec} = fundedExec()
+      const tx = new Tx()
+      tx.push(new SignInstruction(new Uint8Array(64).fill(0), userPub.toBytes()))
+      const container = storage.wasmForPackageId(frozenOutput.classPtr.id).get()
+
+      const exec = new TxExecution(
+        new ExTxExecContext(
+          new ExtendedTx(tx, [frozenOutput]),
+          [container],
+          compile
+        ),
+        ExecOpts.default()
+      )
+
       const jig = exec.load(frozenOutput.hash)
       expect(() => exec.call(jig.idx, ...flockArgs.method('Flock', 'grow', []))).to
         .throw(PermissionError,
@@ -283,7 +298,19 @@ describe('execute txs', () => {
     })
 
     it('cannot be locked', () => {
-      const {exec} = fundedExec()
+      const tx = new Tx()
+      tx.push(new SignInstruction(new Uint8Array(64).fill(0), userPub.toBytes()))
+      const container = storage.wasmForPackageId(frozenOutput.classPtr.id).get()
+
+      const exec = new TxExecution(
+        new ExTxExecContext(
+          new ExtendedTx(tx, [frozenOutput]),
+          [container],
+          compile
+        ),
+        ExecOpts.default()
+      )
+
       const jig = exec.load(frozenOutput.hash)
       expect(() => exec.lockJig(jig.idx, userAddr)).to
         .throw(PermissionError,
@@ -291,12 +318,12 @@ describe('execute txs', () => {
     })
   });
 
-  it('can load an existing jig', () => {
-    const {exec: exec1} = antExec()
+  it('can load an existing jig', async () => {
+    const {exec: exec1} = await antExec()
     const res1 = exec1.finalize();
-    storage.persistExecResult(res1)
+    await storage.persistExecResult(res1)
 
-    const {exec: exec2} = fundedExec([userPriv])
+    const {exec: exec2} = await fundedExec([userPriv])
 
     const loaded = exec2.load(res1.outputs[1].hash)
     exec2.call(loaded.idx, ...antArgs.method('Ant', 'doExercise', []))
@@ -307,12 +334,12 @@ describe('execute txs', () => {
     expect(antProps['ownForce']).to.eql(2)
   })
 
-  it('can load an existing jig by origin', () => {
-    const {exec: exec1} = antExec()
+  it('can load an existing jig by origin', async () => {
+    const {exec: exec1} = await antExec()
     const res1 = exec1.finalize();
-    storage.persistExecResult(res1)
+    await storage.persistExecResult(res1)
 
-    const {exec: exec2} = fundedExec([userPriv])
+    const {exec: exec2} = await fundedExec([userPriv])
 
     const loaded = exec2.loadByOrigin(res1.outputs[1].origin.toBytes())
     exec2.call(loaded.idx, ...antArgs.method('Ant', 'doExercise', []))
@@ -323,28 +350,28 @@ describe('execute txs', () => {
     expect(antProps['ownForce']).to.eql(2)
   })
 
-  it('fails when try to load an unknown jig', () => {
-    const {exec} = fundedExec()
+  it('fails when try to load an unknown jig', async () => {
+    const {exec} = await fundedExec()
 
     expect(() => {
       exec.load(new Uint8Array(32).fill(1))
     }).to.throw(ExecutionError)
   })
 
-  it('fails when try to load by an unknown origin', () => {
-    const {exec} = fundedExec()
+  it('fails when try to load by an unknown origin', async () => {
+    const {exec} = await fundedExec()
 
     expect(() => {
       exec.loadByOrigin(new Uint8Array(34).fill(1))
     }).to.throw(ExecutionError)
   })
 
-  it('can load jigs that include proxies to other packages', () => {
-    const {exec: exec1} = shepherdExec()
+  it('can load jigs that include proxies to other packages', async () => {
+    const {exec: exec1} = await shepherdExec()
     const res1 = exec1.finalize()
-    storage.persistExecResult(res1)
+    await storage.persistExecResult(res1)
 
-    const {exec: exec2} = fundedExec([userPriv])
+    const {exec: exec2} = await fundedExec([userPriv])
     const jig = exec2.load(res1.outputs[2].hash)
     const value = exec2.call(jig.idx, ...ctrArgs.method('Shepherd', 'sheepCount', []))
     expect(value.asValue().ptr.toUInt()).to.eql(1)
@@ -352,8 +379,8 @@ describe('execute txs', () => {
     expect(res2.outputs).to.have.length(2)
   })
 
-  function flockBagExec (): ExecutionResult {
-    const {exec} = fundedExec()
+  async function flockBagExec (): Promise<ExecutionResult> {
+    const {exec} = await fundedExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const flock = exec.exec(flockWasm.idx, ...flockArgs.exec('flockWithSize', [3]))
     const bag = exec.instantiate(flockWasm.idx, ...flockArgs.constr('FlockBag', []))
@@ -362,8 +389,8 @@ describe('execute txs', () => {
     return exec.finalize()
   }
 
-  it('can send static method result as parameter', () => {
-    const result = flockBagExec()
+  it('can send static method result as parameter', async () => {
+    const result = await flockBagExec()
 
     const flockState = parseOutput(result.outputs[1])
     expect(flockState.size).to.eql(3)
@@ -371,13 +398,13 @@ describe('execute txs', () => {
     expect(bagState.flocks).to.eql([result.outputs[1].origin])
   })
 
-  it('when a child jig is not used it does not appear in the outputs', () => {
-    const res1 = flockBagExec()
-    storage.persistExecResult(res1)
+  it('when a child jig is not used it does not appear in the outputs', async () => {
+    const res1 = await flockBagExec()
+    await storage.persistExecResult(res1)
 
     const anotherKey = PrivKey.fromRandom()
 
-    const {exec} = fundedExec([userPriv])
+    const {exec} = await fundedExec([userPriv])
     const loadedJig = exec.load(res1.outputs[2].hash)
     exec.lockJig(loadedJig.idx, anotherKey.toPubKey().toAddress())
 
@@ -397,8 +424,8 @@ describe('execute txs', () => {
 
   it('can return types with nested jigs')
 
-  it('can call exported functions from inside jigs', () => {
-    const {exec} = fundedExec()
+  it('can call exported functions from inside jigs', async () => {
+    const {exec} = await fundedExec()
     const flockWasm = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(flockWasm.idx, ...flockArgs.constr('Flock', []))
     exec.call(flock.idx, ...flockArgs.method('Flock', 'groWithExternalFunction', []))
@@ -409,8 +436,8 @@ describe('execute txs', () => {
     expect(parsed.size).to.eql(1)
   })
 
-  it('saves entire state for jigs using inheritance', () => {
-    const {exec} = fundedExec()
+  it('saves entire state for jigs using inheritance', async () => {
+    const {exec} = await fundedExec()
     const wasm = exec.import(modIdFor('sheep'))
     const sheep = exec.instantiate(wasm.idx, ...sheepArgs.constr('MutantSheep', ['Wolverine', 'black']))
     exec.lockJig(sheep.idx, userAddr)
@@ -423,8 +450,8 @@ describe('execute txs', () => {
     expect(reader.readU32()).to.eql(0)
   })
 
-  it('can call base class and concrete class methods', () => {
-    const {exec} = fundedExec()
+  it('can call base class and concrete class methods', async () => {
+    const {exec} = await fundedExec()
     const wasm = exec.import(modIdFor('sheep'))
     const sheep = exec.instantiate(wasm.idx, ...sheepArgs.constr('MutantSheep', ['Wolverine', 'black']))
     exec.call(sheep.idx, ...sheepArgs.method('Sheep', 'chopOneLeg', []))
@@ -441,15 +468,15 @@ describe('execute txs', () => {
     expect(reader.readU32()).to.eql(10)
   })
 
-  it('can create, lock and reload a jig that uses inheritance', () => {
-    const {exec: exec1} = fundedExec()
+  it('can create, lock and reload a jig that uses inheritance', async () => {
+    const {exec: exec1} = await fundedExec()
     const wasm = exec1.import(modIdFor('sheep'))
     const sheep = exec1.instantiate(wasm.idx, ...sheepArgs.constr('MutantSheep', ['Wolverine', 'black']))
     exec1.lockJig(sheep.idx, userAddr)
     const res1 = exec1.finalize()
-    storage.persistExecResult(res1)
+    await storage.persistExecResult(res1)
 
-    const {exec: exec2} = fundedExec([userPriv])
+    const {exec: exec2} = await fundedExec([userPriv])
     const loaded = exec2.load(res1.outputs[1].hash)
     exec2.call(loaded.idx, ...sheepArgs.method('Sheep', 'chopOneLeg', [])) // -1 leg
     exec2.call(loaded.idx, ...sheepArgs.method('MutantSheep', 'regenerateLeg', [])) // +1 leg
@@ -463,27 +490,27 @@ describe('execute txs', () => {
     expect(reader.readU32()).to.eql(10)
   })
 
-  it('coin eater', () => {
+  it('coin eater', async () => {
     // const txHash = new Uint8Array(32).fill(10)
     // const context = new StorageTxContext(txHash, [userPriv.toPubKey()], storage, vm)
 
-    const {exec} = fundedExec([userPriv])
+    const {exec} = await fundedExec([userPriv])
 
-    const mintedCoin = vm.mint(userAddr, 1000)
+    const mintedCoin = await vm.mint(userAddr, 1000)
     const wasm = exec.import(modIdFor('coin-eater'))
     const coin = exec.load(mintedCoin.hash)
     const eater = exec.instantiate(wasm.idx, ...coinEaterArgs.constr('CoinEater', [ref(coin.idx)]))
     exec.lockJig(eater.idx, userAddr)
     const ret = exec.finalize()
-    storage.persistExecResult(ret)
+    await storage.persistExecResult(ret)
 
     const eaterState = parseOutput(ret.outputs[1])
     expect(eaterState.lastCoin).to.eql(mintedCoin.origin)
     expect(eaterState.otherCoins).to.eql([])
   })
 
-  it('keeps locking state up to date after lock', () => {
-    const {exec} = fundedExec([userPriv])
+  it('keeps locking state up to date after lock', async () => {
+    const {exec} = await fundedExec([userPriv])
     const wasm = exec.import(modIdFor('flock'))
     const flock = exec.instantiate(wasm.idx, ...flockArgs.constr('Flock', []))
 
@@ -499,7 +526,7 @@ describe('execute txs', () => {
 
 
   it('can compile', async () => {
-    const {exec} = fundedExec()
+    const {exec} = await fundedExec()
     const fileContent = 'export class Dummy extends Jig {}'
     const entries = ['main.ts']
     const files = new Map<string, string>([['main.ts', fileContent]])
@@ -511,18 +538,18 @@ describe('execute txs', () => {
     expect(res.deploys[0].sources).to.eql(files)
   })
 
-  it('fails if not enough fees there', () => {
+  it('fails if not enough fees there', async () => {
     const txHash = new Uint8Array(32).fill(10)
     const context = new StorageTxContext(txHash, [userPriv.toPubKey()], storage, vm)
     const exec = new TxExecution(context, ExecOpts.default())
-    const coin = vm.mint(userAddr, 10)
+    const coin = await vm.mint(userAddr, 10)
     const stmt = exec.load(coin.hash)
     exec.fund(stmt.idx)
     expect(() => exec.finalize()).to.throw(ExecutionError, 'Not enough funding. Provided: 10. Needed: 100')
   })
 
-  it('generates empty statements for sign and signto', () => {
-    const {exec} = fundedExec()
+  it('generates empty statements for sign and signto', async () => {
+    const {exec} = await fundedExec()
     const stmt1 = exec.sign(new Uint8Array(64).fill(0), new Uint8Array(32).fill(1))
     const stmt2 = exec.signTo(new Uint8Array(64).fill(2), new Uint8Array(32).fill(3))
 
@@ -532,9 +559,12 @@ describe('execute txs', () => {
     expect(() => stmt2.asContainer()).to.throw()
   })
 
-  it('when call an external constructor a new jig is created a right proxy gets assigned', () => {
-    const {exec, shepherd} = shepherdExec([userPriv])
+  it('when call an external constructor a new jig is created a right proxy gets assigned', async () => {
+    const {exec, flock, shepherd} = await shepherdExec([userPriv])
     exec.call(shepherd.idx, ...ctrArgs.method('Shepherd', 'breedANewFlock', [5]))
+    exec.lockJig(flock.idx, userAddr)
+    exec.lockJig(shepherd.idx, userAddr)
+
     const res = exec.finalize()
 
     expect(res.outputs).to.have.length(4)
@@ -542,9 +572,9 @@ describe('execute txs', () => {
     expect(parsedFlock.size).to.eql(5)
   })
 
-  it('input does not include newly created jigs', () => {
+  it('input does not include newly created jigs', async () => {
     const exec = emptyExec([userPub])  // this loads a coin
-    const minted = vm.mint(userAddr, 100)
+    const minted = await vm.mint(userAddr, 100)
     const imported = exec.import(modIdFor('flock'))
     const jig = exec.instantiate(imported.idx, 0, new Uint8Array([0]))
     exec.lockJig(jig.idx, userAddr)
@@ -557,15 +587,15 @@ describe('execute txs', () => {
     expect(res.spends[0].id).to.eql(minted.id)
   })
 
-  it('result includes reads', () => {
-    const {exec: exec1} = fundedExec([])  // this loads a coin
+  it('result includes reads', async () => {
+    const {exec: exec1} = await fundedExec([])  // this loads a coin
     const pkg = exec1.import(modIdFor('sheep'))
     const sheep = exec1.instantiate(pkg.idx, ...sheepArgs.constr('Sheep', ['Baa', 'black']))
     exec1.lockJig(sheep.idx, userAddr)
     const res1 = exec1.finalize();
-    storage.persistExecResult(res1)
+    await storage.persistExecResult(res1)
 
-    const {exec: exec2} = fundedExec([])  // this loads a coin
+    const {exec: exec2} = await fundedExec([])  // this loads a coin
     const loaded = exec2.load(res1.outputs[1].hash)
     const imported = exec2.import(modIdFor('sheep'))
     const cloned = exec2.exec(imported.idx, ...sheepArgs.exec('clone', [ref(loaded.idx)]))
@@ -576,15 +606,15 @@ describe('execute txs', () => {
     expect(res2.reads[0].hash).to.eql(res1.outputs[1].hash)
   })
 
-  it('when a read was also spend it does not appear in spends', () => {
-    const {exec: exec1} = fundedExec([])  // this loads a coin
+  it('when a read was also spend it does not appear in spends', async () => {
+    const {exec: exec1} = await fundedExec([])  // this loads a coin
     const pkg = exec1.import(modIdFor('sheep'))
     const sheep = exec1.instantiate(pkg.idx, ...sheepArgs.constr('Sheep', ['Baa', 'black']))
     exec1.lockJig(sheep.idx, userAddr)
     const res1 = exec1.finalize();
-    storage.persistExecResult(res1)
+    await storage.persistExecResult(res1)
 
-    const {exec: exec2} = fundedExec([userPriv])  // this loads a coin
+    const {exec: exec2} = await fundedExec([userPriv])  // this loads a coin
     const loaded = exec2.load(res1.outputs[1].hash)
     const imported = exec2.import(modIdFor('sheep'))
     const cloned = exec2.exec(imported.idx, ...sheepArgs.exec('clone', [ref(loaded.idx)]))
@@ -620,40 +650,44 @@ describe('execute txs', () => {
         }
       `
 
-      const {exec: exec1} = fundedExec()
+      const {exec: exec1} = await fundedExec()
       await exec1.deploy(['a.ts'], new Map([['a.ts', src]]))
       const res = exec1.finalize()
       pkgHash = res.deploys[0].hash
 
-      storage.persistExecResult(res)
+      await storage.persistExecResult(res)
     })
 
-    it('understand null as null', () => {
-      const { exec } = fundedExec()
+    it('understand null as null', async () => {
+      const { exec } = await fundedExec()
 
       let pkgStmt = exec.import(pkgHash)
-      exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 0]))
+      let stmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 0]))
+      exec.lockJig(stmt.idx, userAddr)
       const res = exec.finalize()
       expect(res.outputs[1].stateBuf).to.eql(new Uint8Array([0, 0]))
     })
 
-    it('understand present values as the value', () => {
-      const { exec } = fundedExec()
+    it('understand present values as the value', async () => {
+      const { exec } = await fundedExec()
 
       let pkgStmt = exec.import(pkgHash)
-      exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 1, 5, 104, 101, 108, 108, 111]))
+      let stmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 1, 5, 104, 101, 108, 108, 111]))
+      exec.lockJig(stmt.idx, userAddr)
       const res = exec.finalize()
       expect(res.outputs[1].stateBuf).to.eql(new Uint8Array([1, 5, 104, 101, 108, 108, 111, 0]))
     })
 
-    it('is correctly interpreted by asc', () => {
-      const { exec } = fundedExec()
+    it('is correctly interpreted by asc', async () => {
+      const { exec } = await fundedExec()
 
       const pkgStmt = exec.import(pkgHash)
       const jig1 =  exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 1, 5, 104, 101, 108, 108, 111]))
       const jig2 = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, 0]))
       exec.call(jig1.idx, 0, new Uint8Array([0]))
       exec.call(jig2.idx, 0, new Uint8Array([0]))
+      exec.lockJig(jig1.idx, userAddr)
+      exec.lockJig(jig2.idx, userAddr)
 
       const res = exec.finalize()
       expect(res.outputs[1].stateBuf).to.eql(new Uint8Array([1, 5, 104, 101, 108, 108, 111, 2]))
@@ -682,31 +716,32 @@ describe('execute txs', () => {
         }
       `
 
-      const {exec: exec1} = fundedExec()
+      const {exec: exec1} = await fundedExec()
       await exec1.deploy(['a.ts'], new Map([['a.ts', src]]))
       const res = exec1.finalize()
       pkgHash = res.deploys[0].hash
       pkgAbi = res.deploys[0].abi
 
-      storage.persistExecResult(res)
+      await storage.persistExecResult(res)
     })
 
-    it('can lower and lift bigints', () => {
-      const { exec } = fundedExec()
+    it('can lower and lift bigints', async () => {
+      const { exec } = await fundedExec()
 
       let pkgStmt = exec.import(pkgHash)
       const bcs = new BCS(pkgAbi);
       const buf = bcs.encode('BigInt', 10n)
       const jigStmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, ...buf]))
       exec.call(jigStmt.idx, 0, new Uint8Array([0]))
+      exec.lockJig(jigStmt.idx, userAddr)
       const res = exec.finalize()
       const parsed = bcs.decode('A', res.outputs[1].stateBuf)
       expect(parsed[0]).to.eql(10n)
       expect(parsed[1]).to.eql(11n)
     })
 
-    it('can lower and lift big bigints', () => {
-      const { exec } = fundedExec()
+    it('can lower and lift big bigints', async () => {
+      const { exec } = await fundedExec()
 
       let pkgStmt = exec.import(pkgHash)
       const bcs = new BCS(pkgAbi);
@@ -714,14 +749,15 @@ describe('execute txs', () => {
       const buf = bcs.encode('BigInt', value)
       const jigStmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, ...buf]))
       exec.call(jigStmt.idx, 0, new Uint8Array([0]))
+      exec.lockJig(jigStmt.idx, userAddr)
       const res = exec.finalize()
       const parsed = bcs.decode('A', res.outputs[1].stateBuf)
       expect(parsed[0]).to.eql(value)
       expect(parsed[1]).to.eql(value + 1n)
     })
 
-    it('can lower and lift big big bigints', () => {
-      const { exec } = fundedExec()
+    it('can lower and lift big big bigints', async () => {
+      const { exec } = await fundedExec()
 
       let pkgStmt = exec.import(pkgHash)
       const bcs = new BCS(pkgAbi);
@@ -729,6 +765,7 @@ describe('execute txs', () => {
       const buf = bcs.encode('BigInt', value)
       const jigStmt = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0, ...buf]))
       exec.call(jigStmt.idx, 0, new Uint8Array([0]))
+      exec.lockJig(jigStmt.idx, userAddr)
       const res = exec.finalize()
       const parsed = bcs.decode('A', res.outputs[1].stateBuf)
       expect(parsed[0]).to.eql(value)
@@ -738,10 +775,10 @@ describe('execute txs', () => {
 
   type WithPackageResult = { pkgHash: Uint8Array, pkgAbi: Abi  }
   async function withPackage(src: string): Promise<WithPackageResult> {
-    const {exec: exec1} = fundedExec()
+    const {exec: exec1} = await fundedExec()
     await exec1.deploy(['a.ts'], new Map([['a.ts', src]]))
     const res = exec1.finalize()
-    storage.persistExecResult(res)
+    await storage.persistExecResult(res)
 
     return {pkgHash: res.deploys[0].hash, pkgAbi: res.deploys[0].abi}
 
@@ -766,11 +803,11 @@ describe('execute txs', () => {
       args = new ArgsBuilder(pkgAbi)
     })
 
-    it('ends with an error when gas usage goes over config.', () => {
+    it('ends with an error when gas usage goes over config.', async () => {
       const opts = ExecOpts.default()
       opts.wasmExecutionMaxHydros = 1n
       opts.wasmExecutionHydroSize = 10000n
-      const { exec } = fundedExec([], opts)
+      const { exec } = await fundedExec([], opts)
 
       let pkgStmt = exec.import(pkgHash)
       const jig = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
@@ -780,11 +817,11 @@ describe('execute txs', () => {
       ).to.throw(ExecutionError, 'Max hydros for Raw Execution (1) was over passed')
     })
 
-    it('does not throw when gas usage is big enough.', () => {
+    it('does not throw when gas usage is big enough.', async () => {
       const opts = ExecOpts.default()
       opts.wasmExecutionMaxHydros = 2n
       opts.wasmExecutionHydroSize = 1000000n
-      const { exec } = fundedExec([], opts)
+      const { exec } = await fundedExec([], opts)
 
       let pkgStmt = exec.import(pkgHash)
       const jig = exec.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
@@ -795,14 +832,14 @@ describe('execute txs', () => {
     })
   })
 
-  it('a basic execution uses 5 hydros ', () => {
+  it('a basic execution uses 5 hydros ', async () => {
     // 1 container
     // 1 signature
     // 1 unit of data moved
     // 1 unit of raw execution
     // 1 new output created
 
-    const {exec} = fundedExec()
+    const {exec} = await fundedExec()
     const mod = exec.import(modIdFor('flock'))
     const instanceIndex = exec.instantiate(mod.idx, 0, new Uint8Array([0]))
     exec.lockJig(instanceIndex.idx, userAddr)
@@ -851,11 +888,11 @@ describe('execute txs', () => {
       senderArgs = new ArgsBuilder(abi)
     })
 
-    it('throws if data transfer is bigger than conf limit', () => {
+    it('throws if data transfer is bigger than conf limit', async () => {
       const opts = ExecOpts.default();
       opts.moveDataMaxHydros = 3n
       opts.moveDataHydroSize = 500n // 1.5k is not enough because data is lifted and lowered
-      const {exec} = fundedExec([], opts)
+      const {exec} = await fundedExec([], opts)
       const receiverCont = exec.import(receiverHash)
       const senderCont =  exec.import(senderHash)
       const receiver = exec.instantiate(receiverCont.idx, 0, new Uint8Array([0]))
@@ -866,10 +903,10 @@ describe('execute txs', () => {
       ).to.throw(ExecutionError, 'Max hydros for Moved Data (3) was over passed')
     })
 
-    it('works if transfer is big enough', () => {
+    it('works if transfer is big enough', async () => {
       const opts = ExecOpts.default();
       opts.moveDataMaxHydros = 2050n // It needs at least 2k because data has to be lifted and lowered
-      const {exec} = fundedExec([], opts)
+      const {exec} = await fundedExec([], opts)
       const receiverCont = exec.import(receiverHash)
       const senderCont =  exec.import(senderHash)
       const receiver = exec.instantiate(receiverCont.idx, 0, new Uint8Array([0]))
@@ -880,34 +917,36 @@ describe('execute txs', () => {
       ).not.to.throw()
     })
 
-    it('adds hidros according to the data transfered', () => {
+    it('adds hidros according to the data transfered', async () => {
       const opts = ExecOpts.default();
       opts.moveDataHydroSize = 100n;
-      const {exec} = fundedExec([], opts)
+      const {exec} = await fundedExec([], opts)
       const receiverCont = exec.import(receiverHash)
       const senderCont =  exec.import(senderHash)
       const receiver = exec.instantiate(receiverCont.idx, 0, new Uint8Array([0]))
       const sender = exec.instantiate(senderCont.idx, 0, new Uint8Array([0]))
 
       exec.call(sender.idx, ...senderArgs.method('Sender', 'm1', [ref(receiver.idx), 1000]))
+      exec.lockJig(receiver.idx, userAddr)
+      exec.lockJig(sender.idx, userAddr)
       const result = exec.finalize()
-      expect(result.hydrosUsed).to.within(30, 40)
+      expect(result.hydrosUsed).to.within(35, 45)
     })
   });
 
-  it('adds hydros based on each container created', () => {
-    const {exec} = fundedExec()
+  it('adds hydros based on each container created', async () => {
+    const {exec} = await fundedExec()
     exec.import(modIdFor('flock'))
     exec.import(modIdFor('sheep'))
     const result = exec.finalize()
     expect(result.hydrosUsed).to.eql(6)
   })
 
-  it('adds hydros based on each signer', () => {
+  it('adds hydros based on each signer', async () => {
     const key1 = PrivKey.fromRandom()
     const key2 = PrivKey.fromRandom()
     const key3 = PrivKey.fromRandom()
-    const {exec} = fundedExec([key1, key2, key3])
+    const {exec} = await fundedExec([key1, key2, key3])
     exec.sign(new Uint8Array(), new Uint8Array)
     exec.sign(new Uint8Array(), new Uint8Array)
     exec.sign(new Uint8Array(), new Uint8Array)
@@ -915,16 +954,20 @@ describe('execute txs', () => {
     expect(result.hydrosUsed).to.eql(7)
   })
 
-  it('adds hydros based on each load by origin', () => {
-    const {exec: exec1} = fundedExec([])
+  it('adds hydros based on each load by origin', async () => {
+    const {exec: exec1} = await fundedExec([])
     const pkgStmt = exec1.import(modIdFor('flock'))
+    const jig1Stmt = exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
     exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
     exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
-    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
-    const result1 = exec1.finalize();
-    storage.persistExecResult(result1)
+    exec1.lockJig(jig1Stmt.idx, userAddr)
+    exec1.lockJig(jig1Stmt.idx + 1, userAddr)
+    exec1.lockJig(jig1Stmt.idx + 2, userAddr)
 
-    const {exec: exec2} = fundedExec([])
+    const result1 = exec1.finalize();
+    await storage.persistExecResult(result1)
+
+    const {exec: exec2} = await fundedExec([])
 
     exec2.loadByOrigin(result1.outputs[1].origin.toBytes())
     exec2.loadByOrigin(result1.outputs[2].origin.toBytes())
@@ -936,23 +979,26 @@ describe('execute txs', () => {
   it('count hydros for compile', async () => {
     const opts = ExecOpts.default()
     opts.deployHydroCost = 500n
-    const {exec} = fundedExec([], opts)
+    const {exec} = await fundedExec([], opts)
     await exec.deploy(['index.ts'], new Map([['index.ts', 'export class A extends Jig {}']]))
     const res = exec.finalize()
     expect(res.hydrosUsed).to.eql(504)
   })
 
   it('count hydros for new ouputs', async () => {
-    const {exec: exec1} = fundedExec([])
+    const {exec: exec1} = await fundedExec([])
     const pkgStmt = exec1.import(modIdFor('flock'))
+    const jig1 = exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
     exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
     exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
-    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
-    const result1 = exec1.finalize();
+    exec1.lockJig(jig1.idx, userAddr)
+    exec1.lockJig(jig1.idx + 1, userAddr)
+    exec1.lockJig(jig1.idx + 2, userAddr)
+    const result1 = exec1.finalize()
     expect(result1.hydrosUsed).to.eql(8)
-    storage.persistExecResult(result1)
+    await storage.persistExecResult(result1)
 
-    const {exec: exec2} = fundedExec([])
+    const {exec: exec2} = await fundedExec([])
 
     exec2.load(result1.outputs[1].hash)
     exec2.load(result1.outputs[2].hash)
@@ -961,22 +1007,31 @@ describe('execute txs', () => {
     expect(result2.hydrosUsed).to.eql(5)
   })
 
-  it('passes Aarons test', () => {
+  it('passes Aarons test', async () => {
     const args = new ArgsBuilder(abiFor('human'))
-    const {exec: exec1} = fundedExec()
+    const {exec: exec1} = await fundedExec()
     const pkgStmt = exec1.import(modIdFor('human'))
 
     const jig1Stmt = exec1.instantiate(pkgStmt.idx, ...args.constr('Human', ['name1', []]))
     const jig2Stmt = exec1.instantiate(pkgStmt.idx, ...args.constr('Human', ['name2', []]))
+    exec1.lockJig(jig1Stmt.idx, userAddr)
+    exec1.lockJig(jig2Stmt.idx, userAddr)
     const res1 = exec1.finalize();
-    storage.persistExecResult(res1)
+    await storage.persistExecResult(res1)
 
-    const {exec: exec2} = fundedExec()
+    const {exec: exec2} = await fundedExec([userPriv])
     const p1 = exec2.load(res1.outputs[1].hash)
     const p2 = exec2.load(res1.outputs[2].hash)
     exec2.call(p1.idx, ...args.method('Human', 'marry', [ref(p2.idx)] ))
     exec2.call(p1.idx, ...args.method('Human', 'child', ['bob'] ))
+  })
 
+  it('fails when a jig was not locked at the end of the tx', async () => {
+    const {exec: exec1} = await fundedExec([])
+    const pkgStmt = exec1.import(modIdFor('flock'))
+    exec1.instantiate(pkgStmt.idx, 0, new Uint8Array([0]))
+
+    expect(() => exec1.finalize()).to.throw(PermissionError)
   })
 
   // it('receives right amount from properties of foreign jigs', () => {

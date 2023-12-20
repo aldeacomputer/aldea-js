@@ -1,5 +1,5 @@
 import {normalizeTypeName, TypeNode} from "@aldea/core/abi";
-import {emptyTn} from "../well-known-abi-nodes.js";
+import {emptyTn} from "../../well-known-abi-nodes.js";
 
 export class AbiType {
   private ty: TypeNode;
@@ -43,6 +43,10 @@ export class AbiType {
 
   static buffer(): AbiType {
     return this.fromName('ArrayBuffer')
+  }
+
+  static string(): AbiType {
+    return this.fromName('string')
   }
 
   static u32(): AbiType {

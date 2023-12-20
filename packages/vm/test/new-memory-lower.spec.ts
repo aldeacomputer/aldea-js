@@ -1,4 +1,4 @@
-import {Storage} from "../src/index.js";
+import {MemStorage} from "../src/index.js";
 import {WasmContainer} from "../src/wasm-container.js";
 import {buildVm} from "./util.js";
 import {Address, base16, BCS, BufReader, BufWriter, Lock, LockType, Output, Pointer} from "@aldea/core";
@@ -9,7 +9,7 @@ import {Option} from "../src/support/option.js";
 import {PublicLock} from "../src/locks/public-lock.js";
 import {serializeOutput} from "../src/memory/serialize-output.js";
 import {AddressLock} from "../src/locks/address-lock.js";
-import {BUF_RTID, emptyTn, STRING_RTID} from "../src/memory/well-known-abi-nodes.js";
+import {BUF_RTID, emptyTn, STRING_RTID} from "../src/well-known-abi-nodes.js";
 import {JigData, LowerValue} from "../src/memory/lower-value.js";
 
 
@@ -43,7 +43,7 @@ function checkLock (container: WasmContainer, lockPtr: WasmWord, extOrigin: Uint
 
 describe('NewMemoryLower', () => {
   let modIdFor: (key: string) => Uint8Array
-  let storage: Storage;
+  let storage: MemStorage;
   let container: WasmContainer;
   let jigData: Map<string, JigData>
 
@@ -252,7 +252,7 @@ describe('NewMemoryLower', () => {
     const bufContent = new Uint8Array([0,1,2,3,4,5,6,7,8,9]);
     buf.writeBytes(bufContent)
 
-    const ty = AbiType.fromName('ArrayBuffer')
+    const ty = AbiType.buffer()
     let ptr = target.lower(buf.data, ty)
 
     let objBuf = container.mem.extract(ptr.minus(8), 18)
@@ -313,7 +313,7 @@ describe('NewMemoryLower', () => {
     const aString = "this is a string";
     buf.writeBytes(new Uint8Array(Buffer.from(aString)))
 
-    const ty = AbiType.fromName('string')
+    const ty = AbiType.string()
     let ptr = target.lower(buf.data, ty)
 
     let header = container.mem.read(ptr.minus(8), 8)

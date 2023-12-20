@@ -1,10 +1,13 @@
 import {BufWriter, Pointer} from "@aldea/core";
 import {Lock} from "./locks/lock.js";
 import {AbiType} from "./memory/abi-helpers/abi-type.js";
-import {jigInitParamsTypeNode} from "./memory/well-known-abi-nodes.js";
+import {jigInitParamsTypeNode} from "./well-known-abi-nodes.js";
 import {WasmContainer} from "./wasm-container.js";
 import {WasmWord} from "./wasm-word.js";
 
+/**
+ * Simple data structure to lower the data needed to initialize a jig.
+ */
 export class JigInitParams {
   origin: Pointer
   location: Pointer

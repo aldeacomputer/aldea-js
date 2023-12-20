@@ -4,7 +4,7 @@ import {base16, BufReader, BufWriter} from "@aldea/core";
 import {AbiType} from "./abi-helpers/abi-type.js";
 import {AbiPlainObject} from "./abi-helpers/abi-plain-object.js";
 import {AbiClass} from "./abi-helpers/abi-class.js";
-import {BUF_RTID} from "./well-known-abi-nodes.js";
+import {BUF_RTID} from "../well-known-abi-nodes.js";
 import {ExecutionError} from "../errors.js";
 import {CodeKind} from "@aldea/core/abi";
 import {digitsToBigInt} from "./bigint-buf.js";

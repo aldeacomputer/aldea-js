@@ -1,13 +1,12 @@
 import {ContainerRef, JigRef} from "./jig-ref.js"
-import {ExecutionError, IvariantBroken} from "./errors.js"
+import {ExecutionError, InvariantBroken, PermissionError} from "./errors.js"
 import {OpenLock} from "./locks/open-lock.js"
 import {AuthCheck, WasmContainer} from "./wasm-container.js";
 import {Address, base16, BufReader, BufWriter, Lock as CoreLock, LockType, Output, Pointer} from '@aldea/core';
-import {COIN_CLS_PTR, outputTypeNode} from "./memory/well-known-abi-nodes.js";
+import {COIN_CLS_PTR, outputTypeNode} from "./well-known-abi-nodes.js";
 import {ExecutionResult, PackageDeploy} from "./execution-result.js";
 import {EmptyStatementResult, StatementResult, ValueStatementResult, WasmStatementResult} from "./statement-result.js";
-import {ExecContext} from "./tx-context/exec-context.js";
-import {PkgData} from "./storage.js";
+import {ExecContext} from "./exec-context/exec-context.js";
 import {JigData} from "./memory/lower-value.js";
 import {Option} from "./support/option.js";
 import {WasmArg, WasmWord} from "./wasm-word.js";
@@ -18,102 +17,73 @@ import {AddressLock} from "./locks/address-lock.js";
 import {FrozenLock} from "./locks/frozen-lock.js";
 import {AbiMethod} from "./memory/abi-helpers/abi-method.js";
 import {JigInitParams} from "./jig-init-params.js";
-import {ArgsTranslator} from "./args-translator.js";
+import {ArgumentsPreProcessor} from "./arguments-pre-processor.js";
 import {CodeKind} from "@aldea/core/abi";
 import {AbiArg} from "./memory/abi-helpers/abi-arg.js";
-import {ExecOpts} from "./export-opts.js";
+import {ExecOpts} from "./exec-opts.js";
+import {Measurements} from "./metering/measurements.js";
+import {PkgData} from "./storage/pkg-data.js";
 
 export const MIN_FUND_AMOUNT = 100
 
-export class DiscretCounter {
-  private tag: string;
-  private total: bigint
-  private count: bigint
-  private hydroSize: bigint
-  hydros: bigint
-  private maxHydros: bigint;
 
-  constructor (tag: string, hydroSize: bigint, maxHydros: bigint) {
-    this.tag = tag
-    this.total = 0n
-    this.count = 0n
-    this.hydros = 0n
-    this.hydroSize = hydroSize
-    this.maxHydros = maxHydros
-  }
-
-  add(amount: bigint) {
-    this.total += amount
-    this.count += amount
-    const newHydros = this.count / this.hydroSize
-    this.hydros += newHydros
-    this.count = this.count % this.hydroSize
-
-    if (this.hydros > this.maxHydros) {
-      throw new ExecutionError(`Max hydros for ${this.tag} (${this.maxHydros}) was over passed`)
-    }
-  }
-
-  clear (): number {
-    let res = Number(this.hydros)
-    if (this.count > 0n) {
-      res +=1
-    }
-    this.total = 0n
-    this.count = 0n
-    this.hydros = 0n
-    return res
-  }
-
-  inc () {
-    this.add(1n)
-  }
-}
-
-
-export class Measurements {
-  movedData: DiscretCounter;
-  wasmExecuted: DiscretCounter;
-  numContainers: DiscretCounter;
-  numSigs: DiscretCounter;
-  originChecks: DiscretCounter;
-  newJigs: DiscretCounter;
-  deploys: DiscretCounter;
-
-  constructor (opts: ExecOpts) {
-    this.movedData = new DiscretCounter('Moved Data', opts.moveDataHydroSize, opts.moveDataMaxHydros)
-    this.wasmExecuted = new DiscretCounter('Raw Execution', opts.wasmExecutionHydroSize, opts.wasmExecutionMaxHydros)
-    this.numContainers = new DiscretCounter('Num Containers', opts.numContHydroSize, opts.numContMaxHydros)
-    this.numSigs = new DiscretCounter('Num Sigs', opts.numSigsHydroSize, opts.numSigsMaxHydros)
-    this.originChecks = new DiscretCounter('Load By Origin', opts.originCheckHydroSize, opts.originCheckMaxHydros)
-    this.newJigs = new DiscretCounter('New Jigs', opts.newJigHydroSize, opts.newJigMaxHydros)
-    this.deploys = new DiscretCounter('Deploys', 1n, 30000n)
-  }
-
-  clear () {
-    return this.movedData.clear() +
-        this.wasmExecuted.clear() +
-        this.numContainers.clear() +
-        this.numSigs.clear() +
-        this.originChecks.clear() +
-        this.newJigs.clear() +
-        this.deploys.clear();
-  }
-}
-
+/**
+ * Class representing the execution of a transaction.
+ * The main methods are 1 to 1 relation with Aldea opcodes.
+ * This class is in charge of coordinate all the containers being used,
+ * validate the interactions between jigs and keep track of all the data
+ * produced by the execution.
+ *
+ * @class
+ * @param {ExecContext} context - The execution context of the transaction.
+ * @param {ExecOpts} opts - The execution options for the transaction.
+ */
 class TxExecution {
+  /* This object provides all the data needed from outside to make the execution work */
   execContext: ExecContext;
+
+  /* Jigs that were hydrated during the execution of the current tx */
   private jigs: JigRef[];
+
+  /* Containers being used by the tx. */
   private wasms: Map<string, WasmContainer>;
+
+  /* Permission stack. Keeps track of which jig is executing at a given moment. */
   private readonly stack: Pointer[];
+
+  /* New packages deployed in the current tx. */
   deployments: PkgData[];
+
+  /* The result of each statement (opcode) executed in the current tx */
   statements: StatementResult[]
+
+  /* How many coins where used to fund the tx at a given moment */
   private fundAmount: number;
+
+  /**
+   * Jigs that were affected by the curret tx. An affected jig is a method
+   * that requires a new location at the end of the transaction. Which means that
+   * it's a new jig or it received a method call from the top level or from
+   * another jig.
+   * @private
+   */
   private affectedJigs: JigRef[]
+
+  /* Auxiliary data to keep jig creations in sync */
   private nextOrigin: Option<Pointer>
+
+  /* Options for the current execution */
   private opts: ExecOpts
+
+  /* Measurements used to calculate hydro (gas) usage. */
   private measurements: Measurements;
 
+  /**
+   * Constructor for the class.
+   *
+   * @param {ExecContext} context - The execution context.
+   * @param {ExecOpts} opts - The execution options.
+   */
   constructor (context: ExecContext, opts: ExecOpts) {
     this.execContext = context
     this.jigs = []
@@ -129,17 +99,261 @@ class TxExecution {
     this.measurements.numSigs.add(BigInt(this.execContext.signers().length))
   }
 
+  // -------
+  // Opcodes
+  // -------
+
+  /**
+   * Executes an `IMPORT` operation. Imports a module specified by the given module ID.
+   *
+   * @param {Uint8Array} modId - The module ID to import.
+   * @return {StatementResult} - The statement result.
+   */
+  import (modId: Uint8Array): StatementResult {
+    const instance = this.assertContainer(base16.encode(modId))
+    const ret = new WasmStatementResult(this.statements.length, instance);
+    this.statements.push(ret)
+    return ret
+  }
+
+  /**
+   * Executes a `LOAD` operation. Loads a jig from the context using the output id as key.
+   * If needed it hydrates a container for it.
+   *
+   * @param {Uint8Array} outputId - The ID of the output to load.
+   * @return {StatementResult} - The loaded output as a StatementResult object.
+   */
+  load (outputId: Uint8Array): StatementResult {
+    const output = this.execContext.outputById(outputId)
+    const jigRef = this.hydrate(output)
+
+    const ret = new ValueStatementResult(this.statements.length, jigRef.ref.ty.proxy(), jigRef.ref.ptr, jigRef.ref.container);
+    this.statements.push(ret)
+    return ret
+  }
+
+  /**
+   * Executes a `LOADBYORIGIN` operation. Loads a Jig from context by its origin. If needed it hydrates the jig
+   * container.
+   *
+   * @param {Uint8Array} originBytes - The origin bytes of the statement.
+   *
+   * @returns {StatementResult} - The loaded statement result.
+   */
+  loadByOrigin (originBytes: Uint8Array): StatementResult {
+    this.measurements.originChecks.inc()
+    const origin = Pointer.fromBytes(originBytes)
+    const output = this.execContext.inputByOrigin(origin)
+    const jigRef = this.hydrate(output)
+    const stmt = new ValueStatementResult(this.statements.length, jigRef.ref.ty.proxy(), jigRef.ref.ptr, jigRef.ref.container)
+    this.statements.push(stmt)
+    return stmt
+  }
+
+  /**
+   * Executes a `NEW` operation. Searches in the package at the statement `statementIndex`,
+   * and looks for a class at the index `classIdx`. Then creates an instance using the provided
+   * arguments.
+   *
+   * @param {number} statementIndex - The index of the statement in the statements array.
+   * @param {number} classIdx - The index of the class in the wasm ABI.
+   * @param {Uint8Array} argsBuf - Arguments encoded in Aldea Format.
+   * @returns {StatementResult} - Reference to the created instance.
+   * @throws {ExecutionError} - If the instantiated jig is not found.
+   */
+  instantiate (statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
+    const statement = this.statements[statementIndex]
+    const wasm = statement.asContainer()
+
+    const classNode = wasm.abi.exportedByIdx(classIdx).get().toAbiClass()
+
+    const method = wasm.abi.exportedByName(classNode.name).get().toAbiClass().constructorDef()
+    const callArgs = this.translateAndLowerArgs(wasm, method.args, argsBuf)
+
+    const nextOrigin = this.createNextOrigin()
+    this.nextOrigin = Option.some(nextOrigin)
+    this.stack.push(nextOrigin)
+    const result = wasm
+      .callFn(method.callName(), callArgs, method.args.map(arg => arg.type))
+      .get()
+    this.stack.pop()
+
+    const jigRef = this.jigs.find(j => j.package === wasm && j.ref.ptr.equals(result))
+    if (!jigRef) {
+      throw new ExecutionError('jig should had been created created')
+    }
+
+    const ret = new ValueStatementResult(this.statements.length, method.rtype, result, wasm);
+    this.statements.push(ret)
+    return ret
+  }
+
+  /**
+   * Executes a `CALL` operation. Call a method on a Jig instance. It sends a message
+   * to the jig contained at `jigIdx` statement index. The message is defined by `methodIdx`.
+   *
+   * @param {number} jigIdx - The index of the Jig instance.
+   * @param {number} methodIdx - The index of the method to call.
+   * @param {Uint8Array} argsBuf - The buffer containing the arguments for the method call.
+   * @returns {StatementResult} - The result of the method call as a StatementResult object.
+   */
+  call (jigIdx: number, methodIdx: number, argsBuf: Uint8Array): StatementResult {
+    const jig = this.jigAt(jigIdx)
+    jig.lock.assertOpen(this)
+    const abiClass = jig.classAbi();
+    const method = abiClass.methodByIdx(methodIdx).get()
+
+    const wasm = jig.ref.container;
+    const args = this.translateAndLowerArgs(wasm, method.args, argsBuf);
+
+    this.marKJigAsAffected(jig)
+    const res = this.performMethodCall(jig, method, args)
+
+    let stmt: StatementResult = res.map<StatementResult>(ref => {
+      return new ValueStatementResult(this.statements.length, ref.ty, ref.ptr, ref.container)
+    }).orElse(() => new EmptyStatementResult(this.statements.length))
+
+    this.statements.push(stmt)
+    return stmt
+  }
+
+  /**
+   * Executes an `EXEC` operation. It takes a function exported at `fnIndex` from
+   * the package provided in the statemnt number `wasmIdx` using the arguments provided
+   * by parameter.
+   *
+   * @param {number} wasmIdx - The index of the WebAssembly module in the `statements` array.
+   * @param {number} fnIdx - The index of the function to execute within the WebAssembly module.
+   * @param {Uint8Array} argsBuf - The arguments to pass to the function encoded in Aldea Format.
+   * @returns {StatementResult} - The result of executing the function.
+   */
+  exec (wasmIdx: number, fnIdx: number, argsBuf: Uint8Array): StatementResult {
+    const wasm = this.statements[wasmIdx].asContainer()
+    const fn = wasm.abi.exportedByIdx(fnIdx).get().toAbiFunction()
+    const args = this.translateAndLowerArgs(wasm, fn.args, argsBuf)
+
+    const value = wasm.callFn(fn.name, args, fn.args.map(a => a.type))
+
+    const stmt = value.map<StatementResult>(ptr =>
+      new ValueStatementResult(this.statements.length, fn.rtype, ptr, wasm)
+    ).orDefault(new EmptyStatementResult(this.statements.length))
+
+    this.statements.push(stmt)
+
+    return stmt
+  }
+
+  /**
+   * Executes a `FUND` operation. Funds using a coin at the specified index. It uses the entire balance
+   * and freezes the coin.
+   *
+   * @param {number} coinIdx - The index of the coin to be funded.
+   *
+   * @returns {StatementResult} - Empty statement.
+   *
+   * @throws {ExecutionError} - If the statement at the specified idx is not a coin.
+   */
+  fund (coinIdx: number): StatementResult {
+    const coinJig = this.jigAt(coinIdx)
+    if (!coinJig.classPtr().equals(COIN_CLS_PTR)) {
+      throw new ExecutionError(`Not a coin: ${coinJig.origin}`)
+    }
+
+    coinJig.lock.assertOpen(this)
+
+    const amount = coinJig.getPropValue('amount').ptr
+    this.fundAmount += amount.toUInt()
+    coinJig.changeLock(new FrozenLock())
+    const stmt = new EmptyStatementResult(this.statements.length)
+    this.statements.push(stmt)
+    this.marKJigAsAffected(coinJig)
+    return stmt
+  }
+
+  /**
+   * Performs a `LOCK` operation. Locks the jig at the specified index using the given address.
+   *
+   * @param {number} jigIndex - The index of the jig to lock.
+   * @param {Address} address - The address to lock the jig to.
+   * @return {StatementResult} - Empty statement result.
+   */
+  lockJig (jigIndex: number, address: Address): StatementResult {
+    const jigRef = this.jigAt(jigIndex)
+
+    jigRef.lock.assertOpen(this)
+    this.marKJigAsAffected(jigRef)
+    jigRef.changeLock(new AddressLock(address))
+    const ret = new EmptyStatementResult(this.statements.length);
+    this.statements.push(ret)
+
+    return ret
+  }
+
+  /**
+   * Performs a `DEPLOY` operation. Compiles the given sources and deploys them. This method
+   * should be awaited before executing another instruction
+   *
+   * @param {string[]} entryPoint - The entry point for the package.
+   * @param {Map<string, string>} sources - A map of source files, where the key is the file name and the value is the source code.
+   * @return {Promise<StatementResult>} - Resolves to a statement result containing the deployed package.
+   */
+  async deploy (entryPoint: string[], sources: Map<string, string>): Promise<StatementResult> {
+    this.measurements.deploys.add(this.opts.deployHydroCost)
+    const pkgData = await this.execContext.compile(entryPoint, sources)
+    this.deployments.push(pkgData)
+    const wasm = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
+    wasm.setExecution(this)
+    this.wasms.set(base16.encode(wasm.hash), wasm)
+    const ret = new WasmStatementResult(this.statements.length, wasm)
+    this.statements.push(ret)
+    return ret
+  }
+
+  /**
+   * Executes a `SIGN` operation. Signature verification happens in a different stage,
+   * so this method just keeps track of the gas usage (hydros)
+   *
+   * @param {Uint8Array} _sig - The signature to be generated.
+   * @param {Uint8Array} _pubKey - The public key to be used for signing.
+   * @return {StatementResult} - The statement result object representing the signature generation.
+   */
+  sign (_sig: Uint8Array, _pubKey: Uint8Array): StatementResult {
+    const stmt = new EmptyStatementResult(this.statements.length);
+    this.statements.push(stmt)
+    return stmt
+  }
+
+  /**
+   * Executes a `SIGNTO` operation. Signature verification happens in a different stage,
+   * so this method just keeps track of the gas usage (hydros)
+   *
+   * @param {Uint8Array} _sig - The signature.
+   * @param {Uint8Array} _pubKey - The public key to verify.
+   * @return {StatementResult} - Empty statement result.
+   */
+  signTo (_sig: Uint8Array, _pubKey: Uint8Array): StatementResult {
+    const stmt = new EmptyStatementResult(this.statements.length);
+    this.statements.push(stmt)
+    return stmt
+  }
+
+  /**
+   * Finishes the execution of the transaction. Returns a summary of the execution
+   * with the final state of the jigs, the fees paid and the hydros consumed.
+   *
+   * @return {ExecutionResult} The result of the execution.
+   */
   finalize (): ExecutionResult {
-    const result = new ExecutionResult(this.execContext.txId())
+    const result = new ExecutionResult(base16.encode(this.execContext.txHash()))
     if (this.fundAmount < MIN_FUND_AMOUNT) {
       throw new ExecutionError(`Not enough funding. Provided: ${this.fundAmount}. Needed: ${MIN_FUND_AMOUNT}`)
     }
-    // this.jigs.forEach(jigRef => {
-    //   if (jigRef.lock.isOpen()) {
-    //     throw new PermissionError(`Finishing tx with unlocked jig (${jigRef.className()}): ${jigRef.origin}`)
-    //   }
-    // })
-    //
+    this.jigs.forEach(jigRef => {
+      if (jigRef.lock.isOpen()) {
+        throw new PermissionError(`Finishing tx with unlocked jig (${jigRef.className()}): ${jigRef.origin}`)
+      }
+    })
+
     this.affectedJigs.forEach((jigRef, index) => {
       const origin = jigRef.origin
       const location = new Pointer(this.execContext.txHash(), index)
@@ -186,121 +400,14 @@ class TxExecution {
     return result
   }
 
+
   /**
-   * Opcodes
+   * Hydrates a jig from an output. If the jig is already hydrated it returns the existing one.
+   *
+   * @private
+   * @param {Output} output - The output to hydrate.
+   * @returns {JigRef} - The hydrated JigRef object.
    */
-
-  fund (coinIdx: number): StatementResult {
-    const coinJig = this.jigAt(coinIdx)
-    if (!coinJig.classPtr().equals(COIN_CLS_PTR)) {
-      throw new ExecutionError(`Not a coin: ${coinJig.origin}`)
-    }
-
-    coinJig.lock.assertOpen(this)
-
-    const amount = coinJig.getPropValue('amount').ptr
-    this.fundAmount += amount.toUInt()
-    coinJig.changeLock(new FrozenLock())
-    const stmt = new EmptyStatementResult(this.statements.length)
-    this.statements.push(stmt)
-    this.marKJigAsAffected(coinJig)
-    return stmt
-  }
-
-  call (jigIdx: number, methodIdx: number, argsBuf: Uint8Array): StatementResult {
-    const jig = this.jigAt(jigIdx)
-    jig.lock.assertOpen(this)
-    const abiClass = jig.classAbi();
-    const method = abiClass.methodByIdx(methodIdx).get()
-
-    const wasm = jig.ref.container;
-    const args = this.translateAndLowerArgs(wasm, method.args, argsBuf);
-
-    this.marKJigAsAffected(jig)
-    const res = this.performMethodCall(jig, method, args)
-
-    let stmt: StatementResult = res.map<StatementResult>(ref => {
-      return new ValueStatementResult(this.statements.length, ref.ty, ref.ptr, ref.container)
-    }).orElse(() => new EmptyStatementResult(this.statements.length))
-
-    this.statements.push(stmt)
-    return stmt
-  }
-
-  load (outputId: Uint8Array): StatementResult {
-    const output = this.execContext.stateByOutputId(outputId)
-    const jigRef = this.hydrate(output)
-
-    const ret = new ValueStatementResult(this.statements.length, jigRef.ref.ty.proxy(), jigRef.ref.ptr, jigRef.ref.container);
-    this.statements.push(ret)
-    return ret
-  }
-
-  loadByOrigin (originBytes: Uint8Array): StatementResult {
-    this.measurements.originChecks.inc()
-    const origin = Pointer.fromBytes(originBytes)
-    const output = this.execContext.inputByOrigin(origin)
-    const jigRef = this.hydrate(output)
-    const stmt = new ValueStatementResult(this.statements.length, jigRef.ref.ty.proxy(), jigRef.ref.ptr, jigRef.ref.container)
-    this.statements.push(stmt)
-    return stmt
-  }
-
-  instantiate (statementIndex: number, classIdx: number, argsBuf: Uint8Array): StatementResult {
-    const statement = this.statements[statementIndex]
-    const wasm = statement.asContainer()
-
-    const classNode = wasm.abi.exportedByIdx(classIdx).get().toAbiClass()
-
-    const method = wasm.abi.exportedByName(classNode.name).get().toAbiClass().constructorDef()
-    const callArgs = this.translateAndLowerArgs(wasm, method.args, argsBuf)
-
-    const nextOrigin = this.createNextOrigin()
-    this.nextOrigin = Option.some(nextOrigin)
-    this.stack.push(nextOrigin)
-    const result = wasm
-      .callFn(method.callName(), callArgs, method.args.map(arg => arg.type))
-      .get()
-    this.stack.pop()
-
-    const jigRef = this.jigs.find(j => j.package === wasm && j.ref.ptr.equals(result))
-    if (!jigRef) {
-      throw new Error('jig should had been created created')
-    }
-
-    const ret = new ValueStatementResult(this.statements.length, method.rtype, result, wasm);
-    this.statements.push(ret)
-    return ret
-  }
-
-  exec (wasmIdx: number, fnIdx: number, argsBuf: Uint8Array): StatementResult {
-    const wasm = this.statements[wasmIdx].asContainer()
-    const fn = wasm.abi.exportedByIdx(fnIdx).get().toAbiFunction()
-    const args = this.translateAndLowerArgs(wasm, fn.args, argsBuf)
-
-    const value = wasm.callFn(fn.name, args, fn.args.map(a => a.type))
-
-    const stmt = value.map<StatementResult>(ptr =>
-      new ValueStatementResult(this.statements.length, fn.rtype, ptr, wasm)
-    ).orDefault(new EmptyStatementResult(this.statements.length))
-
-    this.statements.push(stmt)
-
-    return stmt
-  }
-
-  sign (_sig: Uint8Array, _pubKey: Uint8Array): StatementResult {
-    const stmt = new EmptyStatementResult(this.statements.length);
-    this.statements.push(stmt)
-    return stmt
-  }
-
-  signTo (_sig: Uint8Array, _pubKey: Uint8Array): StatementResult {
-    const stmt = new EmptyStatementResult(this.statements.length);
-    this.statements.push(stmt)
-    return stmt
-  }
-
   private hydrate (output: Output): JigRef {
     const existing = this.jigs.find(j => j.origin.equals(output.origin))
     if (existing) return existing
@@ -327,15 +434,38 @@ class TxExecution {
     return newJigRef
   }
 
+  /**
+   * Resolves interpolated indexes in Argenguments and lower the data
+   * into the given container.
+   *
+   * @param {WasmContainer} wasm - The WebAssembly container.
+   * @param {AbiArg[]} args - The arguments to translate and lower.
+   * @param {Uint8Array} rawArgs - The raw arguments.
+   * @private
+   *
+   * @return {WasmWord[]} - The translated and lowered arguments as an array of WasmWord objects.
+   */
   private translateAndLowerArgs (wasm: WasmContainer, args: AbiArg[], rawArgs: Uint8Array): WasmWord[] {
-    const fixer = new ArgsTranslator(this, wasm.abi)
-    const argsBuf = fixer.fix(rawArgs, args)
+    const fixer = new ArgumentsPreProcessor(this, wasm.abi)
+    const argsBuf = fixer.solveReferences(rawArgs, args)
 
 
     return this.lowerArgs(wasm, args, argsBuf)
   }
 
-  private lowerArgs(wasm: WasmContainer, args: AbiArg[], argsBuf: Uint8Array) {
+  /**
+   * Lower the arguments into the given container. This method
+   * expects that the arguments have no indexes to be resolved.
+   *
+   * @param {WasmContainer} wasm - The WebAssembly container.
+   * @param {AbiArg[]} args - The arguments to be lowered.
+   * @param {Uint8Array} argsBuf - The buffer for storing the arguments.
+   *
+   * @returns {Array} - The lowered arguments.
+   *
+   * @private
+   */
+  private lowerArgs (wasm: WasmContainer, args: AbiArg[], argsBuf: Uint8Array) {
     const reader = new BufReader(argsBuf)
 
     return args.map((arg) => {
@@ -343,6 +473,17 @@ class TxExecution {
     })
   }
 
+  /**
+   * Performs a method call on a JigRef object.
+   *
+   * @param {JigRef} jig - The JigRef object to perform the method call on.
+   * @param {AbiMethod} method - The AbiMethod object representing the method to call.
+   * @param {WasmWord[]} loweredArgs - An array of arguments to pass to the method.
+   * @returns {Option<ContainerRef>} The result of the method call, wrapped in an Option container.
+   *                                 If the method call is successful, it returns a ContainerRef object,
+   *                                 otherwise it returns None.
+   * @private
+   */
   private performMethodCall (jig: JigRef, method: AbiMethod, loweredArgs: WasmWord[]): Option<ContainerRef> {
     const wasm = jig.ref.container
     const abiClass = jig.classAbi()
@@ -358,10 +499,21 @@ class TxExecution {
     })
   }
 
-  createNextOrigin () {
+  /**
+   * Creates the origin for the next jig created in the current tx.
+   *
+   * @returns {Pointer} The new Pointer for the next instance.
+   */
+  private createNextOrigin () {
     return new Pointer(this.execContext.txHash(), this.affectedJigs.length)
   }
 
+  /**
+   * Returns the statement at the given index.
+   *
+   * @param {number} index - The index of the statement.
+   * @returns {StatementResult} - The statement at the given index.
+   */
   stmtAt (index: number): StatementResult {
     const result = this.statements[index]
     if (!result) {
@@ -370,15 +522,16 @@ class TxExecution {
     return result
   }
 
-  private lockJigToUser (jigRef: JigRef, address: Address): StatementResult {
-    jigRef.lock.assertOpen(this)
-    this.marKJigAsAffected(jigRef)
-    jigRef.changeLock(new AddressLock(address))
-    const ret = new EmptyStatementResult(this.statements.length);
-    this.statements.push(ret)
-    return ret
-  }
-
+  /**
+   * Retrieves the JigRef at the specified index.
+   *
+   * @param {number} jigIndex - The index of the JigRef to retrieve.
+   * @private
+   *
+   * @return {JigRef} The JigRef at the specified index.
+   * @throws {ExecutionError} If the index is not a valid JigRef.
+   * @throws {InvariantBroken} If the lowered JigRef is not in the list of jigs.
+   */
   private jigAt (jigIndex: number): JigRef {
     const ref = this.stmtAt(jigIndex).asValue()
     ref.container.abi.exportedByName(ref.ty.name)
@@ -389,26 +542,18 @@ class TxExecution {
     const lifted = Pointer.fromBytes(ref.lift())
 
     return Option.fromNullable(this.jigs.find(j => j.origin.equals(lifted)))
-      .expect(new IvariantBroken('Lowered jig is not in jig list'))
+      .expect(new InvariantBroken('Lowered jig is not in jig list'))
   }
 
-  lockJig (jigIndex: number, address: Address): StatementResult {
-    const jigRef = this.jigAt(jigIndex)
-    return this.lockJigToUser(jigRef, address)
-  }
 
-  async deploy (entryPoint: string[], sources: Map<string, string>): Promise<StatementResult> {
-    this.measurements.deploys.add(this.opts.deployHydroCost)
-    const pkgData = await this.execContext.compile(entryPoint, sources)
-    this.deployments.push(pkgData)
-    const wasm = new WasmContainer(pkgData.mod, pkgData.abi, pkgData.id)
-    wasm.setExecution(this)
-    this.wasms.set(base16.encode(wasm.hash), wasm)
-    const ret = new WasmStatementResult(this.statements.length, wasm)
-    this.statements.push(ret)
-    return ret
-  }
-
+  /**
+   * If a container with the id `modId` was provided by context, it returns it.
+   * Otherwise, it fails the execution.
+   *
+   * @param {string} modId - The module ID of the WasmContainer to assert.
+   * @returns {WasmContainer} - The asserted or newly created WasmContainer.
+   * @private
+   */
   private assertContainer (modId: string): WasmContainer {
     const existing = this.wasms.get(modId)
     if (existing) {
@@ -422,22 +567,38 @@ class TxExecution {
     return container
   }
 
-  import (modId: Uint8Array): StatementResult {
-    const instance = this.assertContainer(base16.encode(modId))
-    const ret = new WasmStatementResult(this.statements.length, instance);
-    this.statements.push(ret)
-    return ret
-  }
 
+  /**
+   * Checks if the given address is part of the signers of the tx.
+   * The signers are not take from the `SIGN` and `SIGNTO` operations. Instead
+   * they are provided by context.
+   *
+   * @param {Address} addr - The address to check.
+   * @return {boolean} - True if the given address is signed by any signer, false otherwise.
+   */
   signedBy (addr: Address): boolean {
     return this.execContext.signers()
       .some(s => s.toAddress().equals(addr))
   }
 
+  /**
+   * Returns how many opcodes where executed. It's the equivalent of the
+   * "instruction pointer" in a regular machine.
+   *
+   * @return {number} The length of the statements array.
+   */
   execLength () {
     return this.statements.length
   }
 
+  /**
+   * Marks the given Jig as affected. Affected jigs are the ones that
+   * get into the outpus at the end of the transaction.
+   *
+   * @param {JigRef} jig - The Jig object to mark as affected.
+   *
+   * @private
+   */
   private marKJigAsAffected (jig: JigRef): void {
     const exists = this.affectedJigs.find(affectedJig => affectedJig.origin.equals(jig.origin))
     if (!exists) {
@@ -445,6 +606,16 @@ class TxExecution {
     }
   }
 
+  /**
+   * Retrieves the JigData for a given Pointer. If the jig data is not provided
+   * by the context it fails.
+   *
+   * This method is used to lower data into wasm memory.
+   *
+   * @param {Pointer} p - The Pointer for which to retrieve the JigData.
+   * @returns {Option<JigData>} - An Option container that may contain the JigData for the given Pointer.
+   *                              If the JigData is found, it returns a JigData object, otherwise it returns None.
+   */
   getJigData (p: Pointer): Option<JigData> {
     const existing = this.jigs.find(j => j.origin.equals(p))
     if (existing) {
@@ -467,6 +638,14 @@ class TxExecution {
     })
   }
 
+  /**
+   * If a jig with the given origin is found, it returns it. Otherwise, it
+   * tries to hydrate it and return it. If the jig is not present it fails.
+   *
+   * @param {Pointer} origin - The origin to check for the jig.
+   * @private
+   * @returns {Option} - The found jig or the result of hydrating the output from the execution context.
+   */
   private assertJig (origin: Pointer) {
     return Option.fromNullable(
       this.jigs.find(j => j.origin.equals(origin))
@@ -476,6 +655,17 @@ class TxExecution {
     })
   }
 
+  /**
+   * Lifts the arguments from the given container and returns them packed in a Uint8Array.
+   *
+   * @param {WasmContainer} from - The container from which to lift the arguments.
+   * @param {WasmWord} ptr - The pointer to the arguments.
+   * @param {AbiArg[]} argDef - The definition of the arguments.
+   *
+   * @returns {Uint8Array} - The lifted arguments.
+   *
+   * @private
+   */
   private liftArgs (from: WasmContainer, ptr: WasmWord, argDef: AbiArg[]): Uint8Array {
     const w = new BufWriter()
 
@@ -490,6 +680,16 @@ class TxExecution {
     return w.data
   }
 
+
+
+  /**
+   * Returns the pointer at the top of the permission stack.
+   *
+   * @param {number} n - The number of elements to go back in the stack.
+   * @returns {Option<Pointer>} - The pointer at the desired position.
+   *
+   * @private
+   */
   stackFromTop (n: number): Option<Pointer> {
     return Option.fromNullable(this.stack[this.stack.length - n])
   }
@@ -501,12 +701,26 @@ class TxExecution {
 
   // Metering callbacks
 
+  /**
+   * Callback used to keep track of the amount of data being
+   * moved in an out of wasm memory.
+   *
+   * @param {number} size - The size of the data that is moved.
+   *
+   * @return {void}
+   */
   onDataMoved (size: number) {
     this.measurements.movedData.add(BigInt(size))
   }
 
   // Assemblyscrypt callbacks
 
+  /**
+   * Callback used mainly to provide Origins to new jigs being created.
+   *
+   * @param {WasmContainer} from - Container where event was produced.
+   * @return {WasmArg} - Pointer to new jig data.
+   */
   vmJigInit (from: WasmContainer): WasmArg {
     this.measurements.newJigs.inc()
     const nextOrigin = this.nextOrigin.get()
@@ -519,6 +733,19 @@ class TxExecution {
     return jigInitParams.lowerInto(from).toWasmArg(AbiType.u32())
   }
 
+  /**
+   * Links a Jig to a runtime ID (rtId) in a WebAssembly container.
+   * This callback is used to associate an already initialized Jig with a specific class id.
+   * The new jig goes to the outputs of the transaction.
+   * The class pointer of the class of the new jig gets lowered into the container and that's
+   * the final result.
+   *
+   * @param {WasmContainer} from - The WebAssembly container where the class is defined.
+   * @param {WasmWord} jigPtr - The pointer to the Jig to be linked.
+   * @param {number} rtId - The runtime ID of the class in the WebAssembly module.
+   * @returns {WasmArg} - A serialized pointer to the class in the WebAssembly module.
+   * @throws {Error} If the runtime ID or class name is not found in the WebAssembly module.
+   */
   vmJigLink (from: WasmContainer, jigPtr: WasmWord, rtId: number): WasmArg {
     const nextOrigin = this.nextOrigin.get()
     let rtIdNode = from.abi.rtIdById(rtId)
@@ -546,10 +773,20 @@ class TxExecution {
       .low
       .lower(
         serializePointer(new Pointer(from.hash, abiClass.idx)),
-        AbiType.fromName('ArrayBuffer')
+        AbiType.buffer()
       ).toWasmArg(AbiType.u32())
   }
 
+  /**
+   * Callback executed when a jig calls a method over a jig other than itself.
+   * The arguments are send to the target jig, and the response is routed back to the caller.
+   *
+   * @param {WasmContainer} from - The source WasmContainer.
+   * @param {WasmWord} targetPtr - The pointer to the target object in memory.
+   * @param {WasmWord} methodNamePtr - The pointer to the method name in memory.
+   * @param {WasmWord} argsPtr - The pointer to the arguments in memory.
+   * @returns {WasmArg} - Pointer to the lowered result in the source container.
+   */
   vmCallMethod (from: WasmContainer, targetPtr: WasmWord, methodNamePtr: WasmWord, argsPtr: WasmWord): WasmArg {
     const targetOrigin = Pointer.fromBytes(from.liftBuf(targetPtr))
     const methodName = from.liftString(methodNamePtr)
@@ -562,10 +799,6 @@ class TxExecution {
     // Move args
     const argBuf = this.liftArgs(from, argsPtr, method.args)
     const loweredArgs = this.lowerArgs(jig.ref.container, method.args, argBuf)
-    // const argsReader = new BufReader(argBuf)
-    // const loweredArgs = method.args.map(arg => {
-    //   return jig.ref.container.low.lowerFromReader(argsReader, arg.type)
-    // })
 
     const methodRes = this.performMethodCall(jig, method, loweredArgs)
     this.marKJigAsAffected(jig)
@@ -576,6 +809,16 @@ class TxExecution {
     }).orElse(() => WasmWord.fromNumber(0)).toWasmArg(method.rtype)
   }
 
+  /**
+   * Callback executed when a jig access to a property (fields) of a jig other
+   * than itself. The data is routed from the target container to the source
+   * container. The result is a pointer to the data.
+   *
+   * @param {WasmContainer} from - The object from which to retrieve the property.
+   * @param {WasmWord} originPtr - The pointer to the origin of the object.
+   * @param {WasmWord} propNamePtr - The pointer to the property name.
+   * @return {WasmArg} - The value of the retrieved property.
+   */
   vmGetProp (from: WasmContainer, originPtr: WasmWord, propNamePtr: WasmWord): WasmArg {
     const targetOrigin = Pointer.fromBytes(from.liftBuf(originPtr));
     const propName = from.liftString(propNamePtr)
@@ -587,6 +830,19 @@ class TxExecution {
     return word.toWasmArg(propTarget.ty)
   }
 
+
+  /**
+   * Callback used when a jig tries to lock another jig.
+   * The lock type can be one of the following: ADDRESS, JIG, FROZEN, PUBLIC, NONE.
+   * The data should follow the locktype, otherwise it's an error.
+   * The target jig is marked as affected.
+   *
+   * @param {WasmContainer} from - The WebAssembly container where the Jig is defined.
+   * @param {WasmWord} targetOriginPtr - The pointer to the origin of the Jig to be locked.
+   * @param {LockType} lockType - The type of the lock to be applied to the Jig.
+   * @param {WasmWord} argsPtr - The pointer to the arguments to be used for creating the lock.
+   * @throws {Error} If an unknown lock type is provided.
+   */
   vmJigLock (from: WasmContainer, targetOriginPtr: WasmWord, lockType: LockType, argsPtr: WasmWord): void {
     const origin = Pointer.fromBytes(from.liftBuf(targetOriginPtr))
 
@@ -616,6 +872,17 @@ class TxExecution {
     this.marKJigAsAffected(jig)
   }
 
+  /**
+   * Callback executeed when a jig uses a constructor defined on the same package.
+   * A new instance of the class is creted and the result is a pointer to the instance
+   * already initialized and ready.
+   *
+   * @param {WasmContainer} from - The container when the event was raised.
+   * @param {WasmWord} clsNamePtr - The memory pointer to the class name of the Jig to be initialized.
+   * @param {WasmWord} argsPtr - The memory pointer to the arguments for the Jig constructor.
+   * @returns {WasmWord} - Pointer to newly created jig.
+   * @throws {InvariantBroken} - If after calling the constructor the jig is not there.
+   */
   vmConstructorLocal (from: WasmContainer, clsNamePtr: WasmWord, argsPtr: WasmWord): WasmWord {
     const clsName = from.liftString(clsNamePtr)
 
@@ -634,7 +901,7 @@ class TxExecution {
 
     const createdJig = this.jigs.find(ref => ref.origin.equals(nextOrigin))
     if (!createdJig) {
-      throw new ExecutionError(`[line=${this.execLength()}]Jig was not created`)
+      throw new InvariantBroken(`[line=${this.execLength()}]Jig was not created`)
     }
 
     const initParams = new JigInitParams(
@@ -647,6 +914,18 @@ class TxExecution {
     return initParams.lowerInto(from)
   }
 
+  /**
+   * Callback executed when a jig uses an exported function from another package.
+   * Calling an exported function does not affect the permission stack.
+   * The result of the pointer is routed to the origin container. If it's a jig a proxy
+   * is going to be lowered in the source container.
+   *
+   * @param {WasmContainer} from - The WasmContainer instance.
+   * @param {WasmWord} pkgIdPtr - Pointer to the package ID string.
+   * @param {WasmWord} fnNamePtr - Pointer to the function name string.
+   * @param {WasmWord} argsBufPtr - Pointer to the arguments buffer.
+   * @return {WasmArg} - The result of the function call.
+   */
   vmCallFunction (from: WasmContainer, pkgIdPtr: WasmWord, fnNamePtr: WasmWord, argsBufPtr: WasmWord): WasmArg {
     const pkgId = from.liftString(pkgIdPtr)
     const fnName = from.liftString(fnNamePtr)
@@ -660,6 +939,18 @@ class TxExecution {
     return res.orDefault(WasmWord.null()).toWasmArg(fn.rtype);
   }
 
+  /**
+   * Callback executed when a jig uses a constructor defined in another package.
+   * A new instance of the class is created and the result is a pointer to the instance
+   * already initialized and ready.
+   *
+   * @param {WasmContainer} from - The container from which to create the instance.
+   * @param {WasmWord} pkgIdStrPtr - The pointer to the package ID string.
+   * @param {WasmWord} namePtr - The pointer to the class name.
+   * @param {WasmWord} argBufPtr - The pointer to the argument buffer.
+   * @return {WasmArg} - Pointer to a proxy to the newly created jig.
+   * @throws {InvariantBroken} - If after the constructor finishes the jig is not there.
+   */
   vmConstructorRemote (from: WasmContainer, pkgIdStrPtr: WasmWord, namePtr: WasmWord, argBufPtr: WasmWord): WasmArg {
     const pkgId = from.liftString(pkgIdStrPtr)
     const clsName = from.liftString(namePtr)
@@ -683,7 +974,7 @@ class TxExecution {
 
     const jig = this.jigs.find(j => j.origin.equals(nextOrigin))
     if (!jig) {
-      throw new Error('jig should exist')
+      throw new InvariantBroken(`[line=${this.execLength()}] created jig was not found`)
     }
 
     const initParams = new JigInitParams(
@@ -696,6 +987,16 @@ class TxExecution {
     return initParams.lowerInto(from).toWasmArg(AbiType.u32());
   }
 
+  /**
+   * Callback executed when a jig checks the type of the caller against a locally
+   * defined type.
+   *
+   * @param {WasmContainer} from - The caller's WasmContainer object.
+   * @param {number} rtIdToCheck - The runtime id to check against.
+   * @param {boolean} exact - Determines if the check should be exact or should check for parent classes.
+   *
+   * @return {boolean} - Returns true if the caller type matches the specified runtime id, otherwise returns false.
+   */
   vmCallerTypeCheck (from: WasmContainer, rtIdToCheck: number, exact: boolean): boolean {
     const maybeOrigin = this.stackFromTop(2)
     if (maybeOrigin.isAbsent()) {
@@ -724,10 +1025,21 @@ class TxExecution {
     return true
   }
 
-  vmCallerOutputCheck () {
+  /**
+   * Checks if the caller of the current method is a jig (has an output) or not.
+   *
+   * @return {boolean} Returns true if the caller has a valid output, otherwise false.
+   */
+  vmCallerOutputCheck (): boolean {
     return this.stackFromTop(2).isPresent();
   }
 
+  /**
+   * Callback executed when a jig tries to access the output of the caller.
+   * Throws an error if the caller is not a jig.
+   *
+   * @return {WasmWord} - Pointer to the caller's output.
+   */
   vmCallerOutput (from: WasmContainer): WasmWord {
     const callerOrigin = this.stackFromTop(2).get();
     const callerJig = this.assertJig(callerOrigin)
@@ -740,8 +1052,18 @@ class TxExecution {
     return from.low.lower(buf.data, new AbiType(outputTypeNode));
   }
 
+  /**
+   * Returns data from the output of the caller. The options are: origin, location, class.
+   * If there is not caller output it throws an error.
+   *
+   * @param {WasmContainer} from - The WasmContainer object.
+   * @param {WasmWord} keyPtr - The key pointer.
+   * @returns {WasmWord} - The output value.
+   * @throws {InvariantBroken} - Throws an error if the key is unknown.
+   * @throws {ExecutionError} - If there is no caller jig.
+   */
   vmCallerOutputVal (from: WasmContainer, keyPtr: WasmWord): WasmWord {
-    const callerOrigin = this.stackFromTop(2).get();
+    const callerOrigin = this.stackFromTop(2).expect(new ExecutionError('No caller'));
     const key = from.liftString(keyPtr)
     const callerJig = this.assertJig(callerOrigin)
 
@@ -758,12 +1080,24 @@ class TxExecution {
         buf.writeBytes(callerJig.classPtr().toBytes())
         break
       default:
-        throw new Error(`unknown vmCallerOutputVal key: ${key}`)
+        throw new InvariantBroken(`unknown vmCallerOutputVal key: ${key}`)
     }
 
-    return from.low.lower(buf.data, AbiType.fromName('ArrayBuffer'))
+    return from.low.lower(buf.data, AbiType.buffer())
   }
 
+  /**
+   * Callback executed when a jig checks permissions over another jig.
+   * The src jig is taken from the permission stack and the target is specified
+   * by parameter. The check can be one of the following: LOCK (change lock),
+   * CALL (receive method calls from the src jig).
+   *
+   * @param {WasmContainer} from - The source container.
+   * @param {WasmWord} targetOriginPtr - The pointer to the target origin.
+   * @param {AuthCheck} check - The type of authorization check to perform.
+   * @returns {boolean} - True if the operation is authorized, false otherwise.
+   * @throws {Error} - If the provided auth check is unknown.
+   */
   vmJigAuthCheck (from: WasmContainer, targetOriginPtr: WasmWord, check: AuthCheck): boolean {
     const origin = Pointer.fromBytes(from.liftBuf(targetOriginPtr))
     const jig = this.assertJig(origin)
@@ -777,6 +1111,13 @@ class TxExecution {
     }
   }
 
+  /**
+   * Takes the gas used by the last webassembly execution chunk and adds
+   * it to the total. This callback is called after every execution chunk.
+   *
+   * @param {bigint} gasUsed - The amount of gas used during the execution.
+   * @throws {ExecutionError} - If the gas used is greater than the gas limit.
+   */
   vmMeter (gasUsed: bigint) {
     this.measurements.wasmExecuted.add(gasUsed)
   }

@@ -1,3 +1,7 @@
+/**
+ * These are a series of helpers to deal with Aldea's Wasm bigints.
+ */
+
 const bigIntP = 28n
 const digitMask = (1n << bigIntP) - 1n
 

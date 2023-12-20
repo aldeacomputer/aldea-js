@@ -113,7 +113,7 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
 
   app.get('/output-by-origin/:origin', (req, res) => {
     const origin = req.params.origin
-    const jigState = storage.getJigStateByOrigin(
+    const jigState = storage.outputByOrigin(
       Pointer.fromString(origin)
     ).orElse(() => { throw new HttpNotFound(`${origin} not found`, { origin }) })
     res.status(200).send(serializeOutput(jigState))
@@ -138,7 +138,7 @@ export async function buildApp (argv: ParsedArgs = { _: [] }): Promise<iApp> {
     const coinPkg = storage.getPkg('0000000000000000000000000000000000000000000000000000000000000000').get()
     const bcs = new BCS(coinPkg.abi)
     const { address, amount } = req.body
-    const coinLocation = storage.tipFor(coinOrigin)
+    const coinLocation = storage.tipFor(coinOrigin).map(base16.decode).get()
     const tx = new Tx()
     tx.push(new LoadInstruction(coinLocation))
     tx.push(new CallInstruction(0, 0, bcs.encode('Coin_send', [amount])))

@@ -2,9 +2,10 @@ import moment from "moment";
 import {base16, Output} from "@aldea/core";
 import {Abi} from "@aldea/core/abi";
 import {ExecutionError} from "./errors.js";
-import {calculatePackageId} from "./calculate-package-id.js";
+import {calculatePackageHash} from "./calculate-package-hash.js";
 import {Option} from "./support/option.js";
-import {PkgData} from "./storage.js";
+
+import {PkgData} from "./storage/pkg-data.js";
 
 export class PackageDeploy {
   sources: Map<string, string>
@@ -22,7 +23,7 @@ export class PackageDeploy {
   }
 
   get hash (): Uint8Array {
-    return calculatePackageId(this.entries, this.sources)
+    return calculatePackageHash(this.entries, this.sources)
   }
 
   get id (): string {

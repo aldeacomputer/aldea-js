@@ -15,18 +15,40 @@ export enum AuthCheck {
   LOCK
 }
 
+/**
+ * Represents a WebAssembly live WebAssembly module. It is instantiated from a Package (the result
+ * of compile sources). There is access to it's memory and methods exposed.
+ *
+ * A WasmContainer needs an associated execution to be able to run.
+ */
 export class WasmContainer {
+  // Package ID
   hash: Uint8Array;
+  // WebAssembly memory. The low level representation
   memory: WebAssembly.Memory;
+  // The current execution associated with this container
   private _currentExec: Option<TxExecution>;
-
+  // The low level WebAssembly module
   private module: WebAssembly.Module;
+  // The low level WebAssembly instance
   private instance: WebAssembly.Instance;
+  // Aldea ABI for the code of the container
   abi: AbiAccess;
+  // Memory is accessed from the outside through this proxy
   private _mem: MemoryProxy;
+  // Object to lift values from memory
   lifter: ValueLifter
+  // Object to lower values into memory
   low: LowerValue
 
+  /**
+   * Constructs a new WasmContainer. It sets all the imports to functions that delegate
+   * to the current execution.
+   *
+   * @param {WebAssembly.Module} module - The WebAssembly module.
+   * @param {Abi} abi - The ABI for the WebAssembly module.
+   * @param {Uint8Array} id - The ID of the WebAssembly module.
+   */
   constructor (module: WebAssembly.Module, abi: Abi, id: Uint8Array) {
     this.hash = id
     this.abi = new AbiAccess(abi)
@@ -37,6 +59,7 @@ export class WasmContainer {
     this.lifter = new ValueLifter(this)
     this.low = new LowerValue(this, (p) => this._currentExec.get().getJigData(p))
 
+    // Delegate all imports to the current execution
     const imports: any = {
       env: {
         memory: wasmMemory,
@@ -121,7 +144,7 @@ export class WasmContainer {
           return this._currentExec.ifPresent(vm => vm.vmMeter(gasUsed))
         },
         debug_str: (strPtr: number): void => {
-          const msg = this.lifter.lift(WasmWord.fromNumber(strPtr), AbiType.fromName('string'))
+          const msg = this.lifter.lift(WasmWord.fromNumber(strPtr), AbiType.string())
           const buf = Buffer.from(new BufReader(msg).readBytes())
           console.log(`debug [pkg=${this.id.slice(0, 6)}...]: ${buf.toString()}`)
         }
@@ -134,40 +157,77 @@ export class WasmContainer {
     this.memory = wasmMemory
   }
 
+  /**
+   * Callback to keep track of data movement. Delegates in current execution.
+   * @param {number} size - The size of the data moved.
+   */
   private onDataMoved(size: number): void {
     this._currentExec.ifPresent(exec => exec.onDataMoved(size))
   }
 
+  /**
+   * Returns the ID of the container as a string.
+   *
+   * @returns {string} The ID of the container as a string.
+   */
   get id (): string {
     return base16.encode(this.hash)
   }
 
+  /**
+   * Gets the memory proxy to lower and lift data.
+   * @returns {MemoryProxy} The memory proxy of the WebAssembly container.
+   */
   get mem (): MemoryProxy {
     return this._mem
   }
 
-  get currentExec (): Option<TxExecution> {
-    return this._currentExec
-  }
-
+  /**
+   * Sets a new current execution for this container.
+   * @param {TxExecution} tx - The current execution.
+   */
   setExecution (tx: TxExecution) {
     this._currentExec = Option.some(tx)
   }
 
+  /**
+   * Clears the current execution.
+   *
+   * @return {void}
+   */
   clearExecution () {
     this._currentExec = Option.none()
   }
 
+  /**
+   * Helper to easily lift a string from container's memory.
+   *
+   * @param {WasmWord} ptr - The pointer to the string in memory.
+   * @return {string} - The lifted string.
+   */
   liftString(ptr: WasmWord): string {
-    const buf = this.lifter.lift(ptr, AbiType.fromName('string'))
+    const buf = this.lifter.lift(ptr, AbiType.string())
     return Buffer.from(new BufReader(buf).readBytes()).toString()
   }
 
+  /**
+   * Helper to easily lift a buffer from container's memory.
+   *
+   * @param {WasmWord} ptr - The pointer to the buffer in memory.
+   * @return {Uint8Array} - The lifted buffer.
+   */
   liftBuf(ptr: WasmWord): Uint8Array {
-    const buf = this.lifter.lift(ptr, AbiType.fromName('ArrayBuffer'))
+    const buf = this.lifter.lift(ptr, AbiType.buffer())
     return new BufReader(buf).readBytes()
   }
 
+
+  /**
+   * Allocates memory in the WebAssembly memory for an object.
+   * @param {number} size - The size of the memory to allocate.
+   * @param {number} rtid - The runtime ID for the allocated object.
+   * @returns {WasmWord} The pointer to the allocated memory.
+   */
   malloc (size: number, rtid: number): WasmWord {
     const __new = this.instance.exports.__new;
     if (!(__new instanceof Function)) {
@@ -177,6 +237,13 @@ export class WasmContainer {
     return WasmWord.fromNumber(ptrNumber)
   }
 
+  /**
+   * Calls an exported function from the container.
+   * @param {string} fnName - The name of the function to call.
+   * @param {WasmWord[]} wasmWords - The arguments for the function call.
+   * @param {AbiType[]} abiTypes - The ABI types of the arguments.
+   * @returns {Option<WasmWord>} The result of the function call.
+   */
   callFn (fnName: string, wasmWords: WasmWord[], abiTypes: AbiType[]): Option<WasmWord> {
     const fn = this.instance.exports[fnName];
     if (!(fn instanceof Function)) {
@@ -187,6 +254,10 @@ export class WasmContainer {
     return Option.fromNullable(ret).map(r => WasmWord.fromNumeric(r))
   }
 
+  /**
+   * BCS instance initialized with the current ABI.
+   * @returns {BCS} The BCS for the WebAssembly container.
+   */
   bcs (): BCS {
     return new BCS(this.abi.abi)
   }
