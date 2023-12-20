@@ -5,6 +5,9 @@ import {Option} from "../support/option.js";
 import {Storage} from "./generic-storage.js";
 import {PkgData} from "./pkg-data.js";
 
+/**
+ * Full in-memory implementation of the storage.
+ */
 export class MemStorage implements Storage {
   private utxosByOutputId: Map<string, Output> // output_id -> state. Only utxos
   private utxosByAddress: Map<string, Output[]> // address -> state. Only utxos

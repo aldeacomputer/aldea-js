@@ -1,6 +1,18 @@
 import {ExecutionError} from "../errors.js";
 
-export class DiscretCounter {
+/**
+ * Hydros are discrete units of work that are measuered and used to charge for transaction.
+ * A Hydro is always an integer amount. They cannot be fractioned, but they are charged every certain number of events
+ *
+ * For example, if the cost of 1000 bytes moved between containers is one hydro then:
+ * - 100 bytes moved -> 1 Hydro
+ * - 3000 bytes moved -> 3 Hydros
+ * - 4500 bytes moved -> 5 Hydros
+ * - 0 bytes moved -> 0 Hydros
+ *
+ * This class helps to keep track of the hydros consumed by a certain operation.
+ */
+export class HydroCounter {
   private tag: string;
   private total: bigint
   private count: bigint

@@ -1,6 +1,9 @@
 import {Abi} from "@aldea/core/abi";
 import {PackageDeploy} from "../execution-result.js";
 
+/**
+ * All Data related to a package. Sources + everything creted by the compiler.
+ */
 export class PkgData {
   abi: Abi
   docs: Uint8Array

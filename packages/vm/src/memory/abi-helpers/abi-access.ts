@@ -13,6 +13,11 @@ import {
 import {AbiType} from "./abi-type.js";
 import {AbiPlainObject} from "./abi-plain-object.js";
 
+/**
+ * The ABI structure is good to be stored, but it's not very convenient to work with.
+ * This is a re structured version of the ABI that is easier to work with, allowing searchs
+ * by different criteria and providing all the data needed together.
+ */
 export class AbiAccess {
   readonly abi: Abi;
   private _exports: AbiExport[]
