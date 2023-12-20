@@ -126,6 +126,14 @@ export class ArgumentsPreProcessor {
     }
   }
 
+  /**
+   * At this point the argument might be a plain object or a Jig. Jigs are always sent
+   * as references, so we need to dereference them. Objects are traversed by its properties.
+   * @param from
+   * @param ty
+   * @param into
+   * @private
+   */
   private derefComplexType (from: BufReader, ty: AbiType, into: BufWriter) {
     const objDef = this.abi.objectDef(ty.name)
 
