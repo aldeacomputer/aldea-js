@@ -49,7 +49,7 @@ solution:
     const address = await env.wallet.getNextAddress()
 
     const tx = await env.wallet.createFundedTx(txb => {
-      const pkgRef = txb.import('476aae48bf2bc5adce5c31db866e39d1a76a994d8b827867758b3bf4adafd73f')
+      const pkgRef = txb.import('9d51b965f99d0a2bb2485b3c0038ce1a573736b5f98aa2309c61ea221a854774')
       const p1Ref = txb.new(pkgRef, 'Potion', [101, 161, 137])  // Polished Pine
       const p2Ref = txb.new(pkgRef, 'Potion', [185, 75, 152])   // Rose Quartz Pink
       const p3Ref = txb.call(p1Ref, 'mix', [p2Ref])
@@ -91,7 +91,7 @@ For example, the following code adds an `IMPORT` instruction to import a package
 
 ```ts
 env.wallet.createFundedTx(txb => {
-  const pkgRef = txb.import('476aae48bf2bc5adce5c31db866e39d1a76a994d8b827867758b3bf4adafd73f') // [!code ++]
+  const pkgRef = txb.import('9d51b965f99d0a2bb2485b3c0038ce1a573736b5f98aa2309c61ea221a854774') // [!code ++]
 })
 ```
 
@@ -101,7 +101,7 @@ In the next example, each of the two new lines adds a `NEW` instruction that ref
 
 ```ts
 env.wallet.createFundedTx(txb => {
-  const pkgRef = txb.import('476aae48bf2bc5adce5c31db866e39d1a76a994d8b827867758b3bf4adafd73f')
+  const pkgRef = txb.import('9d51b965f99d0a2bb2485b3c0038ce1a573736b5f98aa2309c61ea221a854774')
   const p1Ref = txb.new(pkgRef, 'Potion', [101, 161, 137])  // [!code ++]
   const p2Ref = txb.new(pkgRef, 'Potion', [185, 75, 152])   // [!code ++]
 })
@@ -113,7 +113,7 @@ The next line adds a `CALL` instruction to the transaction. This instruction cal
 
 ```ts
 env.wallet.createFundedTx(txb => {
-  const pkgRef = txb.import('476aae48bf2bc5adce5c31db866e39d1a76a994d8b827867758b3bf4adafd73f')
+  const pkgRef = txb.import('9d51b965f99d0a2bb2485b3c0038ce1a573736b5f98aa2309c61ea221a854774')
   const p1Ref = txb.new(pkgRef, 'Potion', [101, 161, 137])
   const p2Ref = txb.new(pkgRef, 'Potion', [185, 75, 152])
   const p3Ref = txb.call(p1Ref, 'mix', [p2Ref]) // [!code ++]
@@ -124,7 +124,7 @@ As you may recall, the `mix()` method consumes the two input potions and returns
 
 ```ts
 env.wallet.createFundedTx(txb => {
-  const pkgRef = txb.import('476aae48bf2bc5adce5c31db866e39d1a76a994d8b827867758b3bf4adafd73f')
+  const pkgRef = txb.import('9d51b965f99d0a2bb2485b3c0038ce1a573736b5f98aa2309c61ea221a854774')
   const p1Ref = txb.new(pkgRef, 'Potion', [101, 161, 137])
   const p2Ref = txb.new(pkgRef, 'Potion', [185, 75, 152])
   const p3Ref = txb.call(p1Ref, 'mix', [p2Ref])
