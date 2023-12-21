@@ -46,7 +46,11 @@ export async function compileFromRust(
 
   const parser = new PackageParser(entries, {
     getSrc: (fileName) => srcMap.get(fileName),
-    getDep: (pkgId) => writeDependency(abiFromBin(deps.find(([id]) => id === pkgId)![1])),
+    getDep: (pkgId) => {
+      let abi = deps.find(([id]) => id === pkgId)![1];
+      let abiBuffer = new Uint8Array(abi);
+      return writeDependency(abiFromBin(abiBuffer));
+    },
   })
 
   await parser.parse()
