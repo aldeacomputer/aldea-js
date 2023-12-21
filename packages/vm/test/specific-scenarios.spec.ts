@@ -82,4 +82,47 @@ describe('execute txs', () => {
       expect(() => exec.finalize()).not.to.throw()
     })
   })
+
+  describe('potion code', () => {
+    const potionCode = `export class Potion extends Jig {
+  red: u8;
+  green: u8;
+  blue: u8;
+
+  constructor(r: u8, g: u8, b: u8) {
+    super()
+    this.red = r
+    this.green = g
+    this.blue = b
+  }
+
+  mix(other: Potion): Potion {
+    const red = this.red + other.red
+    const green = this.green + other.green
+    const blue = this.blue + other.blue
+    this.freeze()
+    other.freeze()
+    return new Potion(red, green, blue)
+  }
+
+  protected freeze(): void {
+    this.$lock.freeze()
+  }
+}`
+
+    it('works', async () => {
+      const { exec } = fundedExec()
+      await exec.deploy(['entry.ts'], new Map([['entry.ts', potionCode]]))
+      const res = exec.finalize()
+      storage.persistExecResult(res)
+
+      const args = new ArgsBuilder(res.deploys[0].abi)
+
+      const { exec: exec2 } = fundedExec()
+      const pkgStmt = exec2.import(res.deploys[0].hash)
+      const pot1 = exec2.instantiate(pkgStmt.idx, ...args.constr('Potion', [101, 161, 137]))
+      const pot2 = exec2.instantiate(pkgStmt.idx, ...args.constr('Potion', [101, 161, 137]))
+      expect(() => exec2.call(pot1.idx, ...args.method('Potion', 'mix', [ref(pot2.idx)]))).not.to.throw()
+    })
+  })
 })

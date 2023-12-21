@@ -22,7 +22,7 @@ function createAbiMethods (cls: ClassNode[]) {
     .map<Array<[MethodNode, string]>>(cls => cls.methods.map(m => [m, cls.name]))
     .flat()
     .filter(([m, _]) => m.name !== 'constructor')
-    .filter(([m, _]) => m.kind === MethodKind.PUBLIC)
+    .filter(([m, _]) => [MethodKind.PUBLIC, MethodKind.PROTECTED].includes(m.kind!))
     .map(([m, className], i) =>  new AbiMethod(i, className, m))
 }
 
