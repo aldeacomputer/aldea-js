@@ -3,10 +3,12 @@ import {
   Address,
   BCS,
   InstructionRef,
+  Lock,
+  LockType,
   Output,
   Pointer,
   Tx,
-  ref, abiFromBin,
+  ref, abiFromBin, base16,
 } from '@aldea/core'
 import { Abi } from '@aldea/core/abi'
 import { TxBuilder, TxBuilderOpts } from './tx-builder.js'
@@ -114,7 +116,9 @@ export class Aldea {
    * @param address
    */
   async getUtxosByAddress(address: Address): Promise<Output[]> {
-    const outputs: OutputResponse[] = await this.api.get(`utxos-by-address/${address.toString()}`, { cache: 'no-cache' }).json()
+    const lock = new Lock(LockType.ADDRESS, address.hash)
+    const lockHex = base16.encode(lock.toBytes())
+    const outputs: OutputResponse[] = await this.api.get(`outputs-by-lock/${lockHex}`, { cache: 'no-cache' }).json()
     return Promise.all(outputs.map(async o => {
       const abi = await this.getPackageAbi(Pointer.fromString(o.class).id)
       return Output.fromJson(o, abi)
