@@ -14,7 +14,7 @@ const aldeaConfigStr = `
 /** @type {import('@aldea/cli').Config} */
 module.exports = {
   codeDir: 'aldea',
-  nodeUrl: 'https://devnet.aldea.computer'
+  nodeUrl: 'https://node.aldea.computer'
 }
 `.trim()
 
