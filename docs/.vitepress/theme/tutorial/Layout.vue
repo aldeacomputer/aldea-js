@@ -5,7 +5,7 @@
     <main class="flex flex-auto main">
       <article class="relative flex flex-col w-2/5 shrink-0">
         <NavSelect />
-        <div class="flex-auto px-9 pt-6 pb-12 overflow-y-auto | VPDoc">
+        <div class="flex-auto px-9 pt-6 pb-12 overflow-y-auto | VPDoc" ref="docs">
           <Content class="w-full max-w-2xl mx-auto | vp-doc" />
         </div>
         <Pager />
@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useData, useRoute } from 'vitepress'
 import { useMonaco, useWebContainer } from '../../store'
 import VPNav from 'vitepress/dist/client/theme-default/components/VPNav.vue'
@@ -40,6 +40,7 @@ const route = useRoute()
 const { frontmatter } = useData()
 const container = useWebContainer()
 const monaco = useMonaco()
+const docs = ref<HTMLElement>()
 
 async function init() {
   await container.ready
@@ -49,7 +50,11 @@ async function init() {
 }
 
 watch(() => route.path, (path) => {
-  if (/^\/tutorial/.test(path)) init()
+  if (/^\/tutorial/.test(path)) {
+    init()
+    // Force scroll to top
+    docs.value!.scrollTop = 0
+  }
 })
 init()
 </script>
