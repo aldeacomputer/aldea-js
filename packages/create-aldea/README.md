@@ -21,7 +21,7 @@ yarn create aldea my-project
 
 ## Tutorial
 
-Once setup, follow through the [walkthrough in the Aldea documentation](https://docs.aldea.computer/getting-started/starter-kit) to begin deploying your own code and experimenting with the Aldea Computer.
+Once setup, follow through the [walkthrough in the Aldea documentation](https://docs.aldea.network/getting-started/starter-kit) to begin deploying your own code and experimenting with the Aldea Computer.
 
 ## License
 

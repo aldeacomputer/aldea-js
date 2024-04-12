@@ -4,7 +4,7 @@
 
 > Build the future with programmable digital objects
 
-The [Aldea Computer](https://aldea.computer) is a new Layer-1 blockchain built for the metaverse.
+The [Aldea Computer](https://aldea.network) is a new Layer-1 blockchain built for the metaverse.
 
 - 🤗 Human-friendly developer experience
 - 💻 Programmable digital objects
@@ -14,7 +14,7 @@ The [Aldea Computer](https://aldea.computer) is a new Layer-1 blockchain built f
 
 This monorepo contains JavaScript tools and packages used by developers to build on and interact with the Aldea Computer.
 
-[Read the Docs to learn more](https://docs.aldea.computer/).
+[Read the Docs to learn more](https://docs.aldea.network/).
 
 **🚨 Warning**: Aldea is in early development. We are interating heavily on the design and function of the blockchain and expect frequent breaking changes. This software is not ready for general use.
 

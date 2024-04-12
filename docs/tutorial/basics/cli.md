@@ -91,7 +91,7 @@ aldea deploy potion.ts
 
 Remember, every change to the Aldea Computer blockchain happens through a transaction. In this case, the CLI created a transaction that deployed a new package containing your `Potion` class, funded the transaction using a coin from your wallet, and committed the transaction to the blockchain.
 
-The deploy command responds with both a Transaction ID and Package ID. You can copy either of these values and search for them on [the Aldea Explorer](https://explorer.aldea.computer).
+The deploy command responds with both a Transaction ID and Package ID. You can copy either of these values and search for them on [the Aldea Explorer](https://explorer.aldea.network).
 
 Congratulations on deploying your first package! 🎉
 

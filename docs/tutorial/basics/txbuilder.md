@@ -146,7 +146,7 @@ Insert all the `TxBuilder` code into the placeholder in `scripts/tx.js` (or clic
 node scripts/tx
 ```
 
-The script will provide the transaction ID and the output ID of the mixed `Potion` instance. You can copy these values and search for them on [the Aldea Explorer](https://explorer.aldea.computer).
+The script will provide the transaction ID and the output ID of the mixed `Potion` instance. You can copy these values and search for them on [the Aldea Explorer](https://explorer.aldea.network).
 
 ## What's next?
 

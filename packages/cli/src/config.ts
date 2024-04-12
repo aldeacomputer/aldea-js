@@ -16,6 +16,6 @@ export interface Config {
 export const defaultConfig: Config = {
   codeDir: '.',
   walletDir: '.aldea',
-  //nodeUrl: 'https://node.aldea.computer',
+  //nodeUrl: 'https://node.aldea.network',
   nodeUrl: 'http://localhost:4000',
 }
