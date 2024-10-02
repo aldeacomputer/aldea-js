@@ -37,7 +37,7 @@ Connect to your own or a public node to interface with the Aldea Computer.
 ```ts
 import { Aldea } from '@aldea/sdk'
 
-const aldea = new Aldea('https://node.aldea.computer')
+const aldea = new Aldea('https://node.aldeacomputer.com')
 
 // Examples
 const tx = await aldea.getTx(txid)

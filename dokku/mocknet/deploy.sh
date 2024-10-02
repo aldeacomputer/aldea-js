@@ -4,7 +4,7 @@ GIT_REMOTES=`git remote | grep dokku-node`
 
 if [[ -z "$GIT_REMOTES" ]]
 then
-  git remote add dokku-node dokku@node.aldea.computer:node
+  git remote add dokku-node dokku@node.aldeacomputer.com:node
 fi
 
 REPO_CHANGES=`git status -s`
