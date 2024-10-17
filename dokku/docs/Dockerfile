@@ -30,7 +30,7 @@ RUN yarn build
 
 ### SERVE
 
-FROM pierrezemb/gostatic as server
+FROM pierrezemb/gostatic AS server
 COPY --from=build /build/docs/.vitepress/dist /srv/http/
 COPY docs/headers.json /config/headerConfig.json
 ENTRYPOINT ["/goStatic"]
