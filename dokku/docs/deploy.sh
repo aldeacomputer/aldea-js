@@ -4,7 +4,7 @@ GIT_REMOTES=`git remote | grep dokku-docs`
 
 if [[ -z "$GIT_REMOTES" ]]
 then
-  git remote add dokku-docs dokku@demos.aldeacomputer.com:docs
+  git remote add dokku-docs dokku@aldeacomputer.com:docs
 fi
 
 REPO_CHANGES=`git status -s`
