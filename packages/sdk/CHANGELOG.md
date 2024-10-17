@@ -1,5 +1,15 @@
 # @aldea/sdk
 
+## 0.8.0
+
+### Minor Changes
+
+- 64de157: Updated hard coded host name to node.aldeacomputer.com
+
+### Patch Changes
+
+- 938da11: SDK client uses new outputs by lock api
+
 ## 0.7.2
 
 ### Patch Changes

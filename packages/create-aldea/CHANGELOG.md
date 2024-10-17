@@ -1,5 +1,11 @@
 # create-aldea
 
+## 0.3.0
+
+### Minor Changes
+
+- 64de157: Updated hard coded host name to node.aldeacomputer.com
+
 ## 0.2.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @aldea/vm
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies [9ff1ecb]
+  - @aldea/compiler@0.7.0
+
 ## 0.7.3
 
 ### Patch Changes

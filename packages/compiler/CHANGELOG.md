@@ -1,5 +1,11 @@
 # @aldea/compiler
 
+## 0.7.0
+
+### Minor Changes
+
+- 9ff1ecb: Compiler now ships with a single-file-compiler build for standalone JS runtimes.
+
 ## 0.6.1
 
 ### Patch Changes
